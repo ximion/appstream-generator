@@ -3,7 +3,7 @@
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
- * This library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the license, or
  * (at your option) any later version.
@@ -14,7 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 module ag.utils;
@@ -41,21 +41,4 @@ string randomString (uint len)
 
     auto res = to!string (randomSample (chain (asciiLetters, asciiDigits), len));
     return res;
-}
-
-/**
- * Get unique temporary directory to use during one generator run.
- */
-string getAgTmpDir ()
-{
-    import std.file;
-    import std.path;
-
-    if (!agTmpDir_) {
-        // TODO: Make theadsafe
-        agTmpDir_ = buildPath (tempDir (), format ("asgen-%s", randomString (8)));
-        mkdirRecurse (agTmpDir_);
-    }
-
-    return agTmpDir_;
 }
