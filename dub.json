@@ -9,6 +9,7 @@
     },
 
     "targetPath": "build",
+    "targetType": "executable",
     "buildRequirements": ["disallowDeprecations"],
     "sourcePaths": ["source", "build/bindings"],
     "importPaths": ["build/bindings"],
