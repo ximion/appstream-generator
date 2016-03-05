@@ -37,7 +37,6 @@ public:
 
     this ()
     {
-        writeln ("HELLO THERE!");
     }
 
     ~this ()

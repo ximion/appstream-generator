@@ -21,16 +21,19 @@ module ag.result;
 
 import std.stdio;
 import std.string;
-import ag.hint;
+import std.array : empty;
 import appstream.Component;
+
+import ag.hint;
 
 
 class GeneratorResult
 {
 
 private:
-    Component cpts[];
-    GeneratorHint hints[];
+    Component[string] cpts;
+    string[Component] cptGID;
+    GeneratorHint[] hints;
 
 public:
 
@@ -41,5 +44,28 @@ public:
     bool isIgnored ()
     {
         return cpts.length == 0;
+    }
+
+    Component getComponent (string id)
+    {
+        auto ptr = (id in cpts);
+        if (ptr is null)
+            return null;
+        return *ptr;
+    }
+
+    void addComponent (Component cpt)
+    {
+        string cid = cpt.getId ();
+        if (cid.empty)
+            throw new Exception ("Can not add component without ID to results set.");
+
+        cpts[cid] = cpt;
+    }
+
+    void addHint (string tag, string msg)
+    {
+        auto hint = new GeneratorHint (tag);
+        hints ~= hint;
     }
 }

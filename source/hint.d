@@ -27,11 +27,13 @@ class GeneratorHint
 {
 
 private:
+    string tag;
 
 public:
 
-    this ()
+    this (string tag)
     {
+        this.tag = tag;
     }
 
 }
