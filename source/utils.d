@@ -26,8 +26,6 @@ import std.range : chain;
 import std.string;
 
 
-private __gshared string agTmpDir_;
-
 /**
  * Generate a random alphanumeric string.
  */
@@ -41,4 +39,20 @@ string randomString (uint len)
 
     auto res = to!string (randomSample (chain (asciiLetters, asciiDigits), len));
     return res;
+}
+
+/**
+ * Check if the locale is a valid locale which we want to include
+ * in the resulting metadata. Some locales added just for testing
+ * by upstreams should be filtered out.
+ */
+bool localeValid (string locale)
+{
+    switch (locale) {
+        case "x-test":
+        case "xx":
+            return false;
+        default:
+            return true;
+    }
 }

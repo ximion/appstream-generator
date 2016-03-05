@@ -21,19 +21,31 @@ module ag.handler.desktopparser;
 
 import std.path : baseName;
 import std.uni : toLower;
-import std.string : format;
-import std.algorithm : startsWith;
+import std.string : format, indexOf;
+import std.algorithm : startsWith, split, strip, stripRight;
+import std.stdio;
 import glib.KeyFile;
 import appstream.Component;
+import appstream.Provided;
+import appstream.Icon;
 
 import ag.result;
+import ag.utils;
 
 
 immutable DESKTOP_GROUP = "Desktop Entry";
 
 private string getLocaleFromKey (string key)
 {
-    return "C";
+    if (!localeValid (key))
+        return null;
+    auto si = key.indexOf ("[");
+
+    // check if this key is language-specific, if not assume untranslated.
+    if (si <= 0)
+        return "C";
+
+    return key[si+1..$-1];
 }
 
 private string getValue (KeyFile kf, string key)
@@ -48,11 +60,34 @@ private string getValue (KeyFile kf, string key)
     return val;
 }
 
+/**
+ * Filter out some useless categories which we don't want to have in the
+ * AppStream metadata.
+ */
+string[] filterCategories (string[] cats)
+{
+    string[] rescats;
+    foreach (string cat; cats) {
+        switch (cat) {
+            case "GTK":
+            case "Qt":
+            case "GNOME":
+            case "KDE":
+                break;
+            default:
+                rescats ~= cat;
+        }
+    }
+
+    return rescats;
+}
+
+
 bool parseDesktopFile (GeneratorResult res, string fname, string data, bool ignore_nodisplay = false)
 {
     auto df = new KeyFile ();
     try {
-        df.loadFromData (data, -1, GKeyFileFlags.NONE);
+        df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);
     } catch (Exception e) {
         // there was an error
         res.addHint ("desktop-file-read-error", e.msg);
@@ -106,9 +141,47 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
     size_t dummy;
     auto keys = df.getKeys (DESKTOP_GROUP, dummy);
     foreach (string key; keys) {
-        if (key.startsWith ("Name")) {
-            auto locale = getLocaleFromKey (key);
+        string locale;
+        locale = getLocaleFromKey (key);
+        if (locale is null)
+            continue;
+
+        if (key.startsWith ("Name"))
             cpt.setName (getValue (df, key), locale);
+        else if (key.startsWith ("Comment"))
+            cpt.setSummary (getValue (df, key), locale);
+        else if (key == "Categories") {
+            auto value = getValue (df, key);
+            string[] cats = value.split (";");
+            cats = filterCategories (cats);
+
+            cpt.setCategories (cats);
+        } else if (key.startsWith ("Keywords")) {
+            auto value = getValue (df, key);
+            string[] kws = value.split (";");
+            kws = kws.stripRight ("");
+
+            cpt.setKeywords (kws, locale);
+        } else if (key == "MimeType") {
+            auto value = getValue (df, key);
+            string[] mts = value.split (";");
+
+            Provided prov = cpt.getProvidedForKind (ProvidedKind.MIMETYPE);
+            if (prov is null) {
+                prov = new Provided ();
+                prov.setKind (ProvidedKind.MIMETYPE);
+            }
+
+            foreach (string mt; mts) {
+                if (!mt.empty)
+                    prov.addItem (mt);
+            }
+            cpt.addProvided (prov);
+        } else if (key == "Icon") {
+            auto icon = new Icon ();
+            icon.setKind (IconKind.CACHED);
+            icon.setName (getValue (df, key));
+            cpt.addIcon (icon);
         }
     }
 
@@ -122,11 +195,23 @@ unittest
     auto data = """
 [Desktop Entry]
 Name=FooBar
-Name[de_DE]=FooBär
-Summary=A foo-ish bar.
+Name[de_DE]=FööBär
+Comment=A foo-ish bar.
+Keywords=Flubber;Test;Meh;
+Keywords[de_DE]=Goethe;Schiller;Kant;
 """;
 
     auto res = new GeneratorResult ();
     auto ret = parseDesktopFile (res, "foobar.desktop", data, false);
     assert (ret == true);
+
+    auto cpt = res.getComponent ("foobar.desktop");
+    assert (cpt !is null);
+
+    assert (cpt.getName () == "FooBar");
+    assert (cpt.getKeywords () == ["Flubber", "Test", "Meh"]);
+
+    cpt.setActiveLocale ("de_DE");
+    assert (cpt.getName () == "FööBär");
+    assert (cpt.getKeywords () == ["Goethe", "Schiller", "Kant"]);
 }
