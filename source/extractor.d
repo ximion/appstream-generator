@@ -24,6 +24,7 @@ import std.string;
 import ag.hint;
 import ag.result;
 import ag.backend.intf;
+import ag.datacache;
 import appstream.Component;
 
 
@@ -34,15 +35,18 @@ private:
     Component[] cpts;
     GeneratorHint[] hints;
 
+    DataCache dcache;
+
 public:
 
-    this ()
+    this (DataCache cache)
     {
+        dcache = cache;
     }
 
     GeneratorResult processPackage (Package pkg)
     {
-        writeln (pkg.name);
+        //writeln (pkg.name);
         return new GeneratorResult ();
     }
 }

@@ -44,8 +44,8 @@ alias mdb_filehandle_t = mdb_filehandle_ts*;
 enum {
   MDB_VERSION_MAJOR = 0,
   MDB_VERSION_MINOR = 9,
-  MDB_VERSION_PATCH = 14,
-  MDB_VERSION_DATE = "September 20, 2014",
+  MDB_VERSION_PATCH = 18,
+  MDB_VERSION_DATE = "December 19, 2015",
 }
 
 struct MDB_env_s {}

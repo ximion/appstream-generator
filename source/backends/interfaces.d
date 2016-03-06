@@ -37,7 +37,7 @@ interface Package
     string getFileData (string fname);
     void close ();
 
-    final string getId (Package pkg)
+    static string getId (Package pkg)
     {
         return format ("%s/%s/%s", pkg.name, pkg.ver, pkg.arch);
     }

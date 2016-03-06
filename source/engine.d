@@ -41,7 +41,7 @@ private:
     Config conf;
     PackagesIndex pkgIndex;
     ContentsIndex contentsIndex;
-    DataCache cache;
+    DataCache dcache;
 
 
 public:
@@ -58,8 +58,8 @@ public:
                 throw new Exception ("No backend specified, can not continue!");
         }
 
-        cache = new DataCache ();
-        cache.open (buildPath (conf.workspaceDir, "cache"));
+        dcache = new DataCache ();
+        dcache.open (buildPath (conf.workspaceDir, "cache"));
     }
 
     private GeneratorResult[] processSectionArch (Suite suite, string section, string arch)
@@ -69,8 +69,12 @@ public:
 
         GeneratorResult[] results;
 
-        auto mde = new DataExtractor ();
+        auto mde = new DataExtractor (dcache);
         foreach (Package pkg; parallel (pkgIndex.getPackages ())) {
+            auto pkid = Package.getId (pkg);
+            if (dcache.packageExists (pkid))
+                continue;
+
             auto res = mde.processPackage (pkg);
             synchronized (this) {
                 results ~= res;

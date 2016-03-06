@@ -47,8 +47,8 @@ public:
 
     void open (string dir, string suite, string section, string arch)
     {
-        location = dir;
-        architecture = arch;
+        this.location = dir;
+        this.architecture = arch;
 
         auto index_fname = buildPath(dir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
         if (!std.file.exists (index_fname))
