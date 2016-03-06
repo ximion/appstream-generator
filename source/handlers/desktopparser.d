@@ -85,12 +85,14 @@ string[] filterCategories (string[] cats)
 
 bool parseDesktopFile (GeneratorResult res, string fname, string data, bool ignore_nodisplay = false)
 {
+    auto fname_base = baseName (fname);
+
     auto df = new KeyFile ();
     try {
         df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);
     } catch (Exception e) {
         // there was an error
-        res.addHint ("desktop-file-read-error", e.msg);
+        res.addHint ("desktop-file-read-error", fname_base, e.msg);
         return false;
     }
 
@@ -124,14 +126,15 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {
-        res.addHint ("desktop-file-error", format ("Desktop file '%s' is not a valid desktop file.", fname));
+        res.addHint ("desktop-file-error",
+                        fname_base,
+                        format ("Desktop file '%s' is not a valid desktop file.", fname));
         return false;
 	}
 
     // make sure we have a valid component to work on
-    auto cpt = res.getComponent (fname);
+    auto cpt = res.getComponent (fname_base);
     if (cpt is null) {
-        auto fname_base = baseName (fname);
         cpt = new Component ();
         cpt.setId (fname_base);
         cpt.setKind (ComponentKind.DESKTOP);

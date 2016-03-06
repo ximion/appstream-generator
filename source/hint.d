@@ -22,18 +22,27 @@ module ag.hint;
 import std.stdio;
 import std.string;
 
+alias HintList = GeneratorHint[];
 
 class GeneratorHint
 {
 
 private:
     string tag;
+    string cid;
+
+    string[string] vars;
 
 public:
 
-    this (string tag)
+    this (string tag, string cid = null)
     {
         this.tag = tag;
+        this.cid = cid;
     }
 
+    void setVars (string[string] vars)
+    {
+        this.vars = vars;
+    }
 }

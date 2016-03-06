@@ -33,7 +33,7 @@ class GeneratorResult
 private:
     Component[string] cpts;
     string[Component] cptGID;
-    GeneratorHint[] hints;
+    HintList[string] hints;
 
 public:
 
@@ -63,9 +63,33 @@ public:
         cpts[cid] = cpt;
     }
 
-    void addHint (string tag, string msg)
+    /**
+     * Add an issue hint to this result.
+     * Params:
+     *      tag    = The hint tag.
+     *      cid    = The component-id this tag is assigned to.
+     *      params = Dictionary of parameters to insert into the issue report.
+     **/
+    void addHint (string tag, string cid, string[string] params)
     {
-        auto hint = new GeneratorHint (tag);
-        hints ~= hint;
+        auto hint = new GeneratorHint (tag, cid);
+        hint.setVars (params);
+        if (cid is null)
+            cid = "general";
+        hints[cid] ~= hint;
     }
+
+    /**
+     * Add an issue hint to this result.
+     * Params:
+     *      tag = The hint tag.
+     *      cid = The component-id this tag is assigned to.
+     *      msg = An error message to add to the report.
+     **/
+    void addHint (string tag, string cid, string msg)
+    {
+        string[string] vars = ["msg": msg];
+        addHint (tag, cid, vars);
+    }
+
 }
