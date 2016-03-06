@@ -54,6 +54,11 @@ public:
         return *ptr;
     }
 
+    Component[] getComponents ()
+    {
+        return cpts.values ();
+    }
+
     void addComponent (Component cpt)
     {
         string cid = cpt.getId ();

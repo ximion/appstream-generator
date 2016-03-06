@@ -24,8 +24,12 @@ import std.string;
 import std.parallelism;
 
 import ag.config;
+import ag.extractor;
+import ag.result;
+import ag.hint;
 import ag.backend.intf;
 import ag.backend.debian.pkgindex;
+import appstream.Component;
 
 
 class Engine
@@ -52,14 +56,22 @@ public:
         }
     }
 
-    private void processSectionArch (Suite suite, string section, string arch)
+    private GeneratorResult[] processSectionArch (Suite suite, string section, string arch)
     {
         pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
         scope (exit) pkgIndex.close ();
 
-        foreach (Package pkg; pkgIndex.getPackages ()) {
-            writeln (pkg.name);
+        GeneratorResult[] results;
+
+        auto mde = new DataExtractor ();
+        foreach (Package pkg; parallel (pkgIndex.getPackages ())) {
+            auto res = mde.processPackage (pkg);
+            synchronized (this) {
+                results ~= res;
+            }
         }
+
+        return results;
     }
 
     void generateMetadata (string suite_name)
@@ -69,8 +81,17 @@ public:
             if (s.name == suite_name)
                 suite = s;
 
-        foreach (string section; suite.sections)
-            foreach (string arch; suite.architectures)
-                processSectionArch (suite, section, arch);
+        Component[] cpts;
+        GeneratorHint[string] hints;
+
+        foreach (string section; suite.sections) {
+            foreach (string arch; suite.architectures) {
+                auto results = processSectionArch (suite, section, arch);
+                foreach (GeneratorResult res; results) {
+                    cpts ~= res.getComponents ();
+                }
+            }
+        }
+
     }
 }

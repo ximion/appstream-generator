@@ -22,15 +22,17 @@ module ag.extractor;
 import std.stdio;
 import std.string;
 import ag.hint;
+import ag.result;
+import ag.backend.intf;
 import appstream.Component;
 
 
-class GeneratorResult
+class DataExtractor
 {
 
 private:
-    Component cpts[];
-    GeneratorHint hints[];
+    Component[] cpts;
+    GeneratorHint[] hints;
 
 public:
 
@@ -38,8 +40,9 @@ public:
     {
     }
 
-    bool isIgnored ()
+    GeneratorResult processPackage (Package pkg)
     {
-        return cpts.length == 0;
+        writeln (pkg.name);
+        return new GeneratorResult ();
     }
 }

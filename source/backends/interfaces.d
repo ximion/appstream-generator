@@ -51,7 +51,7 @@ interface PackagesIndex
     void open (string dir, string suite, string section, string arch);
     void close ();
 
-    DList!Package getPackages ();
+    Package[] getPackages ();
 }
 
 /**

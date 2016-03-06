@@ -66,9 +66,9 @@ public:
         // Not needed
     }
 
-    DList!Package getPackages ()
+    Package[] getPackages ()
     {
-        DList!Package pkgs;
+        Package[] pkgs;
 
         do {
             auto name = tagf.readField ("Package");
@@ -83,7 +83,7 @@ public:
                 continue;
             }
 
-            pkgs.insertBack (pkg);
+            pkgs ~= pkg;
         } while (tagf.nextSection ());
 
         return pkgs;
