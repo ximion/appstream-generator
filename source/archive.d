@@ -122,7 +122,7 @@ private:
         archive_read_support_compression_all (ar);
         archive_read_support_format_all (ar);
 
-        auto ret = archive_read_open_filename (ar, toStringz (archive_fname), DEFAULT_BLOCK_SIZE);
+        auto ret = archive_read_open_filename (ar, archive_fname.toStringz (), DEFAULT_BLOCK_SIZE);
         if (ret != ARCHIVE_OK)
             throw new Exception (format ("Unable to open compressed file '%s'", archive_fname));
 

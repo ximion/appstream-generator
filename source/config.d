@@ -22,6 +22,7 @@ module ag.config;
 import std.stdio;
 import std.array;
 import std.string : format, toLower;
+import std.path : dirName, getcwd;
 import dyaml.all;
 
 import ag.utils;
@@ -57,6 +58,8 @@ class Config
     Suite[] suites;
     DataType metadataType;
 
+    string workspaceDir;
+
     private string tmpDir;
 
     // Thread local
@@ -83,8 +86,12 @@ class Config
 
     void loadFromFile (string fname)
     {
-        //Read the input.
+        // read the configuration YAML file
         Node root = Loader(fname).load ();
+
+        workspaceDir = dirName (fname);
+        if (workspaceDir.empty)
+            workspaceDir = getcwd ();
 
         this.projectName = "Unknown";
         if (root.containsKey("ProjectName"))

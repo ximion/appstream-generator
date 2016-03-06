@@ -22,9 +22,11 @@ module ag.engine;
 import std.stdio;
 import std.string;
 import std.parallelism;
+import std.path : buildPath;
 
 import ag.config;
 import ag.extractor;
+import ag.datacache;
 import ag.result;
 import ag.hint;
 import ag.backend.intf;
@@ -39,6 +41,7 @@ private:
     Config conf;
     PackagesIndex pkgIndex;
     ContentsIndex contentsIndex;
+    DataCache cache;
 
 
 public:
@@ -54,6 +57,9 @@ public:
             default:
                 throw new Exception ("No backend specified, can not continue!");
         }
+
+        cache = new DataCache ();
+        cache.open (buildPath (conf.workspaceDir, "cache"));
     }
 
     private GeneratorResult[] processSectionArch (Suite suite, string section, string arch)

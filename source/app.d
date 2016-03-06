@@ -23,6 +23,7 @@ import std.getopt;
 import std.string : format;
 import core.stdc.stdlib;
 
+import ag.logging;
 import ag.config;
 import ag.engine;
 
@@ -58,7 +59,7 @@ void main(string[] args)
 
     auto conf = Config.get ();
     try {
-        conf.loadFromFile ("asgen-config.yml");
+        conf.loadFromFile (buildPath (wdir, "asgen-config.yml"));
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
