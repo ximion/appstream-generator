@@ -27,9 +27,22 @@ import dyaml.all;
 import ag.utils;
 
 
+struct Suite
+{
+    string name;
+    int dataPriority = 0;
+    string baseSuite;
+    string[] sections;
+    string[] architectures;
+}
+
 class Config
 {
     string projectName;
+    string archiveRoot;
+    string mediaBaseUrl;
+    string htmlBaseUrl;
+    Suite[] suites;
 
     private string tmpDir;
 
@@ -64,13 +77,37 @@ class Config
         if (root.containsKey("ProjectName"))
             this.projectName = root["ProjectName"].as!string;
 
+        this.archiveRoot = root["ArchiveRoot"].as!string;
 
-        //Display the data read.
-        foreach (string word; root["Hello World"]) {
-            writeln(word);
+        this.mediaBaseUrl = "";
+        if (root.containsKey("MediaBaseUrl"))
+            this.mediaBaseUrl = root["MediaBaseUrl"].as!string;
+
+        this.htmlBaseUrl = "";
+        if (root.containsKey("HtmlBaseUrl"))
+            this.htmlBaseUrl = root["HtmlBaseUrl"].as!string;
+
+        int iterSuites (ref string suiteName, ref Node prop)
+        {
+            Suite suite;
+            suite.name = suiteName;
+            if (prop.containsKey("dataPriority"))
+                suite.dataPriority = prop["dataPriority"].as!int;
+            if (prop.containsKey("baseSuite"))
+                suite.baseSuite = prop["baseSuite"].as!string;
+            if (prop.containsKey("sections"))
+                foreach (string sec; prop["sections"])
+                    suite.sections ~= sec;
+            if (prop.containsKey("architectures"))
+                foreach (string arch; prop["architectures"])
+                    suite.architectures ~= arch;
+
+            suites ~= suite;
+            // never stop
+            return 0;
         }
 
-        writeln("The answer is ", root["Answer"].as!int);
+        root["Suites"].opApply (&iterSuites);
     }
 
     bool isValid ()

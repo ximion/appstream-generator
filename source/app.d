@@ -58,7 +58,7 @@ void main(string[] args)
 
     auto conf = Config.get ();
     try {
-        conf.loadFromFile ("test.yml");
+        conf.loadFromFile ("asgen-config.yml");
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
