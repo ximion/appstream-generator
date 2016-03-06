@@ -21,16 +21,56 @@ module ag.engine;
 
 import std.stdio;
 import std.string;
+import std.parallelism;
+
+import ag.config;
+import ag.backend.intf;
+import ag.backend.debian.pkgindex;
 
 
 class Engine
 {
 
 private:
+    Config conf;
+    PackagesIndex pkgIndex;
+    ContentsIndex contentsIndex;
+
 
 public:
 
     this ()
     {
+        this.conf = Config.get ();
+
+        switch (conf.backend) {
+            case Backend.Debian:
+                pkgIndex = new DebianPackagesIndex ();
+                break;
+            default:
+                throw new Exception ("No backend specified, can not continue!");
+        }
+    }
+
+    private void processSectionArch (Suite suite, string section, string arch)
+    {
+        pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
+        scope (exit) pkgIndex.close ();
+
+        foreach (Package pkg; pkgIndex.getPackages ()) {
+            writeln (pkg.name);
+        }
+    }
+
+    void generateMetadata (string suite_name)
+    {
+        Suite suite;
+        foreach (Suite s; conf.suites)
+            if (s.name == suite_name)
+                suite = s;
+
+        foreach (string section; suite.sections)
+            foreach (string arch; suite.architectures)
+                processSectionArch (suite, section, arch);
     }
 }

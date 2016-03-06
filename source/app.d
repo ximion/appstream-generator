@@ -73,7 +73,12 @@ void main(string[] args)
     switch (command) {
         case "run":
         case "process":
+            if (args.length != 3) {
+                writeln ("Invalid number of parameters: You need to specify a suite name.");
+                exit (1);
+            }
             auto engine = new Engine ();
+            engine.generateMetadata (args[2]);
             break;
         default:
             writeln (format ("The command '%s' is unknown.", command));

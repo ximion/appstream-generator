@@ -21,7 +21,7 @@ module ag.config;
 
 import std.stdio;
 import std.array;
-import std.string : format;
+import std.string : format, toLower;
 import dyaml.all;
 
 import ag.utils;
@@ -36,13 +36,26 @@ struct Suite
     string[] architectures;
 }
 
+enum DataType
+{
+    XML,
+    YAML
+}
+
+enum Backend
+{
+    Debian
+}
+
 class Config
 {
     string projectName;
     string archiveRoot;
     string mediaBaseUrl;
     string htmlBaseUrl;
+    Backend backend;
     Suite[] suites;
+    DataType metadataType;
 
     private string tmpDir;
 
@@ -86,6 +99,23 @@ class Config
         this.htmlBaseUrl = "";
         if (root.containsKey("HtmlBaseUrl"))
             this.htmlBaseUrl = root["HtmlBaseUrl"].as!string;
+
+        this.metadataType = DataType.XML;
+        if (root.containsKey("MetadataType"))
+            if (root["MetadataType"].as!string.toLower () == "yaml")
+                this.metadataType = DataType.YAML;
+
+        this.backend = Backend.Debian;
+        if (root.containsKey("Backend")) {
+            auto backendName = root["Backend"].as!string.toLower ();
+            switch (backendName) {
+                case "debian":
+                    this.backend = Backend.Debian;
+                    break;
+                default:
+                    break;
+            }
+        }
 
         int iterSuites (ref string suiteName, ref Node prop)
         {
