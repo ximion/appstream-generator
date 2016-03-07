@@ -25,6 +25,10 @@ import ag.hint;
 import ag.result;
 import ag.backend.intf;
 import ag.datacache;
+
+import ag.handlers.desktopparser;
+import ag.handlers.metainfoparser;
+
 import appstream.Component;
 
 
@@ -46,7 +50,51 @@ public:
 
     GeneratorResult processPackage (Package pkg)
     {
-        //writeln (pkg.name);
-        return new GeneratorResult ();
+        // create a new result container
+        auto res = new GeneratorResult ();
+
+        // prepare a list of metadata files which interest us
+        string[] metadataFiles;
+        foreach (string fname; pkg.getContentsList ()) {
+            if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
+                metadataFiles ~= fname;
+                continue;
+            }
+            if ((fname.startsWith ("/usr/share/appdata")) && (fname.endsWith (".xml"))) {
+                metadataFiles ~= fname;
+                continue;
+            }
+            if ((fname.startsWith ("/usr/share/metainfo")) && (fname.endsWith (".xml"))) {
+                metadataFiles ~= fname;
+                continue;
+            }
+        }
+
+        // process metainfo XML files first
+        foreach (string mfname; metadataFiles) {
+            if (!mfname.endsWith (".xml"))
+                continue;
+            writeln (mfname);
+            auto data = pkg.getFileData (mfname);
+            parseMetaInfoFile (res, data);
+        }
+
+        // process .desktop files to complement the XML
+        foreach (string mfname; metadataFiles) {
+            if (!mfname.endsWith (".desktop"))
+                continue;
+            writeln (mfname);
+            auto data = pkg.getFileData (mfname);
+
+            auto ignoreNoDisplay = false;
+            // TODO: Determine if we have a component matching the fname already and pass it
+            // to the .desktop parsing routine.
+            parseDesktopFile (res, mfname, data, ignoreNoDisplay);
+        }
+
+        //writeln (Package.getId (pkg));
+
+        pkg.close ();
+        return res;
     }
 }

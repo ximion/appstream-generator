@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handler.metainfoparser;
+module ag.handlers.metainfoparser;
 
 import std.path : baseName;
 import std.uni : toLower;

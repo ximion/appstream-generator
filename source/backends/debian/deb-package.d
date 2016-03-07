@@ -76,7 +76,7 @@ public:
         return true;
     }
 
-    string getFileData (string fname)
+    private CompressedArchive openPayloadArchive ()
     {
         auto ca = new CompressedArchive ();
         if (!dataArchive) {
@@ -98,7 +98,12 @@ public:
         }
 
         ca.open (dataArchive);
+        return ca;
+    }
 
+    string getFileData (string fname)
+    {
+        auto ca = openPayloadArchive ();
         string data;
         try {
             data = ca.readData (fname);
@@ -112,29 +117,8 @@ public:
         if (contentsRead)
             return contents;
 
-        auto pipes = pipeProcess (["dpkg", "--contents", filename], Redirect.stdout | Redirect.stderr);
-        auto ret = wait (pipes.pid);
-        if (ret != 0) {
-            writeln ("ERROR: Unable to read data from '%s'", filename);
-            return contents;
-        }
-
-        // Store lines of output.
-        string[] output;
-        foreach (line; pipes.stdout.byLine) {
-            auto idx = indexOf (line.idup, "./");
-            if (idx <= 0)
-                continue;
-            string fname = line.idup[idx+1..$];
-
-            auto link_idx = indexOf (fname, " -> ");
-            if (link_idx > 0)
-                fname = strip (fname[0..link_idx]);
-
-            // add it to the index if it isn't a directory
-            if (!endsWith(fname, "/"))
-                contents ~= fname;
-        }
+        auto ca = openPayloadArchive ();
+        contents = ca.readContents ();
 
         contentsRead = true;
         return contents;

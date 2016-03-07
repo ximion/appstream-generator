@@ -223,4 +223,33 @@ public:
 
         return matches;
     }
+
+    string[] readContents ()
+    {
+        import std.conv : to;
+        archive *ar;
+        archive_entry *en;
+
+        try {
+            ar = openArchive ();
+        } catch (Exception e) {
+            throw e;
+        }
+        scope (exit) archive_read_free (ar);
+
+        string[] contents;
+        while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
+            auto pathname = fromStringz (archive_entry_pathname (en));
+
+            // ignore directories
+            if (pathname.endsWith ("/"))
+                continue;
+
+            if (pathname.startsWith ("."))
+                pathname = pathname[1..$];
+            contents ~= to!string (pathname);
+        }
+
+        return contents;
+    }
 }
