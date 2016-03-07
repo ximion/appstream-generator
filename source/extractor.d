@@ -51,13 +51,14 @@ public:
     GeneratorResult processPackage (Package pkg)
     {
         // create a new result container
-        auto res = new GeneratorResult ();
+        auto res = new GeneratorResult (Package.getId (pkg));
 
         // prepare a list of metadata files which interest us
+        string[string] desktopFiles;
         string[] metadataFiles;
         foreach (string fname; pkg.getContentsList ()) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
-                metadataFiles ~= fname;
+                desktopFiles[baseName (fname)] = fname;
                 continue;
             }
             if ((fname.startsWith ("/usr/share/appdata")) && (fname.endsWith (".xml"))) {
@@ -70,29 +71,45 @@ public:
             }
         }
 
-        // process metainfo XML files first
+        // now process metainfo XML files
         foreach (string mfname; metadataFiles) {
             if (!mfname.endsWith (".xml"))
                 continue;
-            writeln (mfname);
-            auto data = pkg.getFileData (mfname);
-            parseMetaInfoFile (res, data);
-        }
 
-        // process .desktop files to complement the XML
-        foreach (string mfname; metadataFiles) {
-            if (!mfname.endsWith (".desktop"))
+            auto data = pkg.getFileData (mfname);
+            auto cpt = parseMetaInfoFile (res, data);
+            if (cpt is null)
                 continue;
-            writeln (mfname);
-            auto data = pkg.getFileData (mfname);
 
-            auto ignoreNoDisplay = false;
-            // TODO: Determine if we have a component matching the fname already and pass it
-            // to the .desktop parsing routine.
-            parseDesktopFile (res, mfname, data, ignoreNoDisplay);
+            // check if we need to extend this component's data with data from its .desktop file
+            auto cid = cpt.getId ();
+            if (cid.empty) {
+                res.addHint ("metainfo-no-id", "general", ["fname": mfname]);
+                continue;
+            }
+
+            auto dfp = (cid in desktopFiles);
+            if (dfp is null) {
+                // no .desktop file was found
+                continue;
+            }
+
+            // update component with .desktop file data, ignoring NoDisplay field
+            auto ddata = pkg.getFileData (*dfp);
+            parseDesktopFile (res, *dfp, ddata, true);
+
+            // drop the .desktop file from the list, it has been handled
+            desktopFiles.remove (cid);
         }
 
-        //writeln (Package.getId (pkg));
+        // process the remaining .desktop files
+        foreach (string dfname; desktopFiles.byValue ()) {
+            auto data = pkg.getFileData (dfname);
+            parseDesktopFile (res, dfname, data, false);
+        }
+
+        // this removes invalid components and cleans up the result
+        res.finalize ();
 
         pkg.close ();
         return res;

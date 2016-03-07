@@ -36,9 +36,13 @@ private:
     HintList[string] hints;
 
 public:
+    string pkid;
 
-    this ()
+public:
+
+    this (string pkid)
     {
+        this.pkid = pkid;
     }
 
     bool isIgnored ()
@@ -95,6 +99,30 @@ public:
     {
         string[string] vars = ["msg": msg];
         addHint (tag, cid, vars);
+    }
+
+    /**
+     * Drop invalid components and components with errors.
+     */
+    void finalize ()
+    {
+        // TODO
+    }
+
+    /**
+     * Return the number of components we've found.
+     **/
+    ulong componentsCount ()
+    {
+        return cpts.length;
+    }
+
+    /**
+     * Return the number of hints that have been emitted.
+     **/
+    ulong hintsCount ()
+    {
+        return hints.length;
     }
 
 }

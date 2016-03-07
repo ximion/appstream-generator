@@ -29,7 +29,8 @@ import appstream.Component;
 import ag.result;
 import ag.utils;
 
-bool parseMetaInfoFile (GeneratorResult res, string data)
+
+Component parseMetaInfoFile (GeneratorResult res, string data)
 {
     auto mdata = new Metadata ();
     mdata.setLocale ("ALL");
@@ -38,10 +39,12 @@ bool parseMetaInfoFile (GeneratorResult res, string data)
     try {
         mdata.parseXml (data);
     } catch (Exception e) {
-        // TODO: Handle exception.
-
-        return false;
+        res.addHint ("metainfo-parsing-error", "general", e.msg);
+        return null;
     }
 
-    return true;
+    auto cpt = mdata.getComponent ();
+    res.addComponent (cpt);
+
+    return cpt;
 }

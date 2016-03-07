@@ -25,6 +25,7 @@ import std.parallelism;
 import std.path : buildPath;
 
 import ag.config;
+import ag.logging;
 import ag.extractor;
 import ag.datacache;
 import ag.result;
@@ -77,6 +78,7 @@ public:
 
             auto res = mde.processPackage (pkg);
             synchronized (this) {
+                info ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
                 results ~= res;
             }
         }
