@@ -91,12 +91,17 @@ public:
             auto dfp = (cid in desktopFiles);
             if (dfp is null) {
                 // no .desktop file was found
+                // finalize GCID checksum and continue
+                res.updateComponentGCID (cpt, data);
                 continue;
             }
 
             // update component with .desktop file data, ignoring NoDisplay field
             auto ddata = pkg.getFileData (*dfp);
             parseDesktopFile (res, *dfp, ddata, true);
+
+            // update GCID checksum
+            res.updateComponentGCID (cpt, data ~ ddata);
 
             // drop the .desktop file from the list, it has been handled
             desktopFiles.remove (cid);
@@ -105,13 +110,17 @@ public:
         // process the remaining .desktop files
         foreach (string dfname; desktopFiles.byValue ()) {
             auto data = pkg.getFileData (dfname);
-            parseDesktopFile (res, dfname, data, false);
+            auto cpt = parseDesktopFile (res, dfname, data, false);
+            if (cpt !is null)
+                res.updateComponentGCID (cpt, data);
         }
 
         // this removes invalid components and cleans up the result
         res.finalize ();
-
         pkg.close ();
+
+        // write resulting data into the database
+        dcache.addGeneratorResult (DataType.XML, res);
         return res;
     }
 }

@@ -73,6 +73,7 @@ string[] filterCategories (string[] cats)
             case "Qt":
             case "GNOME":
             case "KDE":
+            case "Application":
                 break;
             default:
                 rescats ~= cat;
@@ -83,7 +84,7 @@ string[] filterCategories (string[] cats)
 }
 
 
-bool parseDesktopFile (GeneratorResult res, string fname, string data, bool ignore_nodisplay = false)
+Component parseDesktopFile (GeneratorResult res, string fname, string data, bool ignore_nodisplay = false)
 {
     auto fname_base = baseName (fname);
 
@@ -93,7 +94,7 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
     } catch (Exception e) {
         // there was an error
         res.addHint ("desktop-file-read-error", fname_base, e.msg);
-        return false;
+        return null;
     }
 
     try {
@@ -101,7 +102,7 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
         auto dtype = df.getString (DESKTOP_GROUP, "Type");
         if (dtype.toLower () != "application") {
             // ignore this file, it isn't describing an application
-            return false;
+            return null;
         }
     } catch {}
 
@@ -109,7 +110,7 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
         auto nodisplay = df.getString (DESKTOP_GROUP, "NoDisplay");
         if ((!ignore_nodisplay) && (nodisplay.toLower () == "true")) {
                 // we ignore this .desktop file, shouldn't be displayed
-                return false;
+                return null;
         }
     } catch {}
 
@@ -117,7 +118,7 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
         auto asignore = df.getString (DESKTOP_GROUP, "X-AppStream-Ignore");
         if (asignore.toLower () == "true") {
             // this .desktop file should be excluded from AppStream metadata
-            return false;
+            return null;
         }
     } catch {
         // we don't care if non-essential tags are missing.
@@ -129,7 +130,7 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
         res.addHint ("desktop-file-error",
                         fname_base,
                         format ("Desktop file '%s' is not a valid desktop file.", fname));
-        return false;
+        return null;
 	}
 
     // make sure we have a valid component to work on
@@ -188,12 +189,13 @@ bool parseDesktopFile (GeneratorResult res, string fname, string data, bool igno
         }
     }
 
-    return true;
+    return cpt;
 }
 
 unittest
 {
-    import std.stdio;
+    import std.stdio : writeln;
+    writeln ("TEST: ", ".desktop file parser");
 
     auto data = """
 [Desktop Entry]
@@ -204,11 +206,11 @@ Keywords=Flubber;Test;Meh;
 Keywords[de_DE]=Goethe;Schiller;Kant;
 """;
 
-    auto res = new GeneratorResult ();
-    auto ret = parseDesktopFile (res, "foobar.desktop", data, false);
-    assert (ret == true);
+    auto res = new GeneratorResult ("pkg/1.0/amd64");
+    auto cpt = parseDesktopFile (res, "foobar.desktop", data, false);
+    assert (cpt !is null);
 
-    auto cpt = res.getComponent ("foobar.desktop");
+    cpt = res.getComponent ("foobar.desktop");
     assert (cpt !is null);
 
     assert (cpt.getName () == "FooBar");

@@ -22,9 +22,11 @@ module ag.result;
 import std.stdio;
 import std.string;
 import std.array : empty;
+import std.conv : to;
 import appstream.Component;
 
 import ag.hint;
+import ag.utils : buildCptGlobalID;
 
 
 class GeneratorResult
@@ -32,7 +34,7 @@ class GeneratorResult
 
 private:
     Component[string] cpts;
-    string[Component] cptGID;
+    string[Component] cptGCID;
     HintList[string] hints;
 
 public:
@@ -63,13 +65,29 @@ public:
         return cpts.values ();
     }
 
-    void addComponent (Component cpt)
+    void updateComponentGCID (Component cpt, string data)
+    {
+        import std.digest.md;
+
+        auto cid = cpt.getId ();
+        if (data.empty) {
+            cptGCID[cpt] = buildCptGlobalID (cid, "???-NO_CHECKSUM-???");
+            return;
+        }
+
+        auto hash = md5Of (data);
+        auto checksum = toHexString (hash);
+        cptGCID[cpt] = buildCptGlobalID (cid, to!string (checksum));
+    }
+
+    void addComponent (Component cpt, string data = "")
     {
         string cid = cpt.getId ();
         if (cid.empty)
             throw new Exception ("Can not add component without ID to results set.");
 
         cpts[cid] = cpt;
+        updateComponentGCID (cpt, data);
     }
 
     /**
@@ -123,6 +141,19 @@ public:
     ulong hintsCount ()
     {
         return hints.length;
+    }
+
+    string gcidForComponent (Component cpt)
+    {
+        auto cgp = (cpt in cptGCID);
+        if (cgp is null)
+            return null;
+        return *cgp;
+    }
+
+    string[] getGCIDs ()
+    {
+        return cptGCID.values ();
     }
 
 }

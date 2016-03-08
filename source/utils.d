@@ -23,7 +23,9 @@ import std.ascii : letters, digits;
 import std.conv : to;
 import std.random : randomSample;
 import std.range : chain;
+import std.algorithm : startsWith;
 import std.string;
+import std.stdio : writeln;
 
 
 /**
@@ -55,4 +57,47 @@ bool localeValid (string locale)
         default:
             return true;
     }
+}
+
+/**
+ * Build a global component ID.
+ *
+ * The global-id is used as a global, unique identifier for this component.
+ * (while the component-ID is local, e.g. for one suite).
+ * Its primary usecase is to identify a media directory on the filesystem which is
+ * associated with this component.
+ **/
+string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = false)
+{
+    if (cptid is null)
+        return null;
+    if ((!allowNoChecksum) && (checksum is null))
+            return null;
+    if (checksum is null)
+        checksum = "";
+
+    string gid;
+    string[] parts = null;
+    if (startsWith (cptid, "org.", "net.", "com.", "io.", "edu.", "name.")) {
+        parts = cptid.split (".");
+    }
+
+    if ((parts !is null) && (parts.length > 2))
+        gid = format ("%s/%s/%s/%s", parts[0].toLower(), parts[1], join (parts[2..$], "."), checksum);
+    else
+        gid = format ("%s/%s/%s/%s", cptid[0].toLower(), cptid[0..2].toLower(), cptid, checksum);
+
+    return gid;
+}
+
+unittest
+{
+    writeln ("TEST: ", "GCID");
+
+    assert (buildCptGlobalID ("foobar.desktop", "DEADBEEF") == "f/fo/foobar.desktop/DEADBEEF");
+    assert (buildCptGlobalID ("org.gnome.yelp.desktop", "DEADBEEF") == "org/gnome/yelp.desktop/DEADBEEF");
+    assert (buildCptGlobalID ("noto-cjk.font", "DEADBEEF") == "n/no/noto-cjk.font/DEADBEEF");
+    assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", "ABAD1DEA") == "io/sample/awesomeapp.sdk/ABAD1DEA");
+
+    assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", null, true) == "io/sample/awesomeapp.sdk/");
 }

@@ -22,10 +22,14 @@ module ag.datacache;
 import std.stdio;
 import std.string;
 import std.file : mkdirRecurse;
+
 import lmdb;
+import appstream.Metadata;
+import appstream.Component;
 
 import ag.logging;
 import ag.config : DataType;
+import ag.result;
 
 
 class DataCache
@@ -41,11 +45,15 @@ private:
 
     bool opened;
 
+    Metadata mdata;
+
 public:
 
     this ()
     {
         opened = false;
+        mdata = new Metadata ();
+        mdata.setLocale ("ALL");
     }
 
     ~this ()
@@ -224,6 +232,11 @@ public:
         return data;
     }
 
+    string getPackageValue (string pkid)
+    {
+        return getValue (dbPackages, pkid);
+    }
+
     void setPackageIgnore (string pkid)
     {
         putKeyValue (dbPackages, pkid, "ignore");
@@ -239,6 +252,55 @@ public:
     {
         auto val = getValue (dbPackages, pkid);
         return val !is null;
+    }
+
+    void addGeneratorResult (DataType dtype, GeneratorResult res)
+    {
+        // if the package has no components,
+        // mark it as always-ignore
+        if (res.componentsCount () == 0) {
+            setPackageIgnore (res.pkid);
+            return;
+        }
+
+        foreach (Component cpt; res.getComponents ()) {
+            mdata.clearComponents ();
+            mdata.addComponent (cpt);
+
+            // convert out compoent into metadata
+            string data;
+            if (dtype == DataType.XML) {
+                data = mdata.componentsToDistroXml ();
+            } else {
+                data = ":: TODO";
+            }
+
+            // store metadata
+            setMetadata (dtype, res.gcidForComponent (cpt), data);
+        }
+
+        if (res.hintsCount () > 0) {
+            // TODO: Write hints
+            //hints_yml = cpt.get_hints_yaml()
+            //if hints_yml:
+            //    hints_str += hints_yml
+
+            //self.set_hints(pkgid, hints_str)
+        }
+
+        auto gcids = res.getGCIDs ();
+        if (gcids.empty) {
+            // no global components, and we're not ignoring this component.
+            // this means we likely have hints stored for this one. Mark it
+            // as "seen" so we don't reprocess it again.
+            putKeyValue (dbPackages, res.pkid, "seen");
+        } else {
+            import std.array : join;
+            // store global component IDs for this package as newline-separated list
+            auto gcidVal = join (gcids, "\n");
+
+            putKeyValue (dbPackages, res.pkid, gcidVal);
+        }
     }
 
 }
