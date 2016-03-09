@@ -21,6 +21,7 @@ module ag.hint;
 
 import std.stdio;
 import std.string;
+import dyaml.all;
 
 alias HintList = GeneratorHint[];
 
@@ -44,5 +45,34 @@ public:
     void setVars (string[string] vars)
     {
         this.vars = vars;
+
     }
+
+    auto toYamlNode ()
+    {
+        Node[string] map;
+
+        map["tag"] = Node (tag);
+        map["vars"] = Node (vars);
+
+        return Node (map);
+    }
+}
+
+unittest
+{
+    import std.stream;
+    writeln ("TEST: ", "GeneratorHint");
+
+    auto hint = new GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
+    hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
+    auto root = hint.toYamlNode ();
+
+    auto stream = new MemoryStream ();
+    auto dumper = Dumper (stream);
+    dumper.indent = 4;
+    dumper.explicitStart (true);
+    dumper.dump(root);
+
+    writeln (stream.toString ());
 }

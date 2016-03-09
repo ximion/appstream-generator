@@ -24,6 +24,7 @@ import std.string;
 import std.array : empty;
 import std.conv : to;
 import appstream.Component;
+import dyaml.all;
 
 import ag.hint;
 import ag.utils : buildCptGlobalID;
@@ -120,6 +121,39 @@ public:
     }
 
     /**
+     * Create YAML metadata for the hints found for the package
+     * associacted with this GeneratorResult.
+     */
+    string hintsToYaml ()
+    {
+        import std.stream;
+
+        if (hints.length == 0)
+            return null;
+
+        Node[][string] map;
+        foreach (iter; hints.byKey ()) {
+            auto cid = iter;
+            auto hints = hints[cid];
+            Node[] hintNodes;
+            foreach (GeneratorHint hint; hints) {
+                hintNodes ~= hint.toYamlNode ();
+            }
+            map[cid] = hintNodes;
+        }
+
+        auto root = Node ([pkid: map]);
+
+        auto stream = new MemoryStream ();
+        auto dumper = Dumper (stream);
+        dumper.explicitStart = true;
+        dumper.explicitEnd = false;
+        dumper.dump(root);
+
+        return stream.toString ();
+    }
+
+    /**
      * Drop invalid components and components with errors.
      */
     void finalize ()
@@ -156,4 +190,18 @@ public:
         return cptGCID.values ();
     }
 
+}
+
+unittest
+{
+    writeln ("TEST: ", "GeneratorResult");
+
+    auto res = new GeneratorResult ("foobar/1.0/amd64");
+
+    auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
+    res.addHint ("just-a-unittest", "org.freedesktop.foobar.desktop", vars);
+    res.addHint ("metainfo-chocolate-missing", "org.freedesktop.awesome-bar.desktop", "Nothing is good without chocolate. Add some.");
+    res.addHint ("metainfo-does-not-frobnicate", "org.freedesktop.awesome-bar.desktop", "Frobnicate functionality is missing.");
+
+    writeln (res.hintsToYaml ());
 }

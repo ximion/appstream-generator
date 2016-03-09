@@ -232,6 +232,21 @@ public:
         return data;
     }
 
+    bool hasHints (string pkid)
+    {
+        return getValue (dbHints, pkid) !is null;
+    }
+
+    void setHints (string pkid, string hintsYaml)
+    {
+        putKeyValue (dbHints, pkid, hintsYaml);
+    }
+
+    string getHints (string pkid)
+    {
+        return getValue (dbHints, pkid);
+    }
+
     string getPackageValue (string pkid)
     {
         return getValue (dbPackages, pkid);
@@ -280,12 +295,9 @@ public:
         }
 
         if (res.hintsCount () > 0) {
-            // TODO: Write hints
-            //hints_yml = cpt.get_hints_yaml()
-            //if hints_yml:
-            //    hints_str += hints_yml
-
-            //self.set_hints(pkgid, hints_str)
+            auto hintsYml = res.hintsToYaml ();
+            if (!hintsYml.empty)
+                setHints (res.pkid, hintsYml);
         }
 
         auto gcids = res.getGCIDs ();

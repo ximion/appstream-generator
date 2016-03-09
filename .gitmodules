@@ -1,3 +1,3 @@
 [submodule "source/bindings/auto"]
 	path = source/bindings/auto
-	url = git@github.com:ximion/d-bindings.git
+	url = https://github.com/ximion/d-bindings.git
