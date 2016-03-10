@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.parallelism;
 import std.path : buildPath;
+import std.file : mkdirRecurse;
 
 import ag.config;
 import ag.logging;
@@ -44,6 +45,8 @@ private:
     ContentsIndex contentsIndex;
     DataCache dcache;
 
+    string exportDir;
+
 
 public:
 
@@ -59,19 +62,24 @@ public:
                 throw new Exception ("No backend specified, can not continue!");
         }
 
+        // where the final metadata gets stored
+        exportDir = buildPath (conf.workspaceDir, "export");
+
+        // create cache in cache directory on workspace
         dcache = new DataCache ();
         dcache.open (buildPath (conf.workspaceDir, "cache"));
     }
 
-    private GeneratorResult[] processSectionArch (Suite suite, string section, string arch)
+    /**
+     * Extract metadata from a software container (usually a distro package).
+     * The result is automatically stored in the database.
+     */
+    private GeneratorResult[] processPackages (Package[] pkgs)
     {
-        pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
-        scope (exit) pkgIndex.close ();
-
         GeneratorResult[] results;
 
         auto mde = new DataExtractor (dcache);
-        foreach (Package pkg; parallel (pkgIndex.getPackages ())) {
+        foreach (Package pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
             if (dcache.packageExists (pkid))
                 continue;
@@ -80,10 +88,63 @@ public:
             synchronized (this) {
                 info ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
                 results ~= res;
+                test += 1;
             }
         }
 
         return results;
+    }
+
+    /**
+     * Export metadata and issue hints from the database and store them as files.
+     */
+    private void exportData (string suiteName, string section, string arch, Package[] pkgs)
+    {
+        string[] mdataEntries;
+        string[] hintEntries;
+
+        foreach (pkg; pkgs) {
+            auto pkid = Package.getId (pkg);
+            auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
+            if (!mres.empty) {
+                mdataEntries ~= mres;
+            }
+
+            auto hres = dcache.getHints (pkid);
+            if (!hres.empty)
+                hintEntries ~= hres;
+        }
+
+        auto dataExportDir = buildPath (exportDir, "data", suiteName, section);
+        auto hintsExportDir = buildPath (exportDir, "hints", suiteName, section);
+
+        mkdirRecurse (dataExportDir);
+        mkdirRecurse (hintsExportDir);
+
+        string dataFname;
+        if (conf.metadataType == DataType.XML)
+            dataFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
+        else
+            dataFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
+        string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.yml", arch));
+
+        // write metadata
+        info ("Writing metadata for %s/%s [%s]", suiteName, section, arch);
+        auto mf = File (dataFname, "w");
+        foreach (entry; mdataEntries) {
+            mf.writeln (entry);
+        }
+        mf.flush ();
+        mf.close ();
+
+        // write hints
+        info ("Writing hints for %s/%s [%s]", suiteName, section, arch);
+        auto hf = File (hintsFname, "w");
+        foreach (entry; hintEntries) {
+            hf.writeln (entry);
+        }
+        hf.flush ();
+        hf.close ();
     }
 
     void generateMetadata (string suite_name)
@@ -98,10 +159,15 @@ public:
 
         foreach (string section; suite.sections) {
             foreach (string arch; suite.architectures) {
-                auto results = processSectionArch (suite, section, arch);
-                foreach (GeneratorResult res; results) {
-                    cpts ~= res.getComponents ();
-                }
+                pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
+                scope (exit) pkgIndex.close ();
+
+                // process new packages
+                auto pkgs = pkgIndex.getPackages ();
+                processPackages (pkgs);
+
+                // export package data
+                exportData (suite.name, section, arch, pkgs);
             }
         }
 

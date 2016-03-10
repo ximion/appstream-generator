@@ -315,4 +315,23 @@ public:
         }
     }
 
+    string[] getMetadataForPackage (DataType dtype, string pkid)
+    {
+        auto pkval = getPackageValue (pkid);
+        if (pkval == "ignore")
+            return null;
+        if (pkval == "seen")
+            return null;
+
+        string[] res;
+        auto cids = pkval.split ("\n");
+        foreach (cid; cids) {
+            auto data = getMetadata (dtype, cid);
+            if (!data.empty)
+                res ~= data;
+        }
+
+        return res;
+    }
+
 }
