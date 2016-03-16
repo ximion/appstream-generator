@@ -28,6 +28,7 @@ import dyaml.all;
 
 import ag.hint;
 import ag.utils : buildCptGlobalID;
+import ag.backend.intf;
 
 
 class GeneratorResult
@@ -40,12 +41,14 @@ private:
 
 public:
     string pkid;
+    string pkgname;
 
 public:
 
-    this (string pkid)
+    this (Package pkg)
     {
-        this.pkid = pkid;
+        this.pkid = Package.getId (pkg);
+        this.pkgname = pkg.name;
     }
 
     bool isIgnored ()
@@ -87,6 +90,7 @@ public:
         if (cid.empty)
             throw new Exception ("Can not add component without ID to results set.");
 
+        cpt.setPkgnames ([this.pkgname]);
         cpts[cid] = cpt;
         updateComponentGCID (cpt, data);
     }

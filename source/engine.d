@@ -74,7 +74,7 @@ public:
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
      */
-    private GeneratorResult[] processPackages (Package[] pkgs)
+    private void processPackages (Package[] pkgs)
     {
         GeneratorResult[] results;
 
@@ -86,13 +86,12 @@ public:
 
             auto res = mde.processPackage (pkg);
             synchronized (this) {
+                // write resulting data into the database
+                dcache.addGeneratorResult (this.conf.metadataType, res);
+
                 info ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
-                results ~= res;
-                test += 1;
             }
         }
-
-        return results;
     }
 
     /**
@@ -170,6 +169,5 @@ public:
                 exportData (suite.name, section, arch, pkgs);
             }
         }
-
     }
 }

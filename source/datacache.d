@@ -54,6 +54,7 @@ public:
         opened = false;
         mdata = new Metadata ();
         mdata.setLocale ("ALL");
+        mdata.setWriteHeader(false);
     }
 
     ~this ()
@@ -214,12 +215,12 @@ public:
         return getMetadata (dtype, gcid) !is null;
     }
 
-    void setMetadata (DataType dtype, string gcid, string xmlData)
+    void setMetadata (DataType dtype, string gcid, string asdata)
     {
         if (dtype == DataType.XML)
-            putKeyValue (dbDataXml, gcid, xmlData);
+            putKeyValue (dbDataXml, gcid, asdata);
         else
-            putKeyValue (dbDataYaml, gcid, xmlData);
+            putKeyValue (dbDataYaml, gcid, asdata);
     }
 
     string getMetadata (DataType dtype, string gcid)
@@ -287,11 +288,14 @@ public:
             if (dtype == DataType.XML) {
                 data = mdata.componentsToDistroXml ();
             } else {
-                data = ":: TODO";
+                data = mdata.componentsToDistroYaml ();
             }
+            // remove trailing whitespaces and linebreaks
+            data = data.stripRight ();
 
             // store metadata
-            setMetadata (dtype, res.gcidForComponent (cpt), data);
+            if (!empty (data))
+                setMetadata (dtype, res.gcidForComponent (cpt), data);
         }
 
         if (res.hintsCount () > 0) {
@@ -326,6 +330,9 @@ public:
         string[] res;
         auto cids = pkval.split ("\n");
         foreach (cid; cids) {
+            if (cid.empty)
+                continue;
+
             auto data = getMetadata (dtype, cid);
             if (!data.empty)
                 res ~= data;

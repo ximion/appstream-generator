@@ -51,7 +51,7 @@ public:
     GeneratorResult processPackage (Package pkg)
     {
         // create a new result container
-        auto res = new GeneratorResult (Package.getId (pkg));
+        auto res = new GeneratorResult (pkg);
 
         // prepare a list of metadata files which interest us
         string[string] desktopFiles;
@@ -119,8 +119,6 @@ public:
         res.finalize ();
         pkg.close ();
 
-        // write resulting data into the database
-        dcache.addGeneratorResult (DataType.XML, res);
         return res;
     }
 }

@@ -45,6 +45,7 @@ enum DataType
 
 enum Backend
 {
+    Unknown,
     Debian
 }
 
@@ -112,16 +113,18 @@ class Config
             if (root["MetadataType"].as!string.toLower () == "yaml")
                 this.metadataType = DataType.YAML;
 
-        this.backend = Backend.Debian;
-        if (root.containsKey("Backend")) {
-            auto backendName = root["Backend"].as!string.toLower ();
-            switch (backendName) {
-                case "debian":
-                    this.backend = Backend.Debian;
-                    break;
-                default:
-                    break;
-            }
+        // we default to the Debian backend for now
+        auto backendName = "debian";
+
+        if (root.containsKey("Backend"))
+            backendName = root["Backend"].as!string.toLower ();
+        switch (backendName) {
+            case "debian":
+                this.backend = Backend.Debian;
+                this.metadataType = DataType.YAML;
+                break;
+            default:
+                break;
         }
 
         int iterSuites (ref string suiteName, ref Node prop)
