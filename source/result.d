@@ -198,9 +198,11 @@ public:
 
 unittest
 {
+    import ag.backend.debian.debpackage;
     writeln ("TEST: ", "GeneratorResult");
 
-    auto res = new GeneratorResult ("foobar/1.0/amd64");
+    auto pkg = new DebPackage ("foobar", "1.0", "amd64");
+    auto res = new GeneratorResult (pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
     res.addHint ("just-a-unittest", "org.freedesktop.foobar.desktop", vars);

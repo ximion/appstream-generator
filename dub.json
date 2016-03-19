@@ -5,7 +5,8 @@
     "authors": ["Matthias Klumpp"],
 
     "dependencies": {
-        "dyaml": "~>0.5.2"
+        "dyaml": "~>0.5.2",
+        "mustache-d": "~>0.1.1"
     },
 
     "targetPath": "build",
@@ -14,6 +15,6 @@
     "x-sourcePaths": ["source", "build/bindings"],
     "x-importPaths": ["build/bindings"],
 
-    "systemDependencies": "LMDB, AppStream",
-    "libs": ["lmdb", "glib-2.0", "gio-2.0", "gobject-2.0", "appstream", "archive"]
+    "systemDependencies": "LMDB, AppStream, GLib2, GIO, GObject, libarchive, GDLib, LibRSVG2",
+    "libs": ["lmdb", "glib-2.0", "gio-2.0", "gobject-2.0", "appstream", "archive", "gdlib", "librsvg-2.0"]
 }
