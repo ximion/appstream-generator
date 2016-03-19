@@ -1,0 +1,141 @@
+internal-unknown-tag:
+  text: The generator emitted a tag '%(tag_name)s' which is unknown. This is a bug in the metadata generator, please
+        <a href="https://bugs.debian.org/cgi-bin/pkgreport.cgi?src=appstream-dep11">file a bugreport</a>.
+  severity: warning
+
+not-an-application:
+  text: "The .desktop file found in <i>/usr/share/applications</i> does not have a 'Type=Application' field."
+  severity: error
+  internal: true
+
+invisible-application:
+  text: "The .desktop file in <i>/usr/share/applications</i> has the invisible flag set, the application is therefore ignored."
+  severity: error
+  internal: true
+
+desktop-file-read-error:
+  text: "Unable to read data from .desktop file: %(msg)s"
+  severity: error
+
+metainfo-parse-error:
+  text: "Unable to parse AppStream upstream XML, the file is likely malformed. Error:<br/>%(msg)s"
+  severity: error
+
+ancient-metadata:
+  text: The AppStream metadata should be updated to follow a more recent version of the specification.<br/>
+        Please consult <a href="http://freedesktop.org/software/appstream/docs/chap-Quickstart.html">the XML quickstart guide</a> for more information.
+  severity: info
+
+description-from-package:
+  text: This component gets its description from the package it is located in.<br/>
+        This has several disadvantages, like missing localization, possibly too short descriptions, too technical descriptions for users of software centers, etc.<br/>
+        Please consider writing a metainfo file for this component. In the near future, components without metainfo file might be dropped from the metadata.
+        You can consult the <a href="http://freedesktop.org/software/appstream/docs/chap-Quickstart.html">XML quickstart guide</a> for more information on how to write
+        a metainfo file.
+  severity: info
+
+svgz-decompress-error:
+  text: "Unable to decompress SVGZ icon '%(icon_fname)s'. Error: %(error)s"
+  severity: error
+
+icon-format-unsupported:
+  text: "Icon file '%(icon_fname)s' uses an unsupported image file format."
+  severity: error
+
+icon-not-found:
+  text: >
+        The icon '%(icon_fname)s' was not found in the archive. This issue can have multiple reasons:
+        <ul>
+         <li>The icon is not present in the archive.</li>
+         <li>The icon is in a wrong directory.</li>
+         <li>The icon is not available in a suitable size (at least 64x64px)</li>
+        </ul>
+        To make the icon easier to find, place it in <code>/usr/share/icons/hicolor/&lt;size&gt;/apps</code> and ensure the <code>Icon=</code> value
+        of the .desktop file is set correctly.
+  severity: error
+
+icon-open-failed:
+  text: >
+        Unable to open icon file '%(icon_fname)s'. Error: %(error)s<br/>
+        This means the generator could not render the icon to its appropriate size, and the icon has therefore been ignored.
+  severity: error
+
+deb-filelist-error:
+  text: Could not determine file list for '%(pkg_fname)s'. This could be an error in the archive, dpkg, apt_pkg or the DEP-11 generator.<br/>
+        If you think this error is in the generator, please <a href="https://bugs.debian.org/cgi-bin/pkgreport.cgi?src=appstream-dep11">file a bug</a>.
+  severity: error
+
+deb-extract-error:
+  text: "Could not extract file '%(fname)s' from package '%(pkg_fname)s'. Error: %(error)s"
+  severity: error
+
+deb-empty-file:
+  text: File '%(fname)s' from package '%(pkg_fname)s' appeared to be empty.<br/>
+        It could also be a broken symbolic link, or a link pointing to a file in a different package (in that case, please replace
+        the link with the actual file).
+  severity: error
+
+metainfo-no-id:
+  text: Could not determine an id for this component. The AppStream upstream metadata likely lacks an <code>&lt;id/&gt;</code> tag.<br/>
+        The identifier tag is absolutely essential for AppStream metadata, and must never be missing.
+  severity: error
+
+missing-desktop-file:
+  text: Found an AppStream upstream XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the
+        <code>&lt;id/&gt;</code> tag of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>
+        Please fix the packaging or work with upstream to resolve this issue.
+  severity: error
+
+gui-app-without-icon:
+  text: The GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>) with AppStream-ID '%(cid)s' has been found,
+        but we could not find a matching icon.
+  severity: error
+
+screenshot-download-error:
+  text: >
+        Error while downloading screenshot from '%(url)s' for component '%(cpt_id)s': %(error)s<br/>
+        This might be a temporary server issue.
+  severity: warning
+
+screenshot-read-error:
+  text: >
+        Error while reading screenshot data for '%(url)s' of component '%(cpt_id)s': %(error)s<br/>
+        Maybe the server returned an invalid image (e.g. an error page), or the image data is broken.
+  severity: warning
+
+metainfo-no-type:
+  text: Component has no type defined. A component type (desktop, input-method, generic, ...) is essential. This issue is likely
+        an internal bug in the data extractor.
+  severity: error
+
+metainfo-unknown-type:
+  text: The component-type '%(type)s' is unknown. Please make sure this component type is mentioned in the specification, and that the
+        <code>type=</code> property of the component root-node of the metainfo file does not contain a typing error.
+  severity: error
+
+metainfo-no-name:
+  text: Component has no name specified. Ensure that the AppStream upstream metadata or the .desktop file (if there is any) specify a component name.
+  severity: error
+
+metainfo-no-package:
+  text: Component has no package defined. A package must be associated with a component. This is likely a bug in the generator.
+  severity: error
+
+metainfo-no-summary:
+  text: >
+        Component does not contain a short summary. Ensure that the components metainfo file has a <code>summary</code> tag, or that its .desktop file
+        has a <code>Comment=</code> field set. Especially applications by KDE often use the <code>GenericName</code> field for a short summary,
+        instead of the <code>Comment</code> field (which is not its intended use case).<br/>
+        More information can be found in the <a href="http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html">Desktop Entry specification</a>.
+  severity: error
+
+metainfo-localized-field-without-template:
+  text: The field '%(field_id)s' has no untranslated template entry ("C"). This is usually an error in the accompanying .desktop file, or the translation
+        template in the AppStream XML is missing.
+  severity: error
+
+metainfo-duplicate-id:
+  text: The component-id '%(cid)s' already appeared in package '%(pkgname)s'. AppStream-IDs must be unique, please resolve which package will be
+        providing this component by default.<br/>
+        This issue may happen temporarily when metadata is moved from one package to another. In that case, ignore this issue, it will vanish soon.
+  severity: error

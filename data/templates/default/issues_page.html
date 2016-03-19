@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{package_name}} in {{suite}}{% endblock %}
+
+{% block header_content %}
+<span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
+
+<span>{{package_name}}</span> <span style="font-size:16px;">[{{suite}}]</span>
+{% endblock %}
+
+{% block content %}
+    <h1>Hints for {{package_name}} in {{suite}}</h1>
+
+    <div class="wrapper">
+
+
+    {% for entry in entries %}
+    <h2>
+      {{entry.identifier}}
+      {% for arch in entry.archs %}
+        <span style="font-size:12px;" class="label label-neutral">⚙ {{arch}}</span>
+      {% endfor %}
+    </h2>
+
+      {% if entry.errors|length %}
+      <div class="infobox infobox-error">
+        <h2>Errors</h2>
+        <ul class="list-group">
+          {% for tag in entry.errors %}
+            <li class="list-group-item list-group-item-info">
+            <strong>{{tag.tag_name}}</strong><br/>
+            {{tag.description}}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if entry.warnings|length %}
+      <div class="infobox infobox-warning">
+        <h2>Warnings</h2>
+        <ul class="list-group">
+          {% for tag in entry.warnings %}
+            <li class="list-group-item list-group-item-info">
+            <strong>{{tag.tag_name}}</strong><br/>
+            {{tag.description}}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if entry.infos|length %}
+      <div class="infobox infobox-hint">
+        <h2>Hints</h2>
+        <ul class="list-group">
+          {% for tag in entry.infos %}
+            <li class="list-group-item list-group-item-info">
+            <strong>{{tag.tag_name}}</strong><br/>
+            {{tag.description}}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+    {% endfor %}
+    </div>
+
+{% endblock %}
+
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}

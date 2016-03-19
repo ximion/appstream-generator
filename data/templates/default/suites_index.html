@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Data for {{distro}}: Suites overview{% endblock %}
+
+{% block header_content %}
+<span>DEP-11 data hints for {{distro}}</span>
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+
+    <h1>Welcome!</h1>
+    <p>Welcome to the DEP-11 generator HTML pages!</p>
+    <p>
+      These pages exist to provide a user-friendly view on the issues discovered by the
+      DEP-11 generator while extracting metadata from packages in the {{distro}} archive.
+      They can also be used to take a look at the raw metadata, to spot possible problems
+      with the data itself or the generation process.
+    </p>
+
+    <h1>Select a suite</h1>
+    {% for suite in suites %}
+      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
+    {% endfor %}
+
+    <br/><hr/>
+    <h1>What is DEP-11 and AppStream?</h1>
+    <p>
+      AppStream is a cross-distro XML format to provide metadata for software components and to assign unique identifiers to software.<br/>
+      In Debian, we parse all XML provided by upstream projects as well as other metadata (.desktop-files, ...), and compile a single YAML
+      metadata file from it, which is then shipped to users via APT.
+    </p>
+    <p>
+      While the official AppStream specification is based on XML, Debian uses a YAML version of the format for easier use in existing
+      scripts and for better archive integration. This format is called DEP-11, and initially had a much wider scope in enhancing
+      archive metadata than AppStream had. Today AppStream covers that as well.
+    </p>
+    <p>
+      The generated metadata can for example be used by software centers like GNOME-Software or KDE Discover to display a user-friendly application-centric
+      way on the package archive.
+    </p>
+
+    <h1>More information</h1>
+    <p>
+      See <a href="https://wiki.debian.org/AppStream">AppStream @ wiki.d.o</a> for information about AppStream integration and usage in Debian.<br/>
+      The offical AppStream specification can be found at <a href="http://www.freedesktop.org/software/appstream/docs/">freedesktop.org</a>, a description
+      of the <a href="http://www.freedesktop.org/software/appstream/docs/sect-AppStream-DEP11.html">DEP-11 YAML format</a> is hosted there as well.
+    </p>
+    <p>
+      You can find the source-code of the DEP-11 generator <a href="https://github.com/ximion/appstream-dep11">here</a>.
+    </p>
+
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Data for {{distro}}: {{suite}} suite{% endblock %}
+
+{% block header_content %}
+<span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
+<span>DEP-11 data for {{distro}}/{{suite}}</span>
+{% endblock %}
+
+{% block content %}
+    <h1>Select an archive section</h1>
+
+    <h2>Sections</h2>
+    {% for section in sections %}
+      <h3><a href="{{section}}/index.html">{{section}}</a></h3>
+    {% endfor %}
+
+    <h2>Health of suite "{{suite}}"</h2>
+
+    <div class="wrapper">
+      <div class="progress">
+        <div style="width: {{valid_percentage}}%" class="progress-bar progress-bar-green">
+          <span class="sr-only">{{valid_percentage}}% Valid</span>
+        </div>
+        <div style="width: {{info_percentage}}%" class="progress-bar progress-bar-blue">
+          <span class="sr-only">{{info_percentage}}% Infos</span>
+        </div>
+        <div style="width: {{warning_percentage}}%" class="progress-bar progress-bar-yellow">
+          <span class="sr-only">{{warning_percentage}}% Warnings</span>
+        </div>
+        <div style="width: {{error_percentage}}%" class="progress-bar progress-bar-red">
+          <span class="sr-only">{{error_percentage}}% Errors</span>
+        </div>
+      </div>
+
+      <ul>
+        <li>{{metainfo_count}} valid components</li>
+        <li>{{error_count}} errors</li>
+        <li>{{warning_count}} warnings</li>
+        <li>{{info_count}} infos/hints</li>
+      </ul>
+    </div>
+
+{% endblock %}
+
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}

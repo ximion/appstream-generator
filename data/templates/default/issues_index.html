@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Hints summary for {{suite}}/{{section}}{% endblock %}
+
+{% block header_content %}
+<span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
+<span>Hints summary for {{suite}}/{{section}}</span>
+{% endblock %}
+
+{% block content %}
+    <h1>Metadata processing hints found for {{suite}}/{{section}}</h1>
+
+      {% for maintainer, summary in package_summaries.items() %}
+        <h3>{{maintainer|e}}</h3>
+        <ul class="overviewlisting">
+        {% for pkgname, hints in summary.items() %}
+          <li>
+            <span style="font-size:16px;">
+            <a href="{{pkgname}}.html">{{pkgname}}</a>&nbsp;
+            </span>
+          {% if hints.info_count %}
+            <span class="label label-info">Infos: {{hints.info_count}}</span>
+          {% endif %}
+          {% if hints.warning_count %}
+            <span class="label label-warning">Warnings: {{hints.warning_count}}</span>
+          {% endif %}
+          {% if hints.error_count %}
+            <span class="label label-error">Errors: {{hints.error_count}}</span>
+          {% endif %}
+
+          </li>
+        {% endfor %}
+        </ul>
+      {% endfor %}
+
+{% endblock %}
+
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}
