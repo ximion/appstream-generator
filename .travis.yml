@@ -4,7 +4,7 @@ dist: trusty
 
 d:
   - gdc
-  - ldc
+  #- ldc -- LDC has problems with parallelization (doesn't seem to work on Package[] array)
 
 before_script:
   - sudo add-apt-repository "ppa:ximion/packagekit" -y
