@@ -184,6 +184,10 @@ Component parseDesktopFile (GeneratorResult res, string fname, string data, bool
         } else if (key == "Icon") {
             auto icon = new Icon ();
             icon.setKind (IconKind.CACHED);
+            // icons with 0x0 dimensions won't be added, so to temporarily store the icon
+            // until it is processed by the IconHandler, we set it's size to 1x1px
+            icon.setWidth (1);
+            icon.setHeight (1);
             icon.setName (getValue (df, key));
             cpt.addIcon (icon);
         }

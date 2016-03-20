@@ -44,8 +44,9 @@ private:
     MDB_dbi dbStats;
 
     bool opened;
-
     Metadata mdata;
+
+    string mediaDir;
 
 public:
 
@@ -61,6 +62,12 @@ public:
     {
         if (opened)
             dbEnv.mdb_env_close ();
+    }
+
+    @property
+    string mediaExportDir ()
+    {
+        return mediaDir;
     }
 
     private void checkError (int rc, string msg)
@@ -79,7 +86,7 @@ public:
         debugmsg ("Using %s major=%s minor=%s patch=%s", ver.fromStringz, major, minor, patch);
     }
 
-    void open (string dir)
+    void open (string dir, string mediaDir)
     {
         int rc;
         assert (opened == false);
@@ -134,6 +141,8 @@ public:
 
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
+
+        this.mediaDir = mediaDir;
     }
 
     private MDB_val makeDbValue (string data)

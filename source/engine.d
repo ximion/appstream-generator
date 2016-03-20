@@ -67,7 +67,7 @@ public:
 
         // create cache in cache directory on workspace
         dcache = new DataCache ();
-        dcache.open (buildPath (conf.workspaceDir, "cache"));
+        dcache.open (buildPath (conf.workspaceDir, "cache"), buildPath (exportDir, "media"));
     }
 
     /**

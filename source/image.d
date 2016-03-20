@@ -24,17 +24,44 @@ import std.string;
 import std.conv : to;
 import std.path : baseName;
 import std.math;
+import core.stdc.stdarg;
+import core.stdc.stdio;
 import cairo;
 import gdlib;
 
+import ag.logging;
 
-enum ImageKind {
-    UNKNOWN,
+
+enum ImageFormat {
+    Unknown,
     PNG,
     JPEG,
     GIF,
     SVG,
     SVGZ
+}
+
+// thread-local
+private string lastErrorMsg;
+
+extern(C) nothrow
+private void gdLibError (int code, const(char) *msg, va_list args)
+{
+    import std.outbuffer;
+
+    // Terrible...
+    // LibGDs error handling sucks, and this code does too.
+    try {
+        auto buf = new OutBuffer ();
+        auto strMsg = to!string (fromStringz (msg));
+        buf.vprintf (strMsg, args);
+
+        // don't silently override a messge, instead dump it to the log
+        if (lastErrorMsg !is null)
+            error (lastErrorMsg);
+
+        lastErrorMsg = buf.toString ().dup;
+    } catch {}
 }
 
 class Image
@@ -45,40 +72,56 @@ private:
 
 public:
 
-    this (string fname)
+    private void throwError (string msg)
     {
-        gdi = gdImageCreateFromFile (fname.toStringz ());
-        if (gdi == null)
-            throw new Exception (format ("Unable to open image '%s'", baseName (fname)));
+        if (lastErrorMsg is null) {
+            throw new Exception (msg);
+        } else {
+            auto errMsg = lastErrorMsg.strip ();
+            lastErrorMsg = null;
+            throw new Exception (format ("%s %s", msg, errMsg));
+        }
     }
 
-    this (ImageKind ikind, string data)
+    this (string fname)
+    {
+        gdSetErrorMethod (&gdLibError);
+        gdi = gdImageCreateFromFile (fname.toStringz ());
+        if (gdi == null) {
+            throwError (format ("Unable to open image '%s'.", baseName (fname)));
+        }
+    }
+
+    this (string data, ImageFormat ikind)
     {
         import core.stdc.string : strlen;
 
-        auto cdata = data.toStringz ();
-        int cdataSize = cast(int) (char.sizeof * strlen (cdata) + 1);
+        //gdSetErrorMethod (&gdLibError);
+
+        auto imgBytes = cast(byte[]) data;
+        auto imgDSize = to!int (byte.sizeof * imgBytes.length);
 
         switch (ikind) {
-            case ImageKind.PNG:
-                gdi = gdImageCreateFromPngPtr (cdataSize, cast(void*) cdata);
+            case ImageFormat.PNG:
+                gdi = gdImageCreateFromPngPtr (imgDSize, cast(void*) imgBytes);
                 break;
-            case ImageKind.JPEG:
-                gdi = gdImageCreateFromJpegPtr (cdataSize, cast(void*) cdata);
+            case ImageFormat.JPEG:
+                gdi = gdImageCreateFromJpegPtr (imgDSize, cast(void*) imgBytes);
                 break;
-            case ImageKind.GIF:
-                gdi = gdImageCreateFromGifPtr (cdataSize, cast(void*) cdata);
+            case ImageFormat.GIF:
+                gdi = gdImageCreateFromGifPtr (imgDSize, cast(void*) imgBytes);
                 break;
             default:
-                throw new Exception (format ("Unable to open image of type '%s'", to!string (ikind)));
+                throw new Exception (format ("Unable to open image of type '%s'.", to!string (ikind)));
         }
         if (gdi == null)
-            throw new Exception ("Failed to load image data. The image might be invalid");
+            throwError ("Failed to load image data. The image might be invalid.");
     }
 
     ~this ()
     {
-        gdImageDestroy (gdi);
+        if (gdi !is null)
+            gdImageDestroy (gdi);
     }
 
     @property
@@ -102,7 +145,7 @@ public:
 
         auto resImg = gdImageScale (gdi, newWidth, newHeight);
         if (resImg is null)
-            throw new Exception ("Scaling of image failed.");
+            throwError ("Scaling of image failed.");
 
         // set our current image to the scaled version
         gdImageDestroy (gdi);
@@ -164,7 +207,7 @@ unittest
     writeln ("TEST: ", "Image");
 
     auto sampleImgPath = buildPath (getcwd(), "test", "samples", "appstream-logo.png");
-    writeln ("Loading image");
+    writeln ("Loading image (file)");
     auto img = new Image (sampleImgPath);
 
     writeln ("Scaling image");
@@ -176,5 +219,20 @@ unittest
 
     writeln ("Storing image");
     auto f = File ("/tmp/ag-ut_test.png", "w");
+    img.savePng (f);
+
+    writeln ("Loading image (data)");
+    string data;
+    f = File (sampleImgPath, "r");
+    while (!f.eof) {
+        char[300] buf;
+        f.rawRead (buf);
+        data ~= to!string (buf);
+    }
+    img = new Image (data, ImageFormat.PNG);
+    writeln ("Scaling image (data)");
+    img.scale (64, 64);
+    writeln ("Storing image (data)");
+    f = File ("/tmp/ag-ut_test.png", "w");
     img.savePng (f);
 }

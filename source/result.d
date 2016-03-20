@@ -42,6 +42,7 @@ private:
 public:
     string pkid;
     string pkgname;
+    Package pkg;
 
 public:
 
@@ -49,6 +50,7 @@ public:
     {
         this.pkid = Package.getId (pkg);
         this.pkgname = pkg.name;
+        this.pkg = pkg;
     }
 
     bool isIgnored ()
@@ -98,11 +100,11 @@ public:
     /**
      * Add an issue hint to this result.
      * Params:
-     *      tag    = The hint tag.
      *      cid    = The component-id this tag is assigned to.
+     *      tag    = The hint tag.
      *      params = Dictionary of parameters to insert into the issue report.
      **/
-    void addHint (string tag, string cid, string[string] params)
+    void addHint (string cid, string tag, string[string] params)
     {
         auto hint = new GeneratorHint (tag, cid);
         hint.setVars (params);
@@ -114,11 +116,11 @@ public:
     /**
      * Add an issue hint to this result.
      * Params:
-     *      tag = The hint tag.
      *      cid = The component-id this tag is assigned to.
+     *      tag = The hint tag.
      *      msg = An error message to add to the report.
      **/
-    void addHint (string tag, string cid, string msg)
+    void addHint (string cid, string tag, string msg)
     {
         string[string] vars = ["msg": msg];
         addHint (tag, cid, vars);
@@ -205,9 +207,9 @@ unittest
     auto res = new GeneratorResult (pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    res.addHint ("just-a-unittest", "org.freedesktop.foobar.desktop", vars);
-    res.addHint ("metainfo-chocolate-missing", "org.freedesktop.awesome-bar.desktop", "Nothing is good without chocolate. Add some.");
-    res.addHint ("metainfo-does-not-frobnicate", "org.freedesktop.awesome-bar.desktop", "Frobnicate functionality is missing.");
+    res.addHint ("org.freedesktop.foobar.desktop", "just-a-unittest", vars);
+    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-chocolate-missing", "Nothing is good without chocolate. Add some.");
+    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-does-not-frobnicate", "Frobnicate functionality is missing.");
 
     writeln (res.hintsToYaml ());
 }

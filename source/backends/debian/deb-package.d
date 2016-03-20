@@ -41,13 +41,15 @@ private:
     string tmpDir;
     string dataArchive;
 
-public:
-    string filename;
+    string debFname;
 
+public:
     @property string name () { return pkgname; }
     @property string ver () { return pkgver; }
     @property string arch () { return pkgarch; }
     @property string[string] description () { return null; }
+    @property string filename () { return debFname; }
+    @property void filename (string fname) { debFname = fname; }
 
     this (string pname, string pver, string parch)
     {

@@ -20,9 +20,13 @@
 module gdlib;
 
 import std.stdio;
+import core.stdc.stdarg;
 
 extern(C):
 nothrow:
+
+alias gdErrorMethod = void function (int, const(char) *, va_list);
+
 @nogc:
 static if (!is(typeof(usize))) private alias usize = size_t;
 
@@ -176,6 +180,9 @@ void gdImageDestroy (gdImagePtr im);
 void gdImageInterlace (gdImagePtr im, int interlaceArg);
 void gdImageAlphaBlending (gdImagePtr im, int alphaBlendingArg);
 void gdImageSaveAlpha (gdImagePtr im, int saveAlphaArg);
+
+void gdSetErrorMethod (gdErrorMethod);
+void gdClearErrorMethod ();
 
 // PNG
 gdImagePtr gdImageCreateFromPng (FILE *fd);

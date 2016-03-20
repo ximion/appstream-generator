@@ -28,6 +28,7 @@ import ag.datacache;
 
 import ag.handlers.desktopparser;
 import ag.handlers.metainfoparser;
+import ag.handlers.iconhandler;
 
 import appstream.Component;
 
@@ -40,12 +41,14 @@ private:
     GeneratorHint[] hints;
 
     DataCache dcache;
+    IconHandler iconh;
 
 public:
 
     this (DataCache cache)
     {
         dcache = cache;
+        iconh = new IconHandler (cache.mediaExportDir);
     }
 
     GeneratorResult processPackage (Package pkg)
@@ -114,6 +117,9 @@ public:
             if (cpt !is null)
                 res.updateComponentGCID (cpt, data);
         }
+
+        // find & store icons
+        iconh.process (res);
 
         // this removes invalid components and cleans up the result
         res.finalize ();
