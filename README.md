@@ -4,6 +4,7 @@ A new AppStream generator written in D, being much faster and more versatile tha
 This software is in early development, and is still very incomplete.
 
 ## Development
+[![Build Status](https://travis-ci.org/ximion/appstream-generator.svg?branch=master)](https://travis-ci.org/ximion/appstream-generator)
 
 ### Build dependencies
 
