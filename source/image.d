@@ -26,8 +26,8 @@ import std.path : baseName;
 import std.math;
 import core.stdc.stdarg;
 import core.stdc.stdio;
-import cairo;
-import gdlib;
+import c.cairo;
+import c.gdlib;
 
 import ag.logging;
 

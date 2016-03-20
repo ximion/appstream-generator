@@ -17,7 +17,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module cairo;
+module c.cairo;
 
 import std.cstream;
 

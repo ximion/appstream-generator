@@ -68,6 +68,7 @@ public:
     ~this ()
     {
         // FIXME: Makes the GC crash - find out why (the error should be ignored...)
+        // if (tmpDir !is null)
         // close ();
     }
 

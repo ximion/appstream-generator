@@ -59,7 +59,7 @@ void main(string[] args)
 
     auto conf = Config.get ();
     try {
-        conf.loadFromFile (buildPath (wdir, "asgen-config.yml"));
+        conf.loadFromFile (buildPath (wdir, "asgen-config.json"));
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);

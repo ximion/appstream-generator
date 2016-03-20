@@ -5,7 +5,6 @@
     "authors": ["Matthias Klumpp"],
 
     "dependencies": {
-        "dyaml": "~>0.5.2",
         "mustache-d": "~>0.1.1"
     },
 

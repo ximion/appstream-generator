@@ -17,7 +17,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module gdlib;
+module c.gdlib;
 
 import std.stdio;
 import core.stdc.stdarg;

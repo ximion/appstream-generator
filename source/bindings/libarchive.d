@@ -17,7 +17,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module libarchive;
+module c.libarchive;
 
 import std.cstream;
 

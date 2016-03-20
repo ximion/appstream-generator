@@ -102,11 +102,13 @@ public:
         string[] mdataEntries;
         string[] hintEntries;
 
-        foreach (pkg; pkgs) {
+        foreach (pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
             auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
             if (!mres.empty) {
-                mdataEntries ~= mres;
+                synchronized (this) {
+                    mdataEntries ~= mres;
+                }
             }
 
             auto hres = dcache.getHints (pkid);
@@ -125,7 +127,7 @@ public:
             dataFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
         else
             dataFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
-        string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.yml", arch));
+        string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
         info ("Writing metadata for %s/%s [%s]", suiteName, section, arch);
@@ -139,9 +141,11 @@ public:
         // write hints
         info ("Writing hints for %s/%s [%s]", suiteName, section, arch);
         auto hf = File (hintsFname, "w");
+        hf.writeln ("[");
         foreach (entry; hintEntries) {
             hf.writeln (entry);
         }
+        hf.writeln ("]");
         hf.flush ();
         hf.close ();
     }

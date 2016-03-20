@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.file : mkdirRecurse;
 
-import lmdb;
+import c.lmdb;
 import appstream.Metadata;
 import appstream.Component;
 
@@ -308,9 +308,9 @@ public:
         }
 
         if (res.hintsCount () > 0) {
-            auto hintsYml = res.hintsToYaml ();
-            if (!hintsYml.empty)
-                setHints (res.pkid, hintsYml);
+            auto hintsJson = res.hintsToJson ();
+            if (!hintsJson.empty)
+                setHints (res.pkid, hintsJson);
         }
 
         auto gcids = res.getGCIDs ();

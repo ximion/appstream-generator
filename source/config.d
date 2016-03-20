@@ -23,7 +23,7 @@ import std.stdio;
 import std.array;
 import std.string : format, toLower;
 import std.path : dirName, getcwd;
-import dyaml.all;
+import std.json;
 
 import ag.utils;
 
@@ -87,37 +87,42 @@ class Config
 
     void loadFromFile (string fname)
     {
-        // read the configuration YAML file
-        Node root = Loader(fname).load ();
+        // read the configuration JSON file
+        auto f = File (fname, "r");
+        string jsonData;
+        string line;
+        while ((line = f.readln ()) !is null)
+            jsonData ~= line;
+
+        JSONValue root = parseJSON (jsonData);
 
         workspaceDir = dirName (fname);
         if (workspaceDir.empty)
             workspaceDir = getcwd ();
 
         this.projectName = "Unknown";
-        if (root.containsKey("ProjectName"))
-            this.projectName = root["ProjectName"].as!string;
+        if ("ProjectName" in root)
+            this.projectName = root["ProjectName"].str;
 
-        this.archiveRoot = root["ArchiveRoot"].as!string;
+        this.archiveRoot = root["ArchiveRoot"].str;
 
         this.mediaBaseUrl = "";
-        if (root.containsKey("MediaBaseUrl"))
-            this.mediaBaseUrl = root["MediaBaseUrl"].as!string;
+        if ("MediaBaseUrl" in root)
+            this.mediaBaseUrl = root["MediaBaseUrl"].str;
 
         this.htmlBaseUrl = "";
-        if (root.containsKey("HtmlBaseUrl"))
-            this.htmlBaseUrl = root["HtmlBaseUrl"].as!string;
+        if ("HtmlBaseUrl" in root)
+            this.htmlBaseUrl = root["HtmlBaseUrl"].str;
 
         this.metadataType = DataType.XML;
-        if (root.containsKey("MetadataType"))
-            if (root["MetadataType"].as!string.toLower () == "yaml")
+        if ("MetadataType" in root)
+            if (root["MetadataType"].str.toLower () == "yaml")
                 this.metadataType = DataType.YAML;
 
         // we default to the Debian backend for now
         auto backendName = "debian";
-
-        if (root.containsKey("Backend"))
-            backendName = root["Backend"].as!string.toLower ();
+        if ("Backend" in root)
+            backendName = root["Backend"].str.toLower ();
         switch (backendName) {
             case "debian":
                 this.backend = Backend.Debian;
@@ -127,27 +132,23 @@ class Config
                 break;
         }
 
-        int iterSuites (ref string suiteName, ref Node prop)
-        {
+        foreach (suiteName; root["Suites"].object.byKey ()) {
             Suite suite;
             suite.name = suiteName;
-            if (prop.containsKey("dataPriority"))
-                suite.dataPriority = prop["dataPriority"].as!int;
-            if (prop.containsKey("baseSuite"))
-                suite.baseSuite = prop["baseSuite"].as!string;
-            if (prop.containsKey("sections"))
-                foreach (string sec; prop["sections"])
-                    suite.sections ~= sec;
-            if (prop.containsKey("architectures"))
-                foreach (string arch; prop["architectures"])
-                    suite.architectures ~= arch;
+            auto sn = root["Suites"][suiteName];
+            if ("dataPriority" in sn)
+                suite.dataPriority = to!int (sn["dataPriority"].integer);
+            if ("baseSuite" in sn)
+                suite.baseSuite = sn["baseSuite"].str;
+            if ("sections" in sn)
+                foreach (sec; sn["sections"].array)
+                    suite.sections ~= sec.str;
+            if ("architectures" in sn)
+                foreach (arch; sn["architectures"].array)
+                    suite.architectures ~= arch.str;
 
             suites ~= suite;
-            // never stop
-            return 0;
         }
-
-        root["Suites"].opApply (&iterSuites);
     }
 
     bool isValid ()

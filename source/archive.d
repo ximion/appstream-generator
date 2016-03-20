@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.file;
 import std.regex;
-import libarchive;
+import c.libarchive;
 
 immutable DEFAULT_BLOCK_SIZE = 65536;
 

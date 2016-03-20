@@ -23,8 +23,8 @@ import std.stdio;
 import std.string;
 import std.array : empty;
 import std.conv : to;
+import std.json;
 import appstream.Component;
-import dyaml.all;
 
 import ag.hint;
 import ag.utils : buildCptGlobalID;
@@ -127,36 +127,35 @@ public:
     }
 
     /**
-     * Create YAML metadata for the hints found for the package
+     * Create JSON metadata for the hints found for the package
      * associacted with this GeneratorResult.
      */
-    string hintsToYaml ()
+    string hintsToJson ()
     {
         import std.stream;
 
         if (hints.length == 0)
             return null;
 
-        Node[][string] map;
+        // is this really the only way you can set a type for JSONValue?
+        auto map = JSONValue (["null": 0]);
+        map.object.remove ("null");
+
         foreach (iter; hints.byKey ()) {
             auto cid = iter;
             auto hints = hints[cid];
-            Node[] hintNodes;
+            auto hintNodes = JSONValue ([0, 0]);
+            hintNodes.array = [];
+            writeln (to!string (hintNodes.type));
+            stdout.flush ();
             foreach (GeneratorHint hint; hints) {
-                hintNodes ~= hint.toYamlNode ();
+                hintNodes.array ~= hint.toJsonNode ();
             }
-            map[cid] = hintNodes;
+            map.object[cid] = hintNodes;
         }
 
-        auto root = Node ([pkid: map]);
-
-        auto stream = new MemoryStream ();
-        auto dumper = Dumper (stream);
-        dumper.explicitStart = true;
-        dumper.explicitEnd = false;
-        dumper.dump(root);
-
-        return stream.toString ();
+        auto root = JSONValue ([pkid: map]);
+        return toJSON (&root, true);
     }
 
     /**

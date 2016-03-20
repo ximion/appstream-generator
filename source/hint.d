@@ -21,7 +21,7 @@ module ag.hint;
 
 import std.stdio;
 import std.string;
-import dyaml.all;
+import std.json;
 
 alias HintList = GeneratorHint[];
 
@@ -48,14 +48,12 @@ public:
 
     }
 
-    auto toYamlNode ()
+    auto toJsonNode ()
     {
-        Node[string] map;
-
-        map["tag"] = Node (tag);
-        map["vars"] = Node (vars);
-
-        return Node (map);
+        JSONValue json = JSONValue(["tag":  JSONValue (tag),
+                                    "vars": JSONValue (vars)
+                                   ]);
+        return json;
     }
 }
 
