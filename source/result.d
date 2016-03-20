@@ -210,5 +210,5 @@ unittest
     res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-chocolate-missing", "Nothing is good without chocolate. Add some.");
     res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-does-not-frobnicate", "Frobnicate functionality is missing.");
 
-    writeln (res.hintsToYaml ());
+    writeln (res.hintsToJson ());
 }

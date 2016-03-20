@@ -59,18 +59,11 @@ public:
 
 unittest
 {
-    import std.stream;
     writeln ("TEST: ", "GeneratorHint");
 
     auto hint = new GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
     hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    auto root = hint.toYamlNode ();
+    auto root = hint.toJsonNode ();
 
-    auto stream = new MemoryStream ();
-    auto dumper = Dumper (stream);
-    dumper.indent = 4;
-    dumper.explicitStart (true);
-    dumper.dump(root);
-
-    writeln (stream.toString ());
+    writeln (toJSON (&root, true));
 }
