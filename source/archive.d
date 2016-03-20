@@ -33,7 +33,7 @@ string decompressFile (string fname)
     int ret;
     size_t size;
     string data;
-    char buff[BUFFER_SIZE];
+    char[BUFFER_SIZE] buff;
 
     archive_entry *ae;
     archive *ar = archive_read_new ();

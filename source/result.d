@@ -146,7 +146,6 @@ public:
             auto hints = hints[cid];
             auto hintNodes = JSONValue ([0, 0]);
             hintNodes.array = [];
-            writeln (to!string (hintNodes.type));
             stdout.flush ();
             foreach (GeneratorHint hint; hints) {
                 hintNodes.array ~= hint.toJsonNode ();

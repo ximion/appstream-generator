@@ -43,10 +43,10 @@ struct gdImage {
 	   'alpha', which appears later in the structure to
 	   preserve binary backwards compatibility */
 	int colorsTotal;
-	int red[gdMaxColors];
-	int green[gdMaxColors];
-	int blue[gdMaxColors];
-	int open[gdMaxColors];
+	int[gdMaxColors] red;
+	int[gdMaxColors] green;
+	int[gdMaxColors] blue;
+	int[gdMaxColors] open;
 	/* For backwards compatibility, this is set to the
 	   first palette entry with 100% transparency,
 	   and is also set and reset by the
@@ -62,8 +62,8 @@ struct gdImage {
 	int polyAllocated;
 	gdImage *brush;
 	gdImage *tile;
-	int brushColorMap[gdMaxColors];
-	int tileColorMap[gdMaxColors];
+	int[gdMaxColors] brushColorMap;
+	int[gdMaxColors] tileColorMap;
 	int styleLength;
 	int stylePos;
 	int *style;
@@ -78,7 +78,7 @@ struct gdImage {
 	   100% transparent correctly, and do something
 	   unpredictable and/or undesirable for levels
 	   in between. TBB */
-	int alpha[gdMaxColors];
+	int[gdMaxColors] alpha;
 	/* Truecolor flag and pixels. New 2.0 fields appear here at the
 	   end to minimize breakage of existing object code. */
 	int trueColor;

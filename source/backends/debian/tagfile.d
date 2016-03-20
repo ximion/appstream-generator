@@ -28,7 +28,7 @@ class TagFile
 {
 
 private:
-    string content[];
+    string[] content;
     uint pos;
 
 public:
