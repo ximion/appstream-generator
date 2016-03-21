@@ -21,6 +21,7 @@ module ag.logging;
 
 import std.stdio;
 import std.string : format;
+import std.datetime;
 
 enum LogSeverity : string
 {
@@ -32,7 +33,9 @@ enum LogSeverity : string
 
 void log (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
 {
-    writeln (severity, ": ", format (tmpl, args));
+    auto time = Clock.currTime ();
+    auto timeStr = format ("%d-%02d-%02d %02d:%02d.%02d", time.year, time.month, time.day, time.hour,time.minute, time.second);
+    writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
 }
 
 void debugmsg (string, Args...) (string tmpl, Args args)
