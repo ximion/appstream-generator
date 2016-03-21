@@ -53,7 +53,7 @@ public:
         this.pkg = pkg;
     }
 
-    bool isIgnored ()
+    bool packageIsIgnored ()
     {
         return cpts.length == 0;
     }
@@ -69,6 +69,11 @@ public:
     Component[] getComponents ()
     {
         return cpts.values ();
+    }
+
+    bool isIgnored (Component cpt)
+    {
+        return getComponent (cpt.getId ()) is null;
     }
 
     void updateComponentGCID (Component cpt, string data)
@@ -120,9 +125,11 @@ public:
      *      tag = The hint tag.
      *      msg = An error message to add to the report.
      **/
-    void addHint (string cid, string tag, string msg)
+    void addHint (string cid, string tag, string msg = null)
     {
-        string[string] vars = ["msg": msg];
+        string[string] vars;
+        if (msg !is null)
+            vars = ["msg": msg];
         addHint (tag, cid, vars);
     }
 
@@ -162,7 +169,14 @@ public:
      */
     void finalize ()
     {
-        // TODO
+        foreach (cpt; cpts.byValue ()) {
+            auto ckind = cpt.getKind ();
+            if (ckind == ComponentKind.DESKTOP) {
+                // checks specific for .desktop and web apps
+                if (cpt.getIcons ().len == 0)
+                    addHint (cpt.getId (), "gui-app-without-icon");
+            }
+        }
     }
 
     /**

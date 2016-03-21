@@ -39,10 +39,14 @@ import ag.backend.intf;
 import ag.std.concurrency.generator;
 
 
+// all image extensions that we recognize as possible for icons.
+// the most favorable file extension needs to come first to prefer it
 private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", ".ico", ".xpm"];
+
+// the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
 
-private immutable wantedSizes  = [IconSize (64), IconSize (128)];
+private immutable wantedIconSizes  = [IconSize (64), IconSize (128)];
 
 
 struct IconSize
@@ -72,6 +76,16 @@ struct IconSize
         if (width > height)
             return width;
         return height;
+    }
+
+    int opCmp (ref const IconSize s) const
+    {
+        // only compares width, should be enough for now
+        if (this.width > s.width)
+            return 1;
+        if (this.width == s.width)
+            return 0;
+        return -1;
     }
 }
 
@@ -286,6 +300,73 @@ public:
     }
 
     /**
+     * Generates potential filenames of the icon that is searched for in the
+     * given size.
+     **/
+    private auto possibleIconFilenames (string iconName, IconSize size)
+    {
+        auto gen = new Generator!string (
+        {
+            foreach (theme; this.themes) {
+                foreach (fname; theme.matchingIconFilenames (iconName, size))
+                    yield (fname);
+            }
+
+            // check pixmaps for icons
+            foreach (extension; possibleIconExts)
+                yield (format ("/usr/share/pixmaps/%s%s", iconName, extension));
+        });
+
+        return gen;
+    }
+
+    /**
+     * Helper structure for the findIcons
+     * method.
+     **/
+    private struct IconFindResult
+    {
+        Package pkg;
+        string fname;
+
+        this (Package pkg, string fname) {
+            this.pkg = pkg;
+            this.fname = fname;
+        }
+    }
+
+    /**
+     * Looks up 'icon' with 'size' in popular icon themes according to the XDG
+     * icon theme spec.
+     **/
+    auto findIcons (string iconName, const IconSize[] sizes, Package pkg = null)
+    {
+        IconFindResult[IconSize] sizeMap = null;
+
+        foreach (size; sizes) {
+            foreach (fname; possibleIconFilenames (iconName, size)) {
+                if (pkg !is null) {
+                    // we are supposed to search in one particular package
+                    if (pkg.contents.canFind (fname)) {
+                        sizeMap[size] = IconFindResult (pkg, fname);
+                        break;
+                    }
+                } else {
+                    // global search in all packages
+                    auto pkgP = (fname in iconFiles);
+                    // continue if filename is not in map
+                    if (pkgP is null)
+                        continue;
+                    sizeMap[size] = IconFindResult (*pkgP, fname);
+                    break;
+                }
+            }
+        }
+
+        return sizeMap;
+    }
+
+    /**
      * Extracts the icon from the package and stores it in the cache.
      * Ensures the stored icon always has the size given in "size", and renders
      * scalable vectorgraphics if necessary.
@@ -407,10 +488,93 @@ public:
         auto cptMediaPath = buildPath (mediaExportPath, gcid);
 
         if (iconName.startsWith ("/")) {
-            if (gres.pkg.getContentsList ().canFind (iconName))
+            if (gres.pkg.contents.canFind (iconName))
                 return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, IconSize (64, 64));
         } else {
-            writeln (iconName);
+            iconName  = baseName (iconName);
+
+
+            // Small hack: Strip .png from icon files to make the XDG and Pixmap finder
+            // work properly, which add their own icon extensions and find the most suitable icon.
+            if (iconName.endsWith (".png"))
+                iconName = iconName[0..$-4];
+
+            string lastIconName = null;
+            bool findAndStoreXdgIcon (Package epkg = null)
+            {
+                auto iconRes = findIcons (iconName, wantedIconSizes, epkg);
+                if (iconRes is null)
+                    return false;
+
+                auto iconStored = false;
+
+                foreach (size; wantedIconSizes) {
+                    auto infoP = (size in iconRes);
+
+                    IconFindResult info;
+                    info.pkg = null;
+                    if (infoP !is null)
+                        info = *infoP;
+
+                    if (info.pkg is null) {
+                        // the size we want wasn't found, can we downscale a larger one?
+                        foreach (asize; iconRes.byKey ()) {
+                            auto data = iconRes[asize];
+                            if (asize < size)
+                                continue;
+                            info = data;
+                            break;
+                        }
+                    }
+
+                    // give up if we still haven't found an icon
+                    if (info.pkg is null)
+                        continue;
+
+                    lastIconName = info.fname;
+                    if (iconAllowed (lastIconName)) {
+                        iconStored = storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size);
+                    } else {
+                        // the found icon is not suitable, but maybe a larger one is available that we can downscale?
+                        foreach (asize; iconRes.byKey ()) {
+                            auto data = iconRes[asize];
+                            if (asize < size)
+                                continue;
+                            info = data;
+                            break;
+                        }
+
+                        if (iconAllowed (info.fname)) {
+                            iconStored = storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size);
+                            lastIconName = info.fname;
+                        }
+                    }
+                }
+
+                return iconStored;
+            }
+
+            // search for the right icon iside the current package
+            auto success = findAndStoreXdgIcon (gres.pkg);
+            if ((!success) && (!gres.isIgnored (cpt))) {
+                // search in all packages
+                success = findAndStoreXdgIcon ();
+                if (success) {
+                    // we found a valid stock icon, so set that additionally to the cached one
+                    auto icon = new Icon ();
+                    icon.setKind (IconKind.STOCK);
+                    icon.setName (iconName);
+                    cpt.addIcon (icon);
+                } else if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
+                    gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
+                }
+            }
+
+            if ((!success) && (lastIconName is null)) {
+                gres.addHint (cpt.getId (), "icon-not-found", ["icon_fname": iconName]);
+                return false;
+            }
+
         }
 
         return true;

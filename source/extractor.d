@@ -59,7 +59,7 @@ public:
         // prepare a list of metadata files which interest us
         string[string] desktopFiles;
         string[] metadataFiles;
-        foreach (string fname; pkg.getContentsList ()) {
+        foreach (string fname; pkg.contents) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
                 desktopFiles[baseName (fname)] = fname;
                 continue;

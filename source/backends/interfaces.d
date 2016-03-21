@@ -32,10 +32,11 @@ interface Package
     @property string ver ();
     @property string arch ();
     @property string[string] description ();
+
     @property string filename ();
     @property void filename (string fname);
+    @property string[] contents ();
 
-    string[] getContentsList ();
     string getFileData (string fname);
     void close ();
 

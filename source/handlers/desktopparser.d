@@ -94,7 +94,7 @@ Component parseDesktopFile (GeneratorResult res, string fname, string data, bool
         df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);
     } catch (Exception e) {
         // there was an error
-        res.addHint ("desktop-file-read-error", fname_base, e.msg);
+        res.addHint (fname_base, "desktop-file-read-error", e.msg);
         return null;
     }
 
@@ -128,9 +128,9 @@ Component parseDesktopFile (GeneratorResult res, string fname, string data, bool
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {
-        res.addHint ("desktop-file-error",
-                        fname_base,
-                        format ("Desktop file '%s' is not a valid desktop file.", fname));
+        res.addHint (fname_base,
+                     "desktop-file-error",
+                     format ("Desktop file '%s' is not a valid desktop file.", fname));
         return null;
 	}
 

@@ -34,7 +34,7 @@ enum LogSeverity : string
 void log (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
 {
     auto time = Clock.currTime ();
-    auto timeStr = format ("%d-%02d-%02d %02d:%02d.%02d", time.year, time.month, time.day, time.hour,time.minute, time.second);
+    auto timeStr = format ("%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour,time.minute, time.second);
     writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
 }
 
