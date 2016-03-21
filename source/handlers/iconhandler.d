@@ -296,7 +296,7 @@ public:
             return ImageFormat.SVG;
         if (fname.endsWith (".svgz"))
             return ImageFormat.SVGZ;
-        return ImageFormat.Unknown;
+        return ImageFormat.UNKNOWN;
     }
 
     /**
@@ -386,7 +386,7 @@ public:
         //    return False
 
         auto iformat = imageKindFromFile (iconPath);
-        if (iformat == ImageFormat.Unknown) {
+        if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
             return false;
         }

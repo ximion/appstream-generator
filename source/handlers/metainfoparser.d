@@ -39,7 +39,7 @@ Component parseMetaInfoFile (GeneratorResult res, string data)
     try {
         mdata.parseXml (data);
     } catch (Exception e) {
-        res.addHint ("metainfo-parsing-error", "general", e.msg);
+        res.addHint ("general", "metainfo-parsing-error", e.msg);
         return null;
     }
 

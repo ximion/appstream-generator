@@ -37,7 +37,7 @@ import ag.logging;
 
 
 enum ImageFormat {
-    Unknown,
+    UNKNOWN,
     PNG,
     JPEG,
     GIF,

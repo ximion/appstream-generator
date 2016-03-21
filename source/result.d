@@ -102,6 +102,15 @@ public:
         updateComponentGCID (cpt, data);
     }
 
+    void dropComponent (string cid)
+    {
+        auto cpt = getComponent (cid);
+        if (cpt is null)
+            return;
+        cpts.remove (cid);
+        cptGCID.remove (cpt);
+    }
+
     /**
      * Add an issue hint to this result.
      * Params:
@@ -116,6 +125,11 @@ public:
         if (cid is null)
             cid = "general";
         hints[cid] ~= hint;
+
+        // we stop dealing with this component when we encounter a fatal
+        // error.
+        if (hint.isError ())
+            dropComponent (cid);
     }
 
     /**
@@ -130,7 +144,7 @@ public:
         string[string] vars;
         if (msg !is null)
             vars = ["msg": msg];
-        addHint (tag, cid, vars);
+        addHint (cid, tag, vars);
     }
 
     /**

@@ -23,7 +23,39 @@ import std.stdio;
 import std.string;
 import std.json;
 
+import ag.logging;
+
 alias HintList = GeneratorHint[];
+
+/**
+ * Severity assigned with an issue hint.
+ *
+ * INFO:    Information, no immediate action needed (but will likely be an issue later).
+ * WARNING: An issue which did not prevent generating meaningful data, but which is still serious
+ *          and should be fixed (warning of this kind usually result in less data).
+ * ERROR:   A fatal error which resulted in the component being excluded from the final metadata.
+ */
+enum HintSeverity
+{
+    UNKNOWN,
+    INFO,
+    WARNING,
+    ERROR
+}
+
+private HintSeverity severityFromString (string str)
+{
+    switch (str) {
+        case "error":
+            return HintSeverity.ERROR;
+        case "warning":
+            return HintSeverity.WARNING;
+        case "info":
+            return HintSeverity.INFO;
+        default:
+            return HintSeverity.UNKNOWN;
+    }
+}
 
 class GeneratorHint
 {
@@ -34,12 +66,23 @@ private:
 
     string[string] vars;
 
+    HintSeverity severity;
+
 public:
 
     this (string tag, string cid = null)
     {
         this.tag = tag;
         this.cid = cid;
+
+        severity = HintsStorage.get ().getSeverity (tag);
+        if (severity == HintSeverity.UNKNOWN)
+            logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
+    }
+
+    bool isError ()
+    {
+        return severity == HintSeverity.ERROR;
     }
 
     void setVars (string[string] vars)
@@ -57,6 +100,95 @@ public:
     }
 }
 
+/**
+ * Singleton holding information about the hint tags we know about.
+ **/
+class HintsStorage
+{
+    // Thread local
+    private static bool instantiated_;
+
+    // Thread global
+    private __gshared HintsStorage instance_;
+
+    static HintsStorage get()
+    {
+        if (!instantiated_) {
+            synchronized (HintsStorage.classinfo) {
+                if (!instance_)
+                    instance_ = new HintsStorage ();
+
+                instantiated_ = true;
+            }
+        }
+
+        return instance_;
+    }
+
+    struct HintDefinition
+    {
+        string tag;
+        string text;
+        HintSeverity severity;
+        bool internal;
+    }
+
+    private HintDefinition[string] hintDefs;
+
+    private this ()
+    {
+        import std.path;
+
+        // find the hint definition file
+        auto exeDir = dirName (std.file.thisExePath ());
+        auto hintsDefFile = buildNormalizedPath (exeDir, "..", "data", "asgen-hints.json");
+
+        if (!std.file.exists (hintsDefFile))
+            hintsDefFile = "/usr/share/appstream/asgen-hints.json";
+
+        if (!std.file.exists (hintsDefFile)) {
+            logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
+            return;
+        }
+
+        // read the hints definition JSON file
+        auto f = File (hintsDefFile, "r");
+        string jsonData;
+        string line;
+        while ((line = f.readln ()) !is null)
+            jsonData ~= line;
+
+        auto hintDefsJSON = parseJSON (jsonData);
+
+        foreach (tag; hintDefsJSON.object.byKey ()) {
+            auto j = hintDefsJSON[tag];
+            auto def = HintDefinition ();
+
+            def.tag = tag;
+            def.severity = severityFromString (j["severity"].str);
+            def.text = j["text"].str;
+            if ("internal" in j)
+                def.internal = j["internal"].type == JSON_TYPE.TRUE;
+
+            hintDefs[tag] = def;
+        }
+    }
+
+    HintDefinition getHintDef (string tag)
+    {
+        auto defP = (tag in hintDefs);
+        if (defP is null)
+            return HintDefinition ();
+        return *defP;
+    }
+
+    HintSeverity getSeverity (string tag)
+    {
+        auto hDef = getHintDef (tag);
+        return hDef.severity;
+    }
+}
+
 unittest
 {
     writeln ("TEST: ", "GeneratorHint");
@@ -66,4 +198,6 @@ unittest
     auto root = hint.toJsonNode ();
 
     writeln (toJSON (&root, true));
+
+    HintsStorage.get ();
 }
