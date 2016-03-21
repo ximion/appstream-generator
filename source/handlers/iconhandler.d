@@ -204,7 +204,6 @@ public:
 
     this (string mediaPath, ContentsIndex cindex, string iconTheme = null)
     {
-        debugmsg ("Constructing IconHandler.");
         mediaExportPath = mediaPath;
 
         // Preseeded theme names.
@@ -229,6 +228,12 @@ public:
                 iconFiles[fname] = cindex.packageForFile (fname);
                 continue;
             }
+
+            // optimization: check if we actually have an interesting path before
+            // entering the foreach loop.
+            if (!fname.startsWith ("/usr/share/icons/"))
+                continue;
+
             foreach (name; themeNames) {
                 auto pkg = cindex.packageForFile (fname);
                 if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
