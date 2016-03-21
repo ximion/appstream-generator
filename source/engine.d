@@ -42,7 +42,7 @@ class Engine
 
 private:
     Config conf;
-    PackagesIndex pkgIndex;
+    PackageIndex pkgIndex;
     ContentsIndex contentsIndex;
     DataCache dcache;
 
@@ -56,7 +56,7 @@ public:
 
         switch (conf.backend) {
             case Backend.Debian:
-                pkgIndex = new DebianPackagesIndex ();
+                pkgIndex = new DebianPackageIndex ();
                 break;
             default:
                 throw new Exception ("No backend specified, can not continue!");

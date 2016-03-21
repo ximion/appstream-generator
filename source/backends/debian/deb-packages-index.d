@@ -30,7 +30,7 @@ import ag.backend.debian.tagfile;
 import ag.backend.debian.debpackage;
 
 
-class DebianPackagesIndex : PackagesIndex
+class DebianPackageIndex : PackageIndex
 {
 
 private:

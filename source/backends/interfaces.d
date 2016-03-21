@@ -48,7 +48,7 @@ interface Package
 /**
  * An index of information about packages in a distribution.
  */
-interface PackagesIndex
+interface PackageIndex
 {
     void open (string dir, string suite, string section, string arch);
     void close ();
@@ -61,7 +61,7 @@ interface PackagesIndex
  */
 interface ContentsIndex
 {
-    void loadDataFor (string dir, string suite, string section, string arch);
+    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex);
     Package packageForFile (string fname);
     @property string[] files ();
     void close ();

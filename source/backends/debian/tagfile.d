@@ -58,17 +58,25 @@ public:
 
     bool nextSection ()
     {
+        bool breakNext = false;
         auto clen = content.length;
 
         if (pos >= clen)
             return false;
 
-        for (auto i = pos; i < clen; i++) {
+        uint i;
+        for (i = pos; i < clen; i++) {
             if (content[i] == "") {
                 pos = i + 1;
+                breakNext = true;
+            } else if (breakNext) {
                 break;
             }
         }
+
+        // check if we reached the end of this file
+        if (i == clen)
+            pos = cast(uint) clen;
 
         if (pos >= clen)
             return false;
@@ -87,7 +95,6 @@ public:
             auto fdata = chompPrefix (content[i], name ~ ":");
             if (fdata == content[i])
                 continue;
-
 
             if ((i+1 >= clen)
                 || (!startsWith (content[i+1], " "))) {

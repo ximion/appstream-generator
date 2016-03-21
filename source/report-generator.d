@@ -36,7 +36,7 @@ class ReportGenerator
 
 private:
     Config conf;
-    PackagesIndex pkgIndex;
+    PackageIndex pkgIndex;
     DataCache dcache;
 
     string exportDir;

@@ -22,22 +22,19 @@ module ag.backend.debian.contentsindex;
 import std.stdio;
 import std.path;
 import std.string;
+import std.array : split;
 
 import ag.logging;
+import ag.archive;
 import ag.backend.intf;
 import ag.backend.debian.debpackage;
 
-
-private struct PkgInfo
-{
-    string name;
-}
 
 class DebianContentsIndex : ContentsIndex
 {
 
 private:
-    PkgInfo[string] filePkg;
+    Package[string] filePkgMap;
 
 public:
 
@@ -46,25 +43,106 @@ public:
 
     }
 
-    void loadDataFor (string dir, string suite, string section, string arch)
+    private string[] filePkgFromContentsLine (string rawLine)
     {
-        // TODO
+        auto line = rawLine.strip ();
+        if (line.indexOf (" ") <= 0)
+            return null;
+
+        auto parts = line.split (" ");
+        auto path = parts[0].strip ();
+        auto group_pkg = join (parts[1..$]).strip ();
+
+        string pkgname;
+        if (group_pkg.indexOf ("/") > 0) {
+            auto tmp = group_pkg.split ("/");
+            pkgname = tmp[1].strip ();
+        } else
+            pkgname = group_pkg;
+
+        return [path, pkgname];
+    }
+
+    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex)
+    {
+        auto contentsBaseName = format ("Contents-%s.gz", arch);
+        auto contentsFname = buildPath (dir, "dists", suite, section, contentsBaseName);
+
+        // Ubuntu does not place the Contents file in a component-specific directory,
+        // so fall back to the global one.
+        if (!std.file.exists (contentsFname)) {
+            auto path = buildPath (dir, "dists", suite, contentsBaseName);
+            if (std.file.exists (path))
+                contentsFname = path;
+        }
+
+        string data;
+        try {
+            data = decompressFile (contentsFname);
+        } catch (Exception e) {
+            throw e;
+        }
+
+        Package[string] pkgMap;
+        if (pindex !is null) {
+            foreach (pkg; pindex.getPackages ()) {
+                pkgMap[pkg.name] = pkg;
+            }
+        }
+
+        // load and preprocess the large Contents file.
+        foreach (line; splitLines (data)) {
+            auto parts = filePkgFromContentsLine (line);
+            if (parts is null)
+                continue;
+            if (parts.length != 2)
+                continue;
+            auto fname = "/" ~ parts[0];
+            auto pkgname = parts[1];
+
+            auto pkgP = (pkgname in pkgMap);
+            // continue if package is not in map
+            if (pkgP is null)
+                continue;
+
+            filePkgMap[fname] = *pkgP;
+        }
     }
 
     Package packageForFile (string fname)
     {
-        // TODO
-        return null;
+        auto pkgP = (fname in filePkgMap);
+        if (pkgP is null)
+            return null;
+
+        return *pkgP;
     }
 
     @property string[] files ()
     {
-        // TODO
-        return null;
+        return filePkgMap.keys;
     }
 
     void close ()
     {
-        // TODO
+        // Not necessary
     }
+}
+
+unittest
+{
+    import std.file : getcwd;
+    import std.path : buildPath;
+    import ag.backend.debian.pkgindex;
+    writeln ("TEST: ", "Debian::ContentsIndex");
+
+    auto samplePool = buildPath (getcwd(), "test", "samples", "debian");
+
+    auto ci = new DebianContentsIndex ();
+    auto pi = new DebianPackageIndex ();
+    pi.open (samplePool, "chromodoris", "main", "amd64");
+    ci.loadDataFor (samplePool, "chromodoris", "main", "amd64", pi);
+
+    assert (ci.packageForFile ("/usr/include/AppStream/appstream.h").name == "libappstream-dev");
+    assert (ci.packageForFile ("/usr/share/appdata/gnome-calculator.appdata.xml").name == "gnome-calculator");
 }
