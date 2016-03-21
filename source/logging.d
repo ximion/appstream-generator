@@ -31,31 +31,31 @@ enum LogSeverity : string
     ERROR = "ERROR"
 }
 
-void log (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
+void logMessage (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
 {
     auto time = Clock.currTime ();
     auto timeStr = format ("%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour,time.minute, time.second);
     writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
 }
 
-void debugmsg (string, Args...) (string tmpl, Args args)
+void logDebug (string, Args...) (string tmpl, Args args)
 {
     debug {
-        log (LogSeverity.DEBUG, tmpl, args);
+        logMessage (LogSeverity.DEBUG, tmpl, args);
     }
 }
 
-void info (string, Args...) (string tmpl, Args args)
+void logInfo (string, Args...) (string tmpl, Args args)
 {
-    log (LogSeverity.INFO, tmpl, args);
+    logMessage (LogSeverity.INFO, tmpl, args);
 }
 
-void warning (string, Args...) (string tmpl, Args args)
+void logWarning (string, Args...) (string tmpl, Args args)
 {
-    log (LogSeverity.WARNING, tmpl, args);
+    logMessage (LogSeverity.WARNING, tmpl, args);
 }
 
-void error (string, Args...) (string tmpl, Args args)
+void logError (string, Args...) (string tmpl, Args args)
 {
-    log (LogSeverity.ERROR, tmpl, args);
+    logMessage (LogSeverity.ERROR, tmpl, args);
 }

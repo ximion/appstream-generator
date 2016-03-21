@@ -94,7 +94,7 @@ public:
                 // write resulting data into the database
                 dcache.addGeneratorResult (this.conf.metadataType, res);
 
-                info ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
+                logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
             }
         }
     }
@@ -107,7 +107,7 @@ public:
         string[] mdataEntries;
         string[] hintEntries;
 
-        info ("Exporting data for %s (%s/%s)", suiteName, section, arch);
+        logInfo ("Exporting data for %s (%s/%s)", suiteName, section, arch);
 
         foreach (pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
@@ -137,7 +137,7 @@ public:
         string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
-        info ("Writing metadata for %s/%s [%s]", suiteName, section, arch);
+        logInfo ("Writing metadata for %s/%s [%s]", suiteName, section, arch);
         auto mf = File (dataFname, "w");
         foreach (entry; mdataEntries) {
             mf.writeln (entry);
@@ -146,7 +146,7 @@ public:
         mf.close ();
 
         // write hints
-        info ("Writing hints for %s/%s [%s]", suiteName, section, arch);
+        logInfo ("Writing hints for %s/%s [%s]", suiteName, section, arch);
         auto hf = File (hintsFname, "w");
         hf.writeln ("[");
         foreach (entry; hintEntries) {
@@ -172,7 +172,7 @@ public:
         }
     }
 
-    void generateMetadata (string suite_name)
+    void run (string suite_name)
     {
         Suite suite;
         foreach (Suite s; conf.suites)

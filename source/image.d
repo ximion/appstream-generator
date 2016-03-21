@@ -62,7 +62,7 @@ private void gdLibError (int code, const(char) *msg, va_list args)
 
         // don't silently override a messge, instead dump it to the log
         if (lastErrorMsg !is null)
-            error (lastErrorMsg);
+            logError (lastErrorMsg);
 
         lastErrorMsg = buf.toString ().dup;
     } catch {}

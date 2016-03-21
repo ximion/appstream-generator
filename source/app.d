@@ -79,7 +79,7 @@ void main(string[] args)
                 exit (1);
             }
             auto engine = new Engine ();
-            engine.generateMetadata (args[2]);
+            engine.run (args[2]);
             break;
         default:
             writeln (format ("The command '%s' is unknown.", command));

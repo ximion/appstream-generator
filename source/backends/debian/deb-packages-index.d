@@ -65,7 +65,7 @@ public:
             throw e;
         }
 
-        debugmsg ("Opened: %s", indexFname);
+        logDebug ("Opened: %s", indexFname);
     }
 
     void close ()
@@ -89,7 +89,7 @@ public:
             pkg.filename = buildPath (location, fname);
 
             if (!pkg.isValid ()) {
-                warning ("Found invalid package (%s)! Skipping it.", pkg.toString ());
+                logWarning ("Found invalid package (%s)! Skipping it.", pkg.toString ());
                 continue;
             }
 

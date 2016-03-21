@@ -83,7 +83,7 @@ public:
         import std.stdio : writeln;
         int major, minor, patch;
         auto ver = mdb_version (&major, &minor, &patch);
-        debugmsg ("Using %s major=%s minor=%s patch=%s", ver.fromStringz, major, minor, patch);
+        logDebug ("Using %s major=%s minor=%s patch=%s", ver.fromStringz, major, minor, patch);
     }
 
     void open (string dir, string mediaDir)

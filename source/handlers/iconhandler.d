@@ -258,7 +258,7 @@ public:
             }
         }
 
-        debugmsg ("Created new IconHandler.");
+        logDebug ("Created new IconHandler.");
     }
 
     private string getIconNameAndClear (Component cpt)

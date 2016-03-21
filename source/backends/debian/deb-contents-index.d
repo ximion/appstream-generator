@@ -115,7 +115,7 @@ public:
                 filePkgMap[fname] = *pkgP;
         }
 
-        debugmsg ("Loaded: %s", contentsFname);
+        logDebug ("Loaded: %s", contentsFname);
     }
 
     Package packageForFile (string fname)
