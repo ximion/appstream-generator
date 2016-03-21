@@ -190,7 +190,7 @@ public:
                 if (directoryMatchesSize (themedir, size)) {
                     // best filetype needs to come first to be preferred, only types allowed by the spec are handled at all
                     foreach (extension; ["png", "svgz", "svg", "xpm"])
-                        yield (format ("usr/share/icons/%s/%s/%s.%s", this.name, themedir["path"].get!(string), iname, extension));
+                        yield (format ("/usr/share/icons/%s/%s/%s.%s", this.name, themedir["path"].get!(string), iname, extension));
                 }
             }
         });
@@ -416,12 +416,12 @@ public:
         try {
             iconData = sourcePkg.getFileData (iconPath);
         } catch (Exception e) {
-            gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+            gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
             return false;
         }
 
         if (iconData.empty ()) {
-            gres.addHint (cpt.getId (), "pkg-extract-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename),
+            gres.addHint (cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename),
                                     "error": "Icon data was empty. The icon might be a symbolic link pointing at a file outside of this package. "
                                         "Please do not do that and instead place the icons in their appropriate directories in <code>/usr/share/icons/hicolor/</code>."]);
             return false;
@@ -436,7 +436,7 @@ public:
                 cv.renderSvg (iconData);
                 cv.savePng (iconStoreLocation);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "image-write-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
         } else {
@@ -444,7 +444,7 @@ public:
             try {
                 img = new Image (iconData, iformat);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "icon-load-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "icon-load-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
 
@@ -454,7 +454,7 @@ public:
                 auto f = File (iconStoreLocation, "w");
                 img.savePng (f);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "image-write-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
         }
