@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.process : pipeProcess, Redirect, wait;
 import std.file;
+import std.array : empty;
 import ag.config;
 import ag.archive;
 import ag.backend.intf;
@@ -36,10 +37,11 @@ private:
     string pkgarch;
 
     bool contentsRead;
-    string[] contents;
+    string[] contentsL;
 
     string tmpDir;
     string dataArchive;
+    string controlArchive;
 
     string debFname;
 
@@ -87,8 +89,33 @@ public:
 
     private CompressedArchive openPayloadArchive ()
     {
-        auto ca = new CompressedArchive ();
+        auto pa = new CompressedArchive ();
         if (!dataArchive) {
+            import std.regex;
+            import std.path;
+
+            // extract the payload to a temporary location first
+            pa.open (this.filename);
+            mkdirRecurse (tmpDir);
+
+            string[] files;
+            try {
+                files = pa.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
+            } catch (Exception e) { throw e; }
+
+            if (files.length == 0)
+                return null;
+            dataArchive = files[0];
+        }
+
+        pa.open (dataArchive);
+        return pa;
+    }
+
+    private CompressedArchive openControlArchive ()
+    {
+        auto ca = new CompressedArchive ();
+        if (!controlArchive) {
             import std.regex;
             import std.path;
 
@@ -98,39 +125,55 @@ public:
 
             string[] files;
             try {
-                files = ca.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
+                files = ca.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
             } catch (Exception e) { throw e; }
 
-            if (files.length == 0)
+            if (files.empty)
                 return null;
-            dataArchive = files[0];
+            controlArchive = files[0];
         }
 
-        ca.open (dataArchive);
+        ca.open (controlArchive);
         return ca;
     }
 
     string getFileData (string fname)
     {
-        auto ca = openPayloadArchive ();
+        auto pa = openPayloadArchive ();
         string data;
         try {
-            data = ca.readData (fname);
+            data = pa.readData (fname);
         } catch (Exception e) { throw e; }
 
         return data;
     }
 
-    string[] getContentsList ()
+    @property
+    string[] contents ()
     {
         if (contentsRead)
-            return contents;
+            return contentsL;
 
-        auto ca = openPayloadArchive ();
-        contents = ca.readContents ();
+        // use the md5sums file of the .deb control archive to determine
+        // the contents of this package.
+        // this is way faster than going through the payload directly, and
+        // has the same accuracy.
+        auto ca = openControlArchive ();
+        auto md5sums = ca.readData ("./md5sums");
+
+        // TODO: Preallocate space for the contents list using
+        // the splitLines count?
+
+        foreach (line; md5sums.splitLines ()) {
+            auto parts = line.split ("  ");
+            if (parts.length <= 0)
+                continue;
+            string c = join (parts[1..$], "  ");
+            contentsL ~= "/" ~ c;
+        }
 
         contentsRead = true;
-        return contents;
+        return contentsL;
     }
 
     void close ()

@@ -211,8 +211,12 @@ public:
         }
         scope(exit) archive_read_free (ar);
 
-        if (!fname.startsWith ("."))
-            fname = "."~fname;
+        if (!fname.startsWith (".")) {
+            if (fname.startsWith ("/"))
+                fname = "."~fname;
+            else
+                fname = "./"~fname;
+        }
 
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
