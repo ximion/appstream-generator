@@ -27,70 +27,89 @@ nothrow:
 static if (!is(typeof(usize))) private alias usize = size_t;
 
 struct _cairo {}
-alias cairo_t = _cairo*;
+alias cairo_p = _cairo*;
 
 struct _cairo_surface {}
-alias cairo_surface_t = _cairo_surface*;
+alias cairo_surface_p = _cairo_surface*;
 
-alias cairo_status_t = uint;
-enum {
-    CAIRO_STATUS_SUCCESS = 0,
+enum cairo_status_t {
+    STATUS_SUCCESS = 0,
 
-    CAIRO_STATUS_NO_MEMORY,
-    CAIRO_STATUS_INVALID_RESTORE,
-    CAIRO_STATUS_INVALID_POP_GROUP,
-    CAIRO_STATUS_NO_CURRENT_POINT,
-    CAIRO_STATUS_INVALID_MATRIX,
-    CAIRO_STATUS_INVALID_STATUS,
-    CAIRO_STATUS_NULL_POINTER,
-    CAIRO_STATUS_INVALID_STRING,
-    CAIRO_STATUS_INVALID_PATH_DATA,
-    CAIRO_STATUS_READ_ERROR,
-    CAIRO_STATUS_WRITE_ERROR,
-    CAIRO_STATUS_SURFACE_FINISHED,
-    CAIRO_STATUS_SURFACE_TYPE_MISMATCH,
-    CAIRO_STATUS_PATTERN_TYPE_MISMATCH,
-    CAIRO_STATUS_INVALID_CONTENT,
-    CAIRO_STATUS_INVALID_FORMAT,
-    CAIRO_STATUS_INVALID_VISUAL,
-    CAIRO_STATUS_FILE_NOT_FOUND,
-    CAIRO_STATUS_INVALID_DASH,
-    CAIRO_STATUS_INVALID_DSC_COMMENT,
-    CAIRO_STATUS_INVALID_INDEX,
-    CAIRO_STATUS_CLIP_NOT_REPRESENTABLE,
-    CAIRO_STATUS_TEMP_FILE_ERROR,
-    CAIRO_STATUS_INVALID_STRIDE,
-    CAIRO_STATUS_FONT_TYPE_MISMATCH,
-    CAIRO_STATUS_USER_FONT_IMMUTABLE,
-    CAIRO_STATUS_USER_FONT_ERROR,
-    CAIRO_STATUS_NEGATIVE_COUNT,
-    CAIRO_STATUS_INVALID_CLUSTERS,
-    CAIRO_STATUS_INVALID_SLANT,
-    CAIRO_STATUS_INVALID_WEIGHT,
-    CAIRO_STATUS_INVALID_SIZE,
-    CAIRO_STATUS_USER_FONT_NOT_IMPLEMENTED,
-    CAIRO_STATUS_DEVICE_TYPE_MISMATCH,
-    CAIRO_STATUS_DEVICE_ERROR,
-    CAIRO_STATUS_INVALID_MESH_CONSTRUCTION,
-    CAIRO_STATUS_DEVICE_FINISHED,
-    CAIRO_STATUS_JBIG2_GLOBAL_MISSING,
+    STATUS_NO_MEMORY,
+    STATUS_INVALID_RESTORE,
+    STATUS_INVALID_POP_GROUP,
+    STATUS_NO_CURRENT_POINT,
+    STATUS_INVALID_MATRIX,
+    STATUS_INVALID_STATUS,
+    STATUS_NULL_POINTER,
+    STATUS_INVALID_STRING,
+    STATUS_INVALID_PATH_DATA,
+    STATUS_READ_ERROR,
+    STATUS_WRITE_ERROR,
+    STATUS_SURFACE_FINISHED,
+    STATUS_SURFACE_TYPE_MISMATCH,
+    STATUS_PATTERN_TYPE_MISMATCH,
+    STATUS_INVALID_CONTENT,
+    STATUS_INVALID_FORMAT,
+    STATUS_INVALID_VISUAL,
+    STATUS_FILE_NOT_FOUND,
+    STATUS_INVALID_DASH,
+    STATUS_INVALID_DSC_COMMENT,
+    STATUS_INVALID_INDEX,
+    STATUS_CLIP_NOT_REPRESENTABLE,
+    STATUS_TEMP_FILE_ERROR,
+    STATUS_INVALID_STRIDE,
+    STATUS_FONT_TYPE_MISMATCH,
+    STATUS_USER_FONT_IMMUTABLE,
+    STATUS_USER_FONT_ERROR,
+    STATUS_NEGATIVE_COUNT,
+    STATUS_INVALID_CLUSTERS,
+    STATUS_INVALID_SLANT,
+    STATUS_INVALID_WEIGHT,
+    STATUS_INVALID_SIZE,
+    STATUS_USER_FONT_NOT_IMPLEMENTED,
+    STATUS_DEVICE_TYPE_MISMATCH,
+    STATUS_DEVICE_ERROR,
+    STATUS_INVALID_MESH_CONSTRUCTION,
+    STATUS_DEVICE_FINISHED,
+    STATUS_JBIG2_GLOBAL_MISSING,
 
-    CAIRO_STATUS_LAST_STATUS
+    STATUS_LAST_STATUS
+};
+
+enum cairo_format_t {
+    FORMAT_INVALID   = -1,
+    FORMAT_ARGB32    = 0,
+    FORMAT_RGB24     = 1,
+    FORMAT_A8        = 2,
+    FORMAT_A1        = 3,
+    FORMAT_RGB16_565 = 4,
+    FORMAT_RGB30     = 5
 };
 
 // Context
-cairo_t cairo_create (cairo_surface_t target);
-cairo_t cairo_reference (cairo_t cr);
-void cairo_destroy (cairo_t cr);
-void cairo_set_source_surface (cairo_t cr, cairo_surface_t surface, double x, double y);
-void cairo_paint (cairo_t cr);
+cairo_p cairo_create (cairo_surface_p target);
+cairo_p cairo_reference (cairo_p cr);
+void cairo_destroy (cairo_p cr);
+void cairo_set_source_surface (cairo_p cr, cairo_surface_p surface, double x, double y);
+void cairo_paint (cairo_p cr);
+
+void cairo_save (cairo_p cr);
+void cairo_restore (cairo_p cr);
+
 
 // Surface
-cairo_surface_t cairo_image_surface_create_from_png (const(char) *filename);
-void cairo_surface_destroy (cairo_surface_t surface);
-cairo_status_t cairo_surface_status (cairo_surface_t surface);
-int cairo_image_surface_get_width (cairo_surface_t surface);
-int cairo_image_surface_get_height (cairo_surface_t surface);
+cairo_surface_p cairo_image_surface_create (cairo_format_t format, int width, int height);
+cairo_surface_p cairo_image_surface_create_from_png (const(char) *filename);
+void cairo_surface_destroy (cairo_surface_p surface);
+cairo_status_t cairo_surface_status (cairo_surface_p surface);
+int cairo_image_surface_get_width (cairo_surface_p surface);
+int cairo_image_surface_get_height (cairo_surface_p surface);
+cairo_status_t cairo_surface_write_to_png (cairo_surface_p surface, const(char) *filename);
+
+void cairo_surface_flush (cairo_surface_p surface);
+ubyte* cairo_image_surface_get_data (cairo_surface_p surface);
 
 // Transformations
-void cairo_scale (cairo_t cr, double sx, double sy);
+void cairo_scale (cairo_p cr, double sx, double sy);
+void cairo_translate (cairo_p cr, double tx, double ty);

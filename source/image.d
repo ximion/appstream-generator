@@ -28,6 +28,10 @@ import core.stdc.stdarg;
 import core.stdc.stdio;
 import c.cairo;
 import c.gdlib;
+import c.rsvg;
+
+import gi.glibtypes;
+import gi.glib;
 
 import ag.logging;
 
@@ -200,6 +204,75 @@ public:
     }
 }
 
+class Canvas
+{
+
+private:
+    cairo_surface_p srf;
+    cairo_p cr;
+
+public:
+
+    this (int w, int h)
+    {
+         srf = cairo_image_surface_create (cairo_format_t.FORMAT_ARGB32, w, h);
+         cr = cairo_create (srf);
+    }
+
+    ~this ()
+    {
+        if (cr !is null)
+            cairo_destroy (cr);
+        if (srf !is null)
+            cairo_surface_destroy (srf);
+    }
+
+    void renderSvg (string svgData)
+    {
+        auto handle = rsvg_handle_new ();
+        scope (exit) g_object_unref (handle);
+
+        auto svgBytes = cast(ubyte[]) svgData;
+        auto svgDSize = ubyte.sizeof * svgBytes.length;
+
+        GError *error = null;
+        rsvg_handle_write (handle, cast(ubyte*) svgBytes, svgDSize, &error);
+        if (error !is null) {
+            auto msg = fromStringz (error.message).dup;
+            g_error_free (error);
+            throw new Exception (to!string (msg));
+        }
+
+        rsvg_handle_close (handle, &error);
+        if (error !is null) {
+            auto msg = fromStringz (error.message).dup;
+            g_error_free (error);
+            throw new Exception (to!string (msg));
+        }
+
+        RsvgDimensionData dims;
+        rsvg_handle_get_dimensions (handle, &dims);
+
+        auto w = cairo_image_surface_get_width (srf);
+        auto h = cairo_image_surface_get_height (srf);
+
+        // cairo_translate (cr, (w - dims.width) / 2, (h - dims.height) / 2);
+        cairo_scale (cr, w / dims.width, h / dims.height);
+
+        cr.cairo_save ();
+        scope (exit) cr.cairo_restore ();
+        if (!rsvg_handle_render_cairo (handle, cr))
+            throw new Exception ("Rendering of SVG images failed!");
+    }
+
+    void savePng (string fname)
+    {
+        auto status = cairo_surface_write_to_png (srf, fname.toStringz ());
+        if (status != cairo_status_t.STATUS_SUCCESS)
+            throw new Exception (format ("Could not save canvas to PNG: %s", to!string (status)));
+    }
+}
+
 unittest
 {
     import std.file : getcwd;
@@ -226,8 +299,7 @@ unittest
     f = File (sampleImgPath, "r");
     while (!f.eof) {
         char[300] buf;
-        f.rawRead (buf);
-        data ~= to!string (buf);
+        data ~= to!string (f.rawRead (buf));
     }
     img = new Image (data, ImageFormat.PNG);
     writeln ("Scaling image (data)");
@@ -235,4 +307,17 @@ unittest
     writeln ("Storing image (data)");
     f = File ("/tmp/ag-ut_test.png", "w");
     img.savePng (f);
+
+    writeln ("Rendering SVG");
+    auto sampleSvgPath = buildPath (getcwd(), "test", "samples", "table.svgz");
+    data = "";
+    f = File (sampleSvgPath, "r");
+    while (!f.eof) {
+        char[300] buf;
+        data ~= to!string (f.rawRead (buf));
+    }
+    auto cv = new Canvas (512, 512);
+    cv.renderSvg (data);
+    writeln ("Saving rendered PNG");
+    cv.savePng ("/tmp/ag-svgrender_test1.png");
 }

@@ -53,6 +53,13 @@ struct IconSize
     {
         return format ("%sx%s", width, height);
     }
+
+    uint toInt ()
+    {
+        if (width > height)
+            return width;
+        return height;
+    }
 }
 
 class IconHandler
@@ -170,27 +177,33 @@ public:
         // create target directory
         mkdirRecurse (path);
 
-        Image img;
-        try {
-            img = new Image (iconData, iformat);
-        } catch (Exception e) {
-            gres.addHint(cpt.getId (), "icon-load-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
-            return false;
-        }
+        if ((iformat == ImageFormat.SVG) || (iformat == ImageFormat.SVGZ)) {
+            try {
+                auto cv = new Canvas (size.width, size.height);
+                cv.renderSvg (iconData);
+                cv.savePng (iconStoreLocation);
+            } catch (Exception e) {
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                return false;
+            }
+        } else {
+            Image img;
+            try {
+                img = new Image (iconData, iformat);
+            } catch (Exception e) {
+                gres.addHint(cpt.getId (), "icon-load-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                return false;
+            }
 
-        try {
-            img.scale (size.width, size.height);
-        } catch (Exception e) {
-            gres.addHint(cpt.getId (), "image-scale-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
-            return false;
-        }
+            try {
+                img.scale (size.width, size.height);
 
-        try {
-            auto f = File (iconStoreLocation, "w");
-            img.savePng (f);
-        } catch (Exception e) {
-            gres.addHint(cpt.getId (), "image-write-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
-            return false;
+                auto f = File (iconStoreLocation, "w");
+                img.savePng (f);
+            } catch (Exception e) {
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": iconName, "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                return false;
+            }
         }
 
         auto icon = new Icon ();

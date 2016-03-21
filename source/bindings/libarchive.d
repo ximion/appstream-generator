@@ -46,11 +46,12 @@ int archive_read_support_filter_all (archive*);
 
 int archive_read_open_filename (archive*, const(char) *filename, usize block_size);
 int archive_read_open_FILE (archive*, FILE *file);
+int archive_read_open_memory (archive*, void *buff, size_t size);
 
-ptrdiff_t archive_read_data(archive*, void*, usize);
+ptrdiff_t archive_read_data (archive*, void*, usize);
 int archive_read_next_header (archive*, archive_entry**);
 int archive_read_data_skip (archive*);
-int archive_read_data_block(archive *a, const(void*) *buff, size_t *size, long *offset);
+int archive_read_data_block (archive *a, const(void*) *buff, size_t *size, long *offset);
 
 const(char) *archive_entry_pathname (archive_entry*);
 int archive_entry_filetype (archive_entry*);

@@ -27,15 +27,45 @@ import c.libarchive;
 
 immutable DEFAULT_BLOCK_SIZE = 65536;
 
-string decompressFile (string fname)
+private string readArchiveData (archive *ar, string name = null)
 {
+    archive_entry *ae;
     immutable BUFFER_SIZE = 8192;
     int ret;
     size_t size;
     string data;
     char[BUFFER_SIZE] buff;
 
-    archive_entry *ae;
+    ret = archive_read_next_header (ar, &ae);
+    if (ret != ARCHIVE_OK) {
+        if (name is null)
+            throw new Exception (format ("Unable to read header of compressed data."));
+        else
+            throw new Exception (format ("Unable to read header of compressed file '%s'", name));
+    }
+
+    while (true) {
+        size = archive_read_data (ar, cast(void*) buff, BUFFER_SIZE);
+        if (size < 0) {
+            if (name is null)
+                throw new Exception (format ("Failed to read compressed data."));
+            else
+                throw new Exception (format ("Failed to read data from '%s'", name));
+        }
+
+        if (size == 0)
+            break;
+
+        data ~= buff[0..size];
+    }
+
+    return data;
+}
+
+string decompressFile (string fname)
+{
+    int ret;
+
     archive *ar = archive_read_new ();
     scope(exit) archive_read_free (ar);
 
@@ -46,22 +76,25 @@ string decompressFile (string fname)
     if (ret != ARCHIVE_OK)
         throw new Exception (format ("Unable to open compressed file '%s'", fname));
 
-    ret = archive_read_next_header (ar, &ae);
+    return readArchiveData (ar, fname);
+}
+
+string decompressData (ubyte[] data)
+{
+    int ret;
+
+    archive *ar = archive_read_new ();
+    scope(exit) archive_read_free (ar);
+
+    archive_read_support_compression_all (ar);
+    archive_read_support_format_raw (ar);
+
+    auto dSize = ubyte.sizeof * data.length;
+    ret = archive_read_open_memory (ar, cast(void*) data, dSize);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to read header of compressed file '%s'", fname));
+        throw new Exception (format ("Unable to open compressed data."));
 
-    while (true) {
-        size = archive_read_data (ar, cast(void*) buff, BUFFER_SIZE);
-        if (size < 0)
-            throw new Exception (format ("Failed to read data from '%s'", fname));
-
-        if (size == 0)
-            break;
-
-        data ~= buff[0..size];
-    }
-
-    return data;
+    return readArchiveData (ar);
 }
 
 class CompressedArchive
