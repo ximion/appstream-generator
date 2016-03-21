@@ -26,6 +26,8 @@ import std.path : baseName, buildPath;
 import std.uni : toLower;
 import std.file : mkdirRecurse;
 import std.algorithm : canFind;
+import std.variant;
+import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
 
@@ -33,10 +35,14 @@ import ag.result;
 import ag.utils;
 import ag.image;
 import ag.backend.intf;
+import ag.std.concurrency.generator;
 
 
-immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", ".ico", ".xpm"];
-immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
+private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", ".ico", ".xpm"];
+private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
+
+private immutable wantedSizes  = [IconSize (64), IconSize (128)];
+
 
 struct IconSize
 {
@@ -47,6 +53,12 @@ struct IconSize
     {
         width = w;
         height = h;
+    }
+
+    this (uint s)
+    {
+        width = s;
+        height = s;
     }
 
     string toString ()
@@ -62,17 +74,150 @@ struct IconSize
     }
 }
 
+/**
+ * Describes an icon theme as specified in the XDG theme spec.
+ */
+private class Theme
+{
+
+private:
+    string name;
+    Algebraic!(int, string)[string][] directories;
+
+public:
+
+    this (string name, Package pkg)
+    {
+        this.name = name;
+
+        auto indexData = pkg.getFileData (buildPath ("/usr/share/icons", name, "index.theme"));
+
+        auto index = new KeyFile ();
+        index.loadFromData (indexData, -1, GKeyFileFlags.NONE);
+
+        ulong dummy;
+        foreach (section; index.getGroups (dummy)) {
+            string type;
+            string context;
+            int threshold;
+            int size;
+            int minSize;
+            int maxSize;
+            try {
+                size = index.getInteger (section, "Size");
+                context = index.getString (section, "Context");
+            } catch { continue; }
+
+            try {
+                threshold = index.getInteger (section, "Threshold");
+            } catch {
+                threshold = 2;
+            }
+            try {
+                type = index.getString (section, "Type");
+            } catch {
+                type = "Threshold";
+            }
+            try {
+                minSize = index.getInteger (section, "MinSize");
+            } catch {
+                minSize = size;
+            }
+            try {
+                maxSize = index.getInteger (section, "MaxSize");
+            } catch {
+                maxSize = size;
+            }
+
+            if (size == 0)
+                continue;
+            auto themedir = [
+                "path": Algebraic!(int, string) (section),
+                "type": Algebraic!(int, string) (type),
+                "size": Algebraic!(int, string) (size),
+                "minsize": Algebraic!(int, string) (minSize),
+                "maxsize": Algebraic!(int, string) (maxSize),
+                "threshold": Algebraic!(int, string) (threshold)
+            ];
+            directories ~= themedir;
+        }
+    }
+
+    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, IconSize size)
+    {
+        string type = themedir["type"].get!(string);
+        if (type == "Fixed")
+            return size.toInt () == themedir["size"].get!(int);
+        if (type == "Scalable") {
+            if ((themedir["minsize"].get!(int) <= size.toInt ()) && (size.toInt () <= themedir["maxsize"].get!(int)))
+                return true;
+            return false;
+        }
+        if (type == "Threshold") {
+            auto themeSize = themedir["size"].get!(int);
+            auto th = themedir["threshold"].get!(int);
+            if (((themeSize - th) <= size.toInt ()) && (size.toInt () <= (themeSize + th)))
+                return true;
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns an iteratable of possible icon filenames that match 'name' and 'size'.
+     **/
+    auto matchingIconFilenames (string iname, IconSize size)
+    {
+        auto gen = new Generator!string (
+        {
+            foreach (themedir; this.directories) {
+                if (directoryMatchesSize (themedir, size)) {
+                    // best filetype needs to come first to be preferred, only types allowed by the spec are handled at all
+                    foreach (extension; ["png", "svgz", "svg", "xpm"])
+                        yield (format ("usr/share/icons/%s/%s/%s.%s", this.name, themedir["path"].get!(string), iname, extension));
+                }
+            }
+        });
+
+        return gen;
+    }
+}
+
+
+/**
+ * Finds icons in a software archive and stores them in the
+ * correct sizes for a given AppStream component.
+ */
 class IconHandler
 {
 
 private:
     string mediaExportPath;
 
+    string[] themes;
+    string[] iconFiles;
+    string[] themeNames;
+
 public:
 
-    this (string mediaPath)
+    this (string mediaPath, ContentsIndex cindex, string iconTheme = null)
     {
         mediaExportPath = mediaPath;
+
+        // Preseeded theme names.
+        // * prioritize hicolor, because that's where apps often install their upstream icon
+        // * then look at the theme given in the config file
+        // * allow Breeze icon theme, needed to support KDE apps (they have no icon at all, otherwise...)
+        // * in rare events, GNOME needs the same treatment, so special-case Adwaita as well
+        // * We need at least one icon theme to provide the default XDG icon spec stock icons.
+        //   A fair take would be to select them between KDE and GNOME at random, but for consistency and
+        //   because everyone hates unpredictable behavior, we sort alphabetically and prefer Adwaita over Breeze.
+        themeNames = ["hicolor"];
+        if (iconTheme !is null)
+            themeNames ~= iconTheme;
+        themeNames ~= "Adwaita";
+        themeNames ~= "breeze";
     }
 
     private string getIconNameAndClear (Component cpt)
@@ -250,4 +395,17 @@ public:
             processComponent (cpt, res);
         }
     }
+}
+
+unittest
+{
+    import ag.backend.debian.debpackage;
+    writeln ("TEST: ", "IconHandler");
+
+    //auto pkg = new DebPackage ("foobar", "1.0", "amd64");
+    //pkg.filename = "/srv/debmirror/tanglu/pool/main/a/adwaita-icon-theme/adwaita-icon-theme_3.16.0-0tanglu1_all.deb";
+
+    //auto theme = new Theme ("Adwaita", pkg);
+    //foreach (fname; theme.matchingIconFilenames ("accessories-calculator", IconSize (48)))
+    //    writeln (fname);
 }

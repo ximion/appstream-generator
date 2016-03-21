@@ -65,7 +65,7 @@ private string getValue (KeyFile kf, string key)
  * Filter out some useless categories which we don't want to have in the
  * AppStream metadata.
  */
-string[] filterCategories (string[] cats)
+private string[] filterCategories (string[] cats)
 {
     string[] rescats;
     foreach (string cat; cats) {

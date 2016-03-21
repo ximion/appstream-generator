@@ -61,6 +61,8 @@ interface PackagesIndex
  */
 interface ContentsIndex
 {
-    void open (string suite, string arch);
+    void loadDataFor (string dir, string suite, string section, string arch);
+    Package packageForFile (string fname);
+    @property string[] files ();
     void close ();
 }

@@ -45,10 +45,10 @@ private:
 
 public:
 
-    this (DataCache cache)
+    this (DataCache cache, IconHandler iconHandler)
     {
         dcache = cache;
-        iconh = new IconHandler (cache.mediaExportDir);
+        iconh = iconHandler;
     }
 
     GeneratorResult processPackage (Package pkg)

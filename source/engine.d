@@ -33,6 +33,7 @@ import ag.result;
 import ag.hint;
 import ag.backend.intf;
 import ag.backend.debian.pkgindex;
+import ag.handlers.iconhandler;
 import appstream.Component;
 
 
@@ -46,7 +47,6 @@ private:
     DataCache dcache;
 
     string exportDir;
-
 
 public:
 
@@ -74,11 +74,11 @@ public:
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
      */
-    private void processPackages (Package[] pkgs)
+    private void processPackages (Package[] pkgs, IconHandler iconh)
     {
         GeneratorResult[] results;
 
-        auto mde = new DataExtractor (dcache);
+        auto mde = new DataExtractor (dcache, iconh);
         foreach (Package pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
             if (dcache.packageExists (pkid))
@@ -167,7 +167,8 @@ public:
 
                 // process new packages
                 auto pkgs = pkgIndex.getPackages ();
-                processPackages (pkgs);
+                auto iconh = new IconHandler (dcache.mediaExportDir, null);
+                processPackages (pkgs, iconh);
 
                 // export package data
                 exportData (suite.name, section, arch, pkgs);

@@ -23,7 +23,8 @@ import std.stdio;
 import std.path;
 import std.string;
 import std.container;
-//import std.experimental.logger;
+
+import ag.logging;
 import ag.backend.intf;
 import ag.backend.debian.tagfile;
 import ag.backend.debian.debpackage;
