@@ -31,8 +31,9 @@ import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
 
-import ag.result;
 import ag.utils;
+import ag.logging;
+import ag.result;
 import ag.image;
 import ag.backend.intf;
 import ag.std.concurrency.generator;
@@ -195,14 +196,15 @@ class IconHandler
 private:
     string mediaExportPath;
 
-    string[] themes;
-    string[] iconFiles;
+    Theme[] themes;
+    Package[string] iconFiles;
     string[] themeNames;
 
 public:
 
     this (string mediaPath, ContentsIndex cindex, string iconTheme = null)
     {
+        debugmsg ("Constructing IconHandler.");
         mediaExportPath = mediaPath;
 
         // Preseeded theme names.
@@ -218,6 +220,26 @@ public:
             themeNames ~= iconTheme;
         themeNames ~= "Adwaita";
         themeNames ~= "breeze";
+
+        // load data from the contents index.
+        // we don't show mercy to memory here, we just want the icon lookup to be fast,
+        // so we have to cache the data.
+        foreach (fname; cindex.files) {
+            if (fname.startsWith ("/usr/share/pixmaps/")) {
+                iconFiles[fname] = cindex.packageForFile (fname);
+                continue;
+            }
+            foreach (name; themeNames) {
+                auto pkg = cindex.packageForFile (fname);
+                if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
+                    themes ~= new Theme (name, pkg);
+                } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {
+                    iconFiles[fname] = pkg;
+                }
+            }
+        }
+
+        debugmsg ("Created new IconHandler.");
     }
 
     private string getIconNameAndClear (Component cpt)

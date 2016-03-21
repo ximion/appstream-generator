@@ -38,12 +38,16 @@ private:
     string architecture;
     TagFile tagf;
 
+    Package[] pkgList;
+    bool pkgsLoaded;
+
 
 public:
 
     this ()
     {
         tagf = new TagFile ();
+        pkgsLoaded = false;
     }
 
     void open (string dir, string suite, string section, string arch)
@@ -51,15 +55,17 @@ public:
         this.location = dir;
         this.architecture = arch;
 
-        auto index_fname = buildPath(dir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
-        if (!std.file.exists (index_fname))
-            throw new Exception ("File '%s' does not exist.", index_fname);
+        auto indexFname = buildPath(dir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
+        if (!std.file.exists (indexFname))
+            throw new Exception ("File '%s' does not exist.", indexFname);
 
         try {
-            tagf.open (index_fname);
+            tagf.open (indexFname);
         } catch (Exception e) {
             throw e;
         }
+
+        debugmsg ("Opened: %s", indexFname);
     }
 
     void close ()
@@ -67,26 +73,38 @@ public:
         // Not needed
     }
 
-    Package[] getPackages ()
+    private Package[] getPackages ()
     {
         Package[] pkgs;
+        assert (!pkgsLoaded);
 
         do {
             auto name = tagf.readField ("Package");
             auto ver  = tagf.readField ("Version");
             auto fname  = tagf.readField ("Filename");
+            if (!name)
+                continue;
 
             auto pkg = new DebPackage (name, ver, architecture);
             pkg.filename = buildPath (location, fname);
 
             if (!pkg.isValid ()) {
-                writeln ("WARNING: Found invalid package! Skipping it.");
+                warning ("Found invalid package (%s)! Skipping it.", pkg.toString ());
                 continue;
             }
 
             pkgs ~= pkg;
         } while (tagf.nextSection ());
 
+        pkgsLoaded = true;
         return pkgs;
+    }
+
+    @property
+    Package[] packages ()
+    {
+        if (!pkgsLoaded)
+            pkgList = getPackages ();
+        return pkgList;
     }
 }

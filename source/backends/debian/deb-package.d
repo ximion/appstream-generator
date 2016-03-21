@@ -79,6 +79,12 @@ public:
         return true;
     }
 
+    override
+    string toString ()
+    {
+        return format ("%s/%s/%s", name, ver, arch);
+    }
+
     private CompressedArchive openPayloadArchive ()
     {
         auto ca = new CompressedArchive ();

@@ -24,6 +24,7 @@ import std.string;
 import std.parallelism;
 import std.path : buildPath;
 import std.file : mkdirRecurse;
+import std.algorithm : canFind;
 
 import ag.config;
 import ag.logging;
@@ -31,8 +32,11 @@ import ag.extractor;
 import ag.datacache;
 import ag.result;
 import ag.hint;
+
 import ag.backend.intf;
 import ag.backend.debian.pkgindex;
+import ag.backend.debian.contentsindex;
+
 import ag.handlers.iconhandler;
 import appstream.Component;
 
@@ -57,6 +61,7 @@ public:
         switch (conf.backend) {
             case Backend.Debian:
                 pkgIndex = new DebianPackageIndex ();
+                contentsIndex = new DebianContentsIndex ();
                 break;
             default:
                 throw new Exception ("No backend specified, can not continue!");
@@ -101,6 +106,8 @@ public:
     {
         string[] mdataEntries;
         string[] hintEntries;
+
+        info ("Exporting data for %s (%s/%s)", suiteName, section, arch);
 
         foreach (pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
@@ -150,6 +157,21 @@ public:
         hf.close ();
     }
 
+    private void contentsIndexLoadDefaultSections (Suite suite, string section, string arch)
+    {
+        // always load the "main" and "universe" components, which contain most of the icon data
+        // on Debian and Ubuntu.
+        // FIXME: This is a hack, find a sane way to get rid of this, or at least get rid of the
+        // distro-specific hardcoding.
+        foreach (newSection; ["main", "universe"]) {
+            if ((section != newSection) && (suite.sections.canFind (newSection))) {
+                contentsIndex.loadDataFor (conf.archiveRoot, suite.name, newSection, arch);
+                if (!suite.baseSuite.empty)
+                    contentsIndex.loadDataFor (conf.archiveRoot, suite.baseSuite, newSection, arch);
+            }
+        }
+    }
+
     void generateMetadata (string suite_name)
     {
         Suite suite;
@@ -165,9 +187,16 @@ public:
                 pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
                 scope (exit) pkgIndex.close ();
 
+                // load contents data
+                contentsIndex.loadDataFor (conf.archiveRoot, suite.name, section, arch, pkgIndex);
+                if (!suite.baseSuite.empty)
+                    contentsIndex.loadDataFor (conf.archiveRoot, suite.baseSuite, section, arch);
+                contentsIndexLoadDefaultSections (suite, section, arch);
+                scope (exit) contentsIndex.close ();
+
                 // process new packages
-                auto pkgs = pkgIndex.getPackages ();
-                auto iconh = new IconHandler (dcache.mediaExportDir, null);
+                auto pkgs = pkgIndex.packages;
+                auto iconh = new IconHandler (dcache.mediaExportDir, contentsIndex);
                 processPackages (pkgs, iconh);
 
                 // export package data

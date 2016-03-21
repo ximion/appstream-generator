@@ -28,6 +28,7 @@ import ag.logging;
 import ag.archive;
 import ag.backend.intf;
 import ag.backend.debian.debpackage;
+import ag.backend.debian.pkgindex;
 
 
 class DebianContentsIndex : ContentsIndex
@@ -63,8 +64,10 @@ public:
         return [path, pkgname];
     }
 
-    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex)
+    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex = null)
     {
+        import std.parallelism;
+
         auto contentsBaseName = format ("Contents-%s.gz", arch);
         auto contentsFname = buildPath (dir, "dists", suite, section, contentsBaseName);
 
@@ -83,15 +86,18 @@ public:
             throw e;
         }
 
+        if (pindex is null) {
+            pindex = new DebianPackageIndex ();
+            pindex.open (dir, suite, section, arch);
+        }
+
         Package[string] pkgMap;
-        if (pindex !is null) {
-            foreach (pkg; pindex.getPackages ()) {
-                pkgMap[pkg.name] = pkg;
-            }
+        foreach (pkg; pindex.packages) {
+            pkgMap[pkg.name] = pkg;
         }
 
         // load and preprocess the large Contents file.
-        foreach (line; splitLines (data)) {
+        foreach (line; parallel (splitLines (data))) {
             auto parts = filePkgFromContentsLine (line);
             if (parts is null)
                 continue;
@@ -105,8 +111,11 @@ public:
             if (pkgP is null)
                 continue;
 
-            filePkgMap[fname] = *pkgP;
+            synchronized (this)
+                filePkgMap[fname] = *pkgP;
         }
+
+        debugmsg ("Loaded: %s", contentsFname);
     }
 
     Package packageForFile (string fname)
@@ -125,7 +134,8 @@ public:
 
     void close ()
     {
-        // Not necessary
+        // free resources
+        filePkgMap = null;
     }
 }
 

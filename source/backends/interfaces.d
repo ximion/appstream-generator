@@ -53,7 +53,7 @@ interface PackageIndex
     void open (string dir, string suite, string section, string arch);
     void close ();
 
-    Package[] getPackages ();
+    @property Package[] packages ();
 }
 
 /**
@@ -61,7 +61,7 @@ interface PackageIndex
  */
 interface ContentsIndex
 {
-    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex);
+    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex = null);
     Package packageForFile (string fname);
     @property string[] files ();
     void close ();
