@@ -166,7 +166,14 @@ class HintsStorage
 
             def.tag = tag;
             def.severity = severityFromString (j["severity"].str);
-            def.text = j["text"].str;
+
+            if (j["text"].type == JSON_TYPE.ARRAY) {
+                foreach (l; j["text"].array)
+                    def.text ~= l.str ~ "\n";
+            } else {
+                def.text = j["text"].str;
+            }
+
             if ("internal" in j)
                 def.internal = j["internal"].type == JSON_TYPE.TRUE;
 
@@ -191,7 +198,7 @@ class HintsStorage
 
 unittest
 {
-    writeln ("TEST: ", "GeneratorHint");
+    writeln ("TEST: ", "Issue Hints");
 
     auto hint = new GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
     hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];

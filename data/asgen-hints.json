@@ -3,7 +3,7 @@
 "desktop-file-read-error": {
   "text": "Unable to read data from .desktop file: %(msg)s",
   "severity": "error"
-  },
+},
 
 "metainfo-parsing-error": {
   "text": "Unable to parse AppStream upstream XML, the file is likely malformed. Error:<br/>%(msg)s",
@@ -16,15 +16,15 @@
 },
 
 "icon-not-found": {
-  "text": "The icon '%(icon_fname)s' was not found in the archive. This issue can have multiple reasons:
-        <ul>
-         <li>The icon is not present in the archive.</li>
-         <li>The icon is in a wrong directory.</li>
-         <li>The icon is not available in a suitable size (at least 64x64px)</li>
-        </ul>
-        To make the icon easier to find, place it in <code>/usr/share/icons/hicolor/&lt;size&gt;/apps</code> and ensure the <code>Icon=</code> value
-        of the .desktop file is set correctly.",
+  "text": [ "The icon '%(icon_fname)s' was not found in the archive. This issue can have multiple reasons:",
+            "<ul>",
+              "<li>The icon is not present in the archive.</li>",
+              "<li>The icon is in a wrong directory.</li>",
+              "<li>The icon is not available in a suitable size (at least 64x64px)</li>",
+            "</ul>",
+            "To make the icon easier to find, place it in <code>/usr/share/icons/hicolor/&lt;size&gt;/apps</code> and ensure the <code>Icon=</code> value",
+            "of the .desktop file is set correctly."],
   "severity": "error"
-},
+}
 
 }
