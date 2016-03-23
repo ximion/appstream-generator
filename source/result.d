@@ -55,7 +55,7 @@ public:
 
     bool packageIsIgnored ()
     {
-        return cpts.length == 0;
+        return (cpts.length == 0) && (hints.length == 0);
     }
 
     Component getComponent (string id)
@@ -162,15 +162,14 @@ public:
         auto map = JSONValue (["null": 0]);
         map.object.remove ("null");
 
-        foreach (iter; hints.byKey ()) {
-            auto cid = iter;
-            auto hints = hints[cid];
+        foreach (cid; hints.byKey ()) {
+            auto cptHints = hints[cid];
             auto hintNodes = JSONValue ([0, 0]);
             hintNodes.array = [];
-            stdout.flush ();
-            foreach (GeneratorHint hint; hints) {
+            foreach (GeneratorHint hint; cptHints) {
                 hintNodes.array ~= hint.toJsonNode ();
             }
+
             map.object[cid] = hintNodes;
         }
 
@@ -183,7 +182,9 @@ public:
      */
     void finalize ()
     {
-        foreach (cpt; cpts.byValue ()) {
+        // we need to duplicate the associative array, because the addHint() function
+        // may remove entries from "cpts", breaking our foreach loop.
+        foreach (cpt; cpts.dup.byValue ()) {
             auto ckind = cpt.getKind ();
             if (ckind == ComponentKind.DESKTOP) {
                 // checks specific for .desktop and web apps

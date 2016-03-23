@@ -281,9 +281,9 @@ public:
 
     void addGeneratorResult (DataType dtype, GeneratorResult res)
     {
-        // if the package has no components,
+        // if the package has no components or hints,
         // mark it as always-ignore
-        if (res.componentsCount () == 0) {
+        if (res.packageIsIgnored ()) {
             setPackageIgnore (res.pkid);
             return;
         }

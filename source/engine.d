@@ -150,10 +150,16 @@ public:
         logInfo ("Writing hints for %s/%s [%s]", suiteName, section, arch);
         auto hf = File (hintsFname, "w");
         hf.writeln ("[");
+        bool firstLine = true;
         foreach (entry; hintEntries) {
-            hf.writeln (entry);
+            if (firstLine) {
+                firstLine = false;
+                hf.write (entry);
+            } else {
+                hf.write (",\n" ~ entry);
+            }
         }
-        hf.writeln ("]");
+        hf.writeln ("\n]");
         hf.flush ();
         hf.close ();
     }

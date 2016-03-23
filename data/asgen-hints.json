@@ -18,12 +18,20 @@
 "icon-not-found": {
   "text": [ "The icon '%(icon_fname)s' was not found in the archive. This issue can have multiple reasons:",
             "<ul>",
-              "<li>The icon is not present in the archive.</li>",
-              "<li>The icon is in a wrong directory.</li>",
-              "<li>The icon is not available in a suitable size (at least 64x64px)</li>",
+            "  <li>The icon is not present in the archive.</li>",
+            "  <li>The icon is in a wrong directory.</li>",
+            "  <li>The icon is not available in a suitable size (at least 64x64px)</li>",
             "</ul>",
             "To make the icon easier to find, place it in <code>/usr/share/icons/hicolor/&lt;size&gt;/apps</code> and ensure the <code>Icon=</code> value",
-            "of the .desktop file is set correctly."],
+            "of the .desktop file is set correctly."
+           ],
+  "severity": "error"
+},
+
+"gui-app-without-icon": {
+  "text": [ "The GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>)",
+            "with AppStream-ID '%(cid)s' has been found, but we could not find a matching icon."
+          ],
   "severity": "error"
 }
 
