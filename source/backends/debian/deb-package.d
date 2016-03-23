@@ -35,6 +35,7 @@ private:
     string pkgname;
     string pkgver;
     string pkgarch;
+    string pkgmaintainer;
 
     bool contentsRead;
     string[] contentsL;
@@ -52,6 +53,8 @@ public:
     @property string[string] description () { return null; }
     @property string filename () { return debFname; }
     @property void filename (string fname) { debFname = fname; }
+    @property string maintainer () { return pkgmaintainer; }
+    @property void maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)
     {

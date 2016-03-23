@@ -1,12 +1,13 @@
-{% extends "base.html" %}
-{% block title %}Hints summary for {{suite}}/{{section}}{% endblock %}
+{{#partial}} %title% Hints summary for {{suite}}/{{section}}{{/partial}}
 
-{% block header_content %}
+{{#partial}}
+  %header_content%
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>Hints summary for {{suite}}/{{section}}</span>
-{% endblock %}
+{{/partial}}
 
-{% block content %}
+{{#partial}}
+  %content%
     <h1>Metadata processing hints found for {{suite}}/{{section}}</h1>
 
       {% for maintainer, summary in package_summaries.items() %}
@@ -31,9 +32,11 @@
         {% endfor %}
         </ul>
       {% endfor %}
+{{/partial}}
 
-{% endblock %}
-
-{% block float_right %}
+{{#partial}}
+  %float_right%
 <small>Last updated on: {{time}}</small>
-{% endblock %}
+{{/partial}}
+
+{{> base}}

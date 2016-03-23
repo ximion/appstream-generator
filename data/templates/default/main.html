@@ -1,11 +1,12 @@
-{% extends "base.html" %}
-{% block title %}Data for {{distro}}: Suites overview{% endblock %}
+{{#partial}} %title% Data for {{project_name}}: Suites overview{{/partial}}
 
-{% block header_content %}
-<span>DEP-11 data hints for {{distro}}</span>
-{% endblock %}
+{{#partial}}
+  %header_content%
+<span>DEP-11 data hints for {{project_name}}</span>
+{{/partial}}
 
-{% block content %}
+{{#partial}}
+  %content%
 <div class="wrapper">
 
     <h1>Welcome!</h1>
@@ -18,9 +19,9 @@
     </p>
 
     <h1>Select a suite</h1>
-    {% for suite in suites %}
+    {{#suites}}
       <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
-    {% endfor %}
+    {{/suites}}
 
     <br/><hr/>
     <h1>What is DEP-11 and AppStream?</h1>
@@ -50,4 +51,6 @@
     </p>
 
 </div>
-{% endblock %}
+{{/partial}}
+
+{{> base}}

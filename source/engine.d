@@ -25,6 +25,7 @@ import std.parallelism;
 import std.path : buildPath;
 import std.file : mkdirRecurse;
 import std.algorithm : canFind;
+import appstream.Component;
 
 import ag.config;
 import ag.logging;
@@ -32,13 +33,13 @@ import ag.extractor;
 import ag.datacache;
 import ag.result;
 import ag.hint;
+import ag.reportgenerator;
 
 import ag.backend.intf;
 import ag.backend.debian.pkgindex;
 import ag.backend.debian.contentsindex;
 
 import ag.handlers.iconhandler;
-import appstream.Component;
 
 
 class Engine
@@ -181,8 +182,10 @@ public:
 
         Component[] cpts;
         GeneratorHint[string] hints;
+        auto reportgen = new ReportGenerator (dcache);
 
         foreach (string section; suite.sections) {
+            Package[] sectionPkgs;
             foreach (string arch; suite.architectures) {
                 pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
                 scope (exit) pkgIndex.close ();
@@ -201,7 +204,18 @@ public:
 
                 // export package data
                 exportData (suite.name, section, arch, pkgs);
+
+                // we store the package info over all architectures to generate reports later
+                sectionPkgs ~= pkgs;
             }
+
+            // render HTML
+            logInfo ("Rendering HTML for %s/%s", suite.name, section);
+            reportgen.renderPagesFor (suite.name, section, sectionPkgs);
         }
+
+        // render index pages & statistics
+        logInfo ("Rendering HTML index pages.");
+        reportgen.renderIndices ();
     }
 }

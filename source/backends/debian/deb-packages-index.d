@@ -87,6 +87,7 @@ public:
 
             auto pkg = new DebPackage (name, ver, architecture);
             pkg.filename = buildPath (location, fname);
+            pkg.maintainer = tagf.readField ("Maintainer");
 
             if (!pkg.isValid ()) {
                 logWarning ("Found invalid package (%s)! Skipping it.", pkg.toString ());

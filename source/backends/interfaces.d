@@ -31,6 +31,7 @@ interface Package
     @property string name ();
     @property string ver ();
     @property string arch ();
+    @property string maintainer ();
     @property string[string] description ();
 
     @property string filename ();
