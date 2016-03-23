@@ -108,36 +108,43 @@ public:
         return null;
     }
 
+    private string[] splitBlockData (string str, string blockType)
+    {
+        auto content = str.strip ();
+        string blockName;
+        if (content.startsWith ("{")) {
+            auto li = content.indexOf("}");
+            if (li <= 0)
+                throw new Exception ("Invalid %s: Closing '}' missing.", blockType);
+            blockName = content[1..li].strip ();
+            if (li+1 >= content.length)
+                content = "";
+            else
+                content = content[li+1..$];
+        }
+
+        if (blockName is null)
+            throw new Exception ("Invalid %s: Does not have a name.", blockType);
+
+        return [blockName, content];
+    }
+
     private void setupMustacheContext (Mustache.Context context)
     {
         string[string] partials;
 
         // this implements a very cheap way to get template inheritance
+        // would obviously be better if our template system would support this natively.
         context["partial"] = (string str) {
-            str = str.strip ();
-            auto blockName = "";
-            if (str.startsWith ("%")) {
-                auto li = str[1..$].indexOf("%");
-                if (li <= 0)
-                    throw new Exception ("Invalid partial: Closing '%s' missing.");
-                blockName = str[1..li-1].strip ();
-                str = str[li+2..$];
-            }
-            partials[blockName] = str;
+            auto split = splitBlockData (str, "partial");
+            partials[split[0]] = split[1];
             return "";
         };
 
         context["block"] = (string str) {
-            str = str.strip ();
-            auto blockName = "";
-            if (str.startsWith ("%")) {
-                auto li = str[1..$].indexOf("%");
-                if (li <= 0)
-                    throw new Exception ("Invalid block: Closing '%s' missing.");
-                blockName = str[1..li-1].strip ();
-                str = str[li+2..$];
-            }
-            str ~= "\n";
+            auto split = splitBlockData (str, "block");
+            auto blockName = split[0];
+            str = split[1] ~ "\n";
 
             auto partialCP = (blockName in partials);
             if (partialCP is null)
@@ -153,7 +160,7 @@ public:
     private void renderPage (string pageID, string exportName, Mustache.Context context)
     {
         setupMustacheContext (context);
-        writeln (htmlExportDir);
+
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
         mkdirRecurse (dirName (fname));
 
