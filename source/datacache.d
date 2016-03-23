@@ -107,16 +107,16 @@ public:
         rc = dbEnv.mdb_env_set_maxdbs (5);
         checkError (rc, "mdb_env_set_maxdbs");
 
-        // open database
-        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, std.conv.octal!755);
-        checkError (rc, "mdb_env_open");
-
         // set a huge map size to be futureproof.
         // This means we're cruel to non-64bit users, but this
         // software is supposed to be run on 64bit machines anyway.
-        auto mapsize = cast (size_t) std.math.pow (1024, 4);
+        auto mapsize = cast (size_t) std.math.pow (1024L, 4);
         rc = dbEnv.mdb_env_set_mapsize (mapsize);
         checkError (rc, "mdb_env_set_mapsize");
+
+        // open database
+        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, std.conv.octal!755);
+        checkError (rc, "mdb_env_open");
 
         // open sub-databases in the environment
         MDB_txnp txn;
