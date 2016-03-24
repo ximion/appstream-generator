@@ -136,7 +136,7 @@ public:
         rc = txn.mdb_dbi_open ("metadata_yaml", MDB_CREATE, &dbDataYaml);
         checkError (rc, "open metadata (yaml) database");
 
-        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE, &dbStats);
+        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY, &dbStats);
         checkError (rc, "open statistics database");
 
         rc = txn.mdb_txn_commit ();
@@ -196,7 +196,6 @@ public:
 
     private string getValue (MDB_dbi dbi, string key)
     {
-        import std.algorithm : copy;
         import std.conv;
         MDB_val dkey, dval;
         MDB_cursorp cur;
@@ -348,6 +347,44 @@ public:
         }
 
         return res;
+    }
+
+    void addStatistics (string statJson)
+    {
+        MDB_val dbkey, dbvalue;
+        size_t unixTime = core.stdc.time.time (null);
+
+        dbkey.mv_size = size_t.sizeof;
+        dbkey.mv_data = &unixTime;
+        dbvalue = makeDbValue (statJson);
+
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
+        checkError (res, "mdb_put (stats)");
+    }
+
+    string[long] getStatistics ()
+    {
+        MDB_val dkey, dval;
+        MDB_cursorp cur;
+        string[long] stats;
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbStats, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (stats)");
+
+        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
+            auto jsonData = std.conv.to!string (fromStringz (cast(char*) dval.mv_data));
+            stats[*(cast(size_t*) dkey.mv_data)] = jsonData;
+        }
+
+        return stats;
     }
 
 }

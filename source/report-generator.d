@@ -69,15 +69,18 @@ private:
     struct PkgSummary
     {
         string pkgname;
-        int info_count;
-        int warning_count;
-        int error_count;
+        int infoCount;
+        int warningCount;
+        int errorCount;
     }
 
     struct DataSummary
     {
         PkgSummary[][string] pkgSummaries;
         HintEntry[string][string] hintEntries;
+        long totalInfos;
+        long totalWarnings;
+        long totalErrors;
     }
 
 public:
@@ -289,16 +292,16 @@ public:
 
                     // again, we use this dumb hack to allow conditionals in the Mustache
                     // template.
-                    if (summary.info_count > 0)
+                    if (summary.infoCount > 0)
                         maintSub["has_info_count"] =["has_count": "yes"];
-                    if (summary.warning_count > 0)
+                    if (summary.warningCount > 0)
                         maintSub["has_warning_count"] =["has_count": "yes"];
-                    if (summary.error_count > 0)
+                    if (summary.errorCount > 0)
                         maintSub["has_error_count"] =["has_count": "yes"];
 
-                    maintSub["info_count"] = summary.info_count;
-                    maintSub["warning_count"] = summary.warning_count;
-                    maintSub["error_count"] = summary.error_count;
+                    maintSub["info_count"] = summary.infoCount;
+                    maintSub["warning_count"] = summary.warningCount;
+                    maintSub["error_count"] = summary.errorCount;
                 }
 
                 res ~= mustache.renderString (content, intCtx);
@@ -312,8 +315,7 @@ public:
 
     private DataSummary preprocessInformation (string suiteName, string section, Package[] pkgs)
     {
-        PkgSummary[][string] pkgSummaries;
-        HintEntry[string][string] hentries;
+        DataSummary dsum;
 
         logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
         auto hintstore = HintsStorage.get ();
@@ -353,40 +355,107 @@ public:
                     auto severity = hintstore.getSeverity (tag);
                     if (severity == HintSeverity.INFO) {
                         he.infos ~= HintTag (tag, msg);
-                        pkgsummary.info_count++;
+                        pkgsummary.infoCount++;
                     } else if (severity == HintSeverity.WARNING) {
                         he.warnings ~= HintTag (tag, msg);
-                        pkgsummary.warning_count++;
+                        pkgsummary.warningCount++;
                     } else {
                         he.errors ~= HintTag (tag, msg);
-                        pkgsummary.error_count++;
+                        pkgsummary.errorCount++;
                     }
                 }
 
-                hentries[pkg.name][he.identifier] = he;
+                dsum.hintEntries[pkg.name][he.identifier] = he;
             }
 
-            pkgSummaries[pkg.maintainer] ~= pkgsummary;
+            dsum.pkgSummaries[pkg.maintainer] ~= pkgsummary;
+            dsum.totalInfos += pkgsummary.infoCount;
+            dsum.totalWarnings += pkgsummary.warningCount;
+            dsum.totalErrors += pkgsummary.errorCount;
         }
-
-        DataSummary dsum;
-        dsum.pkgSummaries = pkgSummaries;
-        dsum.hintEntries = hentries;
 
         return dsum;
     }
 
-    private void writeStatistics (string suiteName, string section, DataSummary dsum)
+    private void saveStatistics (string suiteName, string section, DataSummary dsum)
     {
-        logInfo ("Writing report and statistics for %s/%s", suiteName, section);
+        auto stat = JSONValue (["suite": JSONValue (suiteName),
+                                "section": JSONValue (section),
+                                "totalInfos": JSONValue (dsum.totalInfos),
+                                "totalWarnings": JSONValue (dsum.totalWarnings),
+                                "totalErrors": JSONValue (dsum.totalErrors),
+                                "totalMetadata": JSONValue (42)]);
+        dcache.addStatistics (toJSON (&stat));
+    }
 
-        // TODO
+    void exportStatistics ()
+    {
+        logInfo ("Exporting statistical data.");
+
+        // return all statistics we have from the database
+        auto statsCollection = dcache.getStatistics ();
+
+        auto emptyJsonObject ()
+        {
+            auto jobj = JSONValue (["null": 0]);
+            jobj.object.remove ("null");
+            return jobj;
+        }
+
+        auto emptyJsonArray ()
+        {
+            auto jarr = JSONValue ([0, 0]);
+            jarr.array = [];
+            return jarr;
+        }
+
+        // create JSON for use with e.g. Rickshaw graph
+        auto smap = emptyJsonObject ();
+
+        foreach (timestamp; statsCollection.byKey ()) {
+            auto jdata = statsCollection[timestamp];
+            auto jvals = parseJSON (jdata);
+
+            auto suite = jvals["suite"].str;
+            auto section = jvals["section"].str;
+            if (suite !in smap)
+                smap.object[suite] = emptyJsonObject ();
+            if (section !in smap[suite]) {
+                smap[suite].object[section] = emptyJsonObject ();
+                auto sso = smap[suite][section].object;
+                sso["errors"] = emptyJsonArray ();
+                sso["warnings"] = emptyJsonArray ();
+                sso["infos"] = emptyJsonArray ();
+                sso["metadata"] = emptyJsonArray ();
+            }
+            auto suiteSectionObj = smap[suite][section].object;
+
+            auto pointErr = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalErrors"])]);
+            suiteSectionObj["errors"].array ~= pointErr;
+
+            auto pointWarn = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalWarnings"])]);
+            suiteSectionObj["warnings"].array ~= pointWarn;
+
+            auto pointInfo = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalInfos"])]);
+            suiteSectionObj["infos"].array ~= pointInfo;
+
+            auto pointMD = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalMetadata"])]);
+            suiteSectionObj["metadata"].array ~= pointMD;
+        }
+
+        auto fname = buildPath (htmlExportDir, "statistics.json");
+        mkdirRecurse (dirName (fname));
+
+        auto sf = File (fname, "w");
+        sf.writeln (toJSON (&smap, true));
+        sf.flush ();
+        sf.close ();
     }
 
     void processFor (string suiteName, string section, Package[] pkgs)
     {
         auto dsum = preprocessInformation (suiteName, section, pkgs);
-        writeStatistics (suiteName, section, dsum);
+        saveStatistics (suiteName, section, dsum);
         renderPagesFor (suiteName, section, dsum);
     }
 
