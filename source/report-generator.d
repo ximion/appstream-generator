@@ -443,6 +443,23 @@ public:
             suiteSectionObj["metadata"].array ~= pointMD;
         }
 
+        bool compareJData (JSONValue x, JSONValue y) @trusted
+        {
+            return x["x"].integer < y["x"].integer;
+        }
+
+        // ensure our data is sorted ascending by X
+        foreach (suite; smap.object.byKey ()) {
+            foreach (section; smap[suite].object.byKey ()) {
+                auto sso = smap[suite][section].object;
+
+                std.algorithm.sort!(compareJData) (sso["errors"].array);
+                std.algorithm.sort!(compareJData) (sso["warnings"].array);
+                std.algorithm.sort!(compareJData) (sso["infos"].array);
+                std.algorithm.sort!(compareJData) (sso["metadata"].array);
+            }
+        }
+
         auto fname = buildPath (htmlExportDir, "statistics.json");
         mkdirRecurse (dirName (fname));
 
