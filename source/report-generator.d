@@ -24,10 +24,13 @@ import std.string;
 import std.parallelism;
 import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse;
+import std.array : empty;
+import std.json;
 import mustache;
 
 import ag.config;
 import ag.logging;
+import ag.hint;
 import ag.backend.intf;
 import ag.datacache;
 
@@ -47,6 +50,35 @@ private:
     string templateDir;
 
     Mustache mustache;
+
+    struct HintTag
+    {
+        string tag;
+        string message;
+    }
+
+    struct HintEntry
+    {
+        string identifier;
+        string[] archs;
+        HintTag[] errors;
+        HintTag[] warnings;
+        HintTag[] infos;
+    }
+
+    struct PkgSummary
+    {
+        string pkgname;
+        int info_count;
+        int warning_count;
+        int error_count;
+    }
+
+    struct DataSummary
+    {
+        PkgSummary[][string] pkgSummaries;
+        HintEntry[string][string] hintEntries;
+    }
 
 public:
 
@@ -153,8 +185,13 @@ public:
                 return *partialCP;
         };
 
+        auto time = std.datetime.Clock.currTime ();
+        auto timeStr = format ("%d-%02d-%02d %02d:%02d [%s]", time.year, time.month, time.day, time.hour,time.minute, time.timezone.name);
+
+        context["time"] = timeStr;
         context["generator_version"] = 0.1;
         context["project_name"] = conf.projectName;
+        context["root_url"] = conf.htmlBaseUrl;
     }
 
     private void renderPage (string pageID, string exportName, Mustache.Context context)
@@ -164,25 +201,198 @@ public:
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
         mkdirRecurse (dirName (fname));
 
+        logDebug ("Rendering HTML page: %s", exportName);
         auto data = mustache.render (pageID, context).strip ();
         auto f = File (fname, "w");
         f.writeln (data);
     }
 
-    void renderPagesFor (string suiteName, string section, Package[] pkgs)
+    private void renderPagesFor (string suiteName, string section, DataSummary dsum)
     {
         if (templateDir is null) {
             logError ("Can not render HTML: No page templates found.");
             return;
         }
 
-        foreach (pkg; pkgs) {
-            // TODO
+        logInfo ("Rendering HTML for %s/%s", suiteName, section);
+        // write issue hint pages
+        foreach (pkgname; dsum.hintEntries.byKey ()) {
+            auto pkgHEntries = dsum.hintEntries[pkgname];
+            auto exportName = format ("%s/%s/hints/%s", suiteName, section, pkgname);
+
+            auto context = new Mustache.Context;
+            context["suite"] = suiteName;
+            context["package_name"] = pkgname;
+            context["section"] = section;
+
+            context["entries"] = (string content) {
+                string res;
+                foreach (cid; pkgHEntries.byKey ()) {
+                    auto hentry = pkgHEntries[cid];
+                    auto intCtx = new Mustache.Context;
+                    intCtx["component_id"] = cid;
+
+                    foreach (arch; hentry.archs) {
+                        auto archSub = intCtx.addSubContext("architectures");
+                        archSub["arch"] = arch;
+                    }
+
+                    if (!hentry.errors.empty)
+                        intCtx["has_errors"] = ["has_errors": "yes"];
+                    foreach (error; hentry.errors) {
+                        auto errSub = intCtx.addSubContext("errors");
+                        errSub["error_tag"] = error.tag;
+                        errSub["error_description"] = error.message;
+                    }
+
+                    if (!hentry.warnings.empty)
+                        intCtx["has_warnings"] = ["has_warnings": "yes"];
+                    foreach (warning; hentry.warnings) {
+                        auto warnSub = intCtx.addSubContext("warnings");
+                        warnSub["warning_tag"] = warning.tag;
+                        warnSub["warning_description"] = warning.message;
+                    }
+
+                    if (!hentry.infos.empty)
+                        intCtx["has_infos"] = ["has_infos": "yes"];
+                    foreach (info; hentry.infos) {
+                        auto infoSub = intCtx.addSubContext("infos");
+                        infoSub["info_tag"] = info.tag;
+                        infoSub["info_description"] = info.message;
+                    }
+
+                    res ~= mustache.renderString (content, intCtx);
+                }
+
+                return res;
+            };
+
+            renderPage ("issues_page", exportName, context);
         }
+
+        // write hint overview page
+        auto hindexExportName = format ("%s/%s/hints/index", suiteName, section);
+        auto summaryCtx = new Mustache.Context;
+        summaryCtx["suite"] = suiteName;
+        summaryCtx["section"] = section;
+
+        summaryCtx["summaries"] = (string content) {
+            string res;
+
+            foreach (maintainer; dsum.pkgSummaries.byKey ()) {
+                auto summaries = dsum.pkgSummaries[maintainer];
+                auto intCtx = new Mustache.Context;
+                intCtx["maintainer"] = maintainer;
+                foreach (summary; summaries) {
+                    auto maintSub = intCtx.addSubContext("packages");
+                    maintSub["pkgname"] = summary.pkgname;
+
+                    // again, we use this dumb hack to allow conditionals in the Mustache
+                    // template.
+                    if (summary.info_count > 0)
+                        maintSub["has_info_count"] =["has_count": "yes"];
+                    if (summary.warning_count > 0)
+                        maintSub["has_warning_count"] =["has_count": "yes"];
+                    if (summary.error_count > 0)
+                        maintSub["has_error_count"] =["has_count": "yes"];
+
+                    maintSub["info_count"] = summary.info_count;
+                    maintSub["warning_count"] = summary.warning_count;
+                    maintSub["error_count"] = summary.error_count;
+                }
+
+                res ~= mustache.renderString (content, intCtx);
+            }
+
+            return res;
+        };
+
+        renderPage ("issues_index", hindexExportName, summaryCtx);
     }
 
-    void renderIndices ()
+    private DataSummary preprocessInformation (string suiteName, string section, Package[] pkgs)
     {
+        PkgSummary[][string] pkgSummaries;
+        HintEntry[string][string] hentries;
+
+        logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
+        auto hintstore = HintsStorage.get ();
+
+        foreach (pkg; pkgs) {
+            auto pkid = Package.getId (pkg);
+
+            auto hintsData = dcache.getHints (pkid);
+            if (hintsData is null)
+                continue;
+            auto hintsCpts = parseJSON (hintsData);
+
+            PkgSummary pkgsummary;
+            pkgsummary.pkgname = pkg.name;
+
+            foreach (cid; hintsCpts[pkid].object.byKey ()) {
+                auto jhints = hintsCpts[pkid][cid];
+                HintEntry he;
+                he.identifier = cid;
+
+                foreach (jhint; jhints.array) {
+                    auto tag = jhint["tag"].str;
+                    auto hdef = hintstore.getHintDef (tag);
+                    if (hdef.tag is null) {
+                        logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
+                        continue;
+                    }
+
+                    // render the full message using the static template and data from the hint
+                    auto context = new Mustache.Context;
+                    foreach (var; jhint["vars"].object.byKey ()) {
+                        context[var] = jhint["vars"][var];
+                    }
+                    auto msg = mustache.renderString (hdef.text, context);
+
+                    // add the new hint to the right category
+                    auto severity = hintstore.getSeverity (tag);
+                    if (severity == HintSeverity.INFO) {
+                        he.infos ~= HintTag (tag, msg);
+                        pkgsummary.info_count++;
+                    } else if (severity == HintSeverity.WARNING) {
+                        he.warnings ~= HintTag (tag, msg);
+                        pkgsummary.warning_count++;
+                    } else {
+                        he.errors ~= HintTag (tag, msg);
+                        pkgsummary.error_count++;
+                    }
+                }
+
+                hentries[pkg.name][he.identifier] = he;
+            }
+
+            pkgSummaries[pkg.maintainer] ~= pkgsummary;
+        }
+
+        DataSummary dsum;
+        dsum.pkgSummaries = pkgSummaries;
+        dsum.hintEntries = hentries;
+
+        return dsum;
+    }
+
+    private void writeStatistics (string suiteName, string section, DataSummary dsum)
+    {
+        logInfo ("Writing report and statistics for %s/%s", suiteName, section);
+
+        // TODO
+    }
+
+    void processFor (string suiteName, string section, Package[] pkgs)
+    {
+        auto dsum = preprocessInformation (suiteName, section, pkgs);
+        writeStatistics (suiteName, section, dsum);
+        renderPagesFor (suiteName, section, dsum);
+    }
+
+    void renderMainIndex ()
+    {
+        logInfo ("Rendering HTML main index.");
         // render main overview
         auto context = new Mustache.Context;
         foreach (suite; conf.suites) {

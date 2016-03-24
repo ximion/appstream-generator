@@ -8,28 +8,28 @@
 {{#partial}}{ content }
     <h1>Metadata processing hints found for {{suite}}/{{section}}</h1>
 
-      {% for maintainer, summary in package_summaries.items() %}
-        <h3>{{maintainer|e}}</h3>
+      {{#summaries}}
+        <h3>{{maintainer}}</h3>
         <ul class="overviewlisting">
-        {% for pkgname, hints in summary.items() %}
+        {{#packages}}
           <li>
             <span style="font-size:16px;">
             <a href="{{pkgname}}.html">{{pkgname}}</a>&nbsp;
             </span>
-          {% if hints.info_count %}
-            <span class="label label-info">Infos: {{hints.info_count}}</span>
-          {% endif %}
-          {% if hints.warning_count %}
-            <span class="label label-warning">Warnings: {{hints.warning_count}}</span>
-          {% endif %}
-          {% if hints.error_count %}
-            <span class="label label-error">Errors: {{hints.error_count}}</span>
-          {% endif %}
+          {{#has_info_count}}
+            <span class="label label-info">Infos: {{info_count}}</span>
+          {{/has_info_count}}
+          {{#has_warning_count}}
+            <span class="label label-warning">Warnings: {{warning_count}}</span>
+          {{/has_warning_count}}
+          {{#has_error_count}}
+            <span class="label label-error">Errors: {{error_count}}</span>
+          {{/has_error_count}}
 
           </li>
-        {% endfor %}
+        {{/packages}}
         </ul>
-      {% endfor %}
+      {{/summaries}}
 {{/partial}}
 
 {{#partial}}{ float_right }

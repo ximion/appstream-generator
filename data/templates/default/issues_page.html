@@ -1,73 +1,75 @@
-{% extends "base.html" %}
-{% block title %}{{package_name}} in {{suite}}{% endblock %}
+{{#partial}}{title}{{package_name}} in {{section}}{{/partial}}
 
-{% block header_content %}
+{{#partial}}{ float_right }
+<small>Last updated on: {{time}}</small>
+{{/partial}}
+
+{{#partial}}{ header_content }
 <span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
 
-<span>{{package_name}}</span> <span style="font-size:16px;">[{{suite}}]</span>
-{% endblock %}
+<span>{{package_name}}</span> <span style="font-size:16px;">[{{section}}]</span>
+{{/partial}}
 
-{% block content %}
-    <h1>Hints for {{package_name}} in {{suite}}</h1>
+{{#partial}}{ content }
+    <h1>Hints for {{package_name}} in {{section}}</h1>
 
     <div class="wrapper">
 
 
-    {% for entry in entries %}
+    {{#entries}}
     <h2>
-      {{entry.identifier}}
-      {% for arch in entry.archs %}
+      {{component_id}}
+      {{#architectures}}
         <span style="font-size:12px;" class="label label-neutral">⚙ {{arch}}</span>
-      {% endfor %}
+      {{/architectures}}
     </h2>
 
-      {% if entry.errors|length %}
+      {{#has_errors}}
       <div class="infobox infobox-error">
         <h2>Errors</h2>
         <ul class="list-group">
-          {% for tag in entry.errors %}
+          {{#errors}}
             <li class="list-group-item list-group-item-info">
-            <strong>{{tag.tag_name}}</strong><br/>
-            {{tag.description}}
+            <strong>{{error_tag}}</strong><br/>
+            {{{error_description}}}
             </li>
-          {% endfor %}
+          {{/errors}}
         </ul>
       </div>
-      {% endif %}
+      {{/has_errors}}
 
-      {% if entry.warnings|length %}
+
+      {{#has_warnings}}
       <div class="infobox infobox-warning">
         <h2>Warnings</h2>
         <ul class="list-group">
-          {% for tag in entry.warnings %}
+          {{#warnings}}
             <li class="list-group-item list-group-item-info">
-            <strong>{{tag.tag_name}}</strong><br/>
-            {{tag.description}}
+            <strong>{{warning_tag}}</strong><br/>
+            {{{warning_description}}}
             </li>
-          {% endfor %}
+          {{/warnings}}
         </ul>
       </div>
-      {% endif %}
+      {{/has_warnings}}
 
-      {% if entry.infos|length %}
+      {{#has_infos}}
       <div class="infobox infobox-hint">
         <h2>Hints</h2>
         <ul class="list-group">
-          {% for tag in entry.infos %}
+          {{#infos}}
             <li class="list-group-item list-group-item-info">
-            <strong>{{tag.tag_name}}</strong><br/>
-            {{tag.description}}
+            <strong>{{info_tag}}</strong><br/>
+            {{{info_description}}}
             </li>
-          {% endfor %}
+          {{/infos}}
         </ul>
       </div>
-      {% endif %}
+      {{/has_infos}}
 
-    {% endfor %}
+    {{/entries}}
+
     </div>
+{{/partial}}
 
-{% endblock %}
-
-{% block float_right %}
-<small>Last updated on: {{time}}</small>
-{% endblock %}
+{{> base}}

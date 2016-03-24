@@ -215,13 +215,12 @@ public:
                 sectionPkgs ~= pkgs;
             }
 
-            // render HTML
-            logInfo ("Rendering HTML for %s/%s", suite.name, section);
-            reportgen.renderPagesFor (suite.name, section, sectionPkgs);
+            // write reports & statistics and render HTML, if that option is selected
+            reportgen.processFor (suite.name, section, sectionPkgs);
         }
 
         // render index pages & statistics
-        logInfo ("Rendering HTML index pages.");
-        reportgen.renderIndices ();
+
+        reportgen.renderMainIndex ();
     }
 }

@@ -421,9 +421,7 @@ public:
         }
 
         if (iconData.empty ()) {
-            gres.addHint (cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename),
-                                    "error": "Icon data was empty. The icon might be a symbolic link pointing at a file outside of this package. "
-                                        "Please do not do that and instead place the icons in their appropriate directories in <code>/usr/share/icons/hicolor/</code>."]);
+            gres.addHint (cpt.getId (), "pkg-empty-file", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename)]);
             return false;
         }
 

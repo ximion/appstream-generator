@@ -1,22 +1,22 @@
 {
 
 "desktop-file-read-error": {
-  "text": "Unable to read data from .desktop file: %(msg)s",
+  "text": "Unable to read data from .desktop file: {{msg}}",
   "severity": "error"
 },
 
 "metainfo-parsing-error": {
-  "text": "Unable to parse AppStream upstream XML, the file is likely malformed. Error:<br/>%(msg)s",
+  "text": "Unable to parse AppStream upstream XML, the file is likely malformed. Error:<br/>{{msg}}",
   "severity": "error"
 },
 
 "icon-format-unsupported": {
-  "text": "Icon file '%(icon_fname)s' uses an unsupported image file format.",
+  "text": "Icon file '{{icon_fname}}' uses an unsupported image file format.",
   "severity": "error"
 },
 
 "icon-not-found": {
-  "text": [ "The icon '%(icon_fname)s' was not found in the archive. This issue can have multiple reasons:",
+  "text": [ "The icon '{{icon_fname}}' was not found in the archive. This issue can have multiple reasons:",
             "<ul>",
             "  <li>The icon is not present in the archive.</li>",
             "  <li>The icon is in a wrong directory.</li>",
@@ -30,8 +30,20 @@
 
 "gui-app-without-icon": {
   "text": [ "The GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>)",
-            "with AppStream-ID '%(cid)s' has been found, but we could not find a matching icon."
+            "with AppStream-ID '{{cid}}' has been found, but we could not find a matching icon."
           ],
+  "severity": "error"
+},
+
+"pkg-extract-error": {
+  "text": "Could not extract file '{{fname}}' from package '{{pkg_fname}}'. Error: {{error}}",
+  "severity": "error"
+},
+
+"pkg-empty-file": {
+  "text": ["Could not extract file '{{fname}}' from package '{{pkg_fname}}'.",
+           "Icon data was empty. The icon might be a symbolic link pointing at a file outside of this package.",
+           "Please do not do that and instead place the icons in their appropriate directories in <code>/usr/share/icons/hicolor/</code>."],
   "severity": "error"
 }
 
