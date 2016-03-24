@@ -45,6 +45,22 @@
            "Icon data was empty. The icon might be a symbolic link pointing at a file outside of this package.",
            "Please do not do that and instead place the icons in their appropriate directories in <code>/usr/share/icons/hicolor/</code>."],
   "severity": "error"
+},
+
+"metainfo-validation-hint": {
+  "text": "Validation of the metainfo file yielded the following hint: {{msg}}",
+  "severity": "info"
+},
+
+"metainfo-validation-issue": {
+  "text": "Validation of the metainfo file found a problem: {{msg}}",
+  "severity": "warning"
+},
+
+"ancient-metadata": {
+  "text": ["The AppStream metadata should be updated to follow a more recent version of the specification.<br/>",
+           "Please consult <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">the XML quickstart guide</a> for more information."],
+  "severity": "warning"
 }
 
 }

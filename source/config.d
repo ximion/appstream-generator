@@ -24,10 +24,14 @@ import std.array;
 import std.string : format, toLower;
 import std.path : dirName, getcwd;
 import std.json;
+import std.typecons;
 
 import ag.utils;
 
 
+/**
+ * Describes a suite in a software repository.
+ **/
 struct Suite
 {
     string name;
@@ -37,16 +41,29 @@ struct Suite
     string[] architectures;
 }
 
+/**
+ * The AppStream metadata type we want to generate.
+ **/
 enum DataType
 {
     XML,
     YAML
 }
 
+/**
+ * Distribution-specific backends.
+ **/
 enum Backend
 {
     Unknown,
     Debian
+}
+
+enum GeneratorFeature
+{
+    NONE = 0,
+    PROCESS_DESKTOP = 1 << 0,
+    VALIDATE        = 1 << 1
 }
 
 class Config
@@ -58,6 +75,7 @@ class Config
     Backend backend;
     Suite[] suites;
     DataType metadataType;
+    uint enabledFeatures; // bitfield
 
     string workspaceDir;
 
@@ -84,6 +102,24 @@ class Config
     }
 
     private this () { }
+
+    private void setFeature (GeneratorFeature feature, bool enabled)
+    {
+        if (enabled)
+            enabledFeatures |= feature;
+        else
+            disableFeature (feature);
+    }
+
+    private void disableFeature (GeneratorFeature feature)
+    {
+        enabledFeatures &= ~feature;
+    }
+
+    bool featureEnabled (GeneratorFeature feature)
+    {
+        return (enabledFeatures & feature) > 0;
+    }
 
     void loadFromFile (string fname)
     {
@@ -148,6 +184,27 @@ class Config
                     suite.architectures ~= arch.str;
 
             suites ~= suite;
+        }
+
+        // Enable features which are default-enabled
+        setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
+        setFeature (GeneratorFeature.VALIDATE, true);
+
+        // apply vendor feature settings
+        if ("Features" in root.object) {
+            auto featuresObj = root["Features"].object;
+            foreach (featureId; featuresObj.byKey ()) {
+                switch (featureId) {
+                    case "validateMetainfo":
+                        setFeature (GeneratorFeature.VALIDATE, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                        break;
+                    case "processDesktop":
+                        setFeature (GeneratorFeature.PROCESS_DESKTOP, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 

@@ -17,36 +17,9 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers.metainfoparser;
+module ag.handlers;
 
-import std.path : baseName;
-import std.uni : toLower;
-import std.string : format;
-import std.stdio;
-import appstream.Metadata;
-import appstream.Component;
-
-import ag.result;
-import ag.utils;
-
-
-Component parseMetaInfoFile (GeneratorResult res, string data)
-{
-    auto mdata = new Metadata ();
-    mdata.setLocale ("ALL");
-    mdata.setParserMode (ParserMode.UPSTREAM);
-
-    try {
-        mdata.parseXml (data);
-    } catch (Exception e) {
-        res.addHint ("general", "metainfo-parsing-error", e.msg);
-        return null;
-    }
-
-    auto cpt = mdata.getComponent ();
-    if (cpt is null)
-        return null;
-    res.addComponent (cpt);
-
-    return cpt;
-}
+public import ag.handlers.desktopparser;
+public import ag.handlers.iconhandler;
+public import ag.handlers.metainfoparser;
+public import ag.handlers.metainfovalidator;

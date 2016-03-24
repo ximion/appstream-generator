@@ -21,16 +21,14 @@ module ag.extractor;
 
 import std.stdio;
 import std.string;
+import appstream.Component;
+
+import ag.config;
 import ag.hint;
 import ag.result;
 import ag.backend.intf;
 import ag.datacache;
-
-import ag.handlers.desktopparser;
-import ag.handlers.metainfoparser;
-import ag.handlers.iconhandler;
-
-import appstream.Component;
+import ag.handlers;
 
 
 class DataExtractor
@@ -42,6 +40,7 @@ private:
 
     DataCache dcache;
     IconHandler iconh;
+    Config conf;
 
 public:
 
@@ -49,6 +48,7 @@ public:
     {
         dcache = cache;
         iconh = iconHandler;
+        conf = Config.get ();
     }
 
     GeneratorResult processPackage (Package pkg)
@@ -90,6 +90,11 @@ public:
                 res.addHint ("metainfo-no-id", "general", ["fname": mfname]);
                 continue;
             }
+
+            // do a validation of the file. Validation is slow, so we allow
+            // the user to disable this feature.
+            if (conf.featureEnabled (GeneratorFeature.VALIDATE))
+                validateMetaInfoFile (cpt, res, data);
 
             auto dfp = (cid in desktopFiles);
             if (dfp is null) {
