@@ -105,6 +105,7 @@ public:
      */
     private void exportData (string suiteName, string section, string arch, Package[] pkgs)
     {
+        import ag.archive;
         string[] mdataEntries;
         string[] hintEntries;
 
@@ -146,6 +147,11 @@ public:
         mf.flush ();
         mf.close ();
 
+        // compress metadata
+        saveCompressed (dataFname, ArchiveType.GZIP);
+        saveCompressed (dataFname, ArchiveType.XZ);
+        std.file.remove (dataFname);
+
         // write hints
         logInfo ("Writing hints for %s/%s [%s]", suiteName, section, arch);
         auto hf = File (hintsFname, "w");
@@ -162,6 +168,11 @@ public:
         hf.writeln ("\n]");
         hf.flush ();
         hf.close ();
+
+        // compress hints
+        saveCompressed (hintsFname, ArchiveType.GZIP);
+        saveCompressed (hintsFname, ArchiveType.XZ);
+        std.file.remove (hintsFname);
     }
 
     private void contentsIndexLoadDefaultSections (Suite suite, string section, string arch)

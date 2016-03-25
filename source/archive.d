@@ -25,7 +25,13 @@ import std.file;
 import std.regex;
 import c.libarchive;
 
-immutable DEFAULT_BLOCK_SIZE = 65536;
+private immutable DEFAULT_BLOCK_SIZE = 65536;
+
+enum ArchiveType
+{
+    GZIP,
+    XZ
+}
 
 private string readArchiveData (archive *ar, string name = null)
 {
@@ -97,7 +103,7 @@ string decompressData (ubyte[] data)
     return readArchiveData (ar);
 }
 
-class CompressedArchive
+class ArchiveDecompressor
 {
 
 private:
@@ -289,4 +295,133 @@ public:
 
         return contents;
     }
+}
+
+/*
+void compressAndSave (ubyte[] data, string fname, ArchiveType atype)
+{
+    archive *ar;
+
+    ar = archive_write_new ();
+    scope (exit) archive_write_free (ar);
+
+    if (atype == ArchiveType.GZIP)
+        archive_write_add_filter_gzip (ar);
+    else
+        archive_write_add_filter_xz (ar);
+
+    archive_write_set_format_raw (ar);
+
+    auto ret = archive_write_open_filename (ar, toStringz (fname));
+    if (ret != ARCHIVE_OK)
+        throw new Exception (format ("Unable to open file '%s': %s", fname, fromStringz (archive_error_string (ar))));
+
+    archive_entry *entry;
+    entry = archive_entry_new ();
+    scope (exit) archive_entry_free (entry);
+
+    archive_entry_set_size (entry, ubyte.sizeof * data.length);
+    archive_write_header (ar, entry);
+
+    archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+    archive_write_close (ar);
+}
+*/
+
+void saveCompressed (string fname, ArchiveType atype)
+{
+    import std.process;
+
+    Pid pid;
+    File cf;
+    if (atype == ArchiveType.GZIP) {
+        cf = File (fname ~ ".gz", "w");
+        pid = spawnProcess (["gzip", "-c", fname], std.stdio.stdin, cf);
+    } else {
+        cf = File (fname ~ ".xz", "w");
+        pid = spawnProcess (["xz", "-c", fname], std.stdio.stdin, cf);
+    }
+
+    wait (pid);
+    cf.close ();
+}
+
+
+class ArchiveCompressor
+{
+
+private:
+    string archiveFname;
+    archive *ar;
+    bool closed;
+
+public:
+
+    this (ArchiveType type)
+    {
+        ar = archive_write_new ();
+
+        if (type == ArchiveType.GZIP)
+            archive_write_add_filter_gzip (ar);
+        else
+            archive_write_add_filter_xz (ar);
+
+        archive_write_set_format_pax_restricted (ar);
+        closed = true;
+    }
+
+    ~this ()
+    {
+        close ();
+        archive_write_free (ar);
+    }
+
+    void open (string fname)
+    {
+        archiveFname = fname;
+        auto ret = archive_write_open_filename (ar, toStringz (fname));
+        if (ret != ARCHIVE_OK)
+            throw new Exception (format ("Unable to open file '%s'", fname));
+        closed = false;
+    }
+
+    void close ()
+    {
+        if (closed)
+            return;
+        archive_write_close (ar);
+        closed = true;
+    }
+
+    void addFile (string fname, string dest = null)
+    {
+        import std.conv : octal;
+        import std.path : baseName;
+        import core.sys.posix.sys.stat;
+
+        immutable BUFFER_SIZE = 8192;
+        archive_entry *entry;
+        stat_t st;
+        ubyte[BUFFER_SIZE] buff;
+
+        if (dest is null)
+            dest = baseName (fname);
+
+        lstat (toStringz (fname), &st);
+        entry = archive_entry_new ();
+        scope (exit) archive_entry_free (entry);
+        archive_entry_set_pathname (entry, toStringz (dest));
+
+        archive_entry_set_size (entry, st.st_size);
+        archive_entry_set_filetype (entry, S_IFREG);
+        archive_entry_set_perm (entry, octal!755);
+        archive_write_header (ar, entry);
+
+        auto f = File (fname, "r");
+        while (!f.eof) {
+            auto data = f.rawRead (buff);
+            archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+        }
+    }
+
 }

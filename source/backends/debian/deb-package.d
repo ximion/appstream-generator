@@ -90,9 +90,9 @@ public:
         return format ("%s/%s/%s", name, ver, arch);
     }
 
-    private CompressedArchive openPayloadArchive ()
+    private auto openPayloadArchive ()
     {
-        auto pa = new CompressedArchive ();
+        auto pa = new ArchiveDecompressor ();
         if (!dataArchive) {
             import std.regex;
             import std.path;
@@ -115,9 +115,9 @@ public:
         return pa;
     }
 
-    private CompressedArchive openControlArchive ()
+    private auto openControlArchive ()
     {
-        auto ca = new CompressedArchive ();
+        auto ca = new ArchiveDecompressor ();
         if (!controlArchive) {
             import std.regex;
             import std.path;
