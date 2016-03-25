@@ -100,17 +100,50 @@ public:
         }
     }
 
+    private string getMetadataHead (Suite suite, string section)
+    {
+        string head;
+        auto origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
+
+        if (conf.metadataType == DataType.XML) {
+            head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+            head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.appstreamVersion, origin);
+            if (suite.dataPriority != 0)
+                head ~= format (" priority=\"%s\"", suite.dataPriority);
+            if (conf.mediaBaseUrl !is null)
+                head ~= format (" media_baseurl=\"%s\"", conf.mediaBaseUrl);
+            head ~= ">";
+        } else {
+            head = "---\n";
+            head ~= format ("File: DEP-11\n"
+                           "Version: \"%s\"\n"
+                           "Origin: \"%s\"\n"
+                           "MediaBaseUrl: \"%s\"",
+                           conf.appstreamVersion,
+                           origin,
+                           conf.mediaBaseUrl);
+            if (suite.dataPriority != 0)
+                head ~= format ("\nPriority: %s", suite.dataPriority);
+        }
+
+        return head;
+    }
+
     /**
      * Export metadata and issue hints from the database and store them as files.
      */
-    private void exportData (string suiteName, string section, string arch, Package[] pkgs)
+    private void exportData (Suite suite, string section, string arch, Package[] pkgs)
     {
         import ag.archive;
         string[] mdataEntries;
         string[] hintEntries;
 
-        logInfo ("Exporting data for %s (%s/%s)", suiteName, section, arch);
+        logInfo ("Exporting data for %s (%s/%s)", suite.name, section, arch);
 
+        // add metadata document header
+        mdataEntries ~= getMetadataHead (suite, section);
+
+        // collect metadata and hints for the given packages
         foreach (pkg; parallel (pkgs)) {
             auto pkid = Package.getId (pkg);
             auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
@@ -125,8 +158,8 @@ public:
                 hintEntries ~= hres;
         }
 
-        auto dataExportDir = buildPath (exportDir, "data", suiteName, section);
-        auto hintsExportDir = buildPath (exportDir, "hints", suiteName, section);
+        auto dataExportDir = buildPath (exportDir, "data", suite.name, section);
+        auto hintsExportDir = buildPath (exportDir, "hints", suite.name, section);
 
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);
@@ -139,11 +172,14 @@ public:
         string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
-        logInfo ("Writing metadata for %s/%s [%s]", suiteName, section, arch);
+        logInfo ("Writing metadata for %s/%s [%s]", suite.name, section, arch);
         auto mf = File (dataFname, "w");
         foreach (entry; mdataEntries) {
             mf.writeln (entry);
         }
+        // add the closing XML tag for XML metadata
+        if (conf.metadataType == DataType.XML)
+            mf.writeln ("</components>");
         mf.flush ();
         mf.close ();
 
@@ -153,7 +189,7 @@ public:
         std.file.remove (dataFname);
 
         // write hints
-        logInfo ("Writing hints for %s/%s [%s]", suiteName, section, arch);
+        logInfo ("Writing hints for %s/%s [%s]", suite.name, section, arch);
         auto hf = File (hintsFname, "w");
         hf.writeln ("[");
         bool firstLine = true;
@@ -220,7 +256,7 @@ public:
                 processPackages (pkgs, iconh);
 
                 // export package data
-                exportData (suite.name, section, arch, pkgs);
+                exportData (suite, section, arch, pkgs);
 
                 // we store the package info over all architectures to generate reports later
                 sectionPkgs ~= pkgs;

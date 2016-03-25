@@ -68,6 +68,7 @@ enum GeneratorFeature
 
 class Config
 {
+    immutable string appstreamVersion;
     string projectName;
     string archiveRoot;
     string mediaBaseUrl;
@@ -101,7 +102,9 @@ class Config
         return instance_;
     }
 
-    private this () { }
+    private this () {
+        appstreamVersion = "0.8";
+    }
 
     private void setFeature (GeneratorFeature feature, bool enabled)
     {
