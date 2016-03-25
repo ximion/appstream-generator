@@ -27,6 +27,7 @@ import std.array : empty;
 import ag.config;
 import ag.archive;
 import ag.backend.intf;
+import ag.logging;
 
 
 class DebPackage : Package
@@ -163,6 +164,16 @@ public:
         // has the same accuracy.
         auto ca = openControlArchive ();
         auto md5sums = ca.readData ("./md5sums");
+        if (md5sums is null) {
+            logError ("Could not read md5sums file for package %s", Package.getId (this));
+            return [];
+        }
+        try {
+            md5sums = std.utf.toUTF8 (md5sums);
+        } catch (Exception e) {
+            logError ("Could not decode md5sums file for package %s: %s", Package.getId (this), e.msg);
+            return [];
+        }
 
         // TODO: Preallocate space for the contents list using
         // the splitLines count?
