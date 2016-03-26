@@ -63,6 +63,16 @@ void processScreenshots (GeneratorResult gres, string mediaExportDir)
     }
 }
 
+import gio.Cancellable;
+void waitTimeout (Cancellable c)
+{
+    import core.thread;
+    import core.time;
+
+    Thread.sleep (dur!("seconds") (40));
+    c.cancel ();
+}
+
 private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
 {
     import std.stdio;
@@ -101,7 +111,12 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         import gio.File;
 
         auto rsf = new File (g_file_new_for_uri (imgUrl.toStringz ()));
-        auto fstream = rsf.read (null);
+
+        // read the remote file, and cancel the download if it takes too long
+        auto c = new Cancellable ();
+        std.parallelism.scopedTask!waitTimeout (c).executeInNewThread ();
+        auto fstream = rsf.read (c);
+
         auto istream = new DataInputStream (fstream);
 
         ulong bytesRead;
