@@ -36,8 +36,7 @@ import ag.hint;
 import ag.reportgenerator;
 
 import ag.backend.intf;
-import ag.backend.debian.pkgindex;
-import ag.backend.debian.contentsindex;
+import ag.backend.debian;
 
 import ag.handlers.iconhandler;
 
