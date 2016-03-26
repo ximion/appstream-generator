@@ -27,8 +27,8 @@ import std.math;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import c.cairo;
-import c.gdlib;
 import c.rsvg;
+import c.gdkpixbuf;
 
 import gi.glibtypes;
 import gi.glib;
@@ -45,97 +45,63 @@ enum ImageFormat {
     SVGZ
 }
 
-// thread-local
-private string lastErrorMsg;
-
-extern(C) nothrow
-private void gdLibError (int code, const(char) *msg, va_list args)
-{
-    import std.outbuffer;
-
-    // Terrible...
-    // LibGDs error handling sucks, and this code does too.
-    try {
-        auto buf = new OutBuffer ();
-        auto strMsg = to!string (fromStringz (msg));
-        buf.vprintf (strMsg, args);
-
-        // don't silently override a messge, instead dump it to the log
-        if (lastErrorMsg !is null)
-            logError (lastErrorMsg);
-
-        lastErrorMsg = buf.toString ().dup;
-    } catch {}
-}
-
 class Image
 {
 
 private:
-    gdImagePtr gdi;
+    GdkPixbuf pix;
 
 public:
 
-    private void throwError (string msg)
+    private void throwGError (GError *error, string pretext = null)
     {
-        if (lastErrorMsg is null) {
-            throw new Exception (msg);
-        } else {
-            auto errMsg = lastErrorMsg.strip ();
-            lastErrorMsg = null;
-            throw new Exception (format ("%s %s", msg, errMsg));
+        if (error !is null) {
+            auto msg = fromStringz (error.message).dup;
+            g_error_free (error);
+
+            if (pretext is null)
+                throw new Exception (to!string (msg));
+            else
+                throw new Exception (format ("%s: %s", pretext, to!string (msg)));
         }
     }
 
     this (string fname)
     {
-        gdSetErrorMethod (&gdLibError);
-        gdi = gdImageCreateFromFile (fname.toStringz ());
-        if (gdi == null) {
-            throwError (format ("Unable to open image '%s'.", baseName (fname)));
-        }
+        GError *error = null;
+        pix = gdk_pixbuf_new_from_file (fname.toStringz (), &error);
+        throwGError (error, format ("Unable to open image '%s'", baseName (fname)));
     }
 
     this (ubyte[] imgBytes, ImageFormat ikind)
     {
-        import core.stdc.string : strlen;
+        import gi.gio;
+        import gio.MemoryInputStream;
 
-        //gdSetErrorMethod (&gdLibError);
+        auto istream = new MemoryInputStream ();
+        istream.addData (imgBytes, null);
 
-        auto imgDSize = to!int (ubyte.sizeof * imgBytes.length);
-        switch (ikind) {
-            case ImageFormat.PNG:
-                gdi = gdImageCreateFromPngPtr (imgDSize, cast(void*) imgBytes);
-                break;
-            case ImageFormat.JPEG:
-                gdi = gdImageCreateFromJpegPtr (imgDSize, cast(void*) imgBytes);
-                break;
-            case ImageFormat.GIF:
-                gdi = gdImageCreateFromGifPtr (imgDSize, cast(void*) imgBytes);
-                break;
-            default:
-                throw new Exception (format ("Unable to open image of type '%s'.", to!string (ikind)));
-        }
-        if (gdi == null)
-            throwError ("Failed to load image data. The image might be invalid.");
+        GError *error = null;
+        pix = gdk_pixbuf_new_from_stream (cast(GInputStream*) istream.getMemoryInputStreamStruct (), null, &error);
+        throwGError (error, "Failed to load image data");
     }
 
     ~this ()
     {
-        if (gdi !is null)
-            gdImageDestroy (gdi);
+        if (pix !is null)
+            g_object_unref (pix);
     }
 
     @property
     uint width ()
     {
-        return gdi.sx;
+        return pix.gdk_pixbuf_get_width ();
     }
 
     @property
     uint height ()
     {
-        return gdi.sy;
+        return pix.gdk_pixbuf_get_height ();
     }
 
     /**
@@ -143,15 +109,13 @@ public:
      */
     void scale (uint newWidth, uint newHeight)
     {
-        gdImageSetInterpolationMethod (gdi, gdInterpolationMethod.BILINEAR_FIXED);
-
-        auto resImg = gdImageScale (gdi, newWidth, newHeight);
-        if (resImg is null)
-            throwError (format ("Scaling of image to %sx%s failed.", newWidth, newHeight));
+        auto resPix = gdk_pixbuf_scale_simple (pix, newWidth, newHeight, GdkInterpType.BILINEAR);
+        if (resPix is null)
+            throw new Exception (format ("Scaling of image to %sx%s failed.", newWidth, newHeight));
 
         // set our current image to the scaled version
-        gdImageDestroy (gdi);
-        gdi = resImg;
+        g_object_unref (pix);
+        pix = resPix;
     }
 
     /**
@@ -195,10 +159,11 @@ public:
         }
     }
 
-    void savePng (File f)
+    void savePng (string fname)
     {
-        gdImageSaveAlpha (gdi, 1);
-        gdImagePng (gdi, f.getFP ());
+        GError *error = null;
+        gdk_pixbuf_save (pix, fname.toStringz (), "png", &error, null);
+        throwGError (error);
     }
 }
 
@@ -287,12 +252,11 @@ unittest
     assert (img.height == 64);
 
     writeln ("Storing image");
-    auto f = File ("/tmp/ag-ut_test.png", "w");
-    img.savePng (f);
+    img.savePng ("/tmp/ag-iscale_test.png");
 
     writeln ("Loading image (data)");
     ubyte[] data;
-    f = File (sampleImgPath, "r");
+    auto f = File (sampleImgPath, "r");
     while (!f.eof) {
         char[300] buf;
         data ~= f.rawRead (buf);
@@ -300,10 +264,9 @@ unittest
 
     img = new Image (data, ImageFormat.PNG);
     writeln ("Scaling image (data)");
-    img.scale (64, 64);
+    img.scale (124, 124);
     writeln ("Storing image (data)");
-    f = File ("/tmp/ag-ut_test.png", "w");
-    img.savePng (f);
+    img.savePng ("/tmp/ag-iscale-d_test.png");
 
     writeln ("Rendering SVG");
     auto sampleSvgPath = buildPath (getcwd(), "test", "samples", "table.svgz");

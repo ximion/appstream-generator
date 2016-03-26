@@ -136,8 +136,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
 
         // save the source screenshot as PNG image
         auto srcImg = new ag.image.Image (imgData, ag.image.ImageFormat.PNG);
-        auto sif = File (srcImgPath, "w");
-        srcImg.savePng (sif);
+        srcImg.savePng (srcImgPath);
 
         auto img = new Image ();
         img.setKind (ImageKind.SOURCE);
@@ -163,8 +162,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             else
                 thumb.scaleToHeight (size.height);
 
-            auto f = File (thumbImgPath, "w");
-            thumb.savePng (f);
+            thumb.savePng (thumbImgPath);
 
             // finally prepare the thumbnail definition and add it to the metadata
             auto img = new Image ();

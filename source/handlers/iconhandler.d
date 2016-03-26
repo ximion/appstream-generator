@@ -408,9 +408,7 @@ public:
 
             try {
                 img.scale (size.width, size.height);
-
-                auto f = File (iconStoreLocation, "w");
-                img.savePng (f);
+                img.savePng (iconStoreLocation);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;

@@ -12,7 +12,7 @@ before_script:
   # dependencies for appstream and appstream-generator
   - sudo apt-get install --yes -q cmake intltool libglib2.0-dev libxml2-dev libgirepository1.0-dev libxapian-dev libyaml-dev xmlto gobject-introspection libprotobuf-dev protobuf-compiler
   # dependencies only for appstream-generator
-  - sudo apt-get install --yes -q libgd-dev libarchive-dev librsvg2-dev liblmdb-dev
+  - sudo apt-get install --yes -q libgdk-pixbuf2.0-dev libarchive-dev librsvg2-dev liblmdb-dev
   # build & install the current Git snapshot of AppStream
   - mkdir dep && cd dep
   - git clone https://github.com/ximion/appstream.git
