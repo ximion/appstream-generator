@@ -23,3 +23,4 @@ public import ag.handlers.desktopparser;
 public import ag.handlers.iconhandler;
 public import ag.handlers.metainfoparser;
 public import ag.handlers.metainfovalidator;
+public import ag.handlers.screenshothandler;

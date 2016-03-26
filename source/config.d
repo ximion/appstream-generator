@@ -63,7 +63,8 @@ enum GeneratorFeature
 {
     NONE = 0,
     PROCESS_DESKTOP = 1 << 0,
-    VALIDATE        = 1 << 1
+    VALIDATE        = 1 << 1,
+    SCREENSHOTS     = 1 << 2
 }
 
 class Config
@@ -192,6 +193,7 @@ class Config
         // Enable features which are default-enabled
         setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
         setFeature (GeneratorFeature.VALIDATE, true);
+        setFeature (GeneratorFeature.SCREENSHOTS, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -204,6 +206,9 @@ class Config
                     case "processDesktop":
                         setFeature (GeneratorFeature.PROCESS_DESKTOP, featuresObj[featureId].type == JSON_TYPE.TRUE);
                         break;
+                    case "handleScreenshots":
+                            setFeature (GeneratorFeature.SCREENSHOTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
                     default:
                         break;
                 }

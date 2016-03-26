@@ -35,7 +35,6 @@ import ag.utils;
 
 void validateMetaInfoFile (Component cpt, GeneratorResult res, string data)
 {
-
     auto validator = new Validator ();
 
     try {

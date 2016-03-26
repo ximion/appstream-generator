@@ -126,6 +126,10 @@ public:
         // find & store icons
         iconh.process (res);
 
+        // download and resize screenshots
+        if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
+            processScreenshots (res, dcache.mediaExportDir);
+
         // this removes invalid components and cleans up the result
         res.finalize ();
         pkg.close ();

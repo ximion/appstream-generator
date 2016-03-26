@@ -28,6 +28,46 @@ import std.string;
 import std.stdio : writeln;
 
 
+struct ImageSize
+{
+    uint width;
+    uint height;
+
+    this (uint w, uint h)
+    {
+        width = w;
+        height = h;
+    }
+
+    this (uint s)
+    {
+        width = s;
+        height = s;
+    }
+
+    string toString () const
+    {
+        return format ("%sx%s", width, height);
+    }
+
+    uint toInt () const
+    {
+        if (width > height)
+            return width;
+        return height;
+    }
+
+    int opCmp (const ImageSize s) const
+    {
+        // only compares width, should be enough for now
+        if (this.width > s.width)
+            return 1;
+        if (this.width == s.width)
+            return 0;
+        return -1;
+    }
+}
+
 /**
  * Generate a random alphanumeric string.
  */
@@ -100,4 +140,9 @@ unittest
     assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", "ABAD1DEA") == "io/sample/awesomeapp.sdk/ABAD1DEA");
 
     assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", null, true) == "io/sample/awesomeapp.sdk/");
+
+    assert (ImageSize (80, 40).toString () == "80x40");
+    assert (ImageSize (1024, 420).toInt () == 1024);
+    assert (ImageSize (1024, 800) > ImageSize (64, 32));
+    assert (ImageSize (48) < ImageSize (64));
 }

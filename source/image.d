@@ -96,15 +96,13 @@ public:
         }
     }
 
-    this (string data, ImageFormat ikind)
+    this (ubyte[] imgBytes, ImageFormat ikind)
     {
         import core.stdc.string : strlen;
 
         //gdSetErrorMethod (&gdLibError);
 
-        auto imgBytes = cast(byte[]) data;
-        auto imgDSize = to!int (byte.sizeof * imgBytes.length);
-
+        auto imgDSize = to!int (ubyte.sizeof * imgBytes.length);
         switch (ikind) {
             case ImageFormat.PNG:
                 gdi = gdImageCreateFromPngPtr (imgDSize, cast(void*) imgBytes);
@@ -149,7 +147,7 @@ public:
 
         auto resImg = gdImageScale (gdi, newWidth, newHeight);
         if (resImg is null)
-            throwError ("Scaling of image failed.");
+            throwError (format ("Scaling of image to %sx%s failed.", newWidth, newHeight));
 
         // set our current image to the scaled version
         gdImageDestroy (gdi);
@@ -164,7 +162,7 @@ public:
     {
         import std.math;
 
-        float scaleFactor = width / newWidth;
+        float scaleFactor = cast(float) newWidth / cast (float) width;
         uint newHeight = to!uint (floor (height * scaleFactor));
 
         scale (newWidth, newHeight);
@@ -178,7 +176,7 @@ public:
     {
         import std.math;
 
-        float scaleFactor = height / newHeight;
+        float scaleFactor = cast(float) newHeight / cast(float) height;
         uint newWidth = to!uint (floor (width * scaleFactor));
 
         scale (newWidth, newHeight);
@@ -227,16 +225,14 @@ public:
             cairo_surface_destroy (srf);
     }
 
-    void renderSvg (string svgData)
+    void renderSvg (ubyte[] svgBytes)
     {
         auto handle = rsvg_handle_new ();
         scope (exit) g_object_unref (handle);
 
-        auto svgBytes = cast(ubyte[]) svgData;
-        auto svgDSize = ubyte.sizeof * svgBytes.length;
-
+        auto svgBSize = ubyte.sizeof * svgBytes.length;
         GError *error = null;
-        rsvg_handle_write (handle, cast(ubyte*) svgBytes, svgDSize, &error);
+        rsvg_handle_write (handle, cast(ubyte*) svgBytes, svgBSize, &error);
         if (error !is null) {
             auto msg = fromStringz (error.message).dup;
             g_error_free (error);
@@ -253,8 +249,8 @@ public:
         RsvgDimensionData dims;
         rsvg_handle_get_dimensions (handle, &dims);
 
-        auto w = cairo_image_surface_get_width (srf);
-        auto h = cairo_image_surface_get_height (srf);
+        auto w = cast(double) cairo_image_surface_get_width (srf);
+        auto h = cast(double) cairo_image_surface_get_height (srf);
 
         // cairo_translate (cr, (w - dims.width) / 2, (h - dims.height) / 2);
         cairo_scale (cr, w / dims.width, h / dims.height);
@@ -295,12 +291,13 @@ unittest
     img.savePng (f);
 
     writeln ("Loading image (data)");
-    string data;
+    ubyte[] data;
     f = File (sampleImgPath, "r");
     while (!f.eof) {
         char[300] buf;
-        data ~= to!string (f.rawRead (buf));
+        data ~= f.rawRead (buf);
     }
+
     img = new Image (data, ImageFormat.PNG);
     writeln ("Scaling image (data)");
     img.scale (64, 64);
@@ -310,11 +307,11 @@ unittest
 
     writeln ("Rendering SVG");
     auto sampleSvgPath = buildPath (getcwd(), "test", "samples", "table.svgz");
-    data = "";
+    data = null;
     f = File (sampleSvgPath, "r");
     while (!f.eof) {
         char[300] buf;
-        data ~= to!string (f.rawRead (buf));
+        data ~= f.rawRead (buf);
     }
     auto cv = new Canvas (512, 512);
     cv.renderSvg (data);

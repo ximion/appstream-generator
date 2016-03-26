@@ -1,5 +1,11 @@
 {
 
+"internal-error": {
+  "text": [ "A fatal problem appeared in the generator.",
+            "Please <a href=\"https://github.com/ximion/appstream-generator/issues\">report a bug</a>: {{msg}}"],
+  "severity": "error"
+},
+
 "desktop-file-read-error": {
   "text": "Unable to read data from .desktop file: {{msg}}",
   "severity": "error"
@@ -29,8 +35,8 @@
 },
 
 "gui-app-without-icon": {
-  "text": [ "The GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>)",
-            "with AppStream-ID '{{cid}}' has been found, but we could not find a matching icon."
+  "text": [ "The component is a GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>),",
+            "but we could not find a matching icon for this application."
           ],
   "severity": "error"
 },
@@ -60,6 +66,22 @@
 "ancient-metadata": {
   "text": ["The AppStream metadata should be updated to follow a more recent version of the specification.<br/>",
            "Please consult <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">the XML quickstart guide</a> for more information."],
+  "severity": "warning"
+},
+
+"metainfo-screenshot-but-no-image": {
+  "text": ["A screenshot has been found for this component, but apparently it does not have any images defined."],
+  "severity": "warning"
+},
+
+"screenshot-download-error": {
+  "text": ["Error while downloading screenshot from '{{url}}': {{error}}<br/>",
+           "This might be a temporary server issue."],
+  "severity": "warning"
+},
+
+"screenshot-save-error": {
+  "text": "Unable to store screenshot for '{{url}}: {{error}}",
   "severity": "warning"
 }
 

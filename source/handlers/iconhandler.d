@@ -46,48 +46,8 @@ private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", "
 // the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
 
-private immutable wantedIconSizes  = [IconSize (64), IconSize (128)];
+private immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
 
-
-struct IconSize
-{
-    uint width;
-    uint height;
-
-    this (uint w, uint h)
-    {
-        width = w;
-        height = h;
-    }
-
-    this (uint s)
-    {
-        width = s;
-        height = s;
-    }
-
-    string toString ()
-    {
-        return format ("%sx%s", width, height);
-    }
-
-    uint toInt ()
-    {
-        if (width > height)
-            return width;
-        return height;
-    }
-
-    int opCmp (ref const IconSize s) const
-    {
-        // only compares width, should be enough for now
-        if (this.width > s.width)
-            return 1;
-        if (this.width == s.width)
-            return 0;
-        return -1;
-    }
-}
 
 /**
  * Describes an icon theme as specified in the XDG theme spec.
@@ -158,7 +118,7 @@ public:
         }
     }
 
-    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, IconSize size)
+    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size)
     {
         string type = themedir["type"].get!(string);
         if (type == "Fixed")
@@ -182,7 +142,7 @@ public:
     /**
      * Returns an iteratable of possible icon filenames that match 'name' and 'size'.
      **/
-    auto matchingIconFilenames (string iname, IconSize size)
+    auto matchingIconFilenames (string iname, ImageSize size)
     {
         auto gen = new Generator!string (
         {
@@ -303,7 +263,7 @@ public:
      * Generates potential filenames of the icon that is searched for in the
      * given size.
      **/
-    private auto possibleIconFilenames (string iconName, IconSize size)
+    private auto possibleIconFilenames (string iconName, ImageSize size)
     {
         auto gen = new Generator!string (
         {
@@ -339,9 +299,9 @@ public:
      * Looks up 'icon' with 'size' in popular icon themes according to the XDG
      * icon theme spec.
      **/
-    auto findIcons (string iconName, const IconSize[] sizes, Package pkg = null)
+    auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
     {
-        IconFindResult[IconSize] sizeMap = null;
+        IconFindResult[ImageSize] sizeMap = null;
 
         foreach (size; sizes) {
             foreach (fname; possibleIconFilenames (iconName, size)) {
@@ -379,7 +339,7 @@ public:
      *      iconPath      = The (absolute) path to the icon.
      *      size          = The size the icon should be stored in.
      **/
-    private bool storeIcon (Component cpt, GeneratorResult gres, string cptExportPath, Package sourcePkg, string iconPath, IconSize size)
+    private bool storeIcon (Component cpt, GeneratorResult gres, string cptExportPath, Package sourcePkg, string iconPath, ImageSize size)
     {
         // don't store an icon if we are already ignoring this component
         //if cpt.has_ignore_reason():
@@ -412,9 +372,9 @@ public:
 
         // filepath is checked because icon can reside in another binary
         // eg amarok's icon is in amarok-data
-        string iconData = null;
+        ubyte[] iconData = null;
         try {
-            iconData = sourcePkg.getFileData (iconPath);
+            iconData = cast(ubyte[]) sourcePkg.getFileData (iconPath);
         } catch (Exception e) {
             gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
             return false;
@@ -487,7 +447,7 @@ public:
 
         if (iconName.startsWith ("/")) {
             if (gres.pkg.contents.canFind (iconName))
-                return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, IconSize (64, 64));
+                return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, ImageSize (64, 64));
         } else {
             iconName  = baseName (iconName);
 
@@ -595,6 +555,6 @@ unittest
     //pkg.filename = "/srv/debmirror/tanglu/pool/main/a/adwaita-icon-theme/adwaita-icon-theme_3.16.0-0tanglu1_all.deb";
 
     //auto theme = new Theme ("Adwaita", pkg);
-    //foreach (fname; theme.matchingIconFilenames ("accessories-calculator", IconSize (48)))
+    //foreach (fname; theme.matchingIconFilenames ("accessories-calculator", ImageSize (48)))
     //    writeln (fname);
 }
