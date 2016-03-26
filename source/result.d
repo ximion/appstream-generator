@@ -173,7 +173,7 @@ public:
             map.object[cid] = hintNodes;
         }
 
-        auto root = JSONValue ([pkid: map]);
+        auto root = JSONValue (["package": JSONValue (pkid), "hints": map]);
         return toJSON (&root, true);
     }
 

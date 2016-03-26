@@ -327,12 +327,13 @@ public:
             if (hintsData is null)
                 continue;
             auto hintsCpts = parseJSON (hintsData);
+            hintsCpts = hintsCpts["hints"];
 
             PkgSummary pkgsummary;
             pkgsummary.pkgname = pkg.name;
 
-            foreach (cid; hintsCpts[pkid].object.byKey ()) {
-                auto jhints = hintsCpts[pkid][cid];
+            foreach (cid; hintsCpts.object.byKey ()) {
+                auto jhints = hintsCpts[cid];
                 HintEntry he;
                 he.identifier = cid;
 
