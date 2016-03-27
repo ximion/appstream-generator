@@ -21,6 +21,7 @@ module ag.datacache;
 
 import std.stdio;
 import std.string;
+import std.conv : to;
 import std.file : mkdirRecurse;
 
 import c.lmdb;
@@ -347,6 +348,138 @@ public:
         }
 
         return res;
+    }
+
+    /**
+     * Drop a package from the database. This process might leave cruft behind,
+     * which can be collected using the cleanupCruft() method.
+     */
+    void removePackage (string pkid)
+    {
+        MDB_val dbkey;
+
+        dbkey = makeDbValue (pkid);
+
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        auto res = txn.mdb_del (dbPackages, &dbkey, null);
+        checkError (res, "mdb_del");
+
+        res = txn.mdb_del (dbHints, &dbkey, null);
+        checkError (res, "mdb_del");
+    }
+
+    private auto getActiveGCIDs ()
+    {
+        MDB_val dkey, dval;
+        MDB_cursorp cur;
+        string[long] stats;
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbPackages, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (gcids)");
+
+        bool[string] gcids;
+        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
+            auto pkval = std.conv.to!string (fromStringz (cast(char*) dval.mv_data));
+            if ((pkval == "ignore") || (pkval == "seen"))
+                continue;
+
+            foreach(gcid; pkval.split ("\n"))
+                gcids[gcid] = true;
+        }
+
+        return gcids;
+    }
+
+    void cleanupCruft ()
+    {
+        import std.file;
+        import std.path;
+
+        if (mediaDir is null) {
+            logError ("Can not clean up cruft: No media directory is set.");
+            return;
+        }
+
+        auto activeGCIDs = getActiveGCIDs ();
+        bool gcidReferenced (string gcid)
+        {
+            // we use an associative array as a set here
+            return (gcid in activeGCIDs) !is null;
+        }
+
+        void dropOrphanedData (MDB_dbi dbi)
+        {
+            MDB_cursorp cur;
+
+            auto txn = newTransaction ();
+            scope (success) commitTransaction (txn);
+            scope (failure) quitTransaction (txn);
+
+            auto res = txn.mdb_cursor_open (dbi, &cur);
+            scope (exit) cur.mdb_cursor_close ();
+            checkError (res, "mdb_cursor_open (stats)");
+
+            MDB_val ckey;
+            while (cur.mdb_cursor_get (&ckey, null, MDB_NEXT) == 0) {
+                auto gcid = std.conv.to!string (fromStringz (cast(char*) ckey.mv_data));
+                if (gcidReferenced (gcid))
+                    continue;
+
+                // if we got here, the component is cruft and can be removed
+                res = cur.mdb_cursor_del (0);
+                checkError (res, "mdb_del");
+                logInfo ("Marked %s as cruft.", gcid);
+            }
+        }
+
+        // drop orphaned metadata
+        dropOrphanedData (dbDataXml);
+        dropOrphanedData (dbDataYaml);
+
+        bool dirEmpty (string dir)
+        {
+            bool empty = true;
+            foreach (e; dirEntries (dir, SpanMode.shallow, false)) {
+                empty = false;
+                break;
+            }
+            return empty;
+        }
+
+        auto mdirLen = mediaDir.length;
+        foreach (path; dirEntries (mediaDir, SpanMode.depth, false)) {
+            if (path.length <= mdirLen)
+                continue;
+            auto relPath = path[mdirLen+1..$];
+            auto split = std.array.array (pathSplitter (relPath));
+            if (split.length != 4)
+                continue;
+            auto gcid = relPath;
+
+            if (gcidReferenced (gcid))
+                continue;
+
+            // if we are here, the component is removed and we can drop its media
+            rmdirRecurse (path);
+
+            // remove possibly empty directories
+            auto pdir = buildNormalizedPath (path, "..");
+            if (dirEmpty (pdir))
+                rmdir (pdir);
+            pdir = buildNormalizedPath (pdir, "..");
+            if (dirEmpty (pdir))
+                rmdir (pdir);
+
+            logInfo ("Expired media for '%s'", gcid);
+        }
+
     }
 
     void addStatistics (string statJson)

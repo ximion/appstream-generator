@@ -97,7 +97,7 @@ public:
         }
 
         // load and preprocess the large Contents file.
-        foreach (line; parallel (splitLines (data))) {
+        foreach (line; parallel (splitLines (data), 100)) {
             auto parts = filePkgFromContentsLine (line);
             if (parts is null)
                 continue;

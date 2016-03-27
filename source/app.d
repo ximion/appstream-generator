@@ -81,6 +81,10 @@ void main(string[] args)
             auto engine = new Engine ();
             engine.run (args[2]);
             break;
+        case "cleanup":
+            auto engine = new Engine ();
+            engine.runCleanup ();
+            break;
         default:
             writeln (format ("The command '%s' is unknown.", command));
             exit (1);

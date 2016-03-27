@@ -84,7 +84,7 @@ public:
         GeneratorResult[] results;
 
         auto mde = new DataExtractor (dcache, iconh);
-        foreach (Package pkg; parallel (pkgs)) {
+        foreach (Package pkg; parallel (pkgs, 4)) {
             auto pkid = Package.getId (pkg);
             if (dcache.packageExists (pkid))
                 continue;
@@ -259,6 +259,9 @@ public:
 
                 // we store the package info over all architectures to generate reports later
                 sectionPkgs ~= pkgs;
+
+                // log progress
+                logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
             }
 
             // write reports & statistics and render HTML, if that option is selected
@@ -268,5 +271,10 @@ public:
         // render index pages & statistics
         reportgen.exportStatistics ();
         reportgen.renderMainIndex ();
+    }
+
+    void runCleanup ()
+    {
+        dcache.cleanupCruft ();
     }
 }
