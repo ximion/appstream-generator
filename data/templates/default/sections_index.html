@@ -5,6 +5,30 @@
 <span>AppStream data for {{project_name}}/{{suite}}</span>
 {{/partial}}
 
+{{#partial}}{ head_extra }
+<link type="text/css" rel="stylesheet" href="{{root_url}}/static/css/rickshaw.min.css">
+<script src="{{root_url}}/static/js/d3.min.js"></script>
+<script src="{{root_url}}/static/js/d3.layout.min.js"></script>
+<script src="{{root_url}}/static/js/rickshaw.min.js"></script>
+
+<style>
+#chart_container {
+        position: relative;
+        font-family: Noto, Arial, sans-serif;
+}
+#chart {
+        position: relative;
+        left: 28px;
+}
+#y_axis {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 28px;
+}
+</style>
+{{/partial}}
+
 {{#partial}}{ content }
     <h1>Select an archive section</h1>
 
@@ -16,28 +40,96 @@
     <h2>Health of suite "{{suite}}"</h2>
 
     <div class="wrapper">
-      <div class="progress">
-        <div style="width: {{valid_percentage}}%" class="progress-bar progress-bar-green">
-          <span class="sr-only">{{valid_percentage}}% Valid</span>
+      <div class="fit" style="margin: 4px;" id="chart_container">
+          <div id="y_axis"></div>
+          <div id="chart"></div>
+          <div id="slider"></div>
         </div>
-        <div style="width: {{info_percentage}}%" class="progress-bar progress-bar-blue">
-          <span class="sr-only">{{info_percentage}}% Infos</span>
-        </div>
-        <div style="width: {{warning_percentage}}%" class="progress-bar progress-bar-yellow">
-          <span class="sr-only">{{warning_percentage}}% Warnings</span>
-        </div>
-        <div style="width: {{error_percentage}}%" class="progress-bar progress-bar-red">
-          <span class="sr-only">{{error_percentage}}% Errors</span>
-        </div>
-      </div>
-
-      <ul>
-        <li>{{metainfo_count}} valid components</li>
-        <li>{{error_count}} errors</li>
-        <li>{{warning_count}} warnings</li>
-        <li>{{info_count}} infos/hints</li>
-      </ul>
     </div>
+
+    <script>
+      d3.json("{{root_url}}/statistics.json", function(data, error) {
+
+        var sumData = {};
+        sumData["errors"] = [];
+        sumData["warnings"] = [];
+        sumData["infos"] = [];
+        sumData["valid"] = [];
+
+        var sections = [];
+        {{#sections}}
+          sections.push("{{section}}");
+        {{/sections}}
+
+        var x = 0;
+        for (var i = 0; i < sections.length; i++) {
+          var sdata = data["{{suite}}"];
+          var secData = sdata[sections[i]];
+
+          sumData["errors"].push({"x": x, "y": secData["errors"][secData["errors"].length-1]["y"]});
+          sumData["warnings"].push({"x": x, "y": secData["warnings"][secData["warnings"].length-1]["y"]});
+          sumData["infos"].push({"x": x, "y": secData["infos"][secData["infos"].length-1]["y"]});
+          sumData["valid"].push({"x": x, "y": secData["metadata"][secData["metadata"].length-1]["y"]});
+          x = x + 1;
+        }
+
+        drawGraph(sumData, sections);
+      });
+    </script>
+    <script>
+      function drawGraph(data, sections) {
+        var graph = new Rickshaw.Graph( {
+          element: document.querySelector("#chart"),
+          width: 580,
+          height: 260,
+          renderer: 'bar',
+          series: [
+            {
+              color: "#c05020",
+              data: data["errors"],
+              name: "Errors"
+            },
+            {
+              color: "yellow",
+              data: data["warnings"],
+              name: "Warnings"
+            },
+            {
+              color: "steelblue",
+              data: data["infos"],
+              name: "Infos"
+            },
+            {
+              color: "green",
+              data: data["valid"],
+              name: "Valid data"
+            }
+          ]
+        } );
+
+        var x_axis = new Rickshaw.Graph.Axis.X( {
+          graph: graph,
+          tickFormat: function (x) {
+              // dumb way to position the label better
+              if (sections[x])
+                return "    " + sections[x]
+            }
+        });
+        var y_axis = new Rickshaw.Graph.Axis.Y( {
+          graph: graph,
+          orientation: 'left',
+          tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+          element: document.getElementById('y_axis'),
+        } );
+
+        graph.render();
+
+        var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+          graph: graph
+        } );
+
+      }
+    </script>
 
 {{/partial}}
 
