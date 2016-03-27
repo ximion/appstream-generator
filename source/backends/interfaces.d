@@ -35,7 +35,6 @@ interface Package
     @property string[string] description ();
 
     @property string filename ();
-    @property void filename (string fname);
     @property string[] contents ();
 
     string getFileData (string fname);
