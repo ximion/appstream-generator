@@ -85,9 +85,32 @@
   "severity": "warning"
 },
 
+"no-install-candidate": {
+  "text": "Component has no install candidate defined. A package must be associated with a package or bundle providing it.",
+  "severity": "error"
+},
+
 "metainfo-quoted-value": {
-  "text": "The value {{value}} in {{field}} is quoted, which is likely unintentional.",
+  "text": "The value {{value}} in '{{field}}' is quoted, which is likely unintentional.",
   "severity": "info"
+},
+
+"metainfo-unknown-type": {
+  "text": ["The component has an unknown type. Please make sure this component type is mentioned in the specification, and that the",
+           "<code>type=</code> property of the component root-node of the metainfo file does not contain a typing error."],
+  "severity": "error"
+},
+
+"metainfo-no-name": {
+  "text": "Component has no name specified. Ensure that the AppStream upstream metadata or the .desktop file (if there is any) specify a component name.",
+  "severity": "error"
+},
+
+"metainfo-no-summary": {
+  "text": ["Component does not contain a short summary. Ensure that the components metainfo file has a <code>summary</code> tag, or that its .desktop file",
+           "has a <code>Comment=</code> field set.<br/>",
+           "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>."],
+  "severity": "error"
 }
 
 }

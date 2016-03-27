@@ -191,6 +191,17 @@ public:
                 if (cpt.getIcons ().len == 0)
                     addHint (cpt.getId (), "gui-app-without-icon");
             }
+            if (ckind == ComponentKind.UNKNOWN)
+                addHint (cpt.getId (), "metainfo-unknown-type");
+
+            if ((!cpt.hasBundle ()) && (cpt.getPkgnames ().empty))
+                addHint (cpt.getId (), "no-install-candidate");
+
+            cpt.setActiveLocale ("C");
+            if (cpt.getName ().empty)
+                addHint (cpt.getId (), "metainfo-no-name");
+            if (cpt.getSummary ().empty)
+                addHint (cpt.getId (), "metainfo-no-summary");
         }
     }
 
