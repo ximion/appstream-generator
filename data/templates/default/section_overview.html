@@ -153,7 +153,7 @@
         var chartContainer = document.getElementById("chart_container");
         var resize = function () {
           graph.configure({
-            width: chartContainer.clientWidth
+            width: chartContainer.clientWidth - 38
           });
           graph.render();
         }
