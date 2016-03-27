@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.parallelism;
 import std.path : buildPath, buildNormalizedPath;
-import std.file : mkdirRecurse;
+import std.file : mkdirRecurse, rmdirRecurse;
 import std.array : empty;
 import std.json;
 import mustache;
@@ -477,7 +477,7 @@ public:
                         // render the full message using the static template and data from the hint
                         auto context = new Mustache.Context;
                         foreach (var; jhint["vars"].object.byKey ()) {
-                            context[var] = jhint["vars"][var];
+                            context[var] = jhint["vars"][var].str;
                         }
                         auto msg = mustache.renderString (hdef.text, context);
 
@@ -602,12 +602,20 @@ public:
 
     void processFor (string suiteName, string section, Package[] pkgs)
     {
+        // collect all needed information and save statistics
         auto dsum = preprocessInformation (suiteName, section, pkgs);
         saveStatistics (suiteName, section, dsum);
+
+        // drop old pages
+        auto suitSecPagesDest = buildPath (htmlExportDir, suiteName, section);
+        if (std.file.exists (suitSecPagesDest))
+            rmdirRecurse (suitSecPagesDest);
+
+        // render fresh info pages
         renderPagesFor (suiteName, section, dsum);
     }
 
-    void renderMainIndex ()
+    void updateIndexPages ()
     {
         logInfo ("Rendering HTML main index.");
         // render main overview
@@ -626,6 +634,15 @@ public:
         }
 
         renderPage ("main", "index", context);
+
+        // copy static data, if present
+        auto staticSrcDir = buildPath (templateDir, "static");
+        if (std.file.exists (staticSrcDir)) {
+            auto staticDestDir = buildPath (htmlExportDir, "static");
+            if (std.file.exists (staticDestDir))
+                rmdirRecurse (staticDestDir);
+            copyDir (staticSrcDir, staticDestDir);
+        }
     }
 }
 

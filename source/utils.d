@@ -145,6 +145,58 @@ string getCidFromGlobalID (string gcid)
     return parts[2];
 }
 
+/**
+ * Copy a directory using parallelism.
+ *
+ * Original (c) Jay Norwood
+ */
+void copyDir (in string srcDir, in string destDir)
+{
+    import std.file;
+    import std.path;
+    import std.parallelism;
+
+    auto deSrc = DirEntry (srcDir);
+	string[] files;
+
+	if (!exists (destDir)) {
+		mkdirRecurse (destDir); // makes dest root and all required parents
+	}
+
+ 	auto destDe = DirEntry (destDir);
+	if(!destDe.isDir ()) {
+		throw new FileException (destDe.name, " is not a directory");
+	}
+
+	string destName = destDe.name ~ '/';
+	string destRoot = destName;
+
+	if (!deSrc.isDir ()) {
+		std.file.copy (deSrc.name, destRoot);
+	} else {
+		auto srcLen = deSrc.name.length;
+        if (!std.file.exists (destRoot))
+            mkdir (destRoot);
+
+		// make an array of the regular files only, also create the directory structure
+		// Since it is SpanMode.breadth, we can just use mkdir
+ 		foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, false)) {
+			if (attrIsDir (e.linkAttributes)) {
+				auto childDir = destRoot ~ e.name[srcLen..$];
+				mkdir (childDir);
+			} else {
+				files ~= e.name;
+			}
+ 		}
+
+		// parallel foreach for regular files
+		foreach (fn; taskPool.parallel (files,100)) {
+			string dfn = destRoot ~ fn[srcLen..$];
+			std.file.copy (fn,dfn);
+		}
+	}
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");
