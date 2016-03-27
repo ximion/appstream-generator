@@ -270,7 +270,7 @@ public:
 
         // render index pages & statistics
         reportgen.exportStatistics ();
-        reportgen.renderMainIndex ();
+        reportgen.updateIndexPages ();
     }
 
     void runCleanup ()

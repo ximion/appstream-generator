@@ -6,7 +6,7 @@
   "severity": "error"
 },
 
-"desktop-file-read-error": {
+"desktop-file-error": {
   "text": "Unable to read data from .desktop file: {{msg}}",
   "severity": "error"
 },
@@ -83,6 +83,11 @@
 "screenshot-save-error": {
   "text": "Unable to store screenshot for '{{url}}: {{error}}",
   "severity": "warning"
+},
+
+"metainfo-quoted-value": {
+  "text": "The value {{value}} in {{field}} is quoted, which is likely unintentional.",
+  "severity": "info"
 }
 
 }

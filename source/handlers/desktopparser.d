@@ -21,9 +21,9 @@ module ag.handlers.desktopparser;
 
 import std.path : baseName;
 import std.uni : toLower;
-import std.string : format, indexOf;
+import std.string : format, indexOf, chomp;
 import std.array : split;
-import std.algorithm : startsWith, strip, stripRight;
+import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
 import glib.KeyFile;
 import appstream.Component;
@@ -46,7 +46,12 @@ private string getLocaleFromKey (string key)
     if (si <= 0)
         return "C";
 
-    return key[si+1..$-1];
+    auto locale = key[si+1..$-1];
+    // drop UTF-8 suffixes
+    locale = chomp (locale, ".utf-8");
+    locale = chomp (locale, ".UTF-8");
+
+    return locale;
 }
 
 private string getValue (KeyFile kf, string key)
@@ -85,16 +90,16 @@ private string[] filterCategories (string[] cats)
 }
 
 
-Component parseDesktopFile (GeneratorResult res, string fname, string data, bool ignore_nodisplay = false)
+Component parseDesktopFile (GeneratorResult gres, string fname, string data, bool ignore_nodisplay = false)
 {
-    auto fname_base = baseName (fname);
+    auto fnameBase = baseName (fname);
 
     auto df = new KeyFile ();
     try {
         df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);
     } catch (Exception e) {
         // there was an error
-        res.addHint (fname_base, "desktop-file-read-error", e.msg);
+        gres.addHint (fnameBase, "desktop-file-error", e.msg);
         return null;
     }
 
@@ -128,19 +133,27 @@ Component parseDesktopFile (GeneratorResult res, string fname, string data, bool
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {
-        res.addHint (fname_base,
+        gres.addHint (fnameBase,
                      "desktop-file-error",
                      format ("Desktop file '%s' is not a valid desktop file.", fname));
         return null;
 	}
 
     // make sure we have a valid component to work on
-    auto cpt = res.getComponent (fname_base);
+    auto cpt = gres.getComponent (fnameBase);
     if (cpt is null) {
         cpt = new Component ();
-        cpt.setId (fname_base);
+        cpt.setId (fnameBase);
         cpt.setKind (ComponentKind.DESKTOP);
-        res.addComponent (cpt);
+        gres.addComponent (cpt);
+    }
+
+    void checkDesktopString (string fieldId, string str)
+    {
+        if (((str.startsWith ("\"")) && (str.endsWith ("\""))) ||
+            ((str.startsWith ("\'")) && (str.endsWith ("\'")))) {
+                gres.addHint (fnameBase, "metainfo-quoted-value", ["value": str, "field": fieldId]);
+            }
     }
 
     size_t dummy;
@@ -151,25 +164,35 @@ Component parseDesktopFile (GeneratorResult res, string fname, string data, bool
         if (locale is null)
             continue;
 
-        if (key.startsWith ("Name"))
-            cpt.setName (getValue (df, key), locale);
-        else if (key.startsWith ("Comment"))
-            cpt.setSummary (getValue (df, key), locale);
-        else if (key == "Categories") {
+        if (key.startsWith ("Name")) {
+            auto val = getValue (df, key);
+            checkDesktopString (key, val);
+            cpt.setName (val, locale);
+        } else if (key.startsWith ("Comment")) {
+            auto val = getValue (df, key);
+            checkDesktopString (key, val);
+            cpt.setSummary (val, locale);
+        } else if (key == "Categories") {
             auto value = getValue (df, key);
             string[] cats = value.split (";");
             cats = filterCategories (cats);
+            if (cats.empty)
+                continue;
 
             cpt.setCategories (cats);
         } else if (key.startsWith ("Keywords")) {
             auto value = getValue (df, key);
             string[] kws = value.split (";");
             kws = kws.stripRight ("");
+            if (kws.empty)
+                continue;
 
             cpt.setKeywords (kws, locale);
         } else if (key == "MimeType") {
             auto value = getValue (df, key);
             string[] mts = value.split (";");
+            if (mts.empty)
+                continue;
 
             Provided prov = cpt.getProvidedForKind (ProvidedKind.MIMETYPE);
             if (prov is null) {
