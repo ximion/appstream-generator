@@ -1,41 +1,43 @@
-{% extends "base.html" %}
-{% block title %}{{package_name}} in {{suite}}{% endblock %}
+{{#partial}}{title}{{package_name}} in {{section}}{{/partial}}
 
-{% block head_extra %}
-<link href="{{root_url}}/static/css/highlight.css" rel="stylesheet" type="text/css" />
-{% endblock %}
+{{#partial}}{ float_right }
+<small>Last updated on: {{time}}</small>
+{{/partial}}
 
-{% block header_content %}
+{{#partial}}{ head_extra }
+<link rel="stylesheet" href="{{root_url}}/static/css/highlight.css">
+<script src="{{root_url}}/static/js/highlight.pack.js"></script>
+{{/partial}}
+
+{{#partial}}{ header_content }
 <span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
 
-<span>{{package_name}}</span> <span style="font-size:16px;">[{{suite}}]</span>
-{% endblock %}
+<span>{{package_name}}</span> <span style="font-size:16px;">[{{section}}]</span>
+{{/partial}}
 
-{% block content %}
-    <h1>DEP-11 metadata for {{package_name}} in {{suite}}</h1>
+{{#partial}}{ content }
+    <h1>Metadata for {{package_name}} in {{section}}</h1>
 
     <div class="wrapper">
-      {% for cpt in cpts %}
+      {{#cpts}}
       <h2>
-        {{cpt.cid}}
-        {% for arch in cpt.archs %}
+        {{component_id}}
+        {{#architectures}}
           <span style="font-size:12px;" class="label label-neutral">⚙ {{arch}}</span>
-        {% endfor %}
+        {{/architectures}}
       </h2>
 
       <div style="float: right; padding: 6px;">
-        <img src="{{cpt.icon_url}}" alt="Icon" />
+        <img src="{{icon_url}}" alt="Icon" />
       </div>
 
       <div class="well">
-        {{cpt.mdata}}
+        <pre><code>{{metadata}}</code></pre>
       </div>
-      {% endfor %}
+      {{/cpts}}
 
     </div>
+    <script>hljs.initHighlightingOnLoad();</script>
+{{/partial}}
 
-{% endblock %}
-
-{% block float_right %}
-<small>Last updated on: {{time}}</small>
-{% endblock %}
+{{> base}}

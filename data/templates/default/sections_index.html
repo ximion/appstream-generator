@@ -1,18 +1,17 @@
-{% extends "base.html" %}
-{% block title %}Data for {{distro}}: {{suite}} suite{% endblock %}
+{{#partial}}{title}Data for {{project_name}}: {{suite}} suite{{/partial}}
 
-{% block header_content %}
+{{#partial}}{ header_content }
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
-<span>DEP-11 data for {{distro}}/{{suite}}</span>
-{% endblock %}
+<span>AppStream data for {{project_name}}/{{suite}}</span>
+{{/partial}}
 
-{% block content %}
+{{#partial}}{ content }
     <h1>Select an archive section</h1>
 
     <h2>Sections</h2>
-    {% for section in sections %}
+    {{#sections}}
       <h3><a href="{{section}}/index.html">{{section}}</a></h3>
-    {% endfor %}
+    {{/sections}}
 
     <h2>Health of suite "{{suite}}"</h2>
 
@@ -40,8 +39,10 @@
       </ul>
     </div>
 
-{% endblock %}
+{{/partial}}
 
-{% block float_right %}
+{{#partial}}{ float_right }
 <small>Last updated on: {{time}}</small>
-{% endblock %}
+{{/partial}}
+
+{{> base}}

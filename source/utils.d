@@ -130,6 +130,21 @@ string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = f
     return gid;
 }
 
+/**
+ * Get the component-id back from a global component-id.
+ */
+string getCidFromGlobalID (string gcid)
+{
+    auto parts = gcid.split ("/");
+    if (parts.length != 4)
+        return null;
+    if (startsWith (parts[0], "org", "net", "com", "io", "edu.", "name")) {
+        return join (parts[0..3], ".");
+    }
+
+    return parts[2];
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");
@@ -140,6 +155,9 @@ unittest
     assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", "ABAD1DEA") == "io/sample/awesomeapp.sdk/ABAD1DEA");
 
     assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", null, true) == "io/sample/awesomeapp.sdk/");
+
+    assert (getCidFromGlobalID ("f/fo/foobar.desktop/DEADBEEF") == "foobar.desktop");
+    assert (getCidFromGlobalID ("org/gnome/yelp.desktop/DEADBEEF") == "org.gnome.yelp.desktop");
 
     assert (ImageSize (80, 40).toString () == "80x40");
     assert (ImageSize (1024, 420).toInt () == 1024);

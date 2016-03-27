@@ -1,36 +1,37 @@
-{% extends "base.html" %}
-{% block title %}Components for {{suite}}/{{section}}{% endblock %}
+{{#partial}}{title}Components in {{suite}}/{{section}}{{/partial}}
 
-{% block header_content %}
+{{#partial}}{ header_content }
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>Components summary for {{suite}}/{{section}}</span>
-{% endblock %}
+{{/partial}}
 
-{% block content %}
-    <h1>Metadata found for {{suite}}/{{section}}</h1>
+{{#partial}}{ content }
+    <h1>Metadata for {{suite}}/{{section}}</h1>
 
-      {% for maintainer, summary in package_summaries.items() %}
-        <h3>{{maintainer|e}}</h3>
+      {{#summaries}}
+        <h3>{{maintainer}}</h3>
         <ul class="overviewlisting">
-        {% for pkgname, info in summary.items() %}
+        {{#packages}}
           <li>
             <span style="font-size:16px;">
             <a href="{{pkgname}}.html">{{pkgname}}</a>&nbsp;
             </span>
 
             <ul>
-            {% for cid in info.cids %}
+            {{#components}}
               <li>{{cid}}</li>
-            {% endfor %}
+            {{/components}}
             </ul>
 
           </li>
-        {% endfor %}
+        {{/packages}}
         </ul>
-      {% endfor %}
+      {{/summaries}}
 
-{% endblock %}
+{{/partial}}
 
-{% block float_right %}
+{{#partial}}{ float_right }
 <small>Last updated on: {{time}}</small>
-{% endblock %}
+{{/partial}}
+
+{{> base}}

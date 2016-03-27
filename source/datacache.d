@@ -328,7 +328,7 @@ public:
         }
     }
 
-    string[] getMetadataForPackage (DataType dtype, string pkid)
+    string[] getGCIDsForPackage (string pkid)
     {
         auto pkval = getPackageValue (pkid);
         if (pkval == "ignore")
@@ -336,12 +336,25 @@ public:
         if (pkval == "seen")
             return null;
 
-        string[] res;
+        string[] validCids;
         auto cids = pkval.split ("\n");
         foreach (cid; cids) {
             if (cid.empty)
                 continue;
+            validCids ~= cid;
+        }
 
+        return validCids;
+    }
+
+    string[] getMetadataForPackage (DataType dtype, string pkid)
+    {
+        auto gcids = getGCIDsForPackage (pkid);
+        if (gcids is null)
+            return null;
+
+        string[] res;
+        foreach (cid; gcids) {
             auto data = getMetadata (dtype, cid);
             if (!data.empty)
                 res ~= data;

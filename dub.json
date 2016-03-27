@@ -9,12 +9,16 @@
     },
 
     "buildTypes": {
-		"debug": {
-			"buildOptions": ["debugMode", "debugInfo", "optimize"],
+        "debug": {
+            "buildOptions": ["debugMode", "debugInfo"],
+            "dflags": ["-Wall", "-Werror"]
+        },
+        "debug-optimize": {
+            "buildOptions": ["debugMode", "debugInfo", "optimize"],
             "dflags": ["-Wall", "-Werror"]
         },
         "debug-profile": {
-			"buildOptions": ["debugMode", "debugInfo", "profile"]
+            "buildOptions": ["debugMode", "debugInfo", "profile"]
         }
     },
 

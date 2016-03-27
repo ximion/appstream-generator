@@ -28,6 +28,7 @@ import std.array : empty;
 import std.json;
 import mustache;
 
+import ag.utils;
 import ag.config;
 import ag.logging;
 import ag.hint;
@@ -66,9 +67,17 @@ private:
         HintTag[] infos;
     }
 
+    struct MetadataEntry
+    {
+        string identifier;
+        string[] archs;
+        string data;
+    }
+
     struct PkgSummary
     {
         string pkgname;
+        string[] cpts;
         int infoCount;
         int warningCount;
         int errorCount;
@@ -78,6 +87,8 @@ private:
     {
         PkgSummary[][string] pkgSummaries;
         HintEntry[string][string] hintEntries;
+        MetadataEntry[string][string] mdataEntries;
+        long totalMetadata;
         long totalInfos;
         long totalWarnings;
         long totalErrors;
@@ -218,10 +229,11 @@ public:
         }
 
         logInfo ("Rendering HTML for %s/%s", suiteName, section);
+
         // write issue hint pages
         foreach (pkgname; dsum.hintEntries.byKey ()) {
             auto pkgHEntries = dsum.hintEntries[pkgname];
-            auto exportName = format ("%s/%s/hints/%s", suiteName, section, pkgname);
+            auto exportName = format ("%s/%s/issues/%s", suiteName, section, pkgname);
 
             auto context = new Mustache.Context;
             context["suite"] = suiteName;
@@ -273,20 +285,57 @@ public:
             renderPage ("issues_page", exportName, context);
         }
 
-        // write hint overview page
-        auto hindexExportName = format ("%s/%s/hints/index", suiteName, section);
-        auto summaryCtx = new Mustache.Context;
-        summaryCtx["suite"] = suiteName;
-        summaryCtx["section"] = section;
+        // write metadata info pages
+        foreach (pkgname; dsum.mdataEntries.byKey ()) {
+            auto pkgMEntries = dsum.mdataEntries[pkgname];
+            auto exportName = format ("%s/%s/metainfo/%s", suiteName, section, pkgname);
 
-        summaryCtx["summaries"] = (string content) {
+            auto context = new Mustache.Context;
+            context["suite"] = suiteName;
+            context["package_name"] = pkgname;
+            context["section"] = section;
+
+            context["cpts"] = (string content) {
+                string res;
+                foreach (gcid; pkgMEntries.byKey ()) {
+                    auto mentry = pkgMEntries[gcid];
+                    auto intCtx = new Mustache.Context;
+                    intCtx["component_id"] = mentry.identifier;
+
+                    foreach (arch; mentry.archs) {
+                        auto archSub = intCtx.addSubContext("architectures");
+                        archSub["arch"] = arch;
+                    }
+                    intCtx["metadata"] = mentry.data;
+
+                    res ~= mustache.renderString (content, intCtx);
+                }
+
+                return res;
+            };
+
+            renderPage ("metainfo_page", exportName, context);
+        }
+
+        // write hint overview page
+        auto hindexExportName = format ("%s/%s/issues/index", suiteName, section);
+        auto hsummaryCtx = new Mustache.Context;
+        hsummaryCtx["suite"] = suiteName;
+        hsummaryCtx["section"] = section;
+
+        hsummaryCtx["summaries"] = (string content) {
             string res;
 
             foreach (maintainer; dsum.pkgSummaries.byKey ()) {
                 auto summaries = dsum.pkgSummaries[maintainer];
                 auto intCtx = new Mustache.Context;
                 intCtx["maintainer"] = maintainer;
+
+                bool interesting = false;
                 foreach (summary; summaries) {
+                    if ((summary.infoCount == 0) && (summary.warningCount == 0) && (summary.errorCount == 0))
+                        continue;
+                    interesting = true;
                     auto maintSub = intCtx.addSubContext("packages");
                     maintSub["pkgname"] = summary.pkgname;
 
@@ -304,13 +353,73 @@ public:
                     maintSub["error_count"] = summary.errorCount;
                 }
 
+                if (interesting)
+                    res ~= mustache.renderString (content, intCtx);
+            }
+
+            return res;
+        };
+        renderPage ("issues_index", hindexExportName, hsummaryCtx);
+
+        // write metainfo overview page
+        auto mindexExportName = format ("%s/%s/metainfo/index", suiteName, section);
+        auto msummaryCtx = new Mustache.Context;
+        msummaryCtx["suite"] = suiteName;
+        msummaryCtx["section"] = section;
+
+        msummaryCtx["summaries"] = (string content) {
+            string res;
+
+            foreach (maintainer; dsum.pkgSummaries.byKey ()) {
+                auto summaries = dsum.pkgSummaries[maintainer];
+                auto intCtx = new Mustache.Context;
+                intCtx["maintainer"] = maintainer;
+
+                intCtx["packages"] = (string content) {
+                    string res;
+                    foreach (summary; summaries) {
+                        if (summary.cpts.length == 0)
+                            continue;
+                        auto subCtx = new Mustache.Context;
+                        subCtx["pkgname"] = summary.pkgname;
+
+                        foreach (cid; summary.cpts) {
+                            auto cptsSub = subCtx.addSubContext("components");
+                            cptsSub["cid"] = cid;
+                        }
+
+                        res ~= mustache.renderString (content, subCtx);
+                    }
+
+                    return res;
+                };
+
                 res ~= mustache.renderString (content, intCtx);
             }
 
             return res;
         };
+        renderPage ("metainfo_index", mindexExportName, msummaryCtx);
 
-        renderPage ("issues_index", hindexExportName, summaryCtx);
+        // render section index page
+        auto secIndexExportName = format ("%s/%s/index", suiteName, section);
+        auto secIndexCtx = new Mustache.Context;
+        secIndexCtx["suite"] = suiteName;
+        secIndexCtx["section"] = section;
+
+        float percOne = 100.0 / cast(float) (dsum.totalMetadata + dsum.totalInfos + dsum.totalWarnings + dsum.totalErrors);
+        secIndexCtx["valid_percentage"] =  dsum.totalMetadata * percOne;
+        secIndexCtx["info_percentage"] = dsum.totalInfos * percOne;
+        secIndexCtx["warning_percentage"] = dsum.totalWarnings * percOne;
+        secIndexCtx["error_percentage"] = dsum.totalErrors * percOne;
+
+        secIndexCtx["metainfo_count"] = dsum.totalMetadata;
+        secIndexCtx["error_count"] = dsum.totalErrors;
+        secIndexCtx["warning_count"] = dsum.totalWarnings;
+        secIndexCtx["info_count"] = dsum.totalInfos;
+
+
+        renderPage ("section_overview", secIndexExportName, secIndexCtx);
     }
 
     private DataSummary preprocessInformation (string suiteName, string section, Package[] pkgs)
@@ -323,50 +432,71 @@ public:
         foreach (pkg; pkgs) {
             auto pkid = Package.getId (pkg);
 
+            auto gcids = dcache.getGCIDsForPackage (pkid);
             auto hintsData = dcache.getHints (pkid);
-            if (hintsData is null)
+            if ((hintsData is null) && (gcids is null))
                 continue;
-            auto hintsCpts = parseJSON (hintsData);
-            hintsCpts = hintsCpts["hints"];
 
             PkgSummary pkgsummary;
             pkgsummary.pkgname = pkg.name;
 
-            foreach (cid; hintsCpts.object.byKey ()) {
-                auto jhints = hintsCpts[cid];
-                HintEntry he;
-                he.identifier = cid;
+            // process component metadata for this package if there are any
+            if (gcids !is null) {
+                dsum.totalMetadata += gcids.length;
 
-                foreach (jhint; jhints.array) {
-                    auto tag = jhint["tag"].str;
-                    auto hdef = hintstore.getHintDef (tag);
-                    if (hdef.tag is null) {
-                        logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
-                        continue;
-                    }
+                foreach (gcid; gcids) {
+                    auto cid = getCidFromGlobalID (gcid);
 
-                    // render the full message using the static template and data from the hint
-                    auto context = new Mustache.Context;
-                    foreach (var; jhint["vars"].object.byKey ()) {
-                        context[var] = jhint["vars"][var];
-                    }
-                    auto msg = mustache.renderString (hdef.text, context);
+                    MetadataEntry me;
+                    me.identifier = cid;
+                    me.data = dcache.getMetadata (conf.metadataType, gcid);
 
-                    // add the new hint to the right category
-                    auto severity = hintstore.getSeverity (tag);
-                    if (severity == HintSeverity.INFO) {
-                        he.infos ~= HintTag (tag, msg);
-                        pkgsummary.infoCount++;
-                    } else if (severity == HintSeverity.WARNING) {
-                        he.warnings ~= HintTag (tag, msg);
-                        pkgsummary.warningCount++;
-                    } else {
-                        he.errors ~= HintTag (tag, msg);
-                        pkgsummary.errorCount++;
-                    }
+                    dsum.mdataEntries[pkg.name][gcid] = me;
+                    pkgsummary.cpts ~= cid;
                 }
+            }
 
-                dsum.hintEntries[pkg.name][he.identifier] = he;
+            // process hints for this package, if there are any
+            if (hintsData !is null) {
+                auto hintsCpts = parseJSON (hintsData);
+                hintsCpts = hintsCpts["hints"];
+
+                foreach (cid; hintsCpts.object.byKey ()) {
+                    auto jhints = hintsCpts[cid];
+                    HintEntry he;
+                    he.identifier = cid;
+
+                    foreach (jhint; jhints.array) {
+                        auto tag = jhint["tag"].str;
+                        auto hdef = hintstore.getHintDef (tag);
+                        if (hdef.tag is null) {
+                            logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
+                            continue;
+                        }
+
+                        // render the full message using the static template and data from the hint
+                        auto context = new Mustache.Context;
+                        foreach (var; jhint["vars"].object.byKey ()) {
+                            context[var] = jhint["vars"][var];
+                        }
+                        auto msg = mustache.renderString (hdef.text, context);
+
+                        // add the new hint to the right category
+                        auto severity = hintstore.getSeverity (tag);
+                        if (severity == HintSeverity.INFO) {
+                            he.infos ~= HintTag (tag, msg);
+                            pkgsummary.infoCount++;
+                        } else if (severity == HintSeverity.WARNING) {
+                            he.warnings ~= HintTag (tag, msg);
+                            pkgsummary.warningCount++;
+                        } else {
+                            he.errors ~= HintTag (tag, msg);
+                            pkgsummary.errorCount++;
+                        }
+                    }
+
+                    dsum.hintEntries[pkg.name][he.identifier] = he;
+                }
             }
 
             dsum.pkgSummaries[pkg.maintainer] ~= pkgsummary;
@@ -385,7 +515,7 @@ public:
                                 "totalInfos": JSONValue (dsum.totalInfos),
                                 "totalWarnings": JSONValue (dsum.totalWarnings),
                                 "totalErrors": JSONValue (dsum.totalErrors),
-                                "totalMetadata": JSONValue (42)]);
+                                "totalMetadata": JSONValue (dsum.totalMetadata)]);
         dcache.addStatistics (toJSON (&stat));
     }
 
@@ -465,7 +595,7 @@ public:
         mkdirRecurse (dirName (fname));
 
         auto sf = File (fname, "w");
-        sf.writeln (toJSON (&smap, true));
+        sf.writeln (toJSON (&smap, false));
         sf.flush ();
         sf.close ();
     }
@@ -485,6 +615,14 @@ public:
         foreach (suite; conf.suites) {
             auto sub = context.addSubContext("suites");
             sub["suite"] = suite.name;
+
+            auto secCtx = new Mustache.Context;
+            secCtx["suite"] = suite.name;
+            foreach (section; suite.sections) {
+                auto secSub = secCtx.addSubContext("sections");
+                secSub["section"] = section;
+            }
+            renderPage ("sections_index", format ("%s/index", suite.name), secCtx);
         }
 
         renderPage ("main", "index", context);
