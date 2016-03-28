@@ -201,6 +201,8 @@ public:
         try {
             if (exists (tmpDir))
                 rmdirRecurse (tmpDir);
+            dataArchive = null;
+            controlArchive = null;
         } catch {}
     }
 }
