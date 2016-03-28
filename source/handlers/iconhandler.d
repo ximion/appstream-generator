@@ -444,7 +444,7 @@ public:
         return true;
     }
 
-    private bool processComponent (Component cpt, GeneratorResult gres)
+    bool process (GeneratorResult gres, Component cpt)
     {
         auto iconName = getIconNameAndClear (cpt);
         // nothing to do if there is no icon
@@ -553,13 +553,6 @@ public:
         }
 
         return true;
-    }
-
-    void process (GeneratorResult res)
-    {
-        foreach (cpt; res.getComponents ()) {
-            processComponent (cpt, res);
-        }
     }
 }
 

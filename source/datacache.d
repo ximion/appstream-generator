@@ -285,16 +285,23 @@ public:
         return val !is null;
     }
 
-    void addGeneratorResult (DataType dtype, GeneratorResult res)
+    void addGeneratorResult (DataType dtype, GeneratorResult gres)
     {
         // if the package has no components or hints,
         // mark it as always-ignore
-        if (res.packageIsIgnored ()) {
-            setPackageIgnore (res.pkid);
+        if (gres.packageIsIgnored ()) {
+            setPackageIgnore (gres.pkid);
             return;
         }
 
-        foreach (Component cpt; res.getComponents ()) {
+        foreach (Component cpt; gres.getComponents ()) {
+            auto gcid = gres.gcidForComponent (cpt);
+            if (metadataExists (dtype, gcid)) {
+                // we already have seen this exact metadata - only adjust the reference,
+                // and don't regenerate it.
+                continue;
+            }
+
             mdata.clearComponents ();
             mdata.addComponent (cpt);
 
@@ -310,27 +317,27 @@ public:
 
             // store metadata
             if (!empty (data))
-                setMetadata (dtype, res.gcidForComponent (cpt), data);
+                setMetadata (dtype, gcid, data);
         }
 
-        if (res.hintsCount () > 0) {
-            auto hintsJson = res.hintsToJson ();
+        if (gres.hintsCount () > 0) {
+            auto hintsJson = gres.hintsToJson ();
             if (!hintsJson.empty)
-                setHints (res.pkid, hintsJson);
+                setHints (gres.pkid, hintsJson);
         }
 
-        auto gcids = res.getGCIDs ();
+        auto gcids = gres.getGCIDs ();
         if (gcids.empty) {
             // no global components, and we're not ignoring this component.
             // this means we likely have hints stored for this one. Mark it
             // as "seen" so we don't reprocess it again.
-            putKeyValue (dbPackages, res.pkid, "seen");
+            putKeyValue (dbPackages, gres.pkid, "seen");
         } else {
             import std.array : join;
             // store global component IDs for this package as newline-separated list
             auto gcidVal = join (gcids, "\n");
 
-            putKeyValue (dbPackages, res.pkid, gcidVal);
+            putKeyValue (dbPackages, gres.pkid, gcidVal);
         }
     }
 

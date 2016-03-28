@@ -41,6 +41,7 @@ private:
     DataCache dcache;
     IconHandler iconh;
     Config conf;
+    DataType dtype;
 
 public:
 
@@ -49,12 +50,13 @@ public:
         dcache = cache;
         iconh = iconHandler;
         conf = Config.get ();
+        dtype = conf.metadataType;
     }
 
     GeneratorResult processPackage (Package pkg)
     {
         // create a new result container
-        auto res = new GeneratorResult (pkg);
+        auto gres = new GeneratorResult (pkg);
 
         // prepare a list of metadata files which interest us
         string[string] desktopFiles;
@@ -80,60 +82,71 @@ public:
                 continue;
 
             auto data = pkg.getFileData (mfname);
-            auto cpt = parseMetaInfoFile (res, data);
+            auto cpt = parseMetaInfoFile (gres, data);
             if (cpt is null)
                 continue;
 
             // check if we need to extend this component's data with data from its .desktop file
             auto cid = cpt.getId ();
             if (cid.empty) {
-                res.addHint ("metainfo-no-id", "general", ["fname": mfname]);
+                gres.addHint ("metainfo-no-id", "general", ["fname": mfname]);
                 continue;
             }
-
-            // do a validation of the file. Validation is slow, so we allow
-            // the user to disable this feature.
-            if (conf.featureEnabled (GeneratorFeature.VALIDATE))
-                validateMetaInfoFile (cpt, res, data);
 
             auto dfp = (cid in desktopFiles);
             if (dfp is null) {
                 // no .desktop file was found
                 // finalize GCID checksum and continue
-                res.updateComponentGCID (cpt, data);
+                gres.updateComponentGCID (cpt, data);
                 continue;
             }
 
             // update component with .desktop file data, ignoring NoDisplay field
             auto ddata = pkg.getFileData (*dfp);
-            parseDesktopFile (res, *dfp, ddata, true);
+            parseDesktopFile (gres, *dfp, ddata, true);
 
             // update GCID checksum
-            res.updateComponentGCID (cpt, data ~ ddata);
+            gres.updateComponentGCID (cpt, data ~ ddata);
 
             // drop the .desktop file from the list, it has been handled
             desktopFiles.remove (cid);
+
+            // do a validation of the file. Validation is slow, so we allow
+            // the user to disable this feature.
+            if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
+                if (!dcache.metadataExists (dtype, gres.gcidForComponent (cpt)))
+                    validateMetaInfoFile (cpt, gres, data);
+            }
         }
 
         // process the remaining .desktop files
         foreach (string dfname; desktopFiles.byValue ()) {
             auto data = pkg.getFileData (dfname);
-            auto cpt = parseDesktopFile (res, dfname, data, false);
+            auto cpt = parseDesktopFile (gres, dfname, data, false);
             if (cpt !is null)
-                res.updateComponentGCID (cpt, data);
+                gres.updateComponentGCID (cpt, data);
         }
 
-        // find & store icons
-        iconh.process (res);
 
-        // download and resize screenshots
-        if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
-            processScreenshots (res, dcache.mediaExportDir);
+        foreach (cpt; gres.getComponents ()) {
+            auto gcid = gres.gcidForComponent (cpt);
+
+            // don't run expensive operations if the metadata already exists
+            if (dcache.metadataExists (dtype, gcid))
+                continue;
+
+            // find & store icons
+            iconh.process (gres, cpt);
+
+            // download and resize screenshots
+            if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
+                processScreenshots (gres, cpt, dcache.mediaExportDir);
+        }
 
         // this removes invalid components and cleans up the result
-        res.finalize ();
+        gres.finalize ();
         pkg.close ();
 
-        return res;
+        return gres;
     }
 }

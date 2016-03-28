@@ -35,31 +35,29 @@ import ag.utils;
 
 private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (112, 63)];
 
-void processScreenshots (GeneratorResult gres, string mediaExportDir)
+void processScreenshots (GeneratorResult gres, Component cpt, string mediaExportDir)
 {
-    foreach (cpt; gres.getComponents ()) {
-        auto scrArr = cpt.getScreenshots ();
-        if (scrArr.len == 0)
-            continue;
+    auto scrArr = cpt.getScreenshots ();
+    if (scrArr.len == 0)
+        return;
 
-        Screenshot[] validScrs;
-        for (uint i = 0; i < scrArr.len; i++) {
-            // cast array data to D Screenshot and keep a reference to the C struct
-            auto scr = new Screenshot (cast (AsScreenshot*) scrArr.index (i));
-            auto resScr = processScreenshot (gres, cpt, scr, mediaExportDir, i+1);
-            if (resScr !is null) {
-                validScrs ~= resScr;
-                resScr.doref ();
-            }
+    Screenshot[] validScrs;
+    for (uint i = 0; i < scrArr.len; i++) {
+        // cast array data to D Screenshot and keep a reference to the C struct
+        auto scr = new Screenshot (cast (AsScreenshot*) scrArr.index (i));
+        auto resScr = processScreenshot (gres, cpt, scr, mediaExportDir, i+1);
+        if (resScr !is null) {
+            validScrs ~= resScr;
+            resScr.doref ();
         }
+    }
 
-        // drop all screenshots from the component
-        scrArr.removeRange (0, scrArr.len);
+    // drop all screenshots from the component
+    scrArr.removeRange (0, scrArr.len);
 
-        // add valid screenshots back
-        foreach (scr; validScrs) {
-            cpt.addScreenshot (scr);
-        }
+    // add valid screenshots back
+    foreach (scr; validScrs) {
+        cpt.addScreenshot (scr);
     }
 }
 
