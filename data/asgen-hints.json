@@ -6,6 +6,12 @@
   "severity": "error"
 },
 
+"internal-unknown-tag": {
+  "text": ["The generator emitted a tag '{{tag}}' which is unknown. This is a bug in the metadata generator, please",
+           "<a href=\"https://github.com/ximion/appstream-generator/issues\">file a bugreport</a>."],
+  "severity": "warning"
+},
+
 "desktop-file-error": {
   "text": "Unable to read data from .desktop file: {{msg}}",
   "severity": "error"
@@ -50,6 +56,12 @@
   "text": ["Could not extract file '{{fname}}' from package '{{pkg_fname}}'.",
            "Icon data was empty. The icon might be a symbolic link pointing at a file outside of this package.",
            "Please do not do that and instead place the icons in their appropriate directories in <code>/usr/share/icons/hicolor/</code>."],
+  "severity": "error"
+},
+
+"metainfo-no-id": {
+  "text": ["Could not determine an id for this component. The AppStream upstream metadata likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
+           "The identifier tag is essential for AppStream metadata, and must not be missing."],
   "severity": "error"
 },
 
@@ -111,6 +123,29 @@
            "has a <code>Comment=</code> field set.<br/>",
            "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>."],
   "severity": "error"
+},
+
+"metainfo-duplicate-id": {
+  "text": ["The component-id '{{cid}}' already appeared in package '{{pkgname}}'. AppStream-IDs must be unique, please resolve which package will be",
+           "providing this component by default.<br/>",
+           "This issue may happen temporarily when metadata is moved from one package to another. In that case, ignore this issue, it will vanish soon."],
+  "severity": "error"
+},
+
+"missing-desktop-file": {
+  "text": ["Found an AppStream upstream XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
+           "<code>&lt;id/&gt;</code> tag of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>",
+           "Please fix the packaging or work with upstream to resolve this issue."],
+  "severity": "error"
+},
+
+"description-from-package": {
+  "text": ["This component gets its description from the package it is located in.<br/>",
+           "This has several disadvantages, like missing localization, too technical descriptions for users of software centers, different components having the same description, etc.<br/>",
+           "Please consider writing a metainfo file for this component. In the near future, components without metainfo file might be dropped from the metadata entirely.",
+           "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write",
+           "a metainfo file."],
+  "severity": "info"
 }
 
 }

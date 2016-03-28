@@ -89,7 +89,7 @@ public:
             // check if we need to extend this component's data with data from its .desktop file
             auto cid = cpt.getId ();
             if (cid.empty) {
-                gres.addHint ("metainfo-no-id", "general", ["fname": mfname]);
+                gres.addHint ("general", "metainfo-no-id", ["fname": mfname]);
                 continue;
             }
 
@@ -98,6 +98,19 @@ public:
                 // no .desktop file was found
                 // finalize GCID checksum and continue
                 gres.updateComponentGCID (cpt, data);
+
+                if (cpt.getKind () == ComponentKind.DESKTOP) {
+                    // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
+                    gres.addHint (cpt.getId (), "missing-desktop-file");
+                    continue;
+                }
+
+                // do a validation of the file. Validation is slow, so we allow
+                // the user to disable this feature.
+                if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
+                    if (!dcache.metadataExists (dtype, gres.gcidForComponent (cpt)))
+                        validateMetaInfoFile (cpt, gres, data);
+                }
                 continue;
             }
 

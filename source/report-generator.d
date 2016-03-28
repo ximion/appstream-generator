@@ -471,7 +471,11 @@ public:
                         auto hdef = hintstore.getHintDef (tag);
                         if (hdef.tag is null) {
                             logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
-                            continue;
+
+                            // emit an internal error, invalid tags shouldn't happen
+                            hdef = hintstore.getHintDef ("internal-unknown-tag");
+                            assert (hdef.tag !is null);
+                            jhint["vars"] = ["tag": tag];
                         }
 
                         // render the full message using the static template and data from the hint
