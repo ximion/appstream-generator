@@ -82,7 +82,8 @@ private string[] filterCategories (string[] cats)
             case "Application":
                 break;
             default:
-                rescats ~= cat;
+                if (!cat.empty)
+                    rescats ~= cat;
         }
     }
 
