@@ -93,7 +93,8 @@ public:
     {
         string id = suite ~ "/" ~ section ~ "/" ~ arch;
         if (id !in pkgCache) {
-            pkgCache[id] = loadPackages (suite, section, arch);
+            auto pkgs = loadPackages (suite, section, arch);
+            synchronized (this) pkgCache[id] = pkgs;
         }
 
         return pkgCache[id];

@@ -344,6 +344,28 @@ public:
 
     void runCleanup ()
     {
+        bool[string] pkgSet;
+
+        // build a set of all valid packages
+        foreach (Suite suite; conf.suites) {
+            foreach (string section; suite.sections) {
+                foreach (string arch; parallel (suite.architectures)) {
+                    auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                    synchronized (this) {
+                        foreach (pkg; pkgs) {
+                            auto pkid = Package.getId (pkg);
+                            pkgSet[pkid] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // remove packages from the caches which are no longer in the archive
+        ccache.removePackagesNotInSet (pkgSet);
+        dcache.removePackagesNotInSet (pkgSet);
+
+        // remove orphaned data and media
         dcache.cleanupCruft ();
     }
 }

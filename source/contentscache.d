@@ -241,4 +241,29 @@ public:
         return contentsStr.split ("\n");
     }
 
+    void removePackagesNotInSet (bool[string] pkgSet)
+    {
+        MDB_cursorp cur;
+
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbi, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (pkgcruft_contents)");
+
+        MDB_val pkey;
+        while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
+            auto pkid = std.conv.to!string (fromStringz (cast(char*) pkey.mv_data));
+            if (pkid in pkgSet)
+                continue;
+
+            // if we got here, the package is not in the set of valid packages,
+            // and we can remove it.
+            res = cur.mdb_cursor_del (0);
+            checkError (res, "mdb_del");
+        }
+    }
+
 }
