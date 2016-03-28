@@ -192,7 +192,7 @@ public:
     /**
      * Export metadata and issue hints from the database and store them as files.
      */
-    private void exportData (Suite suite, string section, string arch, Package[] pkgs)
+    private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
         import ag.archive;
         string[] mdataEntries;
@@ -203,26 +203,58 @@ public:
         // add metadata document header
         mdataEntries ~= getMetadataHead (suite, section);
 
-        // collect metadata and hints for the given packages
-        foreach (pkg; parallel (pkgs)) {
-            auto pkid = Package.getId (pkg);
-            auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
-            if (!mres.empty) {
-                synchronized (this) {
-                    mdataEntries ~= mres;
-                }
-            }
-
-            auto hres = dcache.getHints (pkid);
-            if (!hres.empty)
-                hintEntries ~= hres;
-        }
-
+        // prepare destination
         auto dataExportDir = buildPath (exportDir, "data", suite.name, section);
         auto hintsExportDir = buildPath (exportDir, "hints", suite.name, section);
 
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);
+
+        // prepare icon tarball
+        immutable iconTarSizes = ["64", "128"];
+        ArchiveCompressor[string] iconTar;
+        if (withIconTar) {
+            foreach (size; iconTarSizes) {
+                iconTar[size] = new ArchiveCompressor (ArchiveType.GZIP);
+                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
+            }
+        }
+
+        // collect metadata, icons and hints for the given packages
+        foreach (pkg; parallel (pkgs, 100)) {
+            auto pkid = Package.getId (pkg);
+            auto gcids = dcache.getGCIDsForPackage (pkid);
+            if (gcids !is null) {
+                auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
+                if (!mres.empty) {
+                    synchronized (this) mdataEntries ~= mres;
+                }
+
+                if (withIconTar) {
+                    foreach (gcid; gcids) {
+                        foreach (size; iconTarSizes) {
+                            auto iconDir = buildPath (dcache.mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
+                            if (!std.file.exists (iconDir))
+                                continue;
+                            foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
+                                iconTar[size].addFile (path);
+                            }
+                        }
+                    }
+                }
+            }
+
+            auto hres = dcache.getHints (pkid);
+            if (!hres.empty) {
+                synchronized (this) hintEntries ~= hres;
+            }
+        }
+
+        // finalize icon tarballs
+        if (withIconTar) {
+            foreach (size; iconTarSizes)
+                iconTar[size].close ();
+        }
 
         string dataFname;
         if (conf.metadataType == DataType.XML)
@@ -314,6 +346,7 @@ public:
 
         foreach (string section; suite.sections) {
             Package[] sectionPkgs;
+            auto iconTarBuilt = false;
             foreach (string arch; suite.architectures) {
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
@@ -321,7 +354,8 @@ public:
                 processPackages (pkgs, iconh);
 
                 // export package data
-                exportData (suite, section, arch, pkgs);
+                exportData (suite, section, arch, pkgs, !iconTarBuilt);
+                iconTarBuilt = true;
 
                 // we store the package info over all architectures to generate reports later
                 sectionPkgs ~= pkgs;

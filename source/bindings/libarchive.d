@@ -64,6 +64,7 @@ int archive_entry_filetype (archive_entry*);
 void archive_entry_set_size (archive_entry*, long);
 void archive_entry_set_filetype (archive_entry*, uint);
 void archive_entry_set_perm (archive_entry*, uint);
+void archive_entry_set_mtime(archive_entry*, ulong sec, long nsec);
 
 archive *archive_write_new ();
 int archive_write_free (archive*);

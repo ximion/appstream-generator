@@ -415,12 +415,16 @@ public:
         archive_entry_set_size (entry, st.st_size);
         archive_entry_set_filetype (entry, S_IFREG);
         archive_entry_set_perm (entry, octal!755);
-        archive_write_header (ar, entry);
+        archive_entry_set_mtime (entry, st.st_mtime, 0);
 
-        auto f = File (fname, "r");
-        while (!f.eof) {
-            auto data = f.rawRead (buff);
-            archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+        synchronized (this) {
+            archive_write_header (ar, entry);
+
+            auto f = File (fname, "r");
+            while (!f.eof) {
+                auto data = f.rawRead (buff);
+                archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+            }
         }
     }
 
