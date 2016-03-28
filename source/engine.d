@@ -31,6 +31,7 @@ import ag.config;
 import ag.logging;
 import ag.extractor;
 import ag.datacache;
+import ag.contentscache;
 import ag.result;
 import ag.hint;
 import ag.reportgenerator;
@@ -47,8 +48,9 @@ class Engine
 private:
     Config conf;
     PackageIndex pkgIndex;
-    ContentsIndex contentsIndex;
+
     DataCache dcache;
+    ContentsCache ccache;
 
     string exportDir;
 
@@ -60,8 +62,7 @@ public:
 
         switch (conf.backend) {
             case Backend.Debian:
-                pkgIndex = new DebianPackageIndex ();
-                contentsIndex = new DebianContentsIndex ();
+                pkgIndex = new DebianPackageIndex (conf.archiveRoot);
                 break;
             default:
                 throw new Exception ("No backend specified, can not continue!");
@@ -72,7 +73,11 @@ public:
 
         // create cache in cache directory on workspace
         dcache = new DataCache ();
-        dcache.open (buildPath (conf.workspaceDir, "cache"), buildPath (exportDir, "media"));
+        dcache.open (buildPath (conf.workspaceDir, "cache", "main"), buildPath (exportDir, "media"));
+
+        // create a new package contents cache
+        ccache = new ContentsCache ();
+        ccache.open (buildPath (conf.workspaceDir, "cache", "contents"));
     }
 
     /**
@@ -95,6 +100,55 @@ public:
                 dcache.addGeneratorResult (this.conf.metadataType, res);
 
                 logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
+            }
+        }
+    }
+
+    /**
+     * Populate the contents index with new contents data. While we are at it, we can also mark
+     * some uninteresting packages as to-be-ignored, so we don't waste time on them
+     * during the following metadata extraction.
+     **/
+    private void seedContentsData (Suite suite)
+    {
+        logInfo ("Scanning new packages.");
+
+        bool packageInteresting (string[] contents)
+        {
+            foreach (c; contents) {
+                if (c.startsWith ("/usr/share/applications/"))
+                    return true;
+                if (c.startsWith ("/usr/share/appdata/"))
+                    return true;
+                if (c.startsWith ("/usr/share/metainfo/"))
+                    return true;
+            }
+
+            return false;
+        }
+
+        foreach (string section; suite.sections) {
+            foreach (string arch; suite.architectures) {
+                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                if (!suite.baseSuite.empty)
+                    pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
+                foreach (Package pkg; parallel (pkgs, 8)) {
+                    auto pkid = Package.getId (pkg);
+                    if (ccache.packageExists (pkid))
+                        continue;
+
+                    // add contents to the index
+                    auto contents = pkg.contents;
+                    ccache.addContents (pkid, contents);
+
+                    // check if we can already mark this package as ignored, and print some log messages
+                    if (!packageInteresting (contents)) {
+                        dcache.setPackageIgnore (pkid);
+                        logInfo ("Scanned %s, no interesting files found.", pkid);
+                    } else {
+                        logInfo ("Scanned %s, could be interesting.", pkid);
+                    }
+                }
             }
         }
     }
@@ -210,19 +264,31 @@ public:
         std.file.remove (hintsFname);
     }
 
-    private void contentsIndexLoadDefaultSections (Suite suite, string section, string arch)
+    private Package[string] getIconCandidatePackages (Suite suite, string section, string arch)
     {
         // always load the "main" and "universe" components, which contain most of the icon data
         // on Debian and Ubuntu.
         // FIXME: This is a hack, find a sane way to get rid of this, or at least get rid of the
         // distro-specific hardcoding.
+        Package[] pkgs;
         foreach (newSection; ["main", "universe"]) {
             if ((section != newSection) && (suite.sections.canFind (newSection))) {
-                contentsIndex.loadDataFor (conf.archiveRoot, suite.name, newSection, arch);
+                pkgs ~= pkgIndex.packagesFor (suite.name, newSection, arch);
                 if (!suite.baseSuite.empty)
-                    contentsIndex.loadDataFor (conf.archiveRoot, suite.baseSuite, newSection, arch);
+                    pkgs ~= pkgIndex.packagesFor (suite.baseSuite, newSection, arch);
             }
         }
+        if (!suite.baseSuite.empty)
+            pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
+        pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
+
+        Package[string] pkgMap;
+        foreach (pkg; pkgs) {
+            auto pkid = Package.getId (pkg);
+            pkgMap[pkid] = pkg;
+        }
+
+        return pkgMap;
     }
 
     void run (string suite_name)
@@ -236,22 +302,15 @@ public:
         GeneratorHint[string] hints;
         auto reportgen = new ReportGenerator (dcache);
 
+        // update package contents information and flag boring packages as ignored
+        seedContentsData (suite);
+
         foreach (string section; suite.sections) {
             Package[] sectionPkgs;
             foreach (string arch; suite.architectures) {
-                pkgIndex.open (conf.archiveRoot, suite.name, section, arch);
-                scope (exit) pkgIndex.close ();
-
-                // load contents data
-                contentsIndex.loadDataFor (conf.archiveRoot, suite.name, section, arch, pkgIndex);
-                if (!suite.baseSuite.empty)
-                    contentsIndex.loadDataFor (conf.archiveRoot, suite.baseSuite, section, arch);
-                contentsIndexLoadDefaultSections (suite, section, arch);
-                scope (exit) contentsIndex.close ();
-
                 // process new packages
-                auto pkgs = pkgIndex.packages;
-                auto iconh = new IconHandler (dcache.mediaExportDir, contentsIndex);
+                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                auto iconh = new IconHandler (dcache.mediaExportDir, ccache, getIconCandidatePackages (suite, section, arch));
                 processPackages (pkgs, iconh);
 
                 // export package data
@@ -267,6 +326,9 @@ public:
             // write reports & statistics and render HTML, if that option is selected
             reportgen.processFor (suite.name, section, sectionPkgs);
         }
+
+        // free some memory
+        pkgIndex.release ();
 
         // render index pages & statistics
         reportgen.exportStatistics ();

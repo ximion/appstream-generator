@@ -36,6 +36,7 @@ import ag.logging;
 import ag.result;
 import ag.image;
 import ag.backend.intf;
+import ag.contentscache;
 import ag.std.concurrency.generator;
 
 
@@ -176,7 +177,7 @@ private:
 
 public:
 
-    this (string mediaPath, ContentsIndex cindex, string iconTheme = null)
+    this (string mediaPath, ContentsCache ccache, Package[string] pkgMap, string iconTheme = null)
     {
         mediaExportPath = mediaPath;
 
@@ -194,12 +195,27 @@ public:
         themeNames ~= "Adwaita";
         themeNames ~= "breeze";
 
+        Package getPackage (string pkid)
+        {
+            if (pkid is null)
+                return null;
+            auto pkgP = (pkid in pkgMap);
+            if (pkgP is null)
+                return null;
+            else
+                return *pkgP;
+        }
+
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
-        foreach (fname; cindex.files) {
+        auto filesPkids = ccache.getContents ();
+        foreach (fname; filesPkids.byKey ()) {
             if (fname.startsWith ("/usr/share/pixmaps/")) {
-                iconFiles[fname] = cindex.packageForFile (fname);
+                auto pkg = getPackage (filesPkids[fname]);
+                if (pkg is null)
+                    continue;
+                iconFiles[fname] = pkg;
                 continue;
             }
 
@@ -208,8 +224,11 @@ public:
             if (!fname.startsWith ("/usr/share/icons/"))
                 continue;
 
+            auto pkg = getPackage (filesPkids[fname]);
+            if (pkg is null)
+                continue;
+
             foreach (name; themeNames) {
-                auto pkg = cindex.packageForFile (fname);
                 if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
                     themes ~= new Theme (name, pkg);
                 } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {

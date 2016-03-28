@@ -34,31 +34,30 @@ class DebianPackageIndex : PackageIndex
 {
 
 private:
-    string location;
-    string architecture;
-    TagFile tagf;
-
-    Package[] pkgList;
-    bool pkgsLoaded;
-
+    string rootDir;
+    Package[][string] pkgCache;
 
 public:
 
-    this ()
+    this (string dir)
     {
-        tagf = new TagFile ();
-        pkgsLoaded = false;
+        this.rootDir = dir;
+        if (!std.file.exists (dir))
+            throw new Exception ("Directory '%s' does not exist.", dir);
     }
 
-    void open (string dir, string suite, string section, string arch)
+    void release ()
     {
-        this.location = dir;
-        this.architecture = arch;
+        pkgCache = null;
+    }
 
-        auto indexFname = buildPath(dir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
+    private Package[] loadPackages (string suite, string section, string arch)
+    {
+        auto indexFname = buildPath (rootDir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
         if (!std.file.exists (indexFname))
             throw new Exception ("File '%s' does not exist.", indexFname);
 
+        auto tagf = new TagFile ();
         try {
             tagf.open (indexFname);
         } catch (Exception e) {
@@ -66,18 +65,8 @@ public:
         }
 
         logDebug ("Opened: %s", indexFname);
-    }
 
-    void close ()
-    {
-        // Not needed
-    }
-
-    private Package[] getPackages ()
-    {
         Package[string] pkgs;
-        assert (!pkgsLoaded);
-
         do {
             auto name = tagf.readField ("Package");
             auto ver  = tagf.readField ("Version");
@@ -85,8 +74,8 @@ public:
             if (!name)
                 continue;
 
-            auto pkg = new DebPackage (name, ver, architecture);
-            pkg.filename = buildPath (location, fname);
+            auto pkg = new DebPackage (name, ver, arch);
+            pkg.filename = buildPath (rootDir, fname);
             pkg.maintainer = tagf.readField ("Maintainer");
 
             if (!pkg.isValid ()) {
@@ -97,15 +86,16 @@ public:
             pkgs[name] = pkg;
         } while (tagf.nextSection ());
 
-        pkgsLoaded = true;
         return pkgs.values ();
     }
 
-    @property
-    Package[] packages ()
+    Package[] packagesFor (string suite, string section, string arch)
     {
-        if (!pkgsLoaded)
-            pkgList = getPackages ();
-        return pkgList;
+        string id = suite ~ "/" ~ section ~ "/" ~ arch;
+        if (id !in pkgCache) {
+            pkgCache[id] = loadPackages (suite, section, arch);
+        }
+
+        return pkgCache[id];
     }
 }

@@ -33,6 +33,12 @@ import ag.config : DataType;
 import ag.result;
 
 
+/**
+ * Main database containing information about scanned packages,
+ * the components they provide, the component metadata itself,
+ * issues found as well as statistics about the metadata evolution
+ * over time.
+ **/
 class DataCache
 {
 

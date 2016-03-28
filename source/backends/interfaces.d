@@ -51,10 +51,9 @@ interface Package
  */
 interface PackageIndex
 {
-    void open (string dir, string suite, string section, string arch);
-    void close ();
+    void release ();
 
-    @property Package[] packages ();
+    Package[] packagesFor (string suite, string section, string arch);
 }
 
 /**
