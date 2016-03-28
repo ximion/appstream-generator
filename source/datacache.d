@@ -494,7 +494,8 @@ public:
                 continue;
 
             // if we are here, the component is removed and we can drop its media
-            rmdirRecurse (path);
+            if (std.file.exists (path))
+                rmdirRecurse (path);
 
             // remove possibly empty directories
             auto pdir = buildNormalizedPath (path, "..");
