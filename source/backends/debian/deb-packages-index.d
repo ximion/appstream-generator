@@ -75,7 +75,7 @@ public:
 
     private Package[] getPackages ()
     {
-        Package[] pkgs;
+        Package[string] pkgs;
         assert (!pkgsLoaded);
 
         do {
@@ -94,11 +94,11 @@ public:
                 continue;
             }
 
-            pkgs ~= pkg;
+            pkgs[name] = pkg;
         } while (tagf.nextSection ());
 
         pkgsLoaded = true;
-        return pkgs;
+        return pkgs.values ();
     }
 
     @property

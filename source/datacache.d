@@ -381,7 +381,8 @@ public:
         checkError (res, "mdb_del");
 
         res = txn.mdb_del (dbHints, &dbkey, null);
-        checkError (res, "mdb_del");
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del");
     }
 
     private auto getActiveGCIDs ()

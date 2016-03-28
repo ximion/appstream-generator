@@ -617,7 +617,7 @@ public:
 
     void updateIndexPages ()
     {
-        logInfo ("Rendering HTML main index.");
+        logInfo ("Updating HTML index pages and static data.");
         // render main overview
         auto context = new Mustache.Context;
         foreach (suite; conf.suites) {
