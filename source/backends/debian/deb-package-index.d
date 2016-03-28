@@ -22,7 +22,7 @@ module ag.backend.debian.pkgindex;
 import std.stdio;
 import std.path;
 import std.string;
-import std.container;
+import std.algorithm : remove;
 
 import ag.logging;
 import ag.backend.intf;
@@ -49,6 +49,66 @@ public:
     void release ()
     {
         pkgCache = null;
+    }
+
+    private void loadPackageLongDescs (Package[string] pkgs, string suite, string section)
+    {
+        auto enDescFname = buildPath (rootDir, "dists", suite, section, "i18n", "Translation-en.bz2");
+        if (!std.file.exists (enDescFname)) {
+            logDebug ("No long descriptions for %s/%s", suite, section);
+            return;
+        }
+
+        auto tagf = new TagFile ();
+        try {
+            tagf.open (enDescFname);
+        } catch (Exception e) {
+            throw e;
+        }
+
+        logDebug ("Opened: %s", enDescFname);
+        do {
+            auto pkgname = tagf.readField ("Package");
+            auto rawDesc  = tagf.readField ("Description-en");
+            if (!pkgname)
+                continue;
+            if (!rawDesc)
+                continue;
+
+            auto pkgP = (pkgname in pkgs);
+            if (pkgP is null)
+                continue;
+
+            auto split = rawDesc.split ("\n");
+            if (split.length < 2)
+                continue;
+
+            // NOTE: .remove() removes the element, but does not alter the length of the array. Bug?
+            // (this is why we slice the array here)
+            split = split[1..$];
+
+            // TODO: We actually need a Markdown-ish parser here if we want to support
+            // listings in package descriptions properly.
+            string description = "<p>";
+            bool first = true;
+            foreach (l; split) {
+                if (l.strip () == ".") {
+                    description ~= "</p>\n<p>";
+                    first = true;
+                    continue;
+                }
+
+                if (first)
+                    first = false;
+                else
+                    description ~= " ";
+
+                description ~= ag.utils.escapeXml (l);
+            }
+            description ~= "</p>";
+
+            (*pkgP).setDescription (description, "C");
+        } while (tagf.nextSection ());
     }
 
     private Package[] loadPackages (string suite, string section, string arch)
@@ -85,6 +145,9 @@ public:
 
             pkgs[name] = pkg;
         } while (tagf.nextSection ());
+
+        // load long descriptions
+        loadPackageLongDescs (pkgs, suite, section);
 
         return pkgs.values ();
     }

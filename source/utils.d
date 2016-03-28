@@ -19,13 +19,14 @@
 
 module ag.utils;
 
+import std.stdio : writeln;
+import std.string;
 import std.ascii : letters, digits;
 import std.conv : to;
 import std.random : randomSample;
 import std.range : chain;
 import std.algorithm : startsWith;
-import std.string;
-import std.stdio : writeln;
+import std.array : appender;
 
 
 struct ImageSize
@@ -195,6 +196,34 @@ void copyDir (in string srcDir, in string destDir)
 			std.file.copy (fn,dfn);
 		}
 	}
+}
+
+S escapeXml (S) (S s)
+{
+    string r;
+    size_t lastI;
+    auto result = appender!S ();
+
+    foreach (i, c; s) {
+        switch (c) {
+            case '&':  r = "&amp;"; break;
+            case '"':  r = "&quot;"; break;
+            case '\'': r = "&apos;"; break;
+            case '<':  r = "&lt;"; break;
+            case '>':  r = "&gt;"; break;
+            default: continue;
+        }
+
+        // Replace with r
+        result.put (s[lastI .. i]);
+        result.put (r);
+        lastI = i + 1;
+    }
+
+    if (!result.data.ptr)
+        return s;
+    result.put (s[lastI .. $]);
+    return result.data;
 }
 
 unittest

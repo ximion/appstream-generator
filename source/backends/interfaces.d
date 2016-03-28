@@ -34,8 +34,10 @@ interface Package
     @property string maintainer ();
     @property string[string] description ();
 
-    @property string filename ();
+    @property string filename ();   // only used in issue reporting
     @property string[] contents ();
+
+    void setDescription (string desc, string locale);
 
     string getFileData (string fname);
     void close ();
@@ -54,15 +56,4 @@ interface PackageIndex
     void release ();
 
     Package[] packagesFor (string suite, string section, string arch);
-}
-
-/**
- * An index containing a mapping of files to packages.
- */
-interface ContentsIndex
-{
-    void loadDataFor (string dir, string suite, string section, string arch, PackageIndex pindex = null);
-    Package packageForFile (string fname);
-    @property string[] files ();
-    void close ();
 }

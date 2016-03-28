@@ -37,6 +37,7 @@ private:
     string pkgver;
     string pkgarch;
     string pkgmaintainer;
+    string[string] desc;
 
     bool contentsRead;
     string[] contentsL;
@@ -51,7 +52,7 @@ public:
     @property string name () { return pkgname; }
     @property string ver () { return pkgver; }
     @property string arch () { return pkgarch; }
-    @property string[string] description () { return null; }
+    @property string[string] description () { return desc; }
     @property string filename () { return debFname; }
     @property void filename (string fname) { debFname = fname; }
     @property string maintainer () { return pkgmaintainer; }
@@ -89,6 +90,11 @@ public:
     string toString ()
     {
         return format ("%s/%s/%s", name, ver, arch);
+    }
+
+    void setDescription (string text, string locale)
+    {
+        desc[locale] = text;
     }
 
     private auto openPayloadArchive ()

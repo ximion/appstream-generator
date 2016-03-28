@@ -154,6 +154,19 @@ public:
             // download and resize screenshots
             if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
                 processScreenshots (gres, cpt, dcache.mediaExportDir);
+
+            // inject package descriptions, if needed
+            auto ckind = cpt.getKind ();
+            if (ckind == ComponentKind.DESKTOP) {
+                cpt.setActiveLocale ("C");
+                if (cpt.getDescription ().empty) {
+                    auto descP = "C" in pkg.description;
+                    if (descP !is null) {
+                        cpt.setDescription (*descP, "C");
+                        gres.addHint (cpt.getId (), "description-from-package");
+                    }
+                }
+            }
         }
 
         // this removes invalid components and cleans up the result
