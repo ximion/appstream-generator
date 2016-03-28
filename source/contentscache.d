@@ -216,4 +216,29 @@ public:
         return pkgCMap;
     }
 
+    string[] getContents (string pkid)
+    {
+        MDB_val pkey, cval;
+        MDB_cursorp cur;
+
+        pkey = makeDbValue (pkid);
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbi, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open");
+
+        res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
+        if (res == MDB_NOTFOUND)
+            return null;
+        checkError (res, "mdb_cursor_get");
+
+        auto data = fromStringz (cast(char*) cval.mv_data);
+        auto contentsStr = to!string (data);
+
+        return contentsStr.split ("\n");
+    }
+
 }

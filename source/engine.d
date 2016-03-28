@@ -134,12 +134,19 @@ public:
                     pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
                 foreach (Package pkg; parallel (pkgs, 8)) {
                     auto pkid = Package.getId (pkg);
-                    if (ccache.packageExists (pkid))
-                        continue;
 
-                    // add contents to the index
-                    auto contents = pkg.contents;
-                    ccache.addContents (pkid, contents);
+                    string[] contents;
+                    if (ccache.packageExists (pkid)) {
+                        if (dcache.packageExists (pkid))
+                            continue;
+                        // we will complement the main database with ignore data, in case it
+                        // went missing.
+                        contents = ccache.getContents (pkid);
+                    } else {
+                        // add contents to the index
+                        contents = pkg.contents;
+                        ccache.addContents (pkid, contents);
+                    }
 
                     // check if we can already mark this package as ignored, and print some log messages
                     if (!packageInteresting (contents)) {
