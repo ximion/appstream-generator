@@ -203,6 +203,20 @@ public:
             if (cpt.getSummary ().empty)
                 addHint (cpt.getId (), "metainfo-no-summary");
         }
+
+        // inject package descriptions, if needed
+        foreach (cpt; cpts.byValue ()) {
+            if (cpt.getKind () == ComponentKind.DESKTOP) {
+                cpt.setActiveLocale ("C");
+                if (cpt.getDescription ().empty) {
+                    auto descP = "C" in pkg.description;
+                    if (descP !is null) {
+                        cpt.setDescription (*descP, "C");
+                        addHint (cpt.getId (), "description-from-package");
+                    }
+                }
+            }
+        }
     }
 
     /**
