@@ -223,7 +223,7 @@ public:
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
         mkdirRecurse (dirName (fname));
 
-        //! logDebug ("Rendering HTML page: %s", exportName);
+        logDebug ("Rendering HTML page: %s", exportName);
         auto data = mustache.render (pageID, context).strip ();
         auto f = File (fname, "w");
         f.writeln (data);
@@ -478,12 +478,22 @@ public:
 
                 foreach (gcid; gcids) {
                     auto cid = getCidFromGlobalID (gcid);
-                    mdata.clearComponents ();
+
+                    // don't add the same entry multiple times for multiple versions
+                    if (pkg.name in dsum.mdataEntries) {
+                        auto meP = gcid in dsum.mdataEntries[pkg.name];
+                        if (meP !is null) {
+                            // we already have a component with this gcid
+                            (*meP).archs ~= pkg.arch;
+                            continue;
+                        }
+                    }
 
                     MetadataEntry me;
                     me.identifier = cid;
                     me.data = dcache.getMetadata (dtype, gcid);
 
+                    mdata.clearComponents ();
                     if (dtype == DataType.YAML)
                         mdata.parseYaml (me.data);
                     else
@@ -507,6 +517,7 @@ public:
                         me.kind = ComponentKind.UNKNOWN;
                     }
 
+                    me.archs ~= pkg.arch;
                     dsum.mdataEntries[pkg.name][gcid] = me;
                     pkgsummary.cpts ~= cid;
                 }
@@ -553,6 +564,8 @@ public:
                             he.errors ~= HintTag (tag, msg);
                             pkgsummary.errorCount++;
                         }
+
+                        he.archs ~= pkg.arch;
                     }
 
                     dsum.hintEntries[pkg.name][he.identifier] = he;
