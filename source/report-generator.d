@@ -26,7 +26,9 @@ import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.array : empty;
 import std.json;
+
 import mustache;
+import appstream.Metadata;
 
 import ag.utils;
 import ag.config;
@@ -50,6 +52,9 @@ private:
     string htmlExportDir;
     string templateDir;
 
+    string mediaBaseDir;
+    string mediaBaseUrl;
+
     Mustache mustache;
 
     struct HintTag
@@ -69,9 +74,11 @@ private:
 
     struct MetadataEntry
     {
+        ComponentKind kind;
         string identifier;
         string[] archs;
         string data;
+        string iconName;
     }
 
     struct PkgSummary
@@ -102,12 +109,13 @@ public:
 
         exportDir = buildPath (conf.workspaceDir, "export");
         htmlExportDir = buildPath (exportDir, "html");
+        mediaBaseDir = buildPath (exportDir, "media");
+        mediaBaseUrl = conf.mediaBaseUrl;
 
         // we need the data cache to get hint and metainfo data
         this.dcache = dcache;
 
         // find a suitable template directory
-
         // first check the workspace
         auto tdir = buildPath (conf.workspaceDir, "templates");
         tdir = getVendorTemplateDir (tdir, true);
@@ -215,7 +223,7 @@ public:
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
         mkdirRecurse (dirName (fname));
 
-        logDebug ("Rendering HTML page: %s", exportName);
+        //! logDebug ("Rendering HTML page: %s", exportName);
         auto data = mustache.render (pageID, context).strip ();
         auto f = File (fname, "w");
         f.writeln (data);
@@ -307,6 +315,26 @@ public:
                         archSub["arch"] = arch;
                     }
                     intCtx["metadata"] = mentry.data;
+
+                    auto cptMediaPath = buildPath (mediaBaseDir, gcid);
+                    auto cptMediaUrl = buildPath (mediaBaseUrl, gcid);
+                    string iconUrl;
+                    switch (mentry.kind) {
+                        case ComponentKind.UNKNOWN:
+                            iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
+                            break;
+                        case ComponentKind.DESKTOP:
+                            if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
+                                iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
+                            else
+                                iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
+                            break;
+                        default:
+                            iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "cpt-nogui.png");
+                            break;
+                    }
+
+                    intCtx["icon_url"] = iconUrl;
 
                     res ~= mustache.renderString (content, intCtx);
                 }
@@ -429,6 +457,10 @@ public:
         logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
         auto hintstore = HintsStorage.get ();
 
+        auto dtype = conf.metadataType;
+        auto mdata = new Metadata ();
+        mdata.setParserMode (ParserMode.DISTRO);
+
         foreach (pkg; pkgs) {
             auto pkid = Package.getId (pkg);
 
@@ -446,10 +478,34 @@ public:
 
                 foreach (gcid; gcids) {
                     auto cid = getCidFromGlobalID (gcid);
+                    mdata.clearComponents ();
 
                     MetadataEntry me;
                     me.identifier = cid;
-                    me.data = dcache.getMetadata (conf.metadataType, gcid);
+                    me.data = dcache.getMetadata (dtype, gcid);
+
+                    if (dtype == DataType.YAML)
+                        mdata.parseYaml (me.data);
+                    else
+                        mdata.parseXml (me.data);
+                    auto cpt = mdata.getComponent ();
+
+                    if (cpt !is null) {
+                        auto iconsArr = cpt.getIcons ();
+                        for (uint i = 0; i < iconsArr.len; i++) {
+                            import appstream.Icon;
+                            auto icon = new Icon (cast (AsIcon*) iconsArr.index (i));
+
+                            if (icon.getKind () == IconKind.CACHED) {
+                                me.iconName = icon.getName ();
+                                break;
+                            }
+                        }
+
+                        me.kind = cpt.getKind ();
+                    } else {
+                        me.kind = ComponentKind.UNKNOWN;
+                    }
 
                     dsum.mdataEntries[pkg.name][gcid] = me;
                     pkgsummary.cpts ~= cid;
