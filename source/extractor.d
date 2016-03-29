@@ -145,8 +145,41 @@ public:
             auto gcid = gres.gcidForComponent (cpt);
 
             // don't run expensive operations if the metadata already exists
-            if (dcache.metadataExists (dtype, gcid))
+            auto existingMData = dcache.getMetadata (dtype, gcid);
+            if (existingMData !is null) {
+                // To account for packages which change their package name, we
+                // also need to check if the package this component is associated
+                // with matches ours.
+                // If it doesn't, we can't just link the package to the component.
+                bool samePkg = false;
+                if (dtype == DataType.YAML) {
+                    if (existingMData.canFind (format ("Package: %s\n", pkg.name)))
+                        samePkg = true;
+                } else {
+                    if (existingMData.canFind (format ("<pkgname>%s</pkgname>", pkg.name)))
+                        samePkg = true;
+                }
+
+                if (!samePkg) {
+                    import appstream.Metadata;
+                    // The exact same metadata exists in a different package already, we emit an error hint.
+                    // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
+                    // but with the *same ID* exists.
+                    // We catch that kind of problem later.
+
+                    auto mdata = new Metadata ();
+                    mdata.setParserMode (ParserMode.DISTRO);
+                    if (dtype == DataType.YAML)
+                        mdata.parseYaml (existingMData);
+                    else
+                        mdata.parseXml (existingMData);
+                    auto ecpt = mdata.getComponent ();
+
+                    gres.addHint (cpt.getId (), "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);
+                }
+
                 continue;
+            }
 
             // find & store icons
             iconh.process (gres, cpt);

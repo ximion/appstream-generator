@@ -34,7 +34,7 @@ interface Package
     @property string maintainer ();
     @property string[string] description ();
 
-    @property string filename ();   // only used in issue reporting
+    @property string filename ();   // only used for diagnostic information and reporting
     @property string[] contents ();
 
     void setDescription (string desc, string locale);
