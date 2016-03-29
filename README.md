@@ -1,7 +1,13 @@
 # AppStream Generator
 
-A new AppStream generator written in D, being much faster and more versatile than the old one.
-This software is in early development, and is still very incomplete.
+AppStream is an effort to provide additional metadata and unique IDs for all software available in a Linux system.
+This repository contains the server-side of the AppStream infrastructure, a tool to generate metadata from distribution packages. You can find out more about AppStream distro metadata at [Freedesktop](http://www.freedesktop.org/software/appstream/docs/chap-DistroData.html#sect-AppStream-ASXML).
+
+This AppStream generator is currently primarily used by Debian.
+For the client-tools, take a look at the [AppStream repository](https://github.com/ximion/appstream).
+
+![AppStream Generator Logo](docs/asgen.png "AppStream Generator")
+
 
 ## Development
 [![Build Status](https://travis-ci.org/ximion/appstream-generator.svg?branch=master)](https://travis-ci.org/ximion/appstream-generator)
@@ -29,11 +35,11 @@ Just run `dub build` - if all dependencies are set up correctly, the binary will
 You might need to update the Git submodules first, run `git submodule update` for that.
 
 On Debian systems, all build requirements can be installed using the following command:
-```bash
+```ShellSession
 sudo apt install dub libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
     librsvg2-dev liblmdb-dev libglib2.0-dev libcairo2-dev
 ```
 
 ## Usage
 
-This project is work-in-progress, so you can not use it in production yet.
+Take a look at the `docs/` directory in the source tree for information on how to use the generator. Right now, only the YAML output format is tested properly.
