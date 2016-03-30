@@ -33,7 +33,7 @@ import ag.result;
 import ag.utils;
 
 
-private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (112, 63)];
+private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (224, 126)];
 
 void processScreenshots (GeneratorResult gres, Component cpt, string mediaExportDir)
 {
