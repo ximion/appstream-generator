@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.file;
 import std.regex;
+import std.conv : to;
 import c.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65536;
@@ -207,6 +208,8 @@ public:
 
     string readData (string fname)
     {
+        import core.sys.posix.sys.stat;
+        import std.path;
         archive *ar;
         archive_entry *en;
 
@@ -228,13 +231,39 @@ public:
             auto pathname = fromStringz (archive_entry_pathname (en));
 
             if (pathname == fname) {
+                auto filetype = archive_entry_filetype (en);
+                writeln (fname, "  #", filetype);
+
+                if (filetype == S_IFDIR) {
+                    /* we don't extract directories explicitly */
+                    throw new Exception (format ("Path %s is a directory and can not be extracted.", fname));
+                }
+
+                /* check if we are dealing with a symlink */
+                if (filetype == S_IFLNK) {
+                    string linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
+                    if (linkTarget is null)
+                        throw new Exception (format ("Unable to read destination of symbolic link for %s.", fname));
+
+                    if (!isAbsolute (linkTarget))
+                        linkTarget = absolutePath (linkTarget, dirName (fname));
+                    return this.readData (linkTarget);
+                }
+
+                if (filetype != S_IFREG) {
+                    // we really don't want to extract special files from a tarball - usually, those shouldn't
+                    // be present anyway.
+                    // This should probably be an error, but return nothing for now.
+                    return null;
+	            }
+
                 return this.readEntry (ar);
 		    } else {
                 archive_read_data_skip (ar);
             }
         }
 
-        return null;
+        throw new Exception (format ("File %s was not found in the archive.", fname));
     }
 
     string[] extractFilesByRegex (Regex!char re, string destdir)

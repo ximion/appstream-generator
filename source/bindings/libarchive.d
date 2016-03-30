@@ -60,11 +60,12 @@ void archive_entry_free (archive_entry*);
 
 const(char) *archive_entry_pathname (archive_entry*);
 void archive_entry_set_pathname (archive_entry*, const(char) *);
-int archive_entry_filetype (archive_entry*);
+uint archive_entry_filetype (archive_entry*);
 void archive_entry_set_size (archive_entry*, long);
 void archive_entry_set_filetype (archive_entry*, uint);
 void archive_entry_set_perm (archive_entry*, uint);
-void archive_entry_set_mtime(archive_entry*, ulong sec, long nsec);
+void archive_entry_set_mtime (archive_entry*, ulong sec, long nsec);
+const(char)	*archive_entry_symlink (archive_entry*);
 
 archive *archive_write_new ();
 int archive_write_free (archive*);

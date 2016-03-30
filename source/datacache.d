@@ -391,7 +391,8 @@ public:
         scope (failure) quitTransaction (txn);
 
         auto res = txn.mdb_del (dbPackages, &dbkey, null);
-        checkError (res, "mdb_del");
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del");
 
         res = txn.mdb_del (dbHints, &dbkey, null);
         if (res != MDB_NOTFOUND)
