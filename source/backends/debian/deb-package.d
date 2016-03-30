@@ -164,6 +164,18 @@ public:
         if (contentsRead)
             return contentsL;
 
+        if (pkgname.endsWith ("icon-theme")) {
+            // the md5sums file does not contain symbolic links - while that is okay-ish for regular
+            // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
+            // aliases for certain icons. So, use the slow method for reading contents information here.
+
+            auto pa = openPayloadArchive ();
+            contentsL = pa.readContents ();
+            contentsRead = true;
+
+            return contentsL;
+        }
+
         // use the md5sums file of the .deb control archive to determine
         // the contents of this package.
         // this is way faster than going through the payload directly, and

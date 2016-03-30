@@ -232,7 +232,6 @@ public:
 
             if (pathname == fname) {
                 auto filetype = archive_entry_filetype (en);
-                writeln (fname, "  #", filetype);
 
                 if (filetype == S_IFDIR) {
                     /* we don't extract directories explicitly */
