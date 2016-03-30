@@ -61,16 +61,6 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
     }
 }
 
-import gio.Cancellable;
-void waitTimeout (Cancellable c)
-{
-    import core.thread;
-    import core.time;
-
-    Thread.sleep (dur!("seconds") (40));
-    c.cancel ();
-}
-
 private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
 {
     import std.stdio;
@@ -88,42 +78,10 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
 
     auto imgUrl = initImg.getUrl ();
 
-/** We can't use the D-native way of downloading stuff on Ubuntu at time, because on Ubuntu linking against
- * libcurl fails, with no way to fix this. This issue is resolved in newer releases of libphobos and GDC, LDC
- * contains a workaround.Until those fixes reach most of the users, we sadly can't use std.net.curl
-
     ubyte[] imgData;
     try {
-        imgData = get! (AutoProtocol, ubyte) (img.getUrl ());
-    } catch (Exception e) {
-        gres.addHint (cpt.getId (), "screenshot-download-error", ["url": img.getUrl (), "error": e.msg]);
-        return null;
-    }
-*/
-
-    ubyte[] imgData;
-    try {
-        import std.string;
-        import gi.gio;
-        import gio.DataInputStream;
-        import gio.File;
-
-        auto rsf = new File (g_file_new_for_uri (imgUrl.toStringz ()));
-
-        // read the remote file, and cancel the download if it takes too long
-        auto c = new Cancellable ();
-        std.parallelism.scopedTask!waitTimeout (c).executeInNewThread ();
-        auto fstream = rsf.read (c);
-
-        auto istream = new DataInputStream (fstream);
-
-        ulong bytesRead;
-        ubyte[1024] buffer;
-        do {
-            if (!istream.readAll (buffer, bytesRead, null))
-                break;
-            imgData ~= buffer[0..bytesRead];
-        } while (bytesRead > 0);
+        import std.net.curl;
+        imgData = get! (AutoProtocol, ubyte) (imgUrl);
     } catch (Exception e) {
         gres.addHint (cpt.getId (), "screenshot-download-error", ["url": imgUrl, "error": e.msg]);
         return null;
