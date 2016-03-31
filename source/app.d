@@ -28,27 +28,51 @@ import ag.config;
 import ag.engine;
 
 
+private immutable helpText =
+"Usage:
+  appstream-generator <subcommand> [OPTION...] - AppStream Generator.
+
+AppStream Metadata Generator
+
+Subcommands:
+  process [SUITE] - Process new metadata for the given distribution suite.
+  cleanup         - Cleanup old metadata and media files.
+
+Help Options:
+  -h, --help       Show help options
+
+Application Options:
+  --version        Show the program version
+  --verbose        Show extra debugging information
+  -w|--workspace   Define the workspace location";
+
 void main(string[] args)
 {
     string command;
     bool verbose;
-    bool help;
+    bool showHelp;
+    bool showVersion;
     string wdir = getcwd ();
 
     // parse command-line options
     try {
         getopt (args,
+            "help|h", &showHelp,
             "verbose", &verbose,
-            "help|h", &help,
+            "version", &showVersion,
             "workspace|w", &wdir);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
     }
 
-    if (help) {
-        // (currently) give some useless advice
-        writeln ("Just believe in yourself!");
+    if (showHelp) {
+        writeln (helpText);
+        return;
+    }
+
+    if (showVersion) {
+        writeln ("Generator version: ", ag.config.generatorVersion);
         return;
     }
 

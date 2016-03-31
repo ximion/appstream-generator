@@ -29,6 +29,8 @@ import std.typecons;
 import ag.utils;
 
 
+public immutable generatorVersion = "0.1";
+
 /**
  * Describes a suite in a software repository.
  **/

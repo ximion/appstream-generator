@@ -211,7 +211,7 @@ public:
         auto timeStr = format ("%d-%02d-%02d %02d:%02d [%s]", time.year, time.month, time.day, time.hour,time.minute, time.timezone.name);
 
         context["time"] = timeStr;
-        context["generator_version"] = 0.1;
+        context["generator_version"] = ag.config.generatorVersion;
         context["project_name"] = conf.projectName;
         context["root_url"] = conf.htmlBaseUrl;
     }
