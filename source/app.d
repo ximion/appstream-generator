@@ -70,6 +70,11 @@ void main(string[] args)
             rmdirRecurse (conf.getTmpDir ());
     }
 
+    // globally enable verbose mode, if requested
+    if (verbose) {
+        ag.logging.setVerbose (true);
+    }
+
     command = args[1];
     switch (command) {
         case "run":

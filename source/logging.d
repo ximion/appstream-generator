@@ -23,6 +23,9 @@ import std.stdio;
 import std.string : format;
 import std.datetime;
 
+
+private __gshared bool __verbose = false;
+
 enum LogSeverity : string
 {
     DEBUG = "DEBUG",
@@ -40,9 +43,8 @@ void logMessage (LogSeverity, string, Args...) (LogSeverity severity, string tmp
 
 void logDebug (string, Args...) (string tmpl, Args args)
 {
-    debug {
+    if (__verbose)
         logMessage (LogSeverity.DEBUG, tmpl, args);
-    }
 }
 
 void logInfo (string, Args...) (string tmpl, Args args)
@@ -58,4 +60,9 @@ void logWarning (string, Args...) (string tmpl, Args args)
 void logError (string, Args...) (string tmpl, Args args)
 {
     logMessage (LogSeverity.ERROR, tmpl, args);
+}
+
+void setVerbose (bool enabled)
+{
+    __verbose = enabled;
 }
