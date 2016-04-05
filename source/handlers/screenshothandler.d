@@ -92,7 +92,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         auto cid = cpt.getId ();
         if (cid is null)
             cid = "general";
-        gres.addHint (cid, "internal-error", "No global ID could be found for the component. This is a bug.");
+        gres.addHint (cid, "internal-error", "No global ID could be found for the component.");
         return null;
     }
 

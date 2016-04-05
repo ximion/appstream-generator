@@ -350,7 +350,10 @@ public:
             foreach (string arch; suite.architectures) {
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = new IconHandler (dcache.mediaExportDir, ccache, getIconCandidatePackages (suite, section, arch));
+                auto iconh = new IconHandler (dcache.mediaExportDir,
+                                              ccache,
+                                              getIconCandidatePackages (suite, section, arch),
+                                              suite.iconTheme);
                 processPackages (pkgs, iconh);
 
                 // export package data

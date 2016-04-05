@@ -140,7 +140,6 @@ public:
                 gres.updateComponentGCID (cpt, data);
         }
 
-
         foreach (cpt; gres.getComponents ()) {
             auto gcid = gres.gcidForComponent (cpt);
 
@@ -183,6 +182,8 @@ public:
 
             // find & store icons
             iconh.process (gres, cpt);
+            if (gres.isIgnored (cpt))
+                continue;
 
             // download and resize screenshots
             if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))

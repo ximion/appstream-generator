@@ -39,6 +39,7 @@ struct Suite
     string name;
     int dataPriority = 0;
     string baseSuite;
+    string iconTheme;
     string[] sections;
     string[] architectures;
 }
@@ -182,6 +183,8 @@ class Config
                 suite.dataPriority = to!int (sn["dataPriority"].integer);
             if ("baseSuite" in sn)
                 suite.baseSuite = sn["baseSuite"].str;
+            if ("useIconTheme" in sn)
+                suite.iconTheme = sn["useIconTheme"].str;
             if ("sections" in sn)
                 foreach (sec; sn["sections"].array)
                     suite.sections ~= sec.str;
