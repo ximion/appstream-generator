@@ -27,6 +27,7 @@ import std.uni : toLower;
 import std.file : mkdirRecurse;
 import std.algorithm : canFind;
 import std.variant;
+import std.parallelism;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
@@ -179,6 +180,8 @@ public:
 
     this (string mediaPath, ContentsCache ccache, Package[string] pkgMap, string iconTheme = null)
     {
+        logDebug ("Creating new IconHandler");
+
         mediaExportPath = mediaPath;
 
         // Preseeded theme names.
@@ -209,13 +212,13 @@ public:
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
-        auto filesPkids = ccache.getContents ();
-        foreach (fname; filesPkids.byKey ()) {
+        auto filesPkids = ccache.getContentsMap (pkgMap.keys ());
+        foreach (fname; parallel (filesPkids.byKey (), 100)) {
             if (fname.startsWith ("/usr/share/pixmaps/")) {
                 auto pkg = getPackage (filesPkids[fname]);
                 if (pkg is null)
                     continue;
-                iconFiles[fname] = pkg;
+                synchronized (this) iconFiles[fname] = pkg;
                 continue;
             }
 
@@ -230,9 +233,9 @@ public:
 
             foreach (name; themeNames) {
                 if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
-                    themes ~= new Theme (name, pkg);
+                    synchronized (this) themes ~= new Theme (name, pkg);
                 } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {
-                    iconFiles[fname] = pkg;
+                    synchronized (this) iconFiles[fname] = pkg;
                 }
             }
         }

@@ -189,7 +189,7 @@ public:
         checkError (res, "mdb_put");
     }
 
-    string[string] getContents ()
+    string[string] getContentsMap (string[] pkids)
     {
         MDB_cursorp cur;
 
@@ -201,16 +201,24 @@ public:
         checkError (res, "mdb_cursor_open");
 
         string[string] pkgCMap;
+
         MDB_val pkey;
         MDB_val cval;
-        while (cur.mdb_cursor_get (&pkey, &cval, MDB_NEXT) == 0) {
-            auto pkid = std.conv.to!string (fromStringz (cast(char*) pkey.mv_data));
-            auto contentsStr = std.conv.to!string (fromStringz (cast(char*) cval.mv_data));
-            if (contentsStr.empty)
+
+        foreach (pkid; pkids) {
+            pkey = makeDbValue (pkid);
+
+            res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
+            if (res == MDB_NOTFOUND)
                 continue;
-            string[] contents = contentsStr.split ("\n");
-            foreach (c; contents)
+            checkError (res, "mdb_cursor_get");
+
+            auto data = fromStringz (cast(char*) cval.mv_data);
+            auto contents = to!string (data);
+
+            foreach (c; contents.split ("\n")) {
                 pkgCMap[c] = pkid;
+            }
         }
 
         return pkgCMap;
