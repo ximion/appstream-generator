@@ -181,11 +181,14 @@ public:
         // this is way faster than going through the payload directly, and
         // has the same accuracy.
         auto ca = openControlArchive ();
-        auto md5sums = ca.readData ("./md5sums");
-        if (md5sums is null) {
-            logError ("Could not read md5sums file for package %s", Package.getId (this));
+        string md5sums;
+        try {
+            md5sums = ca.readData ("./md5sums");
+        } catch (Exception e) {
+            logError ("Could not read md5sums file for package %s: %s", Package.getId (this), e.msg);
             return [];
         }
+
         try {
             md5sums = std.utf.toUTF8 (md5sums);
         } catch (Exception e) {
