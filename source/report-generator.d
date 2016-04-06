@@ -474,8 +474,6 @@ public:
 
             // process component metadata for this package if there are any
             if (gcids !is null) {
-                dsum.totalMetadata += gcids.length;
-
                 foreach (gcid; gcids) {
                     auto cid = getCidFromGlobalID (gcid);
 
@@ -520,6 +518,7 @@ public:
                     me.archs ~= pkg.arch;
                     dsum.mdataEntries[pkg.name][gcid] = me;
                     pkgsummary.cpts ~= cid;
+                    dsum.totalMetadata += 1;
                 }
             }
 
@@ -530,7 +529,21 @@ public:
 
                 foreach (cid; hintsCpts.object.byKey ()) {
                     auto jhints = hintsCpts[cid];
+
                     HintEntry he;
+                    // don't add the same hints multiple times for multiple versions and architectures
+                    if (pkg.name in dsum.hintEntries) {
+                        auto heP = cid in dsum.hintEntries[pkg.name];
+                        if (heP !is null) {
+                            he = *heP;
+                            // we already have hints for this component ID
+                            he.archs ~= pkg.arch;
+
+                            // TODO: check if we have the same hints - if not, create a new entry.
+                            continue;
+                        }
+                    }
+
                     he.identifier = cid;
 
                     foreach (jhint; jhints.array) {
