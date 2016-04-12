@@ -92,9 +92,9 @@ private:
 
     struct DataSummary
     {
-        PkgSummary[][string] pkgSummaries;
+        PkgSummary[string][string] pkgSummaries;
         HintEntry[string][string] hintEntries;
-        MetadataEntry[string][string] mdataEntries;
+        MetadataEntry[string][string][string] mdataEntries; // package -> version -> gcid -> entry
         long totalMetadata;
         long totalInfos;
         long totalWarnings;
@@ -295,7 +295,7 @@ public:
 
         // write metadata info pages
         foreach (pkgname; dsum.mdataEntries.byKey ()) {
-            auto pkgMEntries = dsum.mdataEntries[pkgname];
+            auto pkgMVerEntries = dsum.mdataEntries[pkgname];
             auto exportName = format ("%s/%s/metainfo/%s", suiteName, section, pkgname);
 
             auto context = new Mustache.Context;
@@ -305,38 +305,44 @@ public:
 
             context["cpts"] = (string content) {
                 string res;
-                foreach (gcid; pkgMEntries.byKey ()) {
-                    auto mentry = pkgMEntries[gcid];
-                    auto intCtx = new Mustache.Context;
-                    intCtx["component_id"] = mentry.identifier;
+                foreach (ver; pkgMVerEntries.byKey ()) {
+                    auto mEntries = pkgMVerEntries[ver];
 
-                    foreach (arch; mentry.archs) {
-                        auto archSub = intCtx.addSubContext("architectures");
-                        archSub["arch"] = arch;
-                    }
-                    intCtx["metadata"] = mentry.data;
+                    foreach (gcid; mEntries.byKey ()) {
+                        auto mentry = mEntries[gcid];
 
-                    auto cptMediaPath = buildPath (mediaBaseDir, gcid);
-                    auto cptMediaUrl = buildPath (mediaBaseUrl, gcid);
-                    string iconUrl;
-                    switch (mentry.kind) {
-                        case ComponentKind.UNKNOWN:
-                            iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
-                            break;
-                        case ComponentKind.DESKTOP:
-                            if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
-                                iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
-                            else
+                        auto intCtx = new Mustache.Context;
+                        intCtx["component_id"] = format ("%s - %s", mentry.identifier, ver);
+
+                        foreach (arch; mentry.archs) {
+                            auto archSub = intCtx.addSubContext("architectures");
+                            archSub["arch"] = arch;
+                        }
+                        intCtx["metadata"] = mentry.data;
+
+                        auto cptMediaPath = buildPath (mediaBaseDir, gcid);
+                        auto cptMediaUrl = buildPath (mediaBaseUrl, gcid);
+                        string iconUrl;
+                        switch (mentry.kind) {
+                            case ComponentKind.UNKNOWN:
                                 iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
-                            break;
-                        default:
-                            iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "cpt-nogui.png");
-                            break;
+                                break;
+                            case ComponentKind.DESKTOP:
+                                if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
+                                    iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
+                                else
+                                    iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
+                                break;
+                            default:
+                                iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "cpt-nogui.png");
+                                break;
+                        }
+
+                        intCtx["icon_url"] = iconUrl;
+
+                        res ~= mustache.renderString (content, intCtx);
                     }
 
-                    intCtx["icon_url"] = iconUrl;
-
-                    res ~= mustache.renderString (content, intCtx);
                 }
 
                 return res;
@@ -360,7 +366,7 @@ public:
                 intCtx["maintainer"] = maintainer;
 
                 bool interesting = false;
-                foreach (summary; summaries) {
+                foreach (summary; summaries.byValue ()) {
                     if ((summary.infoCount == 0) && (summary.warningCount == 0) && (summary.errorCount == 0))
                         continue;
                     interesting = true;
@@ -470,7 +476,16 @@ public:
                 continue;
 
             PkgSummary pkgsummary;
+            bool newInfo = false;
+
             pkgsummary.pkgname = pkg.name;
+            if (pkg.maintainer in dsum.pkgSummaries) {
+                auto pkgSumP = pkg.name in dsum.pkgSummaries[pkg.maintainer];
+                if (pkgSumP !is null)
+                    pkgsummary = *pkgSumP;
+                else
+                    newInfo = true;
+            }
 
             // process component metadata for this package if there are any
             if (gcids !is null) {
@@ -479,12 +494,21 @@ public:
 
                     // don't add the same entry multiple times for multiple versions
                     if (pkg.name in dsum.mdataEntries) {
-                        auto meP = gcid in dsum.mdataEntries[pkg.name];
-                        if (meP !is null) {
-                            // we already have a component with this gcid
-                            (*meP).archs ~= pkg.arch;
-                            continue;
+                        if (pkg.ver in dsum.mdataEntries[pkg.name]) {
+                            auto meP = gcid in dsum.mdataEntries[pkg.name][pkg.ver];
+                            if (meP is null) {
+                                // this component is new
+                                dsum.totalMetadata += 1;
+                                newInfo = true;
+                            } else {
+                                // we already have a component with this gcid
+                                (*meP).archs ~= pkg.arch;
+                                continue;
+                            }
                         }
+                    } else {
+                        // we will add a new component
+                        dsum.totalMetadata += 1;
                     }
 
                     MetadataEntry me;
@@ -516,9 +540,8 @@ public:
                     }
 
                     me.archs ~= pkg.arch;
-                    dsum.mdataEntries[pkg.name][gcid] = me;
-                    pkgsummary.cpts ~= cid;
-                    dsum.totalMetadata += 1;
+                    dsum.mdataEntries[pkg.name][pkg.ver][gcid] = me;
+                    pkgsummary.cpts ~= format ("%s - %s", cid, pkg.ver);
                 }
             }
 
@@ -542,6 +565,8 @@ public:
                             // TODO: check if we have the same hints - if not, create a new entry.
                             continue;
                         }
+
+                        newInfo = true;
                     }
 
                     he.identifier = cid;
@@ -585,10 +610,12 @@ public:
                 }
             }
 
-            dsum.pkgSummaries[pkg.maintainer] ~= pkgsummary;
-            dsum.totalInfos += pkgsummary.infoCount;
-            dsum.totalWarnings += pkgsummary.warningCount;
-            dsum.totalErrors += pkgsummary.errorCount;
+            dsum.pkgSummaries[pkg.maintainer][pkg.name] = pkgsummary;
+            if (newInfo) {
+                dsum.totalInfos += pkgsummary.infoCount;
+                dsum.totalWarnings += pkgsummary.warningCount;
+                dsum.totalErrors += pkgsummary.errorCount;
+            }
         }
 
         return dsum;
