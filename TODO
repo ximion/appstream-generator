@@ -1,11 +1,20 @@
+= AppStream Generator TODO List =
 
+=== Known issues ===
 
-braindump.desktop: No summary on Debian, and no error tag!
+ * ???
 
+=== Planned Features ===
 
+ * Extract localizstion status for AppStream components and add them as
+   `Languages` field.
+ * Extract more metadata from things which do not have AppStream upstream
+   metadata yet.
+ * Add an icon-cache so we don't render SVG icons in themes multiple times.
 
+=== Whishlist / Random Ideas ===
 
-
+ * ???
 
 
 2016-04-05 17:01:25 - INFO: Processed quicksynergy/0.9-2/i386, components: 0, hints: 1
