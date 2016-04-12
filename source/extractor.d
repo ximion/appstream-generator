@@ -119,7 +119,7 @@ public:
             parseDesktopFile (gres, *dfp, ddata, true);
 
             // update GCID checksum
-            gres.updateComponentGCID (cpt, data ~ ddata);
+            gres.updateComponentGCID (cpt, ddata);
 
             // drop the .desktop file from the list, it has been handled
             desktopFiles.remove (cid);
@@ -134,10 +134,10 @@ public:
 
         // process the remaining .desktop files
         foreach (string dfname; desktopFiles.byValue ()) {
-            auto data = pkg.getFileData (dfname);
-            auto cpt = parseDesktopFile (gres, dfname, data, false);
+            auto ddata = pkg.getFileData (dfname);
+            auto cpt = parseDesktopFile (gres, dfname, ddata, false);
             if (cpt !is null)
-                gres.updateComponentGCID (cpt, data);
+                gres.updateComponentGCID (cpt, ddata);
         }
 
         foreach (cpt; gres.getComponents ()) {
@@ -188,6 +188,11 @@ public:
             // download and resize screenshots
             if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
                 processScreenshots (gres, cpt, dcache.mediaExportDir);
+
+            // finalized the GCID
+            // we need to add the version to re-download screenshot on every new upload.
+            // otherwise, screenshots would only get updated if the actual metadata file was touched.
+            gres.updateComponentGCID (cpt, pkg.ver);
         }
 
         // this removes invalid components and cleans up the result

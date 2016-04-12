@@ -37,6 +37,7 @@ class GeneratorResult
 private:
     Component[string] cpts;
     string[Component] cptGCID;
+    string[string] mdataHashes;
     HintList[string] hints;
 
 public:
@@ -86,9 +87,17 @@ public:
             return;
         }
 
-        auto hash = md5Of (data);
+        auto oldHashP = (cid in mdataHashes);
+        string oldHash = "";
+        if (oldHashP !is null)
+            oldHash = *oldHashP;
+
+        auto hash = md5Of (oldHash ~ data);
         auto checksum = toHexString (hash);
-        cptGCID[cpt] = buildCptGlobalID (cid, to!string (checksum));
+        auto newHash = to!string (checksum);
+
+        mdataHashes[cid] = newHash;
+        cptGCID[cpt] = buildCptGlobalID (cid, newHash);
     }
 
     void addComponent (Component cpt, string data = "")
