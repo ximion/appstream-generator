@@ -80,7 +80,7 @@ public:
         // set a huge map size to be futureproof.
         // This means we're cruel to non-64bit users, but this
         // software is supposed to be run on 64bit machines anyway.
-        auto mapsize = cast (size_t) std.math.pow (1024L, 4);
+        auto mapsize = cast (size_t) std.math.pow (512L, 4);
         rc = dbEnv.mdb_env_set_mapsize (mapsize);
         checkError (rc, "mdb_env_set_mapsize");
 
