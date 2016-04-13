@@ -66,11 +66,11 @@ public:
                 desktopFiles[baseName (fname)] = fname;
                 continue;
             }
-            if ((fname.startsWith ("/usr/share/appdata")) && (fname.endsWith (".xml"))) {
+            if ((fname.startsWith ("/usr/share/metainfo")) && (fname.endsWith (".xml"))) {
                 metadataFiles ~= fname;
                 continue;
             }
-            if ((fname.startsWith ("/usr/share/metainfo")) && (fname.endsWith (".xml"))) {
+            if ((fname.startsWith ("/usr/share/appdata")) && (fname.endsWith (".xml"))) {
                 metadataFiles ~= fname;
                 continue;
             }

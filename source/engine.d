@@ -118,9 +118,9 @@ public:
             foreach (c; contents) {
                 if (c.startsWith ("/usr/share/applications/"))
                     return true;
-                if (c.startsWith ("/usr/share/appdata/"))
-                    return true;
                 if (c.startsWith ("/usr/share/metainfo/"))
+                    return true;
+                if (c.startsWith ("/usr/share/appdata/"))
                     return true;
             }
 
@@ -155,6 +155,8 @@ public:
                     } else {
                         logInfo ("Scanned %s, could be interesting.", pkid);
                     }
+
+                    pkg.close ();
                 }
             }
         }
