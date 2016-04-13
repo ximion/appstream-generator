@@ -26,6 +26,7 @@ import std.file : mkdirRecurse;
 import std.array : join, split, empty;
 
 import c.lmdb;
+import ag.config;
 import ag.logging;
 
 
@@ -99,6 +100,12 @@ public:
 
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
+    }
+
+    void open (Config conf)
+    {
+        import std.path : buildPath;
+        this.open (buildPath (conf.workspaceDir, "cache", "contents"));
     }
 
     private MDB_val makeDbValue (string data)

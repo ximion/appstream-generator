@@ -28,6 +28,7 @@ import c.lmdb;
 import appstream.Metadata;
 import appstream.Component;
 
+import ag.config;
 import ag.logging;
 import ag.config : DataType;
 import ag.result;
@@ -150,6 +151,12 @@ public:
         checkError (rc, "mdb_txn_commit");
 
         this.mediaDir = mediaDir;
+    }
+
+    void open (Config conf)
+    {
+        import std.path : buildPath;
+        this.open (buildPath (conf.workspaceDir, "cache", "main"), buildPath (conf.workspaceDir, "export", "media"));
     }
 
     private MDB_val makeDbValue (string data)

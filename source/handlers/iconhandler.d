@@ -178,7 +178,7 @@ private:
 
 public:
 
-    this (string mediaPath, ContentsCache ccache, Package[string] pkgMap, string iconTheme = null)
+    this (string mediaPath, Package[string] pkgMap, string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
 
@@ -208,6 +208,10 @@ public:
             else
                 return *pkgP;
         }
+
+        // open package contents cache
+        auto ccache = new ContentsCache ();
+        ccache.open (ag.config.Config.get ());
 
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,

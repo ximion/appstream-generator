@@ -50,8 +50,6 @@ private:
     PackageIndex pkgIndex;
 
     DataCache dcache;
-    ContentsCache ccache;
-
     string exportDir;
 
 public:
@@ -73,11 +71,7 @@ public:
 
         // create cache in cache directory on workspace
         dcache = new DataCache ();
-        dcache.open (buildPath (conf.workspaceDir, "cache", "main"), buildPath (exportDir, "media"));
-
-        // create a new package contents cache
-        ccache = new ContentsCache ();
-        ccache.open (buildPath (conf.workspaceDir, "cache", "contents"));
+        dcache.open (conf);
     }
 
     /**
@@ -112,6 +106,10 @@ public:
     private void seedContentsData (Suite suite)
     {
         logInfo ("Scanning new packages.");
+
+        // open package contents cache
+        auto ccache = new ContentsCache ();
+        ccache.open (conf);
 
         bool packageInteresting (string[] contents)
         {
@@ -353,7 +351,6 @@ public:
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 auto iconh = new IconHandler (dcache.mediaExportDir,
-                                              ccache,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
                 processPackages (pkgs, iconh);
@@ -399,6 +396,10 @@ public:
                 }
             }
         }
+
+        // open package contents cache
+        auto ccache = new ContentsCache ();
+        ccache.open (conf);
 
         // remove packages from the caches which are no longer in the archive
         ccache.removePackagesNotInSet (pkgSet);
