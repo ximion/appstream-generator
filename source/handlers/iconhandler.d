@@ -428,7 +428,7 @@ public:
             try {
                 img = new Image (iconData, iformat);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "icon-load-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
 

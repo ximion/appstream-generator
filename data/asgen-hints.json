@@ -59,6 +59,11 @@
   "severity": "error"
 },
 
+"image-write-error": {
+  "text": ["Could write new image generated from '{{fname}}' (package '{{pkg_fname}}'): {{error}}"],
+  "severity": "error"
+},
+
 "metainfo-no-id": {
   "text": ["Could not determine an id for this component. The AppStream upstream metadata likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
            "The identifier tag is essential for AppStream metadata, and must not be missing."],
