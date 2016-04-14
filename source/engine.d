@@ -368,6 +368,9 @@ public:
 
                 // log progress
                 logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
+
+                // free memory
+                core.memory.GC.collect ();
             }
 
             // write reports & statistics and render HTML, if that option is selected
