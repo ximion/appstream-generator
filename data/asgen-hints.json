@@ -18,7 +18,7 @@
 },
 
 "metainfo-parsing-error": {
-  "text": "Unable to parse AppStream upstream XML, the file is likely malformed. Error:<br/>{{msg}}",
+  "text": "Unable to parse AppStream upstream XML, the file is likely malformed.<br/>Error: {{msg}}",
   "severity": "error"
 },
 
