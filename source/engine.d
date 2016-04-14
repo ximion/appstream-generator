@@ -393,6 +393,7 @@ public:
     {
         bool[string] pkgSet;
 
+        logInfo ("Cleaning up superseded data.");
         // build a set of all valid packages
         foreach (Suite suite; conf.suites) {
             foreach (string section; suite.sections) {

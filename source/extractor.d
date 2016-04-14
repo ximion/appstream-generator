@@ -93,6 +93,10 @@ public:
                 continue;
             }
 
+            // we need to add the version to re-download screenshot on every new upload.
+            // otherwise, screenshots would only get updated if the actual metadata file was touched.
+            gres.updateComponentGCID (cpt, pkg.ver);
+
             auto dfp = (cid in desktopFiles);
             if (dfp is null) {
                 // no .desktop file was found
@@ -164,7 +168,7 @@ public:
                     // The exact same metadata exists in a different package already, we emit an error hint.
                     // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
                     // but with the *same ID* exists.
-                    // We catch that kind of problem later.
+                    // We only catch that kind of problem later.
 
                     auto mdata = new Metadata ();
                     mdata.setParserMode (ParserMode.DISTRO);
@@ -188,11 +192,6 @@ public:
             // download and resize screenshots
             if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
                 processScreenshots (gres, cpt, dcache.mediaExportDir);
-
-            // finalized the GCID
-            // we need to add the version to re-download screenshot on every new upload.
-            // otherwise, screenshots would only get updated if the actual metadata file was touched.
-            gres.updateComponentGCID (cpt, pkg.ver);
         }
 
         // this removes invalid components and cleans up the result
