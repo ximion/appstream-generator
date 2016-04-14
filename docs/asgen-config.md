@@ -56,3 +56,4 @@ Name | Comment
 validateMetainfo | Validate the AppStream upstream metadata. The validation is slow, but will produce better feedback and issue hints if enabled. *Default: `ON`*
 processDesktop | Process .desktop files which do not have a metainfo file. If disabled, all data without metainfo file will be ignored. *Default: `ON`*
 handleScreenshots | Download and resize screenshots. If disabled, no screenshots will be available in the resulting metadata *Default: `ON`*
+optimizePNGSize | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. *Default: `ON`*

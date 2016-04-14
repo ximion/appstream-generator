@@ -34,6 +34,7 @@ import gi.glibtypes;
 import gi.glib;
 
 import ag.logging;
+import ag.config;
 
 
 enum ImageFormat {
@@ -43,6 +44,19 @@ enum ImageFormat {
     GIF,
     SVG,
     SVGZ
+}
+
+private void optimizePNG (string fname)
+{
+    import std.process;
+
+    auto conf = ag.config.Config.get ();
+    if (!conf.featureEnabled (GeneratorFeature.OPTIPNG))
+        return;
+
+    auto optipng = execute (["optipng", "-o4", fname ]);
+    if (optipng.status != 0)
+        logWarning ("Optipng on '%s' failed with error code %s: %s", fname, optipng.status, optipng.output);
 }
 
 class Image
@@ -164,6 +178,8 @@ public:
         GError *error = null;
         gdk_pixbuf_save (pix, fname.toStringz (), "png", &error, null);
         throwGError (error);
+
+        optimizePNG (fname);
     }
 }
 
@@ -231,6 +247,8 @@ public:
         auto status = cairo_surface_write_to_png (srf, fname.toStringz ());
         if (status != cairo_status_t.STATUS_SUCCESS)
             throw new Exception (format ("Could not save canvas to PNG: %s", to!string (status)));
+
+        optimizePNG (fname);
     }
 }
 

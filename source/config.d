@@ -27,6 +27,7 @@ import std.json;
 import std.typecons;
 
 import ag.utils;
+import ag.logging;
 
 
 public immutable generatorVersion = "0.1";
@@ -67,7 +68,8 @@ enum GeneratorFeature
     NONE = 0,
     PROCESS_DESKTOP = 1 << 0,
     VALIDATE        = 1 << 1,
-    SCREENSHOTS     = 1 << 2
+    SCREENSHOTS     = 1 << 2,
+    OPTIPNG         = 1 << 3
 }
 
 class Config
@@ -199,6 +201,7 @@ class Config
         setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
         setFeature (GeneratorFeature.VALIDATE, true);
         setFeature (GeneratorFeature.SCREENSHOTS, true);
+        setFeature (GeneratorFeature.OPTIPNG, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -214,9 +217,20 @@ class Config
                     case "handleScreenshots":
                             setFeature (GeneratorFeature.SCREENSHOTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
+                    case "optimizePNGSize":
+                            setFeature (GeneratorFeature.OPTIPNG, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
                     default:
                         break;
                 }
+            }
+        }
+
+        // check if we need to disable features because some prerequisites are not met
+        if (featureEnabled (GeneratorFeature.OPTIPNG)) {
+            if (!std.file.exists ("/usr/bin/optipng")) {
+                setFeature (GeneratorFeature.OPTIPNG, true);
+                logError ("Disabled feature 'optimizePNGSize': The `optipng` binary was not found.");
             }
         }
     }
