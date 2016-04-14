@@ -482,14 +482,16 @@ public:
                 iconName = iconName[0..$-4];
 
             string lastIconName = null;
+            /// Search for an icon in XDG icon directories.
+            /// Returns true on success and sets lastIconName to the
+            /// last icon name that has been handled.
             bool findAndStoreXdgIcon (Package epkg = null)
             {
                 auto iconRes = findIcons (iconName, wantedIconSizes, epkg);
                 if (iconRes is null)
                     return false;
 
-                auto iconStored = false;
-
+                IconFindResult[ImageSize] iconsStored;
                 foreach (size; wantedIconSizes) {
                     auto infoP = (size in iconRes);
 
@@ -515,7 +517,8 @@ public:
 
                     lastIconName = info.fname;
                     if (iconAllowed (lastIconName)) {
-                        iconStored = storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size);
+                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size))
+                            iconsStored[size] = info;
                     } else {
                         // the found icon is not suitable, but maybe a larger one is available that we can downscale?
                         foreach (asize; iconRes.byKey ()) {
@@ -527,13 +530,32 @@ public:
                         }
 
                         if (iconAllowed (info.fname)) {
-                            iconStored = storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size);
+                            if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size))
+                                iconsStored[size] = info;
                             lastIconName = info.fname;
                         }
                     }
                 }
 
-                return iconStored;
+                // ensure we have stored a 64x64px icon, since this is mandated
+                // by the AppStream spec by downscaling a larger icon that we
+                // might have found.
+                if (ImageSize(64) !in iconsStored) {
+                    foreach (size; wantedIconSizes) {
+                        if (size !in iconsStored)
+                            continue;
+                        if (size < ImageSize(64))
+                            continue;
+                        auto info = iconsStored[size];
+                        lastIconName = info.fname;
+                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, ImageSize(64)))
+                            return true;
+                    }
+                } else {
+                    return true;
+                }
+
+                return false;
             }
 
             // search for the right icon iside the current package
