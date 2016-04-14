@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Example script for updating AppStream metadata using appstream-generator.
+# This script can easily be run by a cronjob.
+#
+
+set -e
+set -o pipefail
+set -u
+
+SUITES="sid stretch"
+
+WORKSPACE_DIR="/srv/appstream/workspace"
+PUBLIC_DIR="/srv/appstream/public"
+
+# only run one instance of the script
+LOCKFILE="$WORKSPACE_DIR/.lock"
+cleanup() {
+    rm -f "$LOCKFILE"
+}
+
+if ! lockfile -r8 $LOCKFILE; then
+    echo "aborting AppStream metadata extraction because $LOCKFILE has already been locked"
+    exit 0
+fi
+trap cleanup 0
+
+# Start logging
+logdir="$WORKSPACE_DIR/logs/`date "+%Y/%m"`"
+mkdir -p $logdir
+NOW=`date "+%d_%H%M"`
+LOGFILE="$logdir/${NOW}.log"
+exec >> "$LOGFILE" 2>&1
+
+cd $WORKSPACE_DIR
+
+# generate fresh metadata
+for suite in $SUITES; do
+    appstream-generator process $suite
+done
+
+# Cleanup superseded data
+appstream-generator cleanup
+
+# Sync updated data to public directory
+rsync -ak --delete-after --link-dest="$PUBLIC_DIR/" "$WORKSPACE_DIR/export/" "$PUBLIC_DIR/"
+
+# finish logging
+exec > /dev/null 2>&1
