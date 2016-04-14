@@ -35,8 +35,9 @@ private immutable helpText =
 AppStream Metadata Generator
 
 Subcommands:
-  process [SUITE] - Process new metadata for the given distribution suite.
-  cleanup         - Cleanup old metadata and media files.
+  process [SUITE]      - Process new metadata for the given distribution suite.
+  cleanup              - Cleanup old metadata and media files.
+  remove-valid [SUITE] - Drop all valid processed metadata.
 
 Help Options:
   -h, --help       Show help options
@@ -113,6 +114,14 @@ void main(string[] args)
         case "cleanup":
             auto engine = new Engine ();
             engine.runCleanup ();
+            break;
+        case "remove-valid":
+            if (args.length != 3) {
+                writeln ("Invalid number of parameters: You need to specify a suite name.");
+                exit (1);
+            }
+            auto engine = new Engine ();
+            engine.removeValidComponents (args[2]);
             break;
         default:
             writeln (format ("The command '%s' is unknown.", command));

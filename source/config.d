@@ -229,7 +229,7 @@ class Config
         // check if we need to disable features because some prerequisites are not met
         if (featureEnabled (GeneratorFeature.OPTIPNG)) {
             if (!std.file.exists ("/usr/bin/optipng")) {
-                setFeature (GeneratorFeature.OPTIPNG, true);
+                setFeature (GeneratorFeature.OPTIPNG, false);
                 logError ("Disabled feature 'optimizePNGSize': The `optipng` binary was not found.");
             }
         }

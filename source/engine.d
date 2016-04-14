@@ -423,4 +423,37 @@ public:
         // remove orphaned data and media
         dcache.cleanupCruft ();
     }
+
+    /**
+     * Drop all packages which contain valid components from the database.
+     * This is useful when big generator changes have been done, which
+     * require reprocessing of all components.
+     */
+    void removeValidComponents (string suite_name)
+    {
+        Suite suite;
+        foreach (Suite s; conf.suites)
+            if (s.name == suite_name)
+                suite = s;
+
+        foreach (string section; suite.sections) {
+            foreach (string arch; parallel (suite.architectures)) {
+                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+
+                foreach (pkg; pkgs) {
+                    auto pkid = Package.getId (pkg);
+
+                    if (dcache.isIgnored (pkid))
+                        continue;
+                    if (!dcache.packageExists (pkid))
+                        continue;
+
+                    dcache.removePackage (pkid);
+                }
+            }
+        }
+
+        dcache.cleanupCruft ();
+    }
+
 }
