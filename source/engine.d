@@ -156,6 +156,10 @@ public:
 
                     pkg.close ();
                 }
+
+                // do garbage collection run now to immediately free some space after these
+                // memory-intensive operations.
+                core.memory.GC.collect ();
             }
         }
     }
@@ -368,6 +372,13 @@ public:
 
             // write reports & statistics and render HTML, if that option is selected
             reportgen.processFor (suite.name, section, sectionPkgs);
+
+            // do garbage collection run now.
+            // we might have allocated very big chunks of memory during this iteration,
+            // that we can (mostly) free now - on some machines, the GC runs too late,
+            // making the system run out of memory, which ultimately gets us OOM-killed.
+            // we don't like that, and give the GC a hint to do the right thing.
+            core.memory.GC.collect ();
         }
 
         // free some memory
