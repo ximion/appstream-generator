@@ -37,6 +37,7 @@ import ag.hint;
 import ag.reportgenerator;
 
 import ag.backend.intf;
+import ag.backend.dummy;
 import ag.backend.debian;
 
 import ag.handlers.iconhandler;
@@ -59,6 +60,9 @@ public:
         this.conf = Config.get ();
 
         switch (conf.backend) {
+            case Backend.Dummy:
+                pkgIndex = new DummyPackageIndex (conf.archiveRoot);
+                break;
             case Backend.Debian:
                 pkgIndex = new DebianPackageIndex (conf.archiveRoot);
                 break;

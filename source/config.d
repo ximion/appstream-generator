@@ -60,6 +60,7 @@ enum DataType
 enum Backend
 {
     Unknown,
+    Dummy,
     Debian
 }
 
@@ -174,6 +175,10 @@ class Config
         if ("Backend" in root)
             backendName = root["Backend"].str.toLower ();
         switch (backendName) {
+            case "dummy":
+                this.backend = Backend.Dummy;
+                this.metadataType = DataType.YAML;
+                break;
             case "debian":
                 this.backend = Backend.Debian;
                 this.metadataType = DataType.YAML;
