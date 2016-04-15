@@ -79,6 +79,7 @@ class Config
     string archiveRoot;
     string mediaBaseUrl;
     string htmlBaseUrl;
+
     Backend backend;
     Suite[] suites;
     DataType metadataType;
@@ -86,6 +87,7 @@ class Config
 
     string workspaceDir;
 
+    string caInfo;
     private string tmpDir;
 
     // Thread local
@@ -163,6 +165,9 @@ class Config
         if ("MetadataType" in root)
             if (root["MetadataType"].str.toLower () == "yaml")
                 this.metadataType = DataType.YAML;
+
+        if ("CAInfo" in root)
+            this.caInfo = root["CAInfo"].str;
 
         // we default to the Debian backend for now
         auto backendName = "debian";

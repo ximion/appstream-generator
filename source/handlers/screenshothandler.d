@@ -76,12 +76,22 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     // drop all images
     imgArr.removeRange (0, imgArr.len);
 
+    auto conf = ag.config.Config.get ();
     auto imgUrl = initImg.getUrl ();
 
     ubyte[] imgData;
     try {
         import std.net.curl;
-        imgData = get! (AutoProtocol, ubyte) (imgUrl);
+        if (imgUrl.startsWith ("ftp:")) {
+            // we have an FTP url
+            imgData = get!(AutoProtocol, ubyte) (imgUrl);
+        } else {
+            // assume HTTP(S)
+            auto http = HTTP ();
+            if (!conf.caInfo.empty ())
+                http.caInfo = conf.caInfo;
+            imgData = get!(HTTP, ubyte) (imgUrl, http);
+        }
     } catch (Exception e) {
         gres.addHint (cpt.getId (), "screenshot-download-error", ["url": imgUrl, "error": e.msg]);
         return null;
