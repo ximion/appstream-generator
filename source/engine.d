@@ -182,16 +182,13 @@ public:
                 head ~= format (" media_baseurl=\"%s\"", conf.mediaBaseUrl);
             head ~= ">";
         } else {
-            auto originYaml = origin;
-            if (originYaml.canFind (" "))
-                originYaml = "\"" ~ origin ~ "\"";
             head = "---\n";
             head ~= format ("File: DEP-11\n"
-                           "Version: \"%s\"\n"
+                           "Version: '%s'\n"
                            "Origin: %s\n"
-                           "MediaBaseUrl: \"%s\"",
+                           "MediaBaseUrl: %s",
                            conf.appstreamVersion,
-                           originYaml,
+                           origin,
                            conf.mediaBaseUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
