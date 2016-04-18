@@ -2,6 +2,7 @@
 set -e
 
 echo "Installing binary..."
+install -d $DESTDIR/usr/bin
 install build/appstream-generator $DESTDIR/usr/bin
 
 echo "Installing data..."
