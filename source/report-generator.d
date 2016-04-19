@@ -674,22 +674,22 @@ public:
             }
             auto suiteSectionObj = smap[suite][section].object;
 
-            auto pointErr = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalErrors"])]);
+            auto pointErr = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalErrors"])]);
             suiteSectionObj["errors"].array ~= pointErr;
 
-            auto pointWarn = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalWarnings"])]);
+            auto pointWarn = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalWarnings"])]);
             suiteSectionObj["warnings"].array ~= pointWarn;
 
-            auto pointInfo = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalInfos"])]);
+            auto pointInfo = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalInfos"])]);
             suiteSectionObj["infos"].array ~= pointInfo;
 
-            auto pointMD = JSONValue (["x": JSONValue (timestamp), "y": JSONValue (jvals["totalMetadata"])]);
+            auto pointMD = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalMetadata"])]);
             suiteSectionObj["metadata"].array ~= pointMD;
         }
 
         bool compareJData (JSONValue x, JSONValue y) @trusted
         {
-            return x["x"].integer < y["x"].integer;
+            return x.array[0].integer < y.array[0].integer;
         }
 
         // ensure our data is sorted ascending by X

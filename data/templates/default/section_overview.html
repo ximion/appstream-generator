@@ -1,36 +1,24 @@
 {{#partial}}{title}Data for {{suite}}/{{section}}{{/partial}}
 
 {{#partial}}{ head_extra }
-<link type="text/css" rel="stylesheet" href="{{root_url}}/static/css/rickshaw.min.css">
-<script src="{{root_url}}/static/js/d3/d3.min.js"></script>
-<script src="{{root_url}}/static/js/d3.layout.min.js"></script>
-<script src="{{root_url}}/static/js/rickshaw/rickshaw.min.js"></script>
+<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/jquery/jquery.min.js"></script>
+<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.time.js"></script>
+<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.resize.js"></script>
+<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.stack.js"></script>
 
 <style>
-#chart_container {
-        position: relative;
-        font-family: Noto, Arial, sans-serif;
+.graph-container {
+    position: relative;
+    height: 280px;
+    width: 80%;
 }
-#chart {
-        position: relative;
-        left: 40px;
-}
-#y_axis {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 40px;
-}
-#legend {
-	display: inline-block;
-	position: relative;
-	left: 8px;
-}
-#legend_container {
-	position: absolute;
-	right: 0;
-	bottom: 26px;
-	width: 0;
+
+.graph-placeholder {
+    width: 100%;
+    height: 100%;
+    font-size: 14px;
+    line-height: 1.2em;
 }
 </style>
 {{/partial}}
@@ -71,14 +59,9 @@
           </div>
         </div>
 
-        <div class="fit" style="margin: 4px;" id="chart_container">
-          <div id="y_axis"></div>
-          <div id="chart"></div>
-          <div id="legend_container">
-            <div id="smoother" title="Smoothing"></div>
-            <div id="legend"></div>
-          </div>
-          <div id="slider"></div>
+        <div class="graph-container" style="width: 100%;">
+          <div id="placeholder" class="graph-placeholder" style="float:left; width:90%;"></div>
+          <div id="choices" style="float:right;"></div>
         </div>
 
       </div>
@@ -96,71 +79,87 @@
       </div>
     </div>
 
-    <script>
-      d3.json("{{root_url}}/statistics.json", function(data, error) {
-        drawGraph(data["{{suite}}"]["{{section}}"]);
-      });
-
-      function drawGraph(data) {
-        var graph = new Rickshaw.Graph( {
-          element: document.querySelector("#chart"),
-          width: 600,
-          height: 260,
-          renderer: 'stack',
-          series: [
-            {
-              color: "#c05020",
-              data: data["errors"],
-              name: "Errors"
-            },
-            {
-              color: "#ffcc66",
-              data: data["warnings"],
-              name: "Warnings"
-            },
-            {
-              color: "#6060c0",
-              data: data["infos"],
-              name: "Infos"
-            },
-            {
-              color: "#30a420",
-              data: data["metadata"],
-              name: "Valid data"
-            }
-          ]
-        } );
-
-        var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
-        var y_axis = new Rickshaw.Graph.Axis.Y( {
-          graph: graph,
-          orientation: 'left',
-          tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-          element: document.getElementById('y_axis'),
-        } );
-
-        graph.render();
-
-        var hoverDetail = new Rickshaw.Graph.HoverDetail( {
-          graph: graph
-        } );
-
-        var legend = new Rickshaw.Graph.Legend( {
-          graph: graph,
-          element: document.getElementById('legend')
-        } );
-
-        var chartContainer = document.getElementById("chart_container");
-        var resize = function () {
-          graph.configure({
-            width: chartContainer.clientWidth - 38
-          });
-          graph.render();
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
+    <script type="text/javascript">
+      function dataUseJSTime(data) {
+          return data.map(function(v) [v[0] * 1000, v[1]]);
       }
+
+      $.getJSON("{{root_url}}/statistics.json", function(allData) {
+        data = allData["{{suite}}"]["{{section}}"];
+
+        var datasets = {
+            "errors": {
+                color: "#c05020",
+                data: dataUseJSTime(data["errors"]),
+                label: "Errors"
+            },
+            "warnings": {
+                color: "#ffcc66",
+                data: dataUseJSTime(data["warnings"]),
+                label: "Warnings"
+            },
+            "infos": {
+                color: "#6060c0",
+                data: dataUseJSTime(data["infos"]),
+                label: "Infos"
+            },
+            "valid": {
+                color: "#30a420",
+                data: dataUseJSTime(data["metadata"]),
+                label: "Valid data"
+            }
+        };
+
+        // insert checkboxes
+        var choiceContainer = $("#choices");
+        $.each(datasets, function(key, val) {
+            choiceContainer.append("<br/><input type='checkbox' name='" + key +
+                "' checked='checked' id='id" + key + "'></input>" +
+                "<label for='id" + key + "'>" + val.label + "</label>");
+        });
+
+        choiceContainer.find("input").click(plotAccordingToChoices);
+
+        function plotAccordingToChoices() {
+            var data = [];
+
+            choiceContainer.find("input:checked").each(function () {
+                var key = $(this).attr("name");
+                if (key && datasets[key]) {
+                    data.push(datasets[key]);
+                }
+            });
+
+            if (data.length > 0) {
+                $.plot("#placeholder", data, {
+                    series: {
+                        stack: true,
+                        lines: {
+                            show: true,
+                            fill: true
+                        }
+                    },
+
+                    yaxis: {
+                        min: 0
+                    },
+
+                    xaxis: {
+                        mode: "time",
+                        timeformat: "%y/%m/%d"
+                    },
+
+                    grid: {
+                        hoverable: true,
+                        clickable: true
+                    }
+                });
+
+            };
+        }
+
+        plotAccordingToChoices();
+      });
     </script>
 
 {{/partial}}
