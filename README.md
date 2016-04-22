@@ -24,21 +24,33 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
+ * Bower (optional) [5]
 
 [1]: https://code.dlang.org/download
 [2]: https://github.com/ximion/appstream
 [3]: http://www.libarchive.org/
 [4]: http://symas.com/mdb/
+[5]: http://bower.io/
+
+On Debian and derivatives of it, all build requirements can be installed using the following command:
+```ShellSession
+sudo apt install dub libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
+    librsvg2-dev liblmdb-dev libglib2.0-dev libcairo2-dev libcurl4-gnutls-dev
+```
 
 ### Build instructions
 
-Just run `dub build` - if all dependencies are set up correctly, the binary will be built and stored as `build/appstream-generator`.
-You might need to update the Git submodules first, run `git submodule update` for that.
+Ensure you have initialized the Git submodules. Run `make update-submodule` to run a fake-target which initializes and updates the submodule.
+Then run `dub build` or `make` to build the software - if all dependencies are set up correctly, the binary will be built and stored as `build/appstream-generator`,
+and can be used directly from there.
 
-On Debian systems, all build requirements can be installed using the following command:
+If you want to use the HTML reports, you need to install Bower, then run `make js` to download the JavaScript bits and store them in the right directory.
+If you want, you can also install the generator system-wide using `make install`. In summary:
 ```ShellSession
-sudo apt install dub libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
-    librsvg2-dev liblmdb-dev libglib2.0-dev libcairo2-dev
+$ make update-submodule
+$ dub build --parallel
+$ make js
+$ sudo make install
 ```
 
 ## Usage
