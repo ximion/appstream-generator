@@ -26,3 +26,5 @@ install:
 update-submodule:
 	git submodule init
 	git submodule update
+
+.PHONY: clean js test install update-submodule
