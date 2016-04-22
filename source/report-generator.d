@@ -567,6 +567,8 @@ public:
                         }
 
                         newInfo = true;
+                    } else {
+                        newInfo = true;
                     }
 
                     he.identifier = cid;
