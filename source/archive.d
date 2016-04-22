@@ -220,11 +220,17 @@ public:
         }
         scope(exit) archive_read_free (ar);
 
-        if (!fname.startsWith (".")) {
-            if (fname.startsWith ("/"))
+        string fnameAbs;
+        if (fname.startsWith (".")) {
+            fnameAbs = absolutePath (fname, "/");
+        } else {
+            if (fname.startsWith ("/")) {
+                fnameAbs = fname;
                 fname = "."~fname;
-            else
+            } else {
                 fname = "./"~fname;
+                fnameAbs = absolutePath (fname, "/");
+            }
         }
 
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
@@ -245,8 +251,9 @@ public:
                         throw new Exception (format ("Unable to read destination of symbolic link for %s.", fname));
 
                     if (!isAbsolute (linkTarget))
-                        linkTarget = absolutePath (linkTarget, dirName (fname));
-                    return this.readData (linkTarget);
+                        linkTarget = absolutePath (linkTarget, dirName (fnameAbs));
+
+                    return this.readData (buildNormalizedPath (linkTarget));
                 }
 
                 if (filetype != S_IFREG) {
