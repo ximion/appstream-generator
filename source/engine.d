@@ -429,11 +429,12 @@ public:
     }
 
     /**
-     * Drop all packages which contain valid components from the database.
+     * Drop all packages which contain valid components or hints
+     * from the database.
      * This is useful when big generator changes have been done, which
      * require reprocessing of all components.
      */
-    void removeValidComponents (string suite_name)
+    void removeHintsComponents (string suite_name)
     {
         Suite suite;
         foreach (Suite s; conf.suites)
@@ -447,9 +448,9 @@ public:
                 foreach (pkg; pkgs) {
                     auto pkid = Package.getId (pkg);
 
-                    if (dcache.isIgnored (pkid))
-                        continue;
                     if (!dcache.packageExists (pkid))
+                        continue;
+                    if (dcache.isIgnored (pkid))
                         continue;
 
                     dcache.removePackage (pkid);
