@@ -22,3 +22,7 @@ clean:
 
 install:
 	./contrib/setup/install.sh
+
+update-submodule:
+	git submodule init
+	git submodule update
