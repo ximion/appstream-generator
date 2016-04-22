@@ -98,7 +98,13 @@
 },
 
 "screenshot-save-error": {
-  "text": "Unable to store screenshot for '{{url}}: {{error}}",
+  "text": "Unable to store screenshot for '{{url}}': {{error}}",
+  "severity": "warning"
+},
+
+"screenshot-no-thumbnails": {
+  "text": ["No thumbnails have been generated for screenshot '{{url}}'.<br/>",
+           "This could be a sign of the original screenshot being too small."],
   "severity": "warning"
 },
 

@@ -110,6 +110,8 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     auto cptScreenshotsUrl = buildPath (gcid, "screenshots");
     std.file.mkdirRecurse (cptScreenshotsPath);
 
+    uint sourceScrWidth;
+    uint sourceScrHeight;
     try {
         auto srcImgName = format ("image-%s_orig.png", scrNo);
         auto srcImgPath = buildPath (cptScreenshotsPath, srcImgName);
@@ -121,8 +123,12 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
 
         auto img = new Image ();
         img.setKind (ImageKind.SOURCE);
-        img.setWidth (srcImg.width);
-        img.setHeight (srcImg.height);
+
+        sourceScrWidth = srcImg.width;
+        sourceScrHeight = srcImg.height;
+        img.setWidth (sourceScrWidth);
+        img.setHeight (sourceScrHeight);
+
         img.setUrl (srcImgUrl);
         scr.addImage (img);
     } catch (Exception e) {
@@ -131,7 +137,14 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     }
 
     // generate & save thumbnails for the screenshot image
+    bool thumbnailsGenerated = false;
     foreach (size; screenshotSizes) {
+        // ensure we will only downscale the screenshot for thumbnailing
+        if (size.width > sourceScrWidth)
+            continue;
+        if (size.height > sourceScrHeight)
+            continue;
+
         auto thumbImgName = format ("image-%s_%s.png", scrNo, size.toString ());
         auto thumbImgPath = buildPath (cptScreenshotsPath, thumbImgName);
         auto thumbImgUrl =  buildPath (cptScreenshotsUrl, thumbImgName);
@@ -156,7 +169,12 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             gres.addHint (cpt.getId (), "screenshot-save-error", ["url": imgUrl, "error": format ("Failure while preparing thumbnail: %s", e.msg)]);
             return null;
         }
+
+        thumbnailsGenerated = true;
     }
+
+    if (!thumbnailsGenerated)
+        gres.addHint (cpt.getId (), "screenshot-no-thumbnails", ["url": imgUrl]);
 
     return scr;
 }
