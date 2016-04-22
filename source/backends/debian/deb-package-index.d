@@ -114,8 +114,10 @@ public:
     private Package[] loadPackages (string suite, string section, string arch)
     {
         auto indexFname = buildPath (rootDir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
-        if (!std.file.exists (indexFname))
-            throw new Exception ("File '%s' does not exist.", indexFname);
+        if (!std.file.exists (indexFname)) {
+            logWarning ("Archive package index file '%s' does not exist.", indexFname);
+            return [];
+        }
 
         auto tagf = new TagFile ();
         try {
