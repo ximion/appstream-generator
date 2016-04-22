@@ -22,6 +22,7 @@ module ag.backend.debian.tagfile;
 import std.stdio;
 import std.string;
 import ag.archive;
+import ag.logging;
 
 
 class TagFile
@@ -45,7 +46,12 @@ public:
         try {
             data = decompressFile (fname);
         } catch (Exception e) {
-            throw e;
+            // libarchive fails to detect GZip-compressed zero-byte documents proprly and emits an error.
+            // We don't want this to be a permanent failure, so we ignore errors in that particular case.
+            if (fname.endsWith (".gz"))
+                logWarning (e.msg);
+            else
+                throw e;
         }
 
         content = splitLines (data);

@@ -37,14 +37,19 @@ immutable ARCHIVE_FAILED = -25; /* Current operation cannot complete. */
 immutable ARCHIVE_FATAL = -30;  /* No more operations are possible. */
 
 const(char) *archive_error_string (archive*);
+int archive_errno (archive*);
 
 archive *archive_read_new ();
 int archive_read_free (archive*);
 
-int archive_read_support_compression_all (archive*);
+int archive_read_support_filter_all (archive*);
+int archive_read_support_filter_gzip (archive*);
+int archive_read_support_filter_lzma (archive*);
+
 int archive_read_support_format_raw (archive*);
 int archive_read_support_format_all (archive*);
-int archive_read_support_filter_all (archive*);
+int archive_read_support_format_ar (archive*);
+int archive_read_support_format_gnutar (archive*);
 
 int archive_read_open_filename (archive*, const(char) *filename, usize block_size);
 int archive_read_open_FILE (archive*, FILE *file);

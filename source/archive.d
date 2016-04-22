@@ -76,12 +76,12 @@ string decompressFile (string fname)
     archive *ar = archive_read_new ();
     scope(exit) archive_read_free (ar);
 
-    archive_read_support_compression_all (ar);
     archive_read_support_format_raw (ar);
+    archive_read_support_filter_all (ar);
 
     ret = archive_read_open_filename (ar, toStringz (fname), 16384);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open compressed file '%s'", fname));
+        throw new Exception (format ("Unable to open compressed file '%s': %s", fname, fromStringz (archive_error_string (ar))));
 
     return readArchiveData (ar, fname);
 }
@@ -93,7 +93,7 @@ string decompressData (ubyte[] data)
     archive *ar = archive_read_new ();
     scope(exit) archive_read_free (ar);
 
-    archive_read_support_compression_all (ar);
+    archive_read_support_filter_all (ar);
     archive_read_support_format_raw (ar);
 
     auto dSize = ubyte.sizeof * data.length;
@@ -159,7 +159,7 @@ private:
     {
         archive *ar = archive_read_new ();
 
-        archive_read_support_compression_all (ar);
+        archive_read_support_filter_all (ar);
         archive_read_support_format_all (ar);
 
         auto ret = archive_read_open_filename (ar, archive_fname.toStringz (), DEFAULT_BLOCK_SIZE);
