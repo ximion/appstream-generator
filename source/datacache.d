@@ -562,9 +562,17 @@ public:
             // we were too fast! - try again we slightly increased time, if that
             // also fails, we have a bigger problem here and should fail.
             logDebug ("Attempted to add statistics at the exact same time when we have already added some. We are suspiciously fast...");
-            size_t newTime = unixTime + 1;
-            dbkey.mv_data = &newTime;
-            res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
+            uint i = 1;
+            do {
+                size_t newTime = unixTime + i;
+                dbkey.mv_data = &newTime;
+                res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
+
+                // limit the amount of tries
+                if (i > 20)
+                    break;
+                i++;
+            } while (res == MDB_KEYEXIST);
         }
         checkError (res, "mdb_put (stats)");
     }
