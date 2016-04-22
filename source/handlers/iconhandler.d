@@ -216,6 +216,7 @@ public:
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
+        Theme[string] tmpThemes;
         auto filesPkids = ccache.getContentsMap (pkgMap.keys ());
         foreach (fname; parallel (filesPkids.byKey (), 100)) {
             if (fname.startsWith ("/usr/share/pixmaps/")) {
@@ -237,11 +238,18 @@ public:
 
             foreach (name; themeNames) {
                 if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
-                    synchronized (this) themes ~= new Theme (name, pkg);
+                    synchronized (this) tmpThemes[name] = new Theme (name, pkg);
                 } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {
                     synchronized (this) iconFiles[fname] = pkg;
                 }
             }
+        }
+
+        // this is necessary to keep the ordering (and therefore priority) of themes.
+        // we don't know the order in which we find index.theme files in the code above,
+        // therefore this sorting is necessary.
+        foreach (tname; themeNames) {
+            themes ~= tmpThemes[tname];
         }
 
         logDebug ("Created new IconHandler.");
