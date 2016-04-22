@@ -35,9 +35,9 @@ private immutable helpText =
 AppStream Metadata Generator
 
 Subcommands:
-  process [SUITE]      - Process new metadata for the given distribution suite.
-  cleanup              - Cleanup old metadata and media files.
-  remove-found [SUITE] - Drop all valid processed metadata and hints.
+  process SUITE      - Process new metadata for the given distribution suite.
+  cleanup            - Cleanup old metadata and media files.
+  remove-found SUITE - Drop all valid processed metadata and hints.
 
 Help Options:
   -h, --help       Show help options
