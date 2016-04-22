@@ -24,6 +24,7 @@ import std.string;
 import std.json;
 
 import ag.logging;
+import ag.utils;
 
 alias HintList = GeneratorHint[];
 
@@ -140,12 +141,7 @@ class HintsStorage
         import std.path;
 
         // find the hint definition file
-        auto exeDir = dirName (std.file.thisExePath ());
-        auto hintsDefFile = buildNormalizedPath (exeDir, "..", "data", "asgen-hints.json");
-
-        if (!std.file.exists (hintsDefFile))
-            hintsDefFile = "/usr/share/appstream/asgen-hints.json";
-
+        auto hintsDefFile = getDataPath ("asgen-hints.json");
         if (!std.file.exists (hintsDefFile)) {
             logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
             return;

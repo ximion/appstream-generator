@@ -63,11 +63,9 @@ private:
 
 public:
 
-    this (string name, Package pkg)
+    this (string name, string indexData)
     {
         this.name = name;
-
-        auto indexData = pkg.getFileData (buildPath ("/usr/share/icons", name, "index.theme"));
 
         auto index = new KeyFile ();
         index.loadFromData (indexData, -1, GKeyFileFlags.NONE);
@@ -118,6 +116,12 @@ public:
             ];
             directories ~= themedir;
         }
+    }
+
+    this (string name, Package pkg)
+    {
+        auto indexData = pkg.getFileData (buildPath ("/usr/share/icons", name, "index.theme"));
+        this (name, indexData);
     }
 
     private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size)
@@ -245,11 +249,31 @@ public:
             }
         }
 
+        // when running on partial repos (e.g. PPAs) we might not have a package containing the
+        // hicolor theme definition. Since we always need it to be there to properly process icons,
+        // we inject our own copy here.
+        if ("hicolor" !in tmpThemes) {
+            logInfo ("No packaged hicolor icon theme found, using built-in one.");
+            auto hicolorThemeIndex = getDataPath ("hicolor-theme-index.theme");
+            if (!std.file.exists (hicolorThemeIndex)) {
+                logError ("Hicolor icon theme index at '%s' was not found! We will not be able to handle icons in this theme.", hicolorThemeIndex);
+            } else {
+                auto f = File (hicolorThemeIndex, "r");
+                string indexData;
+                string ln;
+                while ((ln = f.readln ()) !is null)
+                    indexData ~= ln;
+
+                tmpThemes["hicolor"] = new Theme ("hicolor", indexData);
+            }
+        }
+
         // this is necessary to keep the ordering (and therefore priority) of themes.
         // we don't know the order in which we find index.theme files in the code above,
         // therefore this sorting is necessary.
         foreach (tname; themeNames) {
-            themes ~= tmpThemes[tname];
+            if (tname in tmpThemes)
+                themes ~= tmpThemes[tname];
         }
 
         logDebug ("Created new IconHandler.");
@@ -595,13 +619,32 @@ public:
 
 unittest
 {
-    import ag.backend.debian.debpackage;
     writeln ("TEST: ", "IconHandler");
 
-    //auto pkg = new DebPackage ("foobar", "1.0", "amd64");
-    //pkg.filename = "/srv/debmirror/tanglu/pool/main/a/adwaita-icon-theme/adwaita-icon-theme_3.16.0-0tanglu1_all.deb";
+    auto hicolorThemeIndex = getDataPath ("hicolor-theme-index.theme");
+    auto f = File (hicolorThemeIndex, "r");
+    string indexData;
+    string ln;
+    while ((ln = f.readln ()) !is null)
+        indexData ~= ln;
 
-    //auto theme = new Theme ("Adwaita", pkg);
-    //foreach (fname; theme.matchingIconFilenames ("accessories-calculator", ImageSize (48)))
-    //    writeln (fname);
+    auto theme = new Theme ("hicolor", indexData);
+    foreach (fname; theme.matchingIconFilenames ("accessories-calculator", ImageSize (48))) {
+        bool valid = false;
+        if (fname.startsWith ("/usr/share/icons/hicolor/48x48/"))
+            valid = true;
+        if (fname.startsWith ("/usr/share/icons/hicolor/scalable/"))
+            valid = true;
+        assert (valid);
+
+        if ((valid) && (IconHandler.iconAllowed (fname)))
+            valid = true;
+        else
+            valid = false;
+
+        if (fname.endsWith (".xpm"))
+            assert (!valid);
+        else
+            assert (valid);
+    }
 }

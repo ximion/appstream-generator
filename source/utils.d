@@ -198,6 +198,9 @@ void copyDir (in string srcDir, in string destDir)
 	}
 }
 
+/**
+ * Escape XML characters.
+ */
 S escapeXml (S) (S s)
 {
     string r;
@@ -224,6 +227,24 @@ S escapeXml (S) (S s)
         return s;
     result.put (s[lastI .. $]);
     return result.data;
+}
+
+/**
+ * Get full path for an AppStream generator data file.
+ */
+string getDataPath (string fname)
+{
+    import std.path;
+    auto exeDir = dirName (std.file.thisExePath ());
+
+    if (exeDir.startsWith ("/usr"))
+        return buildPath ("/usr/share/appstream", fname);
+
+    auto resPath = buildNormalizedPath (exeDir, "..", "data", fname);
+    if (!std.file.exists (resPath))
+        return buildPath ("/usr/share/appstream", fname);
+
+    return resPath;
 }
 
 unittest
