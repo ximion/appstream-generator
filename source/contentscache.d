@@ -40,7 +40,8 @@ class ContentsCache
 
 private:
     MDB_envp dbEnv;
-    MDB_dbi dbi;
+    MDB_dbi dbContents;
+    MDB_dbi dbIcons;
 
     bool opened;
 
@@ -78,6 +79,11 @@ public:
         scope (failure) dbEnv.mdb_env_close ();
         checkError (rc, "mdb_env_create");
 
+        // We are going to use at max 2 sub-databases:
+        // contents and icons
+        rc = dbEnv.mdb_env_set_maxdbs (2);
+        checkError (rc, "mdb_env_set_maxdbs");
+
         // set a huge map size to be futureproof.
         // This means we're cruel to non-64bit users, but this
         // software is supposed to be run on 64bit machines anyway.
@@ -89,14 +95,21 @@ public:
         rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, std.conv.octal!755);
         checkError (rc, "mdb_env_open");
 
-        // get dbi
+        // open sub-databases in the environment
         MDB_txnp txn;
         rc = dbEnv.mdb_txn_begin (null, 0, &txn);
         checkError (rc, "mdb_txn_begin");
         scope (failure) txn.mdb_txn_abort ();
 
-        rc = txn.mdb_dbi_open (null, MDB_CREATE, &dbi);
+        // contains a full list of all contents
+        rc = txn.mdb_dbi_open ("contents", MDB_CREATE, &dbContents);
         checkError (rc, "open contents database");
+
+        // contains list of icon files and related data
+        // the contents sub-database exists only to allow building instances
+        // of IconHandler much faster.
+        rc = txn.mdb_dbi_open ("icondata", MDB_CREATE, &dbIcons);
+        checkError (rc, "open icon-info database");
 
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
@@ -155,8 +168,12 @@ public:
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_del (dbi, &key, null);
-        checkError (res, "mdb_del");
+        auto res = txn.mdb_del (dbContents, &key, null);
+        checkError (res, "mdb_del (contents)");
+
+        res = txn.mdb_del (dbIcons, &key, null);
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del (icons)");
     }
 
     bool packageExists (string pkid)
@@ -168,7 +185,7 @@ public:
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
+        auto res = txn.mdb_cursor_open (dbContents, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
@@ -192,7 +209,7 @@ public:
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_put (dbi, &key, &value, 0);
+        auto res = txn.mdb_put (dbContents, &key, &value, 0);
         checkError (res, "mdb_put");
     }
 
@@ -203,7 +220,7 @@ public:
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
+        auto res = txn.mdb_cursor_open (dbContents, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
@@ -241,7 +258,7 @@ public:
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
+        auto res = txn.mdb_cursor_open (dbContents, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
@@ -264,7 +281,7 @@ public:
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
+        auto res = txn.mdb_cursor_open (dbContents, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open (pkgcruft_contents)");
 
@@ -278,6 +295,10 @@ public:
             // and we can remove it.
             res = cur.mdb_cursor_del (0);
             checkError (res, "mdb_del");
+
+            res = txn.mdb_del (dbIcons, &pkey, null);
+            if (res != MDB_NOTFOUND)
+                checkError (res, "mdb_del (icons)");
         }
     }
 
