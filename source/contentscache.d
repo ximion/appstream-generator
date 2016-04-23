@@ -201,6 +201,15 @@ public:
     {
         MDB_val key, value;
 
+        // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index)
+        string[] iconInfo;
+        foreach (c; contents) {
+            if ((c.startsWith ("/usr/share/icons/")) ||
+                (c.startsWith ("/usr/share/pixmaps/"))) {
+                    iconInfo ~= c;
+                }
+        }
+
         string contentsStr = contents.join ("\n");
         key = makeDbValue (pkid);
         value = makeDbValue (contentsStr);
@@ -211,16 +220,25 @@ public:
 
         auto res = txn.mdb_put (dbContents, &key, &value, 0);
         checkError (res, "mdb_put");
+
+        if (!iconInfo.empty ()) {
+            // we have icon information, store it too
+            string iconsStr = iconInfo.join ("\n");
+            value = makeDbValue (iconsStr);
+
+            res = txn.mdb_put (dbIcons, &key, &value, 0);
+            checkError (res, "mdb_put (icons)");
+        }
     }
 
-    string[string] getContentsMap (string[] pkids)
+    private string[string] getFilesMap (string[] pkids, MDB_dbi dbi)
     {
         MDB_cursorp cur;
 
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbContents, &cur);
+        auto res = txn.mdb_cursor_open (dbi, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
@@ -246,6 +264,16 @@ public:
         }
 
         return pkgCMap;
+    }
+
+    string[string] getContentsMap (string[] pkids)
+    {
+        return getFilesMap (pkids, dbContents);
+    }
+
+    string[string] getIconFilesMap (string[] pkids)
+    {
+        return getFilesMap (pkids, dbIcons);
     }
 
     string[] getContents (string pkid)

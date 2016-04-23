@@ -221,7 +221,7 @@ public:
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
         Theme[string] tmpThemes;
-        auto filesPkids = ccache.getContentsMap (pkgMap.keys ());
+        auto filesPkids = ccache.getIconFilesMap (pkgMap.keys ());
         foreach (fname; parallel (filesPkids.byKey (), 100)) {
             if (fname.startsWith ("/usr/share/pixmaps/")) {
                 auto pkg = getPackage (filesPkids[fname]);
