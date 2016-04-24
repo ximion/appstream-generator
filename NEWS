@@ -1,3 +1,34 @@
+Version 0.2.0
+~~~~~~~~~~~~~~
+Released: 2016-04-24
+
+Features:
+ * Don't ship minified JS
+ * Get rid of (almost) all the embedded JS copies, use Bower
+ * Add makefile for convenience
+ * Use Flot for drawing graphs
+ * Update README
+ * Document all asgen-config settings
+ * Reserve subdb in contents database to cache icon data
+ * Make IconHandler use a pre-filtered list of icons
+ * Allow templates to override only parts of the default branding
+ * Add some default branding for Debian
+ * Show logo on generated HTML pages
+ * debian: Link some interesting resources from the main page
+
+Bugfixes:
+ * Find aliased icons correctly
+ * Keep priority sorting of themes
+ * Make the hicolor theme always-available, using an embedded index copy if necessary
+ * Fix counting of issues
+ * Do not accidentally upscale screenshots while creating thumbnails
+ * debian: Don't make a missing package index fatal
+ * Don't fail if we are trying to add statistics too quickly
+ * Rename remove-valid to reflect what it actually does
+ * Ignore errors if we are trying to decompress a 0-byte gzip file
+ * Suite arguments aren't optional for process/remove-found
+ * Demote screenshot-no-thumbnails to info
+
 Version 0.1.0
 ~~~~~~~~~~~~~~
 Released: 2016-04-18
