@@ -30,7 +30,7 @@ import ag.utils;
 import ag.logging;
 
 
-public immutable generatorVersion = "0.2";
+public immutable generatorVersion = "0.3";
 
 /**
  * Describes a suite in a software repository.
