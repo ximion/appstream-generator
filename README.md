@@ -7,7 +7,7 @@ The AppStream generator is currently primarily used by Debian, but is written in
 
 If you are looking for the AppStream client-tools, the [AppStream repository](https://github.com/ximion/appstream) is where you want to go.
 
-![AppStream Generator Logo](docs/asgen.png "AppStream Generator")
+![AppStream Generator Logo](data/templates/default/static/img/asgen.png "AppStream Generator")
 
 
 ## Development
