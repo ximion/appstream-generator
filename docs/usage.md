@@ -10,10 +10,10 @@ metadata generator. Details on the file and an example can be found in [the asge
 
 After the config file has been written, you can generate the metadata as follows:
 ```Bash
-cd /srv/dep11/workspace # path where the dep11-config.yml file is located
+cd /srv/asgen/workspace # path where the asgen-config.json file is located
 appstream-generator process chromodoris # replace "chromodoris" with the name of the suite you want to analyze
 ```
-The generator is assuming you have enough memory on your machine to cache stuff.
+The generator is assuming you have enough memory and disk space on your machine to cache stuff.
 Resulting metadata will be placed in `export/data/`, machine-readable issue-hints can be found in `export/hints/` and the processed screenshots and icons are located in `export/media/`.
 
 In order to drop old packages and cruft from the databases, you should run
