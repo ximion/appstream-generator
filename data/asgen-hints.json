@@ -105,7 +105,7 @@
 "screenshot-no-thumbnails": {
   "text": ["No thumbnails have been generated for screenshot '{{url}}'.<br/>",
            "This could be a sign of the original screenshot being too small."],
-  "severity": "warning"
+  "severity": "info"
 },
 
 "no-install-candidate": {
