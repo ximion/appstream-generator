@@ -51,6 +51,7 @@ private:
     string exportDir;
     string htmlExportDir;
     string templateDir;
+    string defaultTemplateDir;
 
     string mediaBaseDir;
     string mediaBaseUrl;
@@ -131,6 +132,8 @@ public:
         }
 
         templateDir = tdir;
+        defaultTemplateDir = buildNormalizedPath (tdir, "..", "default");
+
         mustache.path = templateDir;
         mustache.ext = "html";
     }
@@ -147,7 +150,7 @@ public:
     {
         string tdir;
         if (conf.projectName !is null) {
-            tdir = buildPath (dir, conf.projectName);
+            tdir = buildPath (dir, conf.projectName.toLower ());
             if (isDir (tdir))
                 return tdir;
         }
@@ -188,7 +191,7 @@ public:
         string[string] partials;
 
         // this implements a very cheap way to get template inheritance
-        // would obviously be better if our template system would support this natively.
+        // would obviously be better if our template system supported this natively.
         context["partial"] = (string str) {
             auto split = splitBlockData (str, "partial");
             partials[split[0]] = split[1];
@@ -208,7 +211,7 @@ public:
         };
 
         auto time = std.datetime.Clock.currTime ();
-        auto timeStr = format ("%d-%02d-%02d %02d:%02d [%s]", time.year, time.month, time.day, time.hour,time.minute, time.timezone.name);
+        auto timeStr = format ("%d-%02d-%02d %02d:%02d [%s]", time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
         context["generator_version"] = ag.config.generatorVersion;
@@ -223,10 +226,18 @@ public:
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
         mkdirRecurse (dirName (fname));
 
+        if (!std.file.exists (buildPath (templateDir, pageID ~ ".html"))) {
+            if (std.file.exists (buildPath (defaultTemplateDir, pageID ~ ".html")))
+                mustache.path = defaultTemplateDir;
+        }
+
         logDebug ("Rendering HTML page: %s", exportName);
         auto data = mustache.render (pageID, context).strip ();
         auto f = File (fname, "w");
         f.writeln (data);
+
+        // reset default template path, we might have changed it
+        mustache.path = templateDir;
     }
 
     private void renderPagesFor (string suiteName, string section, DataSummary dsum)

@@ -148,6 +148,9 @@ string getCidFromGlobalID (string gcid)
 
 /**
  * Copy a directory using parallelism.
+ * This function follows symbolic links,
+ * and replaces them with actual directories
+ * in destDir.
  *
  * Original (c) Jay Norwood
  */
@@ -181,8 +184,8 @@ void copyDir (in string srcDir, in string destDir)
 
 		// make an array of the regular files only, also create the directory structure
 		// Since it is SpanMode.breadth, we can just use mkdir
- 		foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, false)) {
-			if (attrIsDir (e.linkAttributes)) {
+ 		foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, true)) {
+			if (attrIsDir (e.attributes)) {
 				auto childDir = destRoot ~ e.name[srcLen..$];
 				mkdir (childDir);
 			} else {
