@@ -22,11 +22,16 @@
     {{/suites}}
 
     <br/><hr/>
-    <h1>What is AppStream?</h1>
+    <h1>What is AppStream and DEP-11?</h1>
     <p>
       AppStream is a cross-distro XML format to provide metadata for software components and to assign unique identifiers to software.<br/>
-      In {{project_name}}, we parse all XML provided by upstream projects as well as other metadata (.desktop-files, ...), and compile a single
-      metadata file from it, which is then shipped to users.
+      In Debian, we parse all XML provided by upstream projects as well as other metadata (.desktop-files, ...), and compile a single YAML
+      metadata file from it, which is then shipped to users via APT.
+    </p>
+    <p>
+      While the official AppStream specification is based on XML, Debian uses a YAML version of the format for easier use in existing
+      scripts and for better archive integration. This format is called DEP-11, and initially had a much wider scope in enhancing
+      archive metadata than AppStream had. Today AppStream covers that as well, and DEP-11 is only a YAML version of AppStream.
     </p>
     <p>
       The generated metadata can for example be used by software centers like GNOME Software or KDE Discover to display a user-friendly application-centric
@@ -37,7 +42,9 @@
 
     <h1>More information</h1>
     <p>
-      The offical AppStream specification can be found at <a href="http://www.freedesktop.org/software/appstream/docs/">freedesktop.org</a>.
+      See <a href="https://wiki.debian.org/AppStream">AppStream @ wiki.d.o</a> for information about AppStream integration and usage in Debian.<br/>
+      The offical AppStream specification can be found at <a href="http://www.freedesktop.org/software/appstream/docs/">freedesktop.org</a>, a description
+      of the <a href="http://www.freedesktop.org/software/appstream/docs/sect-AppStream-DEP11.html">DEP-11 YAML format</a> is hosted there as well.
     </p>
     <p>
       You can find the source-code of the AppStream Generator <a href="https://github.com/ximion/appstream-generator">here</a>.
