@@ -19,5 +19,5 @@
 
 module ag.backend.dummy;
 
-public import ag.backend.dummy.dummypackage;
+public import ag.backend.dummy.dummypkg;
 public import ag.backend.dummy.pkgindex;

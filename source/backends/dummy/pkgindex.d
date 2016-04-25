@@ -26,7 +26,7 @@ import std.algorithm : remove;
 
 import ag.logging;
 import ag.backend.intf;
-import ag.backend.dummy.dummypackage;
+import ag.backend.dummy.dummypkg;
 
 
 class DummyPackageIndex : PackageIndex

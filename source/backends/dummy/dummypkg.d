@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.dummy.dummypackage;
+module ag.backend.dummy.dummypkg;
 
 import std.stdio;
 import std.string;
@@ -35,8 +35,6 @@ private:
     string pkgmaintainer;
     string[string] desc;
     string testPkgFname;
-
-    string[] contentsL;
 
 public:
     @property string name () { return pkgname; }
