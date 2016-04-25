@@ -11,6 +11,7 @@ An example `asgen-config.json` file may look like this:
 "ArchiveRoot": "/srv/archive.tanglu.org/tanglu/",
 "MediaBaseUrl": "http://metadata.tanglu.org/appstream/media",
 "HtmlBaseUrl": "http://metadata.tanglu.org/appstream/",
+"Backend": "debian",
 "Features":
   {
     "validateMetainfo": true
