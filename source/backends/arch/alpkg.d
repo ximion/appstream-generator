@@ -22,8 +22,10 @@ module ag.backend.archlinux.alpkg;
 import std.stdio;
 import std.string;
 import std.array : empty;
-import ag.backend.intf;
+
 import ag.logging;
+import ag.archive;
+import ag.backend.intf;
 
 
 class ArchPackage : Package
@@ -34,17 +36,19 @@ private:
     string pkgarch;
     string pkgmaintainer;
     string[string] desc;
-    string testPkgFname;
+    string pkgFname;
 
     string[] contentsL;
+
+    ArchiveDecompressor archive;
 
 public:
     @property string name () { return pkgname; }
     @property string ver () { return pkgver; }
     @property string arch () { return pkgarch; }
     @property string[string] description () { return desc; }
-    @property string filename () { return testPkgFname; }
-    @property void filename (string fname) { testPkgFname = fname; }
+    @property string filename () { return pkgFname; }
+    @property void filename (string fname) { pkgFname = fname; }
     @property string maintainer () { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
 
@@ -79,16 +83,28 @@ public:
 
     string getFileData (string fname)
     {
-        return "NOTHING";
+        if (archive is null) {
+            archive = new ArchiveDecompressor ();
+            archive.open (this.filename);
+        }
+
+        return archive.readData (fname);
     }
 
     @property
     string[] contents ()
     {
-        return ["NOTHING1", "NOTHING2"];
+        return contentsL;
+    }
+
+    @property
+    void contents (string[] c)
+    {
+        contentsL = c;
     }
 
     void close ()
     {
+        archive = null;
     }
 }

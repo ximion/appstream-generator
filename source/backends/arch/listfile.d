@@ -38,7 +38,7 @@ public:
     void loadData (string data)
     {
         string[] content;
-        content = splitLines (data);
+        content = data.splitLines ();
 
         string blockName = null;
         foreach (l; content) {
@@ -62,7 +62,7 @@ public:
         }
     }
 
-    string readEntry (string name)
+    string getEntry (string name)
     {
         auto resP = name in entries;
 
@@ -103,8 +103,8 @@ a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5""";
     auto lf = new ListFile ();
     lf.loadData (data);
 
-    assert (lf.readEntry ("FILENAME") == "a2ps-4.14-6-x86_64.pkg.tar.xz");
-    assert (lf.readEntry ("VERSION") == "4.14-6");
-    assert (lf.readEntry ("MULTILINE") == "Blah1\nBLUBB2\nEtcEtcEtc3");
-    assert (lf.readEntry ("SHA256SUM") == "a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5");
+    assert (lf.getEntry ("FILENAME") == "a2ps-4.14-6-x86_64.pkg.tar.xz");
+    assert (lf.getEntry ("VERSION") == "4.14-6");
+    assert (lf.getEntry ("MULTILINE") == "Blah1\nBLUBB2\nEtcEtcEtc3");
+    assert (lf.getEntry ("SHA256SUM") == "a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5");
 }

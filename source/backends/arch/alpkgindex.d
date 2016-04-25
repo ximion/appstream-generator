@@ -22,11 +22,13 @@ module ag.backend.archlinux.pkgindex;
 import std.stdio;
 import std.path;
 import std.string;
+import std.algorithm : canFind;
 
 import ag.logging;
 import ag.archive;
 import ag.backend.intf;
 import ag.backend.archlinux.alpkg;
+import ag.backend.archlinux.listfile;
 
 
 class ArchPackageIndex : PackageIndex
@@ -50,9 +52,19 @@ public:
         pkgCache = null;
     }
 
+    private void setPkgDescription (ArchPackage pkg, string pkgDesc)
+    {
+        if (pkgDesc is null)
+            return;
+
+        auto desc = "<p>" ~ pkgDesc ~ "</p>";
+        pkg.setDescription (desc, "C");
+    }
+
     private Package[] loadPackages (string suite, string section, string arch)
     {
-        auto listsTarFname = buildPath (rootDir, suite, section, "os", arch, format ("%s.files.tar.gz", section));
+        auto pkgRoot = buildPath (rootDir, suite, section, "os", arch);
+        auto listsTarFname = buildPath (pkgRoot, format ("%s.files.tar.gz", section));
         if (!std.file.exists (listsTarFname)) {
             logWarning ("Package lists tarball '%s' does not exist.", listsTarFname);
             return [];
@@ -64,11 +76,44 @@ public:
 
         logDebug ("Opened: %s", listsTarFname);
 
+        // TODO: This approach is very slow - we want a generator in ArchiveDecompressor,
+        // allowing us to go through the tarball and extract interesting entries immediately,
+        // without reopening the archive and scanning through it over and over again.
+
         Package[] pkgs;
         foreach (fname; tarContents) {
-            // TODO: Read file list and build ArchPackage instances
+            if (baseName (fname) != "desc")
+                continue;
 
-            // pkgs ~= ArchPackage ("name", "1.0", "x86_64");
+            auto descData = ad.readData (fname);
+            auto descF = new ListFile ();
+            descF.loadData (descData);
+
+            auto filesData = ad.readData (buildNormalizedPath (fname, "..", "files"));
+            auto filesF = new ListFile ();
+            filesF.loadData (filesData);
+
+            auto pkg = new ArchPackage (descF.getEntry ("NAME"),
+                                        descF.getEntry ("VERSION"),
+                                        descF.getEntry ("ARCH"));
+            pkg.maintainer = descF.getEntry ("PACKAGER");
+            pkg.filename = buildPath (pkgRoot, descF.getEntry ("FILENAME"));
+            setPkgDescription (pkg, descF.getEntry ("DESC"));
+
+            auto filesStr = filesF.getEntry ("FILES");
+            if (filesStr is null) {
+                if (!pkg.name.canFind ("-meta")) {
+                    logError ("Package '%s' has no file list set. Ignoring it.", pkg.toString ());
+                    continue;
+                }
+            }
+
+            string[] contents;
+            foreach (l; filesStr.splitLines ())
+                contents ~= "/" ~ l;
+            pkg.contents = contents;
+
+            pkgs ~= pkg;
         }
 
         return pkgs;
