@@ -169,6 +169,21 @@ private:
         return ar;
     }
 
+    bool pathMatches (string path1, string path2) {
+        import std.path;
+
+        if (path1 == path2)
+            return true;
+
+        auto path1Abs = buildNormalizedPath ("/", path1);
+        auto path2Abs = buildNormalizedPath ("/", path2);
+
+        if (path1Abs == path2Abs)
+            return true;
+
+        return false;
+    }
+
 public:
 
     this ()
@@ -195,7 +210,7 @@ public:
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
 
-            if (pathname == fname) {
+            if (pathMatches (fname, to!string (pathname))) {
                 this.extractEntryTo (ar, fdest);
                 return true;
 		    } else {
@@ -220,23 +235,11 @@ public:
         }
         scope(exit) archive_read_free (ar);
 
-        string fnameAbs;
-        if (fname.startsWith (".")) {
-            fnameAbs = absolutePath (fname, "/");
-        } else {
-            if (fname.startsWith ("/")) {
-                fnameAbs = fname;
-                fname = "."~fname;
-            } else {
-                fname = "./"~fname;
-                fnameAbs = absolutePath (fname, "/");
-            }
-        }
-
+        auto fnameAbs = absolutePath (fname, "/");
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
 
-            if (pathname == fname) {
+            if (pathMatches (fname, to!string (pathname))) {
                 auto filetype = archive_entry_filetype (en);
 
                 if (filetype == S_IFDIR) {
@@ -323,9 +326,8 @@ public:
             if (pathname.endsWith ("/"))
                 continue;
 
-            if (pathname.startsWith ("."))
-                pathname = pathname[1..$];
-            contents ~= to!string (pathname);
+            auto path = std.path.buildNormalizedPath ("/", to!string (pathname));
+            contents ~= path;
         }
 
         return contents;
