@@ -39,6 +39,7 @@ import ag.reportgenerator;
 import ag.backend.intf;
 import ag.backend.dummy;
 import ag.backend.debian;
+import ag.backend.archlinux;
 
 import ag.handlers.iconhandler;
 
@@ -65,6 +66,9 @@ public:
                 break;
             case Backend.Debian:
                 pkgIndex = new DebianPackageIndex (conf.archiveRoot);
+                break;
+            case Backend.Archlinux:
+                pkgIndex = new ArchPackageIndex (conf.archiveRoot);
                 break;
             default:
                 throw new Exception ("No backend specified, can not continue!");

@@ -61,7 +61,8 @@ enum Backend
 {
     Unknown,
     Dummy,
-    Debian
+    Debian,
+    Archlinux
 }
 
 enum GeneratorFeature
@@ -182,6 +183,11 @@ class Config
             case "debian":
                 this.backend = Backend.Debian;
                 this.metadataType = DataType.YAML;
+                break;
+            case "arch":
+            case "archlinux":
+                this.backend = Backend.Archlinux;
+                this.metadataType = DataType.XML;
                 break;
             default:
                 break;
