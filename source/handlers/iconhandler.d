@@ -70,7 +70,7 @@ public:
         auto index = new KeyFile ();
         index.loadFromData (indexData, -1, GKeyFileFlags.NONE);
 
-        ulong dummy;
+        size_t dummy;
         foreach (section; index.getGroups (dummy)) {
             string type;
             string context;
