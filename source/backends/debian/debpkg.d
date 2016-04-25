@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian.debpackage;
+module ag.backend.debian.debpkg;
 
 import std.stdio;
 import std.string;

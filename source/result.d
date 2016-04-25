@@ -261,7 +261,7 @@ public:
 
 unittest
 {
-    import ag.backend.debian.debpackage;
+    import ag.backend.debian.debpkg;
     writeln ("TEST: ", "GeneratorResult");
 
     auto pkg = new DebPackage ("foobar", "1.0", "amd64");

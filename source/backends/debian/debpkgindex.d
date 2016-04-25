@@ -27,7 +27,7 @@ import std.algorithm : remove;
 import ag.logging;
 import ag.backend.intf;
 import ag.backend.debian.tagfile;
-import ag.backend.debian.debpackage;
+import ag.backend.debian.debpkg;
 
 
 class DebianPackageIndex : PackageIndex

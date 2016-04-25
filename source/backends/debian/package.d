@@ -19,5 +19,5 @@
 
 module ag.backend.debian;
 
-public import ag.backend.debian.debpackage;
+public import ag.backend.debian.debpkg;
 public import ag.backend.debian.pkgindex;

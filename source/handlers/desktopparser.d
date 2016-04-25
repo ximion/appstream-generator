@@ -224,7 +224,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
 unittest
 {
     import std.stdio : writeln;
-    import ag.backend.debian.debpackage;
+    import ag.backend.debian.debpkg;
     writeln ("TEST: ", ".desktop file parser");
 
     auto data = """
