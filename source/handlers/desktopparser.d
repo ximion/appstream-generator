@@ -21,7 +21,7 @@ module ag.handlers.desktopparser;
 
 import std.path : baseName;
 import std.uni : toLower;
-import std.string : format, indexOf, chomp;
+import std.string : format, indexOf, chomp, lastIndexOf;
 import std.array : split;
 import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
@@ -50,6 +50,16 @@ private string getLocaleFromKey (string key)
     // drop UTF-8 suffixes
     locale = chomp (locale, ".utf-8");
     locale = chomp (locale, ".UTF-8");
+
+    auto delim = locale.lastIndexOf (".");
+    if (delim > 0) {
+        // looks like we need to drop another encoding suffix
+        // (but we need to make sure it actually is one)
+        auto enc = locale[delim+1..$];
+        if ((enc !is null) && (enc.toLower ().startsWith ("iso"))) {
+            locale = locale[0..delim];
+        }
+    }
 
     return locale;
 }
