@@ -248,6 +248,7 @@ public:
         }
 
         logInfo ("Rendering HTML for %s/%s", suiteName, section);
+        auto maintRE = std.regex.ctRegex!(r"""[àáèéëêòöøîìùñ~/\\(\\)\" ']""", "g");
 
         // write issue hint pages
         foreach (pkgname; dsum.hintEntries.byKey ()) {
@@ -375,6 +376,7 @@ public:
                 auto summaries = dsum.pkgSummaries[maintainer];
                 auto intCtx = new Mustache.Context;
                 intCtx["maintainer"] = maintainer;
+                intCtx["maintainer_anchor"] = std.regex.replaceAll (maintainer, maintRE, "_");
 
                 bool interesting = false;
                 foreach (summary; summaries.byValue ()) {
@@ -419,6 +421,7 @@ public:
                 auto summaries = dsum.pkgSummaries[maintainer];
                 auto intCtx = new Mustache.Context;
                 intCtx["maintainer"] = maintainer;
+                intCtx["maintainer_anchor"] = std.regex.replaceAll (maintainer, maintRE, "_");
 
                 intCtx["packages"] = (string content) {
                     string res;
