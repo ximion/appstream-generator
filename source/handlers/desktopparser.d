@@ -73,6 +73,13 @@ private string getValue (KeyFile kf, string key)
         val = null;
     }
 
+    // some dumb .desktop files contain non-printable characters. If we are in XML mode,
+    // this will hard-break the XML reader at a later point, so we need to clean this up
+    // and replace these characters with a nice questionmark, so someone will clean them up.
+    // TODO: Maybe even emit an issue hint if a non-printable chacater is found?
+    auto re = std.regex.ctRegex!(r"[\x00\x08\x0B\x0C\x0E-\x1F]", "g");
+    val = std.regex.replaceAll (val, re, "#?#");
+
     return val;
 }
 
