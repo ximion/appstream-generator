@@ -151,6 +151,7 @@ public:
         checkError (rc, "mdb_txn_commit");
 
         this.mediaDir = mediaDir;
+        mkdirRecurse (mediaDir);
     }
 
     void open (Config conf)
