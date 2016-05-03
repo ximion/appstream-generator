@@ -182,18 +182,18 @@ public:
             head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.appstreamVersion, origin);
             if (suite.dataPriority != 0)
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
-            if (conf.mediaBaseUrl !is null)
+            if (!conf.mediaBaseUrl.empty ())
                 head ~= format (" media_baseurl=\"%s\"", conf.mediaBaseUrl);
             head ~= ">";
         } else {
             head = "---\n";
             head ~= format ("File: DEP-11\n"
                            "Version: '%s'\n"
-                           "Origin: %s\n"
-                           "MediaBaseUrl: %s",
+                           "Origin: %s",
                            conf.appstreamVersion,
-                           origin,
-                           conf.mediaBaseUrl);
+                           origin);
+            if (!conf.mediaBaseUrl.empty ())
+                head ~= format ("\nMediaBaseUrl: %s", conf.mediaBaseUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
         }
