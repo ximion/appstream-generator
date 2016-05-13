@@ -233,7 +233,7 @@ public:
         }
 
         // collect metadata, icons and hints for the given packages
-        foreach (ref pkg; parallel (pkgs, 100)) {
+        foreach (ref pkg; pkgs) {
             auto pkid = Package.getId (pkg);
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
