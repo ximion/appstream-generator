@@ -228,7 +228,7 @@ public:
         if (withIconTar) {
             foreach (size; iconTarSizes) {
                 iconTar[size] = new ArchiveCompressor (ArchiveType.GZIP);
-                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
+                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar", size, size)));
             }
         }
 
