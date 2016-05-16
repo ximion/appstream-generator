@@ -203,7 +203,7 @@ public:
 
         // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index)
         string[] iconInfo;
-        foreach (c; contents) {
+        foreach (ref c; contents) {
             if ((c.startsWith ("/usr/share/icons/")) ||
                 (c.startsWith ("/usr/share/pixmaps/"))) {
                     iconInfo ~= c;
@@ -247,7 +247,7 @@ public:
         MDB_val pkey;
         MDB_val cval;
 
-        foreach (pkid; pkids) {
+        foreach (ref pkid; pkids) {
             pkey = makeDbValue (pkid);
 
             res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
@@ -258,7 +258,7 @@ public:
             auto data = fromStringz (cast(char*) cval.mv_data);
             auto contents = to!string (data);
 
-            foreach (c; contents.split ("\n")) {
+            foreach (ref c; contents.split ("\n")) {
                 pkgCMap[c] = pkid;
             }
         }

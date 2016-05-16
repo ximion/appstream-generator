@@ -61,7 +61,7 @@ public:
         // prepare a list of metadata files which interest us
         string[string] desktopFiles;
         string[] metadataFiles;
-        foreach (string fname; pkg.contents) {
+        foreach (ref fname; pkg.contents) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
                 desktopFiles[baseName (fname)] = fname;
                 continue;
@@ -77,7 +77,7 @@ public:
         }
 
         // now process metainfo XML files
-        foreach (string mfname; metadataFiles) {
+        foreach (ref mfname; metadataFiles) {
             if (!mfname.endsWith (".xml"))
                 continue;
 
@@ -137,14 +137,14 @@ public:
         }
 
         // process the remaining .desktop files
-        foreach (string dfname; desktopFiles.byValue ()) {
+        foreach (ref dfname; desktopFiles.byValue ()) {
             auto ddata = pkg.getFileData (dfname);
             auto cpt = parseDesktopFile (gres, dfname, ddata, false);
             if (cpt !is null)
                 gres.updateComponentGCID (cpt, ddata);
         }
 
-        foreach (cpt; gres.getComponents ()) {
+        foreach (ref cpt; gres.getComponents ()) {
             auto gcid = gres.gcidForComponent (cpt);
 
             // don't run expensive operations if the metadata already exists

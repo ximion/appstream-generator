@@ -302,7 +302,7 @@ public:
             return;
         }
 
-        foreach (Component cpt; gres.getComponents ()) {
+        foreach (ref cpt; gres.getComponents ()) {
             auto gcid = gres.gcidForComponent (cpt);
             if (metadataExists (dtype, gcid)) {
                 // we already have seen this exact metadata - only adjust the reference,
@@ -426,7 +426,7 @@ public:
             if ((pkval == "ignore") || (pkval == "seen"))
                 continue;
 
-            foreach(gcid; pkval.split ("\n"))
+            foreach (gcid; pkval.split ("\n"))
                 gcids[gcid] = true;
         }
 

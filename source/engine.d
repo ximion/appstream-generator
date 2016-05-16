@@ -91,7 +91,7 @@ public:
         GeneratorResult[] results;
 
         auto mde = new DataExtractor (dcache, iconh);
-        foreach (Package pkg; parallel (pkgs, 4)) {
+        foreach (ref pkg; parallel (pkgs, 4)) {
             auto pkid = Package.getId (pkg);
             if (dcache.packageExists (pkid))
                 continue;
@@ -121,7 +121,7 @@ public:
 
         bool packageInteresting (string[] contents)
         {
-            foreach (c; contents) {
+            foreach (ref c; contents) {
                 if (c.startsWith ("/usr/share/applications/"))
                     return true;
                 if (c.startsWith ("/usr/share/metainfo/"))
@@ -133,12 +133,12 @@ public:
             return false;
         }
 
-        foreach (string section; suite.sections) {
-            foreach (string arch; suite.architectures) {
+        foreach (section; suite.sections) {
+            foreach (arch; suite.architectures) {
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 if (!suite.baseSuite.empty)
                     pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
-                foreach (Package pkg; parallel (pkgs, 8)) {
+                foreach (ref pkg; parallel (pkgs, 8)) {
                     auto pkid = Package.getId (pkg);
 
                     string[] contents;
@@ -233,7 +233,7 @@ public:
         }
 
         // collect metadata, icons and hints for the given packages
-        foreach (pkg; parallel (pkgs, 100)) {
+        foreach (ref pkg; parallel (pkgs, 100)) {
             auto pkid = Package.getId (pkg);
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
@@ -278,7 +278,7 @@ public:
         // write metadata
         logInfo ("Writing metadata for %s/%s [%s]", suite.name, section, arch);
         auto mf = File (dataFname, "w");
-        foreach (entry; mdataEntries) {
+        foreach (ref entry; mdataEntries) {
             mf.writeln (entry);
         }
         // add the closing XML tag for XML metadata
@@ -297,7 +297,7 @@ public:
         auto hf = File (hintsFname, "w");
         hf.writeln ("[");
         bool firstLine = true;
-        foreach (entry; hintEntries) {
+        foreach (ref entry; hintEntries) {
             if (firstLine) {
                 firstLine = false;
                 hf.write (entry);
@@ -334,7 +334,7 @@ public:
         pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
 
         Package[string] pkgMap;
-        foreach (pkg; pkgs) {
+        foreach (ref pkg; pkgs) {
             auto pkid = Package.getId (pkg);
             pkgMap[pkid] = pkg;
         }
@@ -345,7 +345,7 @@ public:
     void run (string suite_name)
     {
         Suite suite;
-        foreach (Suite s; conf.suites)
+        foreach (s; conf.suites)
             if (s.name == suite_name)
                 suite = s;
 
@@ -356,10 +356,10 @@ public:
         // update package contents information and flag boring packages as ignored
         seedContentsData (suite);
 
-        foreach (string section; suite.sections) {
+        foreach (section; suite.sections) {
             Package[] sectionPkgs;
             auto iconTarBuilt = false;
-            foreach (string arch; suite.architectures) {
+            foreach (arch; suite.architectures) {
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 auto iconh = new IconHandler (dcache.mediaExportDir,
@@ -406,12 +406,12 @@ public:
 
         logInfo ("Cleaning up superseded data.");
         // build a set of all valid packages
-        foreach (Suite suite; conf.suites) {
+        foreach (ref suite; conf.suites) {
             foreach (string section; suite.sections) {
                 foreach (string arch; parallel (suite.architectures)) {
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                     synchronized (this) {
-                        foreach (pkg; pkgs) {
+                        foreach (ref pkg; pkgs) {
                             auto pkid = Package.getId (pkg);
                             pkgSet[pkid] = true;
                         }
@@ -441,7 +441,7 @@ public:
     void removeHintsComponents (string suite_name)
     {
         Suite suite;
-        foreach (Suite s; conf.suites)
+        foreach (s; conf.suites)
             if (s.name == suite_name)
                 suite = s;
 
@@ -449,7 +449,7 @@ public:
             foreach (string arch; parallel (suite.architectures)) {
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
 
-                foreach (pkg; pkgs) {
+                foreach (ref pkg; pkgs) {
                     auto pkid = Package.getId (pkg);
 
                     if (!dcache.packageExists (pkid))

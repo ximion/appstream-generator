@@ -251,7 +251,7 @@ public:
         auto maintRE = std.regex.ctRegex!(r"""[àáèéëêòöøîìùñ~/\\(\\)\" ']""", "g");
 
         // write issue hint pages
-        foreach (pkgname; dsum.hintEntries.byKey ()) {
+        foreach (ref pkgname; dsum.hintEntries.byKey ()) {
             auto pkgHEntries = dsum.hintEntries[pkgname];
             auto exportName = format ("%s/%s/issues/%s", suiteName, section, pkgname);
 
@@ -262,7 +262,7 @@ public:
 
             context["entries"] = (string content) {
                 string res;
-                foreach (cid; pkgHEntries.byKey ()) {
+                foreach (ref cid; pkgHEntries.byKey ()) {
                     auto hentry = pkgHEntries[cid];
                     auto intCtx = new Mustache.Context;
                     intCtx["component_id"] = cid;
@@ -306,7 +306,7 @@ public:
         }
 
         // write metadata info pages
-        foreach (pkgname; dsum.mdataEntries.byKey ()) {
+        foreach (ref pkgname; dsum.mdataEntries.byKey ()) {
             auto pkgMVerEntries = dsum.mdataEntries[pkgname];
             auto exportName = format ("%s/%s/metainfo/%s", suiteName, section, pkgname);
 
