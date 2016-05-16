@@ -47,6 +47,7 @@ int archive_read_support_filter_gzip (archive*);
 int archive_read_support_filter_lzma (archive*);
 
 int archive_read_support_format_raw (archive*);
+int archive_read_support_format_empty (archive*);
 int archive_read_support_format_all (archive*);
 int archive_read_support_format_ar (archive*);
 int archive_read_support_format_gnutar (archive*);

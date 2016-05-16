@@ -46,12 +46,7 @@ public:
         try {
             data = decompressFile (fname);
         } catch (Exception e) {
-            // libarchive fails to detect GZip-compressed zero-byte documents proprly and emits an error.
-            // We don't want this to be a permanent failure, so we ignore errors in that particular case.
-            if (fname.endsWith (".gz"))
-                logWarning (e.msg);
-            else
-                throw e;
+            throw e;
         }
 
         content = splitLines (data);
