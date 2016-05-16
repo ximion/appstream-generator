@@ -44,6 +44,10 @@ private string readArchiveData (archive *ar, string name = null)
     char[BUFFER_SIZE] buff;
 
     ret = archive_read_next_header (ar, &ae);
+
+    if (ret == ARCHIVE_EOF)
+        return data;
+
     if (ret != ARCHIVE_OK) {
         if (name is null)
             throw new Exception (format ("Unable to read header of compressed data."));
@@ -77,6 +81,7 @@ string decompressFile (string fname)
     scope(exit) archive_read_free (ar);
 
     archive_read_support_format_raw (ar);
+    archive_read_support_format_empty (ar);
     archive_read_support_filter_all (ar);
 
     ret = archive_read_open_filename (ar, toStringz (fname), 16384);
@@ -94,6 +99,7 @@ string decompressData (ubyte[] data)
     scope(exit) archive_read_free (ar);
 
     archive_read_support_filter_all (ar);
+    archive_read_support_format_empty (ar);
     archive_read_support_format_raw (ar);
 
     auto dSize = ubyte.sizeof * data.length;
@@ -465,4 +471,17 @@ public:
         }
     }
 
+}
+
+unittest
+{
+    writeln ("TEST: ", "Compressed empty file");
+
+    ubyte emptyGz [] = [
+       0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x03, 0x65, 0x6d, 0x70, 0x74, 0x79, 0x00,
+       0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00,
+    ];
+    assert (decompressData (emptyGz) == "");
 }
