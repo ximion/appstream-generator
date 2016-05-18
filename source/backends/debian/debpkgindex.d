@@ -113,7 +113,11 @@ public:
 
     private Package[] loadPackages (string suite, string section, string arch)
     {
-        auto indexFname = buildPath (rootDir, "dists", suite, section, format ("binary-%s", arch), "Packages.gz");
+        auto binDistsPath = buildPath (rootDir, "dists", suite, section, "binary-%s".format (arch));
+        auto indexFname = buildPath (binDistsPath, "Packages.gz");
+        if (!std.file.exists (indexFname))
+            indexFname = buildPath (binDistsPath, "Packages.xz");
+
         if (!std.file.exists (indexFname)) {
             logWarning ("Archive package index file '%s' does not exist.", indexFname);
             return [];
