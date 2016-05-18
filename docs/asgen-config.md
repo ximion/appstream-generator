@@ -25,7 +25,7 @@ An example `asgen-config.json` file may look like this:
       },
     "chromodoris-updates":
         {
-          "dataPriority": "10",
+          "dataPriority": 10,
           "baseSuite": "chromodoris",
           "sections": ["main", "contrib"],
           "architectures": ["amd64", "i386"]
