@@ -145,10 +145,6 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         if (size.height > sourceScrHeight)
             continue;
 
-        auto thumbImgName = format ("image-%s_%s.png", scrNo, size.toString ());
-        auto thumbImgPath = buildPath (cptScreenshotsPath, thumbImgName);
-        auto thumbImgUrl =  buildPath (cptScreenshotsUrl, thumbImgName);
-
         try {
             auto thumb = new ag.image.Image (imgData, ag.image.ImageFormat.PNG);
             if (size.width > size.height)
@@ -156,6 +152,12 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             else
                 thumb.scaleToHeight (size.height);
 
+            // create thumbnail storage path and URL component
+            auto thumbImgName = "image-%s_%sx%s.png".format (scrNo, thumb.width, thumb.height);
+            auto thumbImgPath = buildPath (cptScreenshotsPath, thumbImgName);
+            auto thumbImgUrl =  buildPath (cptScreenshotsUrl, thumbImgName);
+
+            // store the thumbnail image on disk
             thumb.savePng (thumbImgPath);
 
             // finally prepare the thumbnail definition and add it to the metadata
