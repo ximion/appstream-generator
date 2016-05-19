@@ -209,13 +209,11 @@ public:
         checkError (res, "mdb_put");
     }
 
-    private string getValue (MDB_dbi dbi, string key)
+    private string getValue (MDB_dbi dbi, MDB_val dkey)
     {
         import std.conv;
-        MDB_val dkey, dval;
+        MDB_val dval;
         MDB_cursorp cur;
-
-        dkey = makeDbValue (key);
 
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
@@ -231,6 +229,14 @@ public:
 
         auto data = fromStringz (cast(char*) dval.mv_data);
         return to!string (data);
+    }
+
+    private string getValue (MDB_dbi dbi, string key)
+    {
+        MDB_val dkey;
+        dkey = makeDbValue (key);
+
+        return getValue (dbi, dkey);
     }
 
     bool metadataExists (DataType dtype, string gcid)
@@ -545,36 +551,20 @@ public:
         }
     }
 
-    void addStatistics (string statJson)
+    void addStatistics (string statsJsonStr)
     {
         MDB_val dbkey, dbvalue;
         size_t unixTime = core.stdc.time.time (null);
 
         dbkey.mv_size = size_t.sizeof;
         dbkey.mv_data = &unixTime;
-        dbvalue = makeDbValue (statJson);
+        dbvalue = makeDbValue (statsJsonStr);
 
         auto txn = newTransaction ();
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
-        if (res == MDB_KEYEXIST) {
-            // we were too fast! - try again we slightly increased time, if that
-            // also fails, we have a bigger problem here and should fail.
-            logDebug ("Attempted to add statistics at the exact same time when we have already added some. We are suspiciously fast...");
-            uint i = 1;
-            do {
-                size_t newTime = unixTime + i;
-                dbkey.mv_data = &newTime;
-                res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
-
-                // limit the amount of tries
-                if (i > 20)
-                    break;
-                i++;
-            } while (res == MDB_KEYEXIST);
-        }
+        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPENDDUP | MDB_DUPSORT);
         checkError (res, "mdb_put (stats)");
     }
 
