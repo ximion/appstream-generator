@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.conv : to;
 import std.file : mkdirRecurse;
+import std.json;
 
 import c.lmdb;
 import appstream.Metadata;
@@ -144,7 +145,7 @@ public:
         rc = txn.mdb_dbi_open ("metadata_yaml", MDB_CREATE, &dbDataYaml);
         checkError (rc, "open metadata (yaml) database");
 
-        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY | MDB_DUPSORT, &dbStats);
+        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY, &dbStats);
         checkError (rc, "open statistics database");
 
         rc = txn.mdb_txn_commit ();
@@ -551,10 +552,12 @@ public:
         }
     }
 
-    void addStatistics (string statsJsonStr)
+    void addStatistics (JSONValue stats)
     {
         MDB_val dbkey, dbvalue;
         size_t unixTime = core.stdc.time.time (null);
+
+        auto statsJsonStr = toJSON (&stats);
 
         dbkey.mv_size = size_t.sizeof;
         dbkey.mv_data = &unixTime;
@@ -564,7 +567,30 @@ public:
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPENDDUP);
+        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
+        if (res == MDB_KEYEXIST) {
+            // we were too fast! - add the new data to this point in time
+            logDebug ("Attempted to add statistics at the exact same time when we have already added some. We are suspiciously fast...");
+
+            // retrieve the old statistics data
+            auto existingJsonData = getValue (dbStats, dbkey);
+            auto existingJson = parseJSON (existingJsonData);
+
+            // make the new JSON a list of the old and the new data, if it isn't one already
+            JSONValue newJson;
+            if (existingJson.type == JSON_TYPE.ARRAY) {
+                newJson = existingJson;
+                newJson.array ~= stats;
+            } else {
+                newJson = JSONValue ([existingJson, stats]);
+            }
+
+            // build new database value and add it to the db, overriding the old one
+            statsJsonStr = toJSON (&newJson);
+            dbvalue = makeDbValue (statsJsonStr);
+
+            res = txn.mdb_put (dbStats, &dbkey, &dbvalue, 0);
+        }
         checkError (res, "mdb_put (stats)");
     }
 

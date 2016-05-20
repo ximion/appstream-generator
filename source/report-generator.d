@@ -645,7 +645,7 @@ public:
                                 "totalWarnings": JSONValue (dsum.totalWarnings),
                                 "totalErrors": JSONValue (dsum.totalErrors),
                                 "totalMetadata": JSONValue (dsum.totalMetadata)]);
-        dcache.addStatistics (toJSON (&stat));
+        dcache.addStatistics (stat);
     }
 
     void exportStatistics ()
@@ -674,33 +674,41 @@ public:
 
         foreach (timestamp; statsCollection.byKey ()) {
             auto jdata = statsCollection[timestamp];
-            auto jvals = parseJSON (jdata);
+            auto js = parseJSON (jdata);
+            JSONValue jstats;
+            if (js.type == JSON_TYPE.ARRAY)
+                jstats = js;
+            else
+                jstats = JSONValue ([js]);
 
-            auto suite = jvals["suite"].str;
-            auto section = jvals["section"].str;
-            if (suite !in smap)
-                smap.object[suite] = emptyJsonObject ();
-            if (section !in smap[suite]) {
-                smap[suite].object[section] = emptyJsonObject ();
-                auto sso = smap[suite][section].object;
-                sso["errors"] = emptyJsonArray ();
-                sso["warnings"] = emptyJsonArray ();
-                sso["infos"] = emptyJsonArray ();
-                sso["metadata"] = emptyJsonArray ();
+            foreach (ref jvals; jstats.array) {
+                auto suite = jvals["suite"].str;
+                auto section = jvals["section"].str;
+
+                if (suite !in smap)
+                    smap.object[suite] = emptyJsonObject ();
+                if (section !in smap[suite]) {
+                    smap[suite].object[section] = emptyJsonObject ();
+                    auto sso = smap[suite][section].object;
+                    sso["errors"] = emptyJsonArray ();
+                    sso["warnings"] = emptyJsonArray ();
+                    sso["infos"] = emptyJsonArray ();
+                    sso["metadata"] = emptyJsonArray ();
+                }
+                auto suiteSectionObj = smap[suite][section].object;
+
+                auto pointErr = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalErrors"])]);
+                suiteSectionObj["errors"].array ~= pointErr;
+
+                auto pointWarn = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalWarnings"])]);
+                suiteSectionObj["warnings"].array ~= pointWarn;
+
+                auto pointInfo = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalInfos"])]);
+                suiteSectionObj["infos"].array ~= pointInfo;
+
+                auto pointMD = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalMetadata"])]);
+                suiteSectionObj["metadata"].array ~= pointMD;
             }
-            auto suiteSectionObj = smap[suite][section].object;
-
-            auto pointErr = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalErrors"])]);
-            suiteSectionObj["errors"].array ~= pointErr;
-
-            auto pointWarn = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalWarnings"])]);
-            suiteSectionObj["warnings"].array ~= pointWarn;
-
-            auto pointInfo = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalInfos"])]);
-            suiteSectionObj["infos"].array ~= pointInfo;
-
-            auto pointMD = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalMetadata"])]);
-            suiteSectionObj["metadata"].array ~= pointMD;
         }
 
         bool compareJData (JSONValue x, JSONValue y) @trusted
