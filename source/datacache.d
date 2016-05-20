@@ -144,7 +144,7 @@ public:
         rc = txn.mdb_dbi_open ("metadata_yaml", MDB_CREATE, &dbDataYaml);
         checkError (rc, "open metadata (yaml) database");
 
-        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY, &dbStats);
+        rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY | MDB_DUPSORT, &dbStats);
         checkError (rc, "open statistics database");
 
         rc = txn.mdb_txn_commit ();
@@ -564,7 +564,7 @@ public:
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPENDDUP | MDB_DUPSORT);
+        auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPENDDUP);
         checkError (res, "mdb_put (stats)");
     }
 
