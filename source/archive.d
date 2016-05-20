@@ -374,10 +374,13 @@ void compressAndSave (ubyte[] data, string fname, ArchiveType atype)
 void saveCompressed (string fname, ArchiveType atype)
 {
     import std.process;
+    import std.datetime : SysTime, unixTimeToStdTime;
 
     Pid pid;
     File cf;
     if (atype == ArchiveType.GZIP) {
+        SysTime epoch = unixTimeToStdTime (0);
+        std.file.setTimes (fname, epoch, epoch); // Ensure repeatable result
         cf = File (fname ~ ".gz", "w");
         pid = spawnProcess (["gzip", "-c", fname], std.stdio.stdin, cf);
     } else {
@@ -395,6 +398,7 @@ class ArchiveCompressor
 
 private:
     string archiveFname;
+    ArchiveType archiveType;
     archive *ar;
     bool closed;
 
@@ -402,13 +406,8 @@ public:
 
     this (ArchiveType type)
     {
+        archiveType = type;
         ar = archive_write_new ();
-
-        if (type == ArchiveType.GZIP)
-            archive_write_add_filter_gzip (ar);
-        else
-            archive_write_add_filter_xz (ar);
-
         archive_write_set_format_pax_restricted (ar);
         closed = true;
     }
@@ -434,6 +433,9 @@ public:
             return;
         archive_write_close (ar);
         closed = true;
+
+        saveCompressed (archiveFname, archiveType);
+        std.file.remove (archiveFname);
     }
 
     void addFile (string fname, string dest = null)

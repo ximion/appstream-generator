@@ -228,12 +228,12 @@ public:
         if (withIconTar) {
             foreach (size; iconTarSizes) {
                 iconTar[size] = new ArchiveCompressor (ArchiveType.GZIP);
-                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
+                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar", size, size)));
             }
         }
 
         // collect metadata, icons and hints for the given packages
-        foreach (ref pkg; parallel (pkgs, 100)) {
+        foreach (ref pkg; pkgs) {
             auto pkid = Package.getId (pkg);
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
