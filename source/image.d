@@ -206,6 +206,18 @@ public:
             cairo_surface_destroy (srf);
     }
 
+    @property
+    uint width ()
+    {
+        return srf.cairo_image_surface_get_width ();
+    }
+
+    @property
+    uint height ()
+    {
+        return srf.cairo_image_surface_get_height ();
+    }
+
     void renderSvg (ubyte[] svgBytes)
     {
         auto handle = rsvg_handle_new ();
@@ -240,6 +252,69 @@ public:
         scope (exit) cr.cairo_restore ();
         if (!rsvg_handle_render_cairo (handle, cr))
             throw new Exception ("Rendering of SVG images failed!");
+    }
+
+    void writeText (string fname, string text, const uint borderWidth = 4, const uint linePadding = 2)
+    {
+        import c.freetype;
+
+        FT_Library library;
+        FT_Face fface;
+        FT_Error err;
+
+        err = FT_Init_FreeType (&library);
+        if (err != 0)
+            throw new Exception ("Unable to load FreeType. Error code: %s".format (err));
+        scope (exit) FT_Done_FreeType (library);
+
+        err = FT_New_Face (library, fname.toStringz (), 0, &fface);
+        if (err != 0)
+            throw new Exception ("Unable to load font face. Error code: %s".format (err));
+        scope (exit) FT_Done_Face (fface);
+
+        auto cff = cairo_ft_font_face_create_for_ft_face (fface, FT_LOAD_DEFAULT);
+        scope (exit) cairo_font_face_destroy (cff);
+
+        // set font face for Cairo surface
+        auto status = cairo_font_face_status (cff);
+        if (status != cairo_status_t.STATUS_SUCCESS)
+            throw new Exception (format ("Could not set font face for Cairo: %s", to!string (status)));
+        cairo_set_font_face (cr, cff);
+
+        // calculate best font size
+        auto lines = text.split ("\n");
+        string longestLine = lines[0];
+        ulong ll = 0;
+        foreach (line; lines) {
+            if (line.length > ll)
+                longestLine = line;
+            ll = line.length;
+        }
+        cairo_text_extents_t te;
+        uint text_size = 64;
+        while (text_size-- > 0) {
+            cairo_set_font_size (cr, text_size);
+            cairo_text_extents (cr, longestLine.toStringz (), &te);
+            if (te.width <= 0.01f || te.height <= 0.01f)
+                continue;
+            if (te.width < this.width - (borderWidth * 2) &&
+                (te.height * lines.length + linePadding) < this.height - (borderWidth * 2))
+			    break;
+	    }
+
+        // center text and draw it
+        auto xPos = (this.width / 2) - te.width / 2 - te.x_bearing;
+        auto teHeight = te.height * lines.length + linePadding * (lines.length-1);
+        auto yPos = (teHeight / 2) - teHeight / 2 - te.y_bearing + borderWidth;
+        cairo_move_to (cr, xPos, yPos);
+        cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+
+        foreach (line; lines) {
+            cairo_show_text (cr, line.toStringz ());
+            yPos += te.height + linePadding;
+            cairo_move_to (cr, xPos, yPos);
+        }
+        cairo_save (cr);
     }
 
     void savePng (string fname)
@@ -298,4 +373,10 @@ unittest
     cv.renderSvg (data);
     writeln ("Saving rendered PNG");
     cv.savePng ("/tmp/ag-svgrender_test1.png");
+
+    writeln ("--toy: Test font rendering.");
+    cv = new Canvas (400, 100);
+    cv.writeText (buildPath (getcwd(), "test", "samples", "NotoSans-Regular.ttf"),
+                  "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
+    cv.savePng ("/tmp/ag-fontrender_test1.png");
 }

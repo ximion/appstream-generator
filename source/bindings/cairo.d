@@ -32,6 +32,18 @@ alias cairo_p = _cairo*;
 struct _cairo_surface {}
 alias cairo_surface_p = _cairo_surface*;
 
+struct _cairo_font_face {}
+alias cairo_font_face_p = _cairo_font_face*;
+
+struct cairo_text_extents_t {
+    double x_bearing;
+    double y_bearing;
+    double width;
+    double height;
+    double x_advance;
+    double y_advance;
+};
+
 enum cairo_status_t {
     STATUS_SUCCESS = 0,
 
@@ -100,12 +112,12 @@ void cairo_restore (cairo_p cr);
 
 // Surface
 cairo_surface_p cairo_image_surface_create (cairo_format_t format, int width, int height);
-cairo_surface_p cairo_image_surface_create_from_png (const(char) *filename);
+cairo_surface_p cairo_image_surface_create_from_png (const(char) *filename); // Toy API
 void cairo_surface_destroy (cairo_surface_p surface);
 cairo_status_t cairo_surface_status (cairo_surface_p surface);
 int cairo_image_surface_get_width (cairo_surface_p surface);
 int cairo_image_surface_get_height (cairo_surface_p surface);
-cairo_status_t cairo_surface_write_to_png (cairo_surface_p surface, const(char) *filename);
+cairo_status_t cairo_surface_write_to_png (cairo_surface_p surface, const(char) *filename); // Toy API
 
 void cairo_surface_flush (cairo_surface_p surface);
 ubyte* cairo_image_surface_get_data (cairo_surface_p surface);
@@ -113,3 +125,21 @@ ubyte* cairo_image_surface_get_data (cairo_surface_p surface);
 // Transformations
 void cairo_scale (cairo_p cr, double sx, double sy);
 void cairo_translate (cairo_p cr, double tx, double ty);
+
+// Drawing
+void cairo_move_to (cairo_p cr, double x, double y);
+void cairo_set_source_rgb (cairo_p cr, double red, double green, double blue);
+
+// Fonts
+import c.freetype;
+cairo_font_face_p cairo_ft_font_face_create_for_ft_face (FT_Face face, int load_flags);
+void cairo_font_face_destroy (cairo_font_face_p font_face);
+cairo_status_t cairo_font_face_status (cairo_font_face_p font_face);
+
+cairo_font_face_p cairo_get_font_face (cairo_p cr);
+void cairo_set_font_face (cairo_p cr, cairo_font_face_p font_face);
+
+void cairo_set_font_size (cairo_p cr, double size);
+void cairo_show_text (cairo_p cr, const(char) *utf8); // Toy API
+
+void cairo_text_extents (cairo_p cr, const(char) *utf8, cairo_text_extents_t *extents);
