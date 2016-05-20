@@ -52,6 +52,8 @@ int archive_read_support_format_all (archive*);
 int archive_read_support_format_ar (archive*);
 int archive_read_support_format_gnutar (archive*);
 
+int archive_write_set_filter_option (archive *a, const(char) *m, const(char) *o, const(char) *v);
+
 int archive_read_open_filename (archive*, const(char) *filename, usize block_size);
 int archive_read_open_FILE (archive*, FILE *file);
 int archive_read_open_memory (archive*, void *buff, size_t size);

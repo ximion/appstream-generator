@@ -404,10 +404,12 @@ public:
     {
         ar = archive_write_new ();
 
-        if (type == ArchiveType.GZIP)
+        if (type == ArchiveType.GZIP) {
             archive_write_add_filter_gzip (ar);
-        else
+            archive_write_set_filter_option (ar, "gz", "timestamp", null);
+        } else {
             archive_write_add_filter_xz (ar);
+        }
 
         archive_write_set_format_pax_restricted (ar);
         closed = true;

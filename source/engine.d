@@ -24,7 +24,7 @@ import std.string;
 import std.parallelism;
 import std.path : buildPath;
 import std.file : mkdirRecurse;
-import std.algorithm : canFind;
+import std.algorithm : canFind, sort, SwapStrategy;
 import appstream.Component;
 
 import ag.config;
@@ -222,13 +222,12 @@ public:
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);
 
-        // prepare icon tarball
+        // prepare icon-tarball array
         immutable iconTarSizes = ["64", "128"];
-        ArchiveCompressor[string] iconTar;
+        string[][string] iconTarFiles;
         if (withIconTar) {
             foreach (size; iconTarSizes) {
-                iconTar[size] = new ArchiveCompressor (ArchiveType.GZIP);
-                iconTar[size].open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
+                iconTarFiles[size] = [];
             }
         }
 
@@ -249,7 +248,7 @@ public:
                             if (!std.file.exists (iconDir))
                                 continue;
                             foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
-                                iconTar[size].addFile (path);
+                                iconTarFiles[size] ~= path;
                             }
                         }
                     }
@@ -262,10 +261,17 @@ public:
             }
         }
 
-        // finalize icon tarballs
+        // create the icon tarballs
         if (withIconTar) {
-            foreach (size; iconTarSizes)
-                iconTar[size].close ();
+            foreach (size; iconTarSizes) {
+                auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
+                iconTar.open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
+                sort!("a < b", SwapStrategy.stable)(iconTarFiles[size]);
+                foreach (fname; iconTarFiles[size]) {
+                    iconTar.addFile (fname);
+                }
+                iconTar.close ();
+            }
         }
 
         string dataFname;
