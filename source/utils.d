@@ -29,6 +29,8 @@ import std.algorithm : startsWith;
 import std.array : appender;
 
 
+public immutable GENERIC_BUFFER_SIZE = 2048;
+
 struct ImageSize
 {
     uint width;

@@ -81,7 +81,8 @@ public:
             if (!mfname.endsWith (".xml"))
                 continue;
 
-            auto data = pkg.getFileData (mfname);
+            auto dataBytes = pkg.getFileData (mfname);
+            auto data = cast(string) dataBytes;
             auto cpt = parseMetaInfoFile (gres, data);
             if (cpt is null)
                 continue;
@@ -119,7 +120,8 @@ public:
             }
 
             // update component with .desktop file data, ignoring NoDisplay field
-            auto ddata = pkg.getFileData (*dfp);
+            auto ddataBytes = pkg.getFileData (*dfp);
+            auto ddata = cast(string) ddataBytes;
             parseDesktopFile (gres, *dfp, ddata, true);
 
             // update GCID checksum
@@ -138,7 +140,8 @@ public:
 
         // process the remaining .desktop files
         foreach (ref dfname; desktopFiles.byValue ()) {
-            auto ddata = pkg.getFileData (dfname);
+            auto ddataBytes = pkg.getFileData (dfname);
+            auto ddata = cast(string) ddataBytes;
             auto cpt = parseDesktopFile (gres, dfname, ddata, false);
             if (cpt !is null)
                 gres.updateComponentGCID (cpt, ddata);

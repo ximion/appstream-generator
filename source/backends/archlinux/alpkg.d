@@ -81,7 +81,7 @@ public:
         desc[locale] = text;
     }
 
-    string getFileData (string fname)
+    const(ubyte)[] getFileData (string fname)
     {
         if (archive is null) {
             archive = new ArchiveDecompressor ();

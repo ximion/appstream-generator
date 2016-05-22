@@ -75,9 +75,9 @@ public:
         desc[locale] = text;
     }
 
-    string getFileData (string fname)
+    ubyte[] getFileData (string fname)
     {
-        return "NOTHING";
+        return ['N', 'O', 'T', 'H', 'I', 'N', 'G'];
     }
 
     @property

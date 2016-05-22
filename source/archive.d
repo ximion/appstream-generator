@@ -24,6 +24,8 @@ import std.string;
 import std.file;
 import std.regex;
 import std.conv : to;
+import ag.std.concurrency.generator;
+
 import c.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65536;
@@ -116,15 +118,15 @@ class ArchiveDecompressor
 private:
     string archive_fname;
 
-    string readEntry (archive *ar)
+    const(ubyte)[] readEntry (archive *ar)
     {
         const void *buff = null;
         size_t size = 0UL;
         long offset = 0;
-        string res;
+        ubyte[] res;
 
         while (archive_read_data_block (ar, &buff, &size, &offset) == ARCHIVE_OK) {
-            res ~= cast(string) buff[0..size];
+            res ~= cast(ubyte[]) buff[0..size];
         }
 
         return res;
@@ -192,6 +194,12 @@ private:
 
 public:
 
+    struct ArchiveEntry
+    {
+        string fname;
+        const(ubyte)[] content;
+    }
+
     this ()
     {
     }
@@ -227,18 +235,14 @@ public:
         return false;
     }
 
-    string readData (string fname)
+    const(ubyte)[] readData (string fname)
     {
         import core.sys.posix.sys.stat;
         import std.path;
         archive *ar;
         archive_entry *en;
 
-        try {
-            ar = openArchive ();
-        } catch (Exception e) {
-            throw e;
-        }
+        ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
         auto fnameAbs = absolutePath (fname, "/");
@@ -337,6 +341,65 @@ public:
         }
 
         return contents;
+    }
+
+    /**
+     * Returns a generator to iterate over the contents of this tarball.
+     */
+    auto read ()
+    {
+        import core.sys.posix.sys.stat;
+        import std.path;
+
+        auto gen = new Generator!ArchiveEntry (
+        {
+            archive *ar;
+            archive_entry *en;
+
+            try {
+                ar = openArchive ();
+            } catch (Exception e) {
+                throw e;
+            }
+            scope (exit) archive_read_free (ar);
+
+            while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
+                auto pathname = fromStringz (archive_entry_pathname (en));
+
+                // ignore directories
+                if (pathname.endsWith ("/"))
+                    continue;
+
+                auto path = std.path.buildNormalizedPath ("/", to!string (pathname));
+
+                ArchiveEntry aentry;
+                aentry.fname = path;
+                aentry.content = null;
+
+                auto filetype = archive_entry_filetype (en);
+                /* check if we are dealing with a symlink */
+                if (filetype == S_IFLNK) {
+                    string linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
+                    if (linkTarget is null)
+                        throw new Exception (format ("Unable to read destination of symbolic link for %s.", path));
+
+                    if (!isAbsolute (linkTarget))
+                        linkTarget = absolutePath (linkTarget, dirName (path));
+
+                    aentry.content = this.readData (buildNormalizedPath (linkTarget));
+                }
+
+                if (filetype != S_IFREG) {
+                    yield (aentry);
+                    continue;
+                }
+
+                aentry.content = this.readEntry (ar);
+                yield (aentry);
+            }
+        });
+
+        return gen;
     }
 }
 

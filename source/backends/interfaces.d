@@ -39,7 +39,7 @@ interface Package
 
     void setDescription (string desc, string locale);
 
-    string getFileData (string fname);
+    const(ubyte)[] getFileData (string fname);
     void close ();
 
     static string getId (Package pkg)

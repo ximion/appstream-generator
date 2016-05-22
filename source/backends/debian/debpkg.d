@@ -147,15 +147,10 @@ public:
         return ca;
     }
 
-    string getFileData (string fname)
+    const(ubyte)[] getFileData (string fname)
     {
         auto pa = openPayloadArchive ();
-        string data;
-        try {
-            data = pa.readData (fname);
-        } catch (Exception e) { throw e; }
-
-        return data;
+        return pa.readData (fname);
     }
 
     @property
@@ -181,14 +176,15 @@ public:
         // this is way faster than going through the payload directly, and
         // has the same accuracy.
         auto ca = openControlArchive ();
-        string md5sums;
+        const(ubyte)[] md5sumsData;
         try {
-            md5sums = ca.readData ("./md5sums");
+            md5sumsData = ca.readData ("./md5sums");
         } catch (Exception e) {
-            logError ("Could not read md5sums file for package %s: %s", Package.getId (this), e.msg);
+            logWarning ("Could not read md5sums file for package %s: %s", Package.getId (this), e.msg);
             return [];
         }
 
+        auto md5sums = cast(string) md5sumsData;
         try {
             md5sums = std.utf.toUTF8 (md5sums);
         } catch (Exception e) {

@@ -50,7 +50,6 @@ private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
 
 private immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
 
-
 /**
  * Describes an icon theme as specified in the XDG theme spec.
  */
@@ -63,12 +62,13 @@ private:
 
 public:
 
-    this (string name, string indexData)
+    this (string name, const(ubyte)[] indexData)
     {
         this.name = name;
 
         auto index = new KeyFile ();
-        index.loadFromData (indexData, -1, GKeyFileFlags.NONE);
+        auto indexText = cast(string) indexData;
+        index.loadFromData (indexText, -1, GKeyFileFlags.NONE);
 
         size_t dummy;
         foreach (section; index.getGroups (dummy)) {
@@ -258,11 +258,12 @@ public:
             if (!std.file.exists (hicolorThemeIndex)) {
                 logError ("Hicolor icon theme index at '%s' was not found! We will not be able to handle icons in this theme.", hicolorThemeIndex);
             } else {
+                ubyte[] indexData;
                 auto f = File (hicolorThemeIndex, "r");
-                string indexData;
-                string ln;
-                while ((ln = f.readln ()) !is null)
-                    indexData ~= ln;
+                while (!f.eof) {
+                    char[GENERIC_BUFFER_SIZE] buf;
+                    indexData ~= f.rawRead (buf);
+                }
 
                 tmpThemes["hicolor"] = new Theme ("hicolor", indexData);
             }
@@ -622,11 +623,12 @@ unittest
     writeln ("TEST: ", "IconHandler");
 
     auto hicolorThemeIndex = getDataPath ("hicolor-theme-index.theme");
+    ubyte[] indexData;
     auto f = File (hicolorThemeIndex, "r");
-    string indexData;
-    string ln;
-    while ((ln = f.readln ()) !is null)
-        indexData ~= ln;
+    while (!f.eof) {
+        char[GENERIC_BUFFER_SIZE] buf;
+        indexData ~= f.rawRead (buf);
+    }
 
     auto theme = new Theme ("hicolor", indexData);
     foreach (fname; theme.matchingIconFilenames ("accessories-calculator", ImageSize (48))) {

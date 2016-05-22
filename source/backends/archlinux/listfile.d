@@ -35,10 +35,11 @@ public:
     {
     }
 
-    void loadData (string data)
+    void loadData (const(ubyte)[] data)
     {
         string[] content;
-        content = data.splitLines ();
+        auto dataStr = cast(string) data;
+        content = dataStr.splitLines ();
 
         string blockName = null;
         foreach (l; content) {
@@ -101,7 +102,7 @@ EtcEtcEtc3
 a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5""";
 
     auto lf = new ListFile ();
-    lf.loadData (data);
+    lf.loadData (cast(ubyte[]) data);
 
     assert (lf.getEntry ("FILENAME") == "a2ps-4.14-6-x86_64.pkg.tar.xz");
     assert (lf.getEntry ("VERSION") == "4.14-6");
