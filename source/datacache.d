@@ -322,10 +322,15 @@ public:
 
             // convert out compoent into metadata
             string data;
-            if (dtype == DataType.XML) {
-                data = mdata.componentsToDistroXml ();
-            } else {
-                data = mdata.componentsToDistroYaml ();
+            try {
+                if (dtype == DataType.XML) {
+                    data = mdata.componentsToDistroXml ();
+                } else {
+                    data = mdata.componentsToDistroYaml ();
+                }
+            } catch (Exception e) {
+                gres.addHint (cpt.getId (), "metadata-serialization-failed", e.msg);
+                continue;
             }
             // remove trailing whitespaces and linebreaks
             data = data.stripRight ();

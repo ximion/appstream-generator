@@ -157,6 +157,12 @@
            "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write",
            "a metainfo file."],
   "severity": "info"
+},
+
+"metadata-serialization-failed": {
+  "text": ["Could not create the final metadata. This could have many causes, including a generator bug, but the likeliest cause is an error in the input metadata.<br/>",
+           "The error message was: {{msg}}"],
+  "severity": "error"
 }
 
 }
