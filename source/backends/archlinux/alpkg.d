@@ -44,24 +44,16 @@ private:
 
 public:
     @property string name () { return pkgname; }
+    @property void   name (string val) { pkgname = val; }
     @property string ver () { return pkgver; }
+    @property void   ver (string val) { pkgver = val; }
     @property string arch () { return pkgarch; }
+    @property void   arch (string val) { pkgarch = val; }
     @property string[string] description () { return desc; }
     @property string filename () { return pkgFname; }
     @property void filename (string fname) { pkgFname = fname; }
     @property string maintainer () { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
-
-    this (string pname, string pver, string parch)
-    {
-        pkgname = pname;
-        pkgver = pver;
-        pkgarch = parch;
-    }
-
-    ~this ()
-    {
-    }
 
     bool isValid ()
     {

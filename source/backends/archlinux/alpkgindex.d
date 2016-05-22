@@ -72,48 +72,59 @@ public:
 
         auto ad = new ArchiveDecompressor ();
         ad.open (listsTarFname);
-        auto tarContents = ad.readContents ();
-
         logDebug ("Opened: %s", listsTarFname);
 
-        // TODO: This approach is very slow - we want a generator in ArchiveDecompressor,
-        // allowing us to go through the tarball and extract interesting entries immediately,
-        // without reopening the archive and scanning through it over and over again.
+        ArchPackage[string] pkgsMap;
+        foreach (ref entry; ad.read ()) {
 
-        Package[] pkgs;
-        foreach (fname; tarContents) {
-            if (baseName (fname) != "desc")
-                continue;
-
-            auto descData = ad.readData (fname);
-            auto descF = new ListFile ();
-            descF.loadData (descData);
-
-            auto filesData = ad.readData (buildNormalizedPath (fname, "..", "files"));
-            auto filesF = new ListFile ();
-            filesF.loadData (filesData);
-
-            auto pkg = new ArchPackage (descF.getEntry ("NAME"),
-                                        descF.getEntry ("VERSION"),
-                                        descF.getEntry ("ARCH"));
-            pkg.maintainer = descF.getEntry ("PACKAGER");
-            pkg.filename = buildPath (pkgRoot, descF.getEntry ("FILENAME"));
-            setPkgDescription (pkg, descF.getEntry ("DESC"));
-
-            auto filesStr = filesF.getEntry ("FILES");
-            if (filesStr is null) {
-                if (!pkg.name.canFind ("-meta")) {
-                    logError ("Package '%s' has no file list set. Ignoring it.", pkg.toString ());
-                    continue;
-                }
+            auto archPkid = dirName (entry.fname);
+            ArchPackage pkg;
+            if (archPkid in pkgsMap) {
+                pkg = pkgsMap[archPkid];
+            } else {
+                pkg = new ArchPackage ();
+                pkgsMap[archPkid] = pkg;
             }
 
-            string[] contents;
-            foreach (l; filesStr.splitLines ())
-                contents ~= "/" ~ l;
-            pkg.contents = contents;
+            auto infoBaseName = baseName (entry.fname);
+            if (infoBaseName == "desc") {
+                // we have the description file, add information to this package
+                auto descF = new ListFile ();
+                descF.loadData (entry.data);
+                pkg.name = descF.getEntry ("NAME");
+                pkg.ver  = descF.getEntry ("VERSION");
+                pkg.arch = descF.getEntry ("ARCH");
 
-            pkgs ~= pkg;
+                pkg.maintainer = descF.getEntry ("PACKAGER");
+                pkg.filename = buildPath (pkgRoot, descF.getEntry ("FILENAME"));
+                setPkgDescription (pkg, descF.getEntry ("DESC"));
+            } else if (infoBaseName == "files") {
+                // we found a content index, add content information to the package
+                auto filesF = new ListFile ();
+                filesF.loadData (entry.data);
+
+                auto filesStr = filesF.getEntry ("FILES");
+                if (filesStr is null) {
+                    if (!pkg.name.canFind ("-meta")) {
+                        logWarning ("Package '%s' has no file list set. Ignoring it.", pkg.toString ());
+                        continue;
+                    }
+                }
+
+                string[] contents;
+                foreach (l; filesStr.splitLines ())
+                    contents ~= "/" ~ l;
+                pkg.contents = contents;
+            }
+        }
+
+        // perform a sanity check, so we will never emit invalid packages
+        Package[] pkgs;
+        foreach (ref pkg; pkgsMap.byValue ()) {
+            if (Package.isValid (pkg))
+                pkgs ~= pkg;
+            else
+                logError ("Found an invalid package (name, architecture or version is missing). This is a bug.");
         }
 
         return pkgs;

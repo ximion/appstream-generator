@@ -46,6 +46,14 @@ interface Package
     {
         return format ("%s/%s/%s", pkg.name, pkg.ver, pkg.arch);
     }
+
+    static bool isValid (Package pkg)
+    {
+        import std.array : empty;
+        return (!pkg.name.empty ()) &&
+               (!pkg.ver.empty ()) &&
+               (!pkg.arch.empty ());
+    }
 }
 
 /**

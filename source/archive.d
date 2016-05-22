@@ -197,7 +197,7 @@ public:
     struct ArchiveEntry
     {
         string fname;
-        const(ubyte)[] content;
+        const(ubyte)[] data;
     }
 
     this ()
@@ -374,19 +374,20 @@ public:
 
                 ArchiveEntry aentry;
                 aentry.fname = path;
-                aentry.content = null;
+                aentry.data = null;
 
                 auto filetype = archive_entry_filetype (en);
                 /* check if we are dealing with a symlink */
                 if (filetype == S_IFLNK) {
-                    string linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
+                    auto linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
                     if (linkTarget is null)
                         throw new Exception (format ("Unable to read destination of symbolic link for %s.", path));
 
-                    if (!isAbsolute (linkTarget))
-                        linkTarget = absolutePath (linkTarget, dirName (path));
-
-                    aentry.content = this.readData (buildNormalizedPath (linkTarget));
+                    // we cheat here and set the link target as data
+                    // TODO: Proper handling of symlinks, e.g. by adding a filetype property to ArchiveEntry.
+                    aentry.data = cast(ubyte[]) linkTarget;
+                    yield (aentry);
+                    continue;
                 }
 
                 if (filetype != S_IFREG) {
@@ -394,7 +395,7 @@ public:
                     continue;
                 }
 
-                aentry.content = this.readEntry (ar);
+                aentry.data = this.readEntry (ar);
                 yield (aentry);
             }
         });
