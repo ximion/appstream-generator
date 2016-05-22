@@ -85,10 +85,13 @@ public:
     /**
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
+     *
+     * Returns: True in case we changed hint or component data. False if no changes were made.
      */
-    private void processPackages (Package[] pkgs, IconHandler iconh)
+    private bool processPackages (Package[] pkgs, IconHandler iconh)
     {
         GeneratorResult[] results;
+        bool ret = false;
 
         auto mde = new DataExtractor (dcache, iconh);
         foreach (ref pkg; parallel (pkgs, 4)) {
@@ -102,8 +105,11 @@ public:
                 dcache.addGeneratorResult (this.conf.metadataType, res);
 
                 logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
+                ret = true;
             }
         }
+
+        return ret;
     }
 
     /**
@@ -177,6 +183,9 @@ public:
         string head;
         auto origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
 
+        auto time = std.datetime.Clock.currTime ();
+        auto timeStr = time.toSimpleString ();
+
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
             head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.appstreamVersion, origin);
@@ -184,6 +193,7 @@ public:
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
             if (!conf.mediaBaseUrl.empty ())
                 head ~= format (" media_baseurl=\"%s\"", conf.mediaBaseUrl);
+            head ~= format (" time=\"%s\"", timeStr);
             head ~= ">";
         } else {
             head = "---\n";
@@ -196,6 +206,7 @@ public:
                 head ~= format ("\nMediaBaseUrl: %s", conf.mediaBaseUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
+            head ~= format ("\nTime: %s", timeStr);
         }
 
         return head;
@@ -362,20 +373,25 @@ public:
         // update package contents information and flag boring packages as ignored
         seedContentsData (suite);
 
+        auto dataChanged = false;
         foreach (section; suite.sections) {
             Package[] sectionPkgs;
             auto iconTarBuilt = false;
+            auto suiteDataChanged = false;
             foreach (arch; suite.architectures) {
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 auto iconh = new IconHandler (dcache.mediaExportDir,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
-                processPackages (pkgs, iconh);
+                auto dataAdded = processPackages (pkgs, iconh);
 
                 // export package data
-                exportData (suite, section, arch, pkgs, !iconTarBuilt);
-                iconTarBuilt = true;
+                if (dataAdded) {
+                    exportData (suite, section, arch, pkgs, !iconTarBuilt);
+                    iconTarBuilt = true;
+                    suiteDataChanged = true;
+                }
 
                 // we store the package info over all architectures to generate reports later
                 sectionPkgs ~= pkgs;
@@ -388,7 +404,10 @@ public:
             }
 
             // write reports & statistics and render HTML, if that option is selected
-            reportgen.processFor (suite.name, section, sectionPkgs);
+            if (suiteDataChanged) {
+                reportgen.processFor (suite.name, section, sectionPkgs);
+                dataChanged = true;
+            }
 
             // do garbage collection run now.
             // we might have allocated very big chunks of memory during this iteration,
@@ -402,8 +421,9 @@ public:
         pkgIndex.release ();
 
         // render index pages & statistics
-        reportgen.exportStatistics ();
         reportgen.updateIndexPages ();
+        if (dataChanged)
+            reportgen.exportStatistics ();
     }
 
     void runCleanup ()
