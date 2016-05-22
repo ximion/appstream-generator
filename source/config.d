@@ -68,10 +68,11 @@ enum Backend
 enum GeneratorFeature
 {
     NONE = 0,
-    PROCESS_DESKTOP = 1 << 0,
-    VALIDATE        = 1 << 1,
-    SCREENSHOTS     = 1 << 2,
-    OPTIPNG         = 1 << 3
+    PROCESS_DESKTOP   = 1 << 0,
+    VALIDATE          = 1 << 1,
+    NO_DOWNLOADS      = 1 << 2,
+    STORE_SCREENSHOTS = 1 << 3,
+    OPTIPNG           = 1 << 4
 }
 
 class Config
@@ -216,7 +217,7 @@ class Config
         // Enable features which are default-enabled
         setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
         setFeature (GeneratorFeature.VALIDATE, true);
-        setFeature (GeneratorFeature.SCREENSHOTS, true);
+        setFeature (GeneratorFeature.STORE_SCREENSHOTS, true);
         setFeature (GeneratorFeature.OPTIPNG, true);
 
         // apply vendor feature settings
@@ -230,8 +231,11 @@ class Config
                     case "processDesktop":
                         setFeature (GeneratorFeature.PROCESS_DESKTOP, featuresObj[featureId].type == JSON_TYPE.TRUE);
                         break;
-                    case "handleScreenshots":
-                            setFeature (GeneratorFeature.SCREENSHOTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                    case "noDownloads":
+                            setFeature (GeneratorFeature.NO_DOWNLOADS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "createScreenshotsStore":
+                            setFeature (GeneratorFeature.STORE_SCREENSHOTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     case "optimizePNGSize":
                             setFeature (GeneratorFeature.OPTIPNG, featuresObj[featureId].type == JSON_TYPE.TRUE);
@@ -248,6 +252,13 @@ class Config
                 setFeature (GeneratorFeature.OPTIPNG, false);
                 logError ("Disabled feature 'optimizePNGSize': The `optipng` binary was not found.");
             }
+        }
+
+        if (featureEnabled (GeneratorFeature.NO_DOWNLOADS)) {
+            // since disallowing network access might have quite a lot of sideeffects, we print
+            // a message to the logs to make debugging easier.
+            // in general, running with noDownloads is discouraged.
+            logWarning ("Configuration does not permit downloading files. Several features will not be available.");
         }
     }
 

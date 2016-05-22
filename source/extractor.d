@@ -192,8 +192,9 @@ public:
             if (gres.isIgnored (cpt))
                 continue;
 
-            // download and resize screenshots
-            if (conf.featureEnabled (GeneratorFeature.SCREENSHOTS))
+            // download and resize screenshots.
+            // we don't even need to call this if no downloads are allowed.
+            if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
                 processScreenshots (gres, cpt, dcache.mediaExportDir);
         }
 

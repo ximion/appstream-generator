@@ -29,6 +29,7 @@ import appstream.Component;
 import appstream.Screenshot;
 import appstream.Image;
 
+import ag.config;
 import ag.result;
 import ag.utils;
 
@@ -77,23 +78,23 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     imgArr.removeRange (0, imgArr.len);
 
     auto conf = ag.config.Config.get ();
-    auto imgUrl = initImg.getUrl ();
+    auto origImgUrl = initImg.getUrl ();
 
     ubyte[] imgData;
     try {
         import std.net.curl;
-        if (imgUrl.startsWith ("ftp:")) {
+        if (origImgUrl.startsWith ("ftp:")) {
             // we have an FTP url
-            imgData = get!(AutoProtocol, ubyte) (imgUrl);
+            imgData = get!(AutoProtocol, ubyte) (origImgUrl);
         } else {
             // assume HTTP(S)
             auto http = HTTP ();
             if (!conf.caInfo.empty ())
                 http.caInfo = conf.caInfo;
-            imgData = get!(HTTP, ubyte) (imgUrl, http);
+            imgData = get!(HTTP, ubyte) (origImgUrl, http);
         }
     } catch (Exception e) {
-        gres.addHint (cpt.getId (), "screenshot-download-error", ["url": imgUrl, "error": e.msg]);
+        gres.addHint (cpt.getId (), "screenshot-download-error", ["url": origImgUrl, "error": e.msg]);
         return null;
     }
 
@@ -129,10 +130,22 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         img.setWidth (sourceScrWidth);
         img.setHeight (sourceScrHeight);
 
+        // if we should not create a screenshots store, delete the just-downloaded file and set
+        // the original upstream URL as source.
+        // we still needed to download the screenshot to get information about its size.
+        if (!conf.featureEnabled (GeneratorFeature.STORE_SCREENSHOTS)) {
+            img.setUrl (origImgUrl);
+            scr.addImage (img);
+
+            // drop screenshot storage directory, in this mode it was only for temporary use
+            std.file.rmdirRecurse (cptScreenshotsPath);
+            return scr;
+        }
+
         img.setUrl (srcImgUrl);
         scr.addImage (img);
     } catch (Exception e) {
-        gres.addHint (cpt.getId (), "screenshot-save-error", ["url": imgUrl, "error": format ("Can not store source screenshot: %s", e.msg)]);
+        gres.addHint (cpt.getId (), "screenshot-save-error", ["url": origImgUrl, "error": format ("Can not store source screenshot: %s", e.msg)]);
         return null;
     }
 
@@ -168,7 +181,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             img.setUrl (thumbImgUrl);
             scr.addImage (img);
         } catch (Exception e) {
-            gres.addHint (cpt.getId (), "screenshot-save-error", ["url": imgUrl, "error": format ("Failure while preparing thumbnail: %s", e.msg)]);
+            gres.addHint (cpt.getId (), "screenshot-save-error", ["url": origImgUrl, "error": format ("Failure while preparing thumbnail: %s", e.msg)]);
             return null;
         }
 
@@ -176,7 +189,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     }
 
     if (!thumbnailsGenerated)
-        gres.addHint (cpt.getId (), "screenshot-no-thumbnails", ["url": imgUrl]);
+        gres.addHint (cpt.getId (), "screenshot-no-thumbnails", ["url": origImgUrl]);
 
     return scr;
 }
