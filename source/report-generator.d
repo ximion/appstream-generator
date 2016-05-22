@@ -211,7 +211,7 @@ public:
         };
 
         auto time = std.datetime.Clock.currTime ();
-        auto timeStr = format ("%d-%02d-%02d %02d:%02d [%s]", time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
+        auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
         context["generator_version"] = ag.config.generatorVersion;
@@ -481,7 +481,7 @@ public:
         auto mdata = new Metadata ();
         mdata.setParserMode (ParserMode.DISTRO);
 
-        foreach (pkg; pkgs) {
+        foreach (ref pkg; pkgs) {
             auto pkid = Package.getId (pkg);
 
             auto gcids = dcache.getGCIDsForPackage (pkid);
@@ -618,9 +618,10 @@ public:
                             he.errors ~= HintTag (tag, msg);
                             pkgsummary.errorCount++;
                         }
-
-                        he.archs ~= pkg.arch;
                     }
+
+                    if (newInfo)
+                        he.archs ~= pkg.arch;
 
                     dsum.hintEntries[pkg.name][he.identifier] = he;
                 }
