@@ -2,17 +2,14 @@
 
 === Known issues ===
 
- * gnome-chemistry-utils: Contains broken tags (<metadata_license>CC0-1.0</metadata_licence>), but
-   we do not emit any meaningful error (only that we can't parse XML, some more details would be nice).
+ * No persistent problems at time :-)
 
 === Planned Features ===
 
- * Extract localizstion status for AppStream components and add them as
+ * Extract localization status for AppStream components and add them as
    `Languages` field.
- * Extract more metadata from things which do not have AppStream upstream
-   metadata yet.
- * Add an icon-cache so we don't render SVG icons in themes multiple times.
+ * Support font metainfo files and render fonts.
 
 === Whishlist / Random Ideas ===
 
- * ???
+ * Add an icon-cache so we don't render SVG icons in themes multiple times.
