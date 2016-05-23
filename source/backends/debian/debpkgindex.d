@@ -36,6 +36,7 @@ class DebianPackageIndex : PackageIndex
 private:
     string rootDir;
     Package[][string] pkgCache;
+    bool[string] indexChanged;
 
 public:
 
@@ -49,6 +50,7 @@ public:
     void release ()
     {
         pkgCache = null;
+        indexChanged = null;
     }
 
     private void loadPackageLongDescs (Package[string] pkgs, string suite, string section)
@@ -111,13 +113,18 @@ public:
         } while (tagf.nextSection ());
     }
 
-    private Package[] loadPackages (string suite, string section, string arch)
+    private string getIndexFile (string suite, string section, string arch)
     {
         auto binDistsPath = buildPath (rootDir, "dists", suite, section, "binary-%s".format (arch));
         auto indexFname = buildPath (binDistsPath, "Packages.gz");
         if (!std.file.exists (indexFname))
             indexFname = buildPath (binDistsPath, "Packages.xz");
+        return indexFname;
+    }
 
+    private Package[] loadPackages (string suite, string section, string arch)
+    {
+        auto indexFname = getIndexFile (suite, section, arch);
         if (!std.file.exists (indexFname)) {
             logWarning ("Archive package index file '%s' does not exist.", indexFname);
             return [];
@@ -167,5 +174,42 @@ public:
         }
 
         return pkgCache[id];
+    }
+
+    bool hasChanges (DataCache dcache, string suite, string section, string arch)
+    {
+        auto indexFname = getIndexFile (suite, section, arch);
+        // if the file doesn't exit, we will emit a warning later anyway, so we just ignore this here
+        if (!std.file.exists (indexFname))
+            return true;
+
+        // check our cache on whether the index had changed
+        if (indexFname in indexChanged)
+            return indexChanged[indexFname];
+
+        std.datetime.SysTime mtime;
+        std.datetime.SysTime atime;
+        std.file.getTimes (indexFname, atime, mtime);
+        auto currentTime = mtime.toUnixTime ();
+
+        auto repoInfo = dcache.getRepoInfo (suite, section, arch);
+        scope (exit) {
+            repoInfo.object["mtime"] = std.json.JSONValue (currentTime);
+            dcache.setRepoInfo (suite, section, arch, repoInfo);
+        }
+
+        if ("mtime" !in repoInfo.object) {
+            indexChanged[indexFname] = true;
+            return true;
+        }
+
+        auto pastTime = repoInfo["mtime"].integer;
+        if (pastTime != currentTime) {
+            indexChanged[indexFname] = true;
+            return true;
+        }
+
+        indexChanged[indexFname] = false;
+        return false;
     }
 }

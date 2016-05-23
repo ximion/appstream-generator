@@ -143,4 +143,9 @@ public:
 
         return pkgCache[id];
     }
+
+    bool hasChanges (DataCache dcache, string suite, string section, string arch)
+    {
+        return true;
+    }
 }

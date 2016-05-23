@@ -21,6 +21,7 @@ module ag.backend.intf;
 
 import std.string;
 import std.container;
+public import ag.datacache;
 
 
 /**
@@ -37,7 +38,8 @@ interface Package
     @property string filename ();   // only used for diagnostic information and reporting
     @property string[] contents ();
 
-    void setDescription (string desc, string locale);
+    void setDescription (string desc,
+                         string locale);
 
     const(ubyte)[] getFileData (string fname);
     void close ();
@@ -61,7 +63,31 @@ interface Package
  */
 interface PackageIndex
 {
+    /**
+     * Called after a set of operations has completed, which allows the index to
+     * release memory it might have allocated for cached data, or delete temporary
+     * files.
+     **/
     void release ();
 
-    Package[] packagesFor (string suite, string section, string arch);
+    /**
+     * Get a list of packages for the given suite/section/arch triplet.
+     * The PackageIndex should cache the data if obtaining it is an expensive
+     * operation, since the generator might query the data multiple times.
+     **/
+    Package[] packagesFor (string suite,
+                           string section,
+                           string arch);
+
+    /**
+     * Check if the index for the given suite/section/arch triplet has changed since
+     * the last generator run. The index can use the (get/set)RepoInfo methods on DataCache
+     * to store mtime or checksum data for the given suite.
+     * For the lifetime of the PackagesIndex, this method must return the same result,
+     * which means an internal cache is useful.
+     */
+    bool hasChanges (DataCache dcache,
+                     string suite,
+                     string section,
+                     string arch);
 }

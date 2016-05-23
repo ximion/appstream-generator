@@ -46,9 +46,10 @@ class DataCache
 
 private:
     MDB_envp dbEnv;
+    MDB_dbi dbRepoInfo;
+    MDB_dbi dbPackages;
     MDB_dbi dbDataXml;
     MDB_dbi dbDataYaml;
-    MDB_dbi dbPackages;
     MDB_dbi dbHints;
     MDB_dbi dbStats;
 
@@ -111,9 +112,9 @@ public:
         scope (failure) dbEnv.mdb_env_close ();
         checkError (rc, "mdb_env_create");
 
-        // We are going to use at max 5 sub-databases:
+        // We are going to use at max 6 sub-databases:
         // packages, hints, metadata_xml, metadata_yaml, statistics
-        rc = dbEnv.mdb_env_set_maxdbs (5);
+        rc = dbEnv.mdb_env_set_maxdbs (6);
         checkError (rc, "mdb_env_set_maxdbs");
 
         // set a huge map size to be futureproof.
@@ -136,14 +137,17 @@ public:
         rc = txn.mdb_dbi_open ("packages", MDB_CREATE, &dbPackages);
         checkError (rc, "open packages database");
 
-        rc = txn.mdb_dbi_open ("hints", MDB_CREATE, &dbHints);
-        checkError (rc, "open hints database");
+        rc = txn.mdb_dbi_open ("repository", MDB_CREATE, &dbRepoInfo);
+        checkError (rc, "open repository database");
 
         rc = txn.mdb_dbi_open ("metadata_xml", MDB_CREATE, &dbDataXml);
         checkError (rc, "open metadata (xml) database");
 
         rc = txn.mdb_dbi_open ("metadata_yaml", MDB_CREATE, &dbDataYaml);
         checkError (rc, "open metadata (yaml) database");
+
+        rc = txn.mdb_dbi_open ("hints", MDB_CREATE, &dbHints);
+        checkError (rc, "open hints database");
 
         rc = txn.mdb_dbi_open ("statistics", MDB_CREATE | MDB_INTEGERKEY, &dbStats);
         checkError (rc, "open statistics database");
@@ -620,4 +624,37 @@ public:
         return stats;
     }
 
+    JSONValue getRepoInfo (string suite, string section, string arch)
+    {
+        auto repoid = "%s-%s-%s".format (suite, section, arch);
+        auto jsonData = getValue (dbRepoInfo, repoid);
+        if (jsonData is null) {
+            JSONValue[string] dummy;
+            return JSONValue (dummy);
+        }
+
+        return parseJSON (jsonData);
+    }
+
+    void setRepoInfo (string suite, string section, string arch, JSONValue repoInfo)
+    {
+        auto repoid = "%s-%s-%s".format (suite, section, arch);
+        auto jsonData = toJSON (&repoInfo);
+
+        putKeyValue (dbRepoInfo, repoid, jsonData);
+    }
+
+    void removeRepoInfo (string suite, string section, string arch)
+    {
+        auto repoid = "%s-%s-%s".format (suite, section, arch);
+        auto dbkey = makeDbValue (repoid);
+
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        auto res = txn.mdb_del (dbRepoInfo, &dbkey, null);
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del");
+    }
 }

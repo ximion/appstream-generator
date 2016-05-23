@@ -141,6 +141,13 @@ public:
 
         foreach (section; suite.sections) {
             foreach (arch; suite.architectures) {
+                // check if the index has changed data, skip the update if there's nothing new
+                if (!pkgIndex.hasChanges (dcache, suite.name, section, arch)) {
+                    logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
+                    continue;
+                }
+
+                // get contents information for packages and add them to the database
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 if (!suite.baseSuite.empty)
                     pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
@@ -379,19 +386,23 @@ public:
             auto iconTarBuilt = false;
             auto suiteDataChanged = false;
             foreach (arch; suite.architectures) {
+                // check if the suite/section/arch has actually changed
+                if (!pkgIndex.hasChanges (dcache, suite.name, section, arch)) {
+                    logInfo ("Skipping %s/%s [%s], no changes since last update.", suite.name, section, arch);
+                    continue;
+                }
+
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                 auto iconh = new IconHandler (dcache.mediaExportDir,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
-                auto dataAdded = processPackages (pkgs, iconh);
+                processPackages (pkgs, iconh);
 
                 // export package data
-                if (dataAdded) {
-                    exportData (suite, section, arch, pkgs, !iconTarBuilt);
-                    iconTarBuilt = true;
-                    suiteDataChanged = true;
-                }
+                exportData (suite, section, arch, pkgs, !iconTarBuilt);
+                iconTarBuilt = true;
+                suiteDataChanged = true;
 
                 // we store the package info over all architectures to generate reports later
                 sectionPkgs ~= pkgs;
