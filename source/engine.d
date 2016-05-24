@@ -54,6 +54,8 @@ private:
     DataCache dcache;
     string exportDir;
 
+    bool m_forced;
+
 public:
 
     this ()
@@ -80,6 +82,18 @@ public:
         // create cache in cache directory on workspace
         dcache = new DataCache ();
         dcache.open (conf);
+    }
+
+    @property
+    bool forced ()
+    {
+        return m_forced;
+    }
+
+    @property
+    void forced (bool v)
+    {
+        m_forced = v;
     }
 
     /**
@@ -142,7 +156,7 @@ public:
         foreach (section; suite.sections) {
             foreach (arch; suite.architectures) {
                 // check if the index has changed data, skip the update if there's nothing new
-                if (!pkgIndex.hasChanges (dcache, suite.name, section, arch)) {
+                if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
                     logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
                     continue;
                 }
@@ -389,7 +403,7 @@ public:
             auto suiteDataChanged = false;
             foreach (arch; suite.architectures) {
                 // check if the suite/section/arch has actually changed
-                if (!pkgIndex.hasChanges (dcache, suite.name, section, arch)) {
+                if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
                     logInfo ("Skipping %s/%s [%s], no changes since last update.", suite.name, section, arch);
                     continue;
                 }

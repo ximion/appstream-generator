@@ -43,9 +43,10 @@ Help Options:
   -h, --help       Show help options
 
 Application Options:
-  --version        Show the program version
-  --verbose        Show extra debugging information
-  -w|--workspace   Define the workspace location";
+  --version        Show the program version.
+  --verbose        Show extra debugging information.
+  --force          Force action.
+  -w|--workspace   Define the workspace location.";
 
 void main(string[] args)
 {
@@ -53,6 +54,7 @@ void main(string[] args)
     bool verbose;
     bool showHelp;
     bool showVersion;
+    bool forceAction;
     string wdir = getcwd ();
 
     // parse command-line options
@@ -61,6 +63,7 @@ void main(string[] args)
             "help|h", &showHelp,
             "verbose", &verbose,
             "version", &showVersion,
+            "force", &forceAction,
             "workspace|w", &wdir);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
@@ -100,6 +103,9 @@ void main(string[] args)
         ag.logging.setVerbose (true);
     }
 
+    auto engine = new Engine ();
+    engine.forced = forceAction;
+
     command = args[1];
     switch (command) {
         case "run":
@@ -108,11 +114,9 @@ void main(string[] args)
                 writeln ("Invalid number of parameters: You need to specify a suite name.");
                 exit (1);
             }
-            auto engine = new Engine ();
             engine.run (args[2]);
             break;
         case "cleanup":
-            auto engine = new Engine ();
             engine.runCleanup ();
             break;
         case "remove-found":
@@ -120,7 +124,6 @@ void main(string[] args)
                 writeln ("Invalid number of parameters: You need to specify a suite name.");
                 exit (1);
             }
-            auto engine = new Engine ();
             engine.removeHintsComponents (args[2]);
             break;
         default:
