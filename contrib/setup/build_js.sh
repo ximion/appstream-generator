@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-bower install jquery jquery-flot highlightjs
+bower --allow-root install jquery jquery-flot highlightjs
 
 JS_TARGET=../../data/templates/default/static/js
 
