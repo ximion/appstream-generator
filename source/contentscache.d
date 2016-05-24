@@ -71,6 +71,8 @@ public:
         int rc;
         assert (!opened);
 
+        logDebug ("Opening contents cache.");
+
         // ensure the cache directory exists
         mkdirRecurse (dir);
 

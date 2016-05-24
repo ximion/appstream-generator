@@ -99,13 +99,10 @@ public:
     /**
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
-     *
-     * Returns: True in case we changed hint or component data. False if no changes were made.
      */
-    private bool processPackages (Package[] pkgs, IconHandler iconh)
+    private void processPackages (Package[] pkgs, IconHandler iconh)
     {
         GeneratorResult[] results;
-        bool ret = false;
 
         auto mde = new DataExtractor (dcache, iconh);
         foreach (ref pkg; parallel (pkgs, 4)) {
@@ -119,26 +116,22 @@ public:
                 dcache.addGeneratorResult (this.conf.metadataType, res);
 
                 logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
-                ret = true;
             }
-        }
 
-        return ret;
+            // we don't need this package anymore
+            pkg.close ();
+        }
     }
 
     /**
      * Populate the contents index with new contents data. While we are at it, we can also mark
      * some uninteresting packages as to-be-ignored, so we don't waste time on them
      * during the following metadata extraction.
+     *
+     * Returns: True in case we have new interesting packages, false otherwise.
      **/
-    private void seedContentsData (Suite suite)
+    private bool seedContentsData (Suite suite, string section, string arch)
     {
-        logInfo ("Scanning new packages.");
-
-        // open package contents cache
-        auto ccache = new ContentsCache ();
-        ccache.open (conf);
-
         bool packageInteresting (string[] contents)
         {
             foreach (ref c; contents) {
@@ -153,50 +146,61 @@ public:
             return false;
         }
 
-        foreach (section; suite.sections) {
-            foreach (arch; suite.architectures) {
-                // check if the index has changed data, skip the update if there's nothing new
-                if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
-                    logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
+        // check if the index has changed data, skip the update if there's nothing new
+        if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
+            logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
+            return false;
+        }
+
+        logInfo ("Scanning new packages for %s/%s [%s]", suite.name, section, arch);
+
+        // open package contents cache
+        auto ccache = new ContentsCache ();
+        ccache.open (conf);
+
+        // get contents information for packages and add them to the database
+        auto interestingFound = false;
+        auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+        if (!suite.baseSuite.empty)
+            pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
+        foreach (ref pkg; parallel (pkgs, 8)) {
+            auto pkid = Package.getId (pkg);
+
+            string[] contents;
+            if (ccache.packageExists (pkid)) {
+                if (dcache.packageExists (pkid)) {
+                    // TODO: Unfortunately, packages can move between suites without changing their ID.
+                    // This means as soon as we have an interesting package, even if we already processed it,
+                    // we need to regenerate the output metadata.
+                    // For that to happen, we set interestingFound to true here. Later, a more elegent solution
+                    // would be desirable here, ideally one which doesn't force us to track which package is
+                    // in which suite as well.
+                    if (!dcache.isIgnored (pkid))
+                        interestingFound = true;
                     continue;
                 }
+                // we will complement the main database with ignore data, in case it
+                // went missing.
+                contents = ccache.getContents (pkid);
+            } else {
+                // add contents to the index
+                contents = pkg.contents;
+                ccache.addContents (pkid, contents);
+            }
 
-                // get contents information for packages and add them to the database
-                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                if (!suite.baseSuite.empty)
-                    pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
-                foreach (ref pkg; parallel (pkgs, 8)) {
-                    auto pkid = Package.getId (pkg);
-
-                    string[] contents;
-                    if (ccache.packageExists (pkid)) {
-                        if (dcache.packageExists (pkid))
-                            continue;
-                        // we will complement the main database with ignore data, in case it
-                        // went missing.
-                        contents = ccache.getContents (pkid);
-                    } else {
-                        // add contents to the index
-                        contents = pkg.contents;
-                        ccache.addContents (pkid, contents);
-                    }
-
-                    // check if we can already mark this package as ignored, and print some log messages
-                    if (!packageInteresting (contents)) {
-                        dcache.setPackageIgnore (pkid);
-                        logInfo ("Scanned %s, no interesting files found.", pkid);
-                    } else {
-                        logInfo ("Scanned %s, could be interesting.", pkid);
-                    }
-
-                    pkg.close ();
-                }
-
-                // do garbage collection run now to immediately free some space after these
-                // memory-intensive operations.
-                core.memory.GC.collect ();
+            // check if we can already mark this package as ignored, and print some log messages
+            if (!packageInteresting (contents)) {
+                dcache.setPackageIgnore (pkid);
+                logInfo ("Scanned %s, no interesting files found.", pkid);
+                // we won't use this anymore
+                pkg.close ();
+            } else {
+                logInfo ("Scanned %s, could be interesting.", pkid);
+                interestingFound = true;
             }
         }
+
+        return interestingFound;
     }
 
     private string getMetadataHead (Suite suite, string section)
@@ -395,18 +399,18 @@ public:
         GeneratorHint[string] hints;
         auto reportgen = new ReportGenerator (dcache);
 
-        // update package contents information and flag boring packages as ignored
-        seedContentsData (suite);
-
         auto dataChanged = false;
         foreach (section; suite.sections) {
             Package[] sectionPkgs;
             auto iconTarBuilt = false;
             auto suiteDataChanged = false;
             foreach (arch; suite.architectures) {
+                // update package contents information and flag boring packages as ignored
+                auto foundInteresting = seedContentsData (suite, section, arch);
+
                 // check if the suite/section/arch has actually changed
-                if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
-                    logInfo ("Skipping %s/%s [%s], no changes since last update.", suite.name, section, arch);
+                if (!foundInteresting) {
+                    logInfo ("Skipping %s/%s [%s], no interesting new packages last update.", suite.name, section, arch);
                     continue;
                 }
 
