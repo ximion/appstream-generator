@@ -193,13 +193,15 @@ public:
         auto time = std.datetime.Clock.currTime ();
         auto timeStr = time.toSimpleString ();
 
+        auto mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
+
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
             head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.appstreamVersion, origin);
             if (suite.dataPriority != 0)
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
             if (!conf.mediaBaseUrl.empty ())
-                head ~= format (" media_baseurl=\"%s\"", conf.mediaBaseUrl);
+                head ~= format (" media_baseurl=\"%s\"", mediaPoolUrl);
             head ~= format (" time=\"%s\"", timeStr);
             head ~= ">";
         } else {
@@ -210,7 +212,7 @@ public:
                            conf.appstreamVersion,
                            origin);
             if (!conf.mediaBaseUrl.empty ())
-                head ~= format ("\nMediaBaseUrl: %s", conf.mediaBaseUrl);
+                head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
             head ~= format ("\nTime: %s", timeStr);

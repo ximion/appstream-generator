@@ -53,8 +53,8 @@ private:
     string templateDir;
     string defaultTemplateDir;
 
-    string mediaBaseDir;
-    string mediaBaseUrl;
+    string mediaPoolDir;
+    string mediaPoolUrl;
 
     Mustache mustache;
 
@@ -110,8 +110,8 @@ public:
 
         exportDir = buildPath (conf.workspaceDir, "export");
         htmlExportDir = buildPath (exportDir, "html");
-        mediaBaseDir = buildPath (exportDir, "media");
-        mediaBaseUrl = conf.mediaBaseUrl;
+        mediaPoolDir = dcache.mediaExportDir;
+        mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
         // we need the data cache to get hint and metainfo data
         this.dcache = dcache;
@@ -332,8 +332,8 @@ public:
                         }
                         intCtx["metadata"] = mentry.data;
 
-                        auto cptMediaPath = buildPath (mediaBaseDir, gcid);
-                        auto cptMediaUrl = buildPath (mediaBaseUrl, gcid);
+                        auto cptMediaPath = buildPath (mediaPoolDir, gcid);
+                        auto cptMediaUrl = buildPath (mediaPoolUrl, gcid);
                         string iconUrl;
                         switch (mentry.kind) {
                             case ComponentKind.UNKNOWN:

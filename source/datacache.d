@@ -96,7 +96,7 @@ public:
         logDebug ("Using %s major=%s minor=%s patch=%s", ver.fromStringz, major, minor, patch);
     }
 
-    void open (string dir, string mediaDir)
+    void open (string dir, string mediaBaseDir)
     {
         int rc;
         assert (opened == false);
@@ -155,8 +155,8 @@ public:
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
 
-        this.mediaDir = mediaDir;
-        mkdirRecurse (mediaDir);
+        this.mediaDir = std.path.buildPath (mediaBaseDir, "pool");
+        mkdirRecurse (this.mediaDir);
     }
 
     void open (Config conf)
