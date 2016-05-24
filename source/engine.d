@@ -209,7 +209,8 @@ public:
         auto origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
 
         auto time = std.datetime.Clock.currTime ();
-        auto timeStr = time.toSimpleString ();
+        time.fracSec = core.time.FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
+        auto timeStr = time.toISOString ();
 
         auto mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
