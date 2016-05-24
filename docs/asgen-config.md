@@ -76,3 +76,4 @@ processDesktop | Process .desktop files which do not have a metainfo file. If di
 noDownloads | Do not attempt any downloads. This will implicitly disable any handling of screenshots and possibly other features. Using this flag is discouraged. *Default: `OFF`*
 createScreenshotsStore | Mirror screenshots and create thumbnails of them in `media/`. This will yield the best experience with software-centers, and also allow full control over which screenshots are displayed. Disabling this will make clients pull screenshots from 3rd-party upstream servers. *Default: `ON`*
 optimizePNGSize | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. *Default: `ON`*
+metadataTimestamps | Write timestamps into generated metadata files. *Default: `ON`*

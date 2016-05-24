@@ -68,11 +68,12 @@ enum Backend
 enum GeneratorFeature
 {
     NONE = 0,
-    PROCESS_DESKTOP   = 1 << 0,
-    VALIDATE          = 1 << 1,
-    NO_DOWNLOADS      = 1 << 2,
-    STORE_SCREENSHOTS = 1 << 3,
-    OPTIPNG           = 1 << 4
+    PROCESS_DESKTOP     = 1 << 0,
+    VALIDATE            = 1 << 1,
+    NO_DOWNLOADS        = 1 << 2,
+    STORE_SCREENSHOTS   = 1 << 3,
+    OPTIPNG             = 1 << 4,
+    METADATA_TIMESTAMPS = 1 << 5
 }
 
 class Config
@@ -219,6 +220,7 @@ class Config
         setFeature (GeneratorFeature.VALIDATE, true);
         setFeature (GeneratorFeature.STORE_SCREENSHOTS, true);
         setFeature (GeneratorFeature.OPTIPNG, true);
+        setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -239,6 +241,9 @@ class Config
                             break;
                     case "optimizePNGSize":
                             setFeature (GeneratorFeature.OPTIPNG, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "metadataTimestamps":
+                            setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     default:
                         break;

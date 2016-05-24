@@ -216,7 +216,8 @@ public:
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
             if (!conf.mediaBaseUrl.empty ())
                 head ~= format (" media_baseurl=\"%s\"", mediaPoolUrl);
-            head ~= format (" time=\"%s\"", timeStr);
+            if (conf.featureEnabled (GeneratorFeature.METADATA_TIMESTAMPS))
+                head ~= format (" time=\"%s\"", timeStr);
             head ~= ">";
         } else {
             head = "---\n";
@@ -229,7 +230,8 @@ public:
                 head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
-            head ~= format ("\nTime: %s", timeStr);
+            if (conf.featureEnabled (GeneratorFeature.METADATA_TIMESTAMPS))
+                head ~= format ("\nTime: %s", timeStr);
         }
 
         return head;
