@@ -1,3 +1,39 @@
+Version 0.3.0
+~~~~~~~~~~~~~~
+Released: 2016-05-24
+
+Features:
+ * Register new backend for Arch Linux (Matthias Klumpp)
+ * arch: Add reader for lists index file and skeleton for PackageIndex (Matthias Klumpp)
+ * Make generic archive class work well with non-Debian packages (Matthias Klumpp)
+ * Add HTML anchors for maintainers on report pages (Matthias Klumpp)
+ * html: Show suite name in section overview (Matthias Klumpp)
+ * Allow not setting a MediaBaseUrl (Matthias Klumpp)
+ * Add some font rendering experiments (Matthias Klumpp)
+ * Allow storing multiple statitics entries per point in time (Matthias Klumpp)
+ * Make icon tarball build reproducible (Matthias Klumpp)
+ * Make ArchiveDecompressor API more powerful and always return const(ubyte)[] (Matthias Klumpp)
+ * arch: Speed up backend by loading all data in one go (Matthias Klumpp)
+ * Split "handleScreenshots" into more useful, fine-grained flags (Matthias Klumpp)
+ * Add timestamp to output and only touch it if something has changed (Matthias Klumpp)
+ * Only update metadata if the indices have been changed (Matthias Klumpp)
+ * Store media in pool subdirectory (Matthias Klumpp)
+ * Add flag to enforce metadata processing, even if nothing changed (Matthias Klumpp)
+ * Allow disabling metadata timestamps (Matthias Klumpp)
+ * Improve scan-skipping code (Matthias Klumpp)
+
+Bugfixes:
+ * Fix build on non-64bit arches (Matthias Klumpp)
+ * Handle compressed empty files correctly (Neil Mayhew)
+ * Drop other, non-UTF-8 encodings from language codes too (Matthias Klumpp)
+ * Drop non-printable characters from .desktop file values (Matthias Klumpp)
+ * Loop over more things by-reference to reduce RAM usage (Matthias Klumpp)
+ * debian: Read Packages.xz files if no .gz file is available (Matthias Klumpp)
+ * Don't lie about thumbnail sizes in their filename (Matthias Klumpp)
+ * Don't duplicate architecture tag if there are multiple issues (Matthias Klumpp)
+ * Catch data serialization errors (Matthias Klumpp)
+ * Run bower with allow root to be able to make js as root (Harald Sitter)
+
 Version 0.2.0
 ~~~~~~~~~~~~~~
 Released: 2016-04-24
