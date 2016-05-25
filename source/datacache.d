@@ -578,8 +578,7 @@ public:
 
         auto res = txn.mdb_put (dbStats, &dbkey, &dbvalue, MDB_APPEND);
         if (res == MDB_KEYEXIST) {
-            // we were too fast! - add the new data to this point in time
-            logDebug ("Attempted to add statistics at the exact same time when we have already added some. We are suspiciously fast...");
+            // this point in time already exists, so we need to extend it with additional data
 
             // retrieve the old statistics data
             auto existingJsonData = getValue (dbStats, dbkey);
