@@ -56,3 +56,7 @@ $ sudo make install
 ## Usage
 
 Take a look at the `docs/` directory in the source tree for information on how to use the generator. Right now, only the YAML output format is tested properly.
+
+## Hacking
+
+Pull-requests and patches are very welcome! If you are new to D, it is highly recommended to take a few minutes to look at the D tour to get a feeling of what the language can do: http://tour.dlang.org/
