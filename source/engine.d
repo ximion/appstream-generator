@@ -396,6 +396,18 @@ public:
             if (s.name == suite_name)
                 suite = s;
 
+        if (suite.sections.empty) {
+            // if we have no sections, we can't do anything but exit...
+            logError ("Suite '%s' has no sections. Can not continue.", suite_name);
+            return;
+        }
+
+        if (suite.architectures.empty) {
+            // we also can't process anything if there are no architectures defined
+            logError ("Suite '%s' has no architectures defined. Can not continue.", suite.name);
+            return;
+        }
+
         Component[] cpts;
         GeneratorHint[string] hints;
         auto reportgen = new ReportGenerator (dcache);
