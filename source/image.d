@@ -54,7 +54,8 @@ private void optimizePNG (string fname)
     if (!conf.featureEnabled (GeneratorFeature.OPTIPNG))
         return;
 
-    auto optipng = execute (["optipng", "-o4", fname ]);
+    // NOTE: Maybe add an option to run optipng with stronger optimization? (>= -o4)
+    auto optipng = execute (["optipng", fname ]);
     if (optipng.status != 0)
         logWarning ("Optipng on '%s' failed with error code %s: %s", fname, optipng.status, optipng.output);
 }
