@@ -1,34 +1,18 @@
+# Travis CI config for the AppStream Generator
+language: d
 sudo: required
 dist: trusty
+
+services:
+  - docker
 
 d:
   - gdc
   #- ldc -- LDC has problems with parallelization (doesn't seem to work on Package[] array)
 
 before_script:
-  # we need a newer binutils to link properly (really terrible hacks follow...)
-  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial main universe" -y
-  - export FORCEYES_APT="sudo apt-get -o Dpkg::Options::=--force-confold --force-yes -fuy"
-  - sudo apt-get update -qq && $FORCEYES_APT install binutils gdc build-essential gcc
-  - sudo add-apt-repository "ppa:ximion/packagekit" -y
-  - sudo apt-get update -qq
-  # dependencies for appstream and appstream-generator
-  - $FORCEYES_APT install -q cmake intltool libglib2.0-dev libxml2-dev libgirepository1.0-dev libxapian-dev libyaml-dev xmlto gobject-introspection libprotobuf-dev protobuf-compiler
-  # dependencies only for appstream-generator
-  - $FORCEYES_APT install -q dub libgdk-pixbuf2.0-dev libarchive-dev librsvg2-dev liblmdb-dev
-  - $FORCEYES_APT install -q npm
-  - sudo npm install -g bower
-  # build & install the current Git snapshot of AppStream
-  - mkdir dep && cd dep
-  - git clone https://github.com/ximion/appstream.git
-  - cd appstream && mkdir build && cd build
-  - cmake -DMAINTAINER=ON -DAPT_SUPPORT=ON ..
-  - make && sudo make install
-  - cd ../../..
+  - docker build -t asgen -f test/ci/Dockerfile .
 
 script:
- - dub build
- - dub test
- #
- - make js
- - make install DESTDIR=/tmp
+  - docker run -t -e DC=$DC -v `pwd`:/build asgen
+    ./test/ci/build_and_test.sh
