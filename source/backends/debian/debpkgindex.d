@@ -44,7 +44,7 @@ public:
     {
         this.rootDir = dir;
         if (!std.file.exists (dir))
-            throw new Exception ("Directory '%s' does not exist.", dir);
+            throw new Exception ("Directory '%s' does not exist.".format (dir));
     }
 
     void release ()
