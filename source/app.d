@@ -38,6 +38,7 @@ Subcommands:
   process SUITE      - Process new metadata for the given distribution suite.
   cleanup            - Cleanup old metadata and media files.
   remove-found SUITE - Drop all valid processed metadata and hints.
+  forget PKID        - Drop all information we have about this (partial) package-id.
 
 Help Options:
   -h, --help       Show help options
@@ -125,6 +126,13 @@ void main(string[] args)
                 exit (1);
             }
             engine.removeHintsComponents (args[2]);
+            break;
+        case "forget":
+            if (args.length != 3) {
+                writeln ("Invalid number of parameters: You need to specify a package-id (partial IDs are allowed).");
+                exit (1);
+            }
+            engine.forgetPackage (args[2]);
             break;
         default:
             writeln (format ("The command '%s' is unknown.", command));

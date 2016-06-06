@@ -656,4 +656,31 @@ public:
         if (res != MDB_NOTFOUND)
             checkError (res, "mdb_del");
     }
+
+    /**
+     * Get a list of package-ids which match a prefix.
+     */
+    string[] getPkidsMatching (string prefix)
+    {
+        MDB_val dkey;
+        MDB_cursorp cur;
+        string[long] stats;
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbPackages, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (pkid-match)");
+
+        string[] pkids;
+        prefix ~= "/";
+        while (cur.mdb_cursor_get (&dkey, null, MDB_NEXT) == 0) {
+            auto pkid = to!string (fromStringz (cast(char*) dkey.mv_data));
+            if (pkid.startsWith (prefix))
+                pkids ~= pkid;
+        }
+
+        return pkids;
+    }
 }

@@ -537,4 +537,32 @@ public:
         dcache.cleanupCruft ();
     }
 
+    void forgetPackage (string identifier)
+    {
+        auto ccache = new ContentsCache ();
+        ccache.open (conf);
+
+        if (identifier.count ("/") == 3) {
+            // we have a package-id, so we can do a targeted remove
+            auto pkid = identifier;
+            logDebug ("Considering %s to be a package-id.", pkid);
+
+            if (ccache.packageExists (pkid))
+                ccache.removePackage (pkid);
+            if (dcache.packageExists (pkid))
+                dcache.removePackage (pkid);
+            logInfo ("Removed package with ID: %s", pkid);
+        } else {
+            auto pkids = dcache.getPkidsMatching (identifier);
+            foreach (pkid; pkids) {
+                dcache.removePackage (pkid);
+                if (ccache.packageExists (pkid))
+                    ccache.removePackage (pkid);
+                logInfo ("Removed package with ID: %s", pkid);
+            }
+        }
+
+        // remove orphaned data and media
+        dcache.cleanupCruft ();
+    }
 }
