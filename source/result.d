@@ -54,12 +54,14 @@ public:
         this.pkg = pkg;
     }
 
-    bool packageIsIgnored ()
+    @safe
+    bool packageIsIgnored () pure
     {
         return (cpts.length == 0) && (hints.length == 0);
     }
 
-    Component getComponent (string id)
+    @safe
+    Component getComponent (string id) pure
     {
         auto ptr = (id in cpts);
         if (ptr is null)
@@ -67,16 +69,19 @@ public:
         return *ptr;
     }
 
-    Component[] getComponents ()
+    @trusted
+    Component[] getComponents () pure
     {
         return cpts.values ();
     }
 
+    @trusted
     bool isIgnored (Component cpt)
     {
         return getComponent (cpt.getId ()) is null;
     }
 
+    @trusted
     void updateComponentGCID (Component cpt, string data)
     {
         import std.digest.md;
@@ -100,6 +105,7 @@ public:
         cptGCID[cpt] = buildCptGlobalID (cid, newHash);
     }
 
+    @trusted
     void addComponent (Component cpt, string data = "")
     {
         string cid = cpt.getId ();
@@ -111,7 +117,8 @@ public:
         updateComponentGCID (cpt, data);
     }
 
-    void dropComponent (string cid)
+    @safe
+    void dropComponent (string cid) pure
     {
         auto cpt = getComponent (cid);
         if (cpt is null)
@@ -127,6 +134,7 @@ public:
      *      tag    = The hint tag.
      *      params = Dictionary of parameters to insert into the issue report.
      **/
+    @safe
     void addHint (string cid, string tag, string[string] params)
     {
         auto hint = new GeneratorHint (tag, cid);
@@ -148,6 +156,7 @@ public:
      *      tag = The hint tag.
      *      msg = An error message to add to the report.
      **/
+    @safe
     void addHint (string cid, string tag, string msg = null)
     {
         string[string] vars;
@@ -231,7 +240,8 @@ public:
     /**
      * Return the number of components we've found.
      **/
-    ulong componentsCount ()
+    @safe
+    ulong componentsCount () pure
     {
         return cpts.length;
     }
@@ -239,12 +249,14 @@ public:
     /**
      * Return the number of hints that have been emitted.
      **/
-    ulong hintsCount ()
+    @safe
+    ulong hintsCount () pure
     {
         return hints.length;
     }
 
-    string gcidForComponent (Component cpt)
+    @safe
+    string gcidForComponent (Component cpt) pure
     {
         auto cgp = (cpt in cptGCID);
         if (cgp is null)
@@ -252,7 +264,8 @@ public:
         return *cgp;
     }
 
-    string[] getGCIDs ()
+    @trusted
+    string[] getGCIDs () pure
     {
         return cptGCID.values ();
     }

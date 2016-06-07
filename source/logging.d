@@ -34,6 +34,7 @@ enum LogSeverity : string
     ERROR = "ERROR"
 }
 
+@trusted
 void logMessage (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
 {
     auto time = Clock.currTime ();
@@ -41,27 +42,32 @@ void logMessage (LogSeverity, string, Args...) (LogSeverity severity, string tmp
     writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
 }
 
+@trusted
 void logDebug (string, Args...) (string tmpl, Args args)
 {
     if (__verbose)
         logMessage (LogSeverity.DEBUG, tmpl, args);
 }
 
+@safe
 void logInfo (string, Args...) (string tmpl, Args args)
 {
     logMessage (LogSeverity.INFO, tmpl, args);
 }
 
+@safe
 void logWarning (string, Args...) (string tmpl, Args args)
 {
     logMessage (LogSeverity.WARNING, tmpl, args);
 }
 
+@safe
 void logError (string, Args...) (string tmpl, Args args)
 {
     logMessage (LogSeverity.ERROR, tmpl, args);
 }
 
+@trusted
 void setVerbose (bool enabled)
 {
     __verbose = enabled;

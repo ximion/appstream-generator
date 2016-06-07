@@ -44,7 +44,8 @@ enum HintSeverity
     ERROR
 }
 
-private HintSeverity severityFromString (string str)
+@safe
+private HintSeverity severityFromString (string str) pure
 {
     switch (str) {
         case "error":
@@ -71,6 +72,7 @@ private:
 
 public:
 
+    @trusted
     this (string tag, string cid = null)
     {
         this.tag = tag;
@@ -81,18 +83,20 @@ public:
             logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
     }
 
-    bool isError ()
+    @safe
+    bool isError () pure
     {
         return severity == HintSeverity.ERROR;
     }
 
-    void setVars (string[string] vars)
+    @safe
+    void setVars (string[string] vars) pure
     {
         this.vars = vars;
-
     }
 
-    auto toJsonNode ()
+    @safe
+    auto toJsonNode () pure
     {
         JSONValue json = JSONValue(["tag":  JSONValue (tag),
                                     "vars": JSONValue (vars)
@@ -136,6 +140,7 @@ class HintsStorage
 
     private HintDefinition[string] hintDefs;
 
+    @trusted
     private this ()
     {
         import std.path;
@@ -177,7 +182,8 @@ class HintsStorage
         }
     }
 
-    HintDefinition getHintDef (string tag)
+    @safe
+    HintDefinition getHintDef (string tag) pure
     {
         auto defP = (tag in hintDefs);
         if (defP is null)
@@ -185,7 +191,8 @@ class HintsStorage
         return *defP;
     }
 
-    HintSeverity getSeverity (string tag)
+    @safe
+    HintSeverity getSeverity (string tag) pure
     {
         auto hDef = getHintDef (tag);
         return hDef.severity;

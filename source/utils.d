@@ -74,6 +74,7 @@ struct ImageSize
 /**
  * Generate a random alphanumeric string.
  */
+@trusted
 string randomString (uint len)
 {
     auto asciiLetters = to! (dchar[]) (letters);
@@ -91,7 +92,8 @@ string randomString (uint len)
  * in the resulting metadata. Some locales added just for testing
  * by upstreams should be filtered out.
  */
-bool localeValid (string locale)
+@safe
+bool localeValid (string locale) pure
 {
     switch (locale) {
         case "x-test":
@@ -110,7 +112,8 @@ bool localeValid (string locale)
  * Its primary usecase is to identify a media directory on the filesystem which is
  * associated with this component.
  **/
-string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = false)
+@trusted
+string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = false) pure
 {
     if (cptid is null)
         return null;
@@ -136,7 +139,8 @@ string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = f
 /**
  * Get the component-id back from a global component-id.
  */
-string getCidFromGlobalID (string gcid)
+@trusted
+string getCidFromGlobalID (string gcid) pure
 {
     auto parts = gcid.split ("/");
     if (parts.length != 4)
@@ -206,7 +210,8 @@ void copyDir (in string srcDir, in string destDir)
 /**
  * Escape XML characters.
  */
-S escapeXml (S) (S s)
+@safe
+S escapeXml (S) (S s) pure
 {
     string r;
     size_t lastI;
@@ -237,6 +242,7 @@ S escapeXml (S) (S s)
 /**
  * Get full path for an AppStream generator data file.
  */
+@safe
 string getDataPath (string fname)
 {
     import std.path;
