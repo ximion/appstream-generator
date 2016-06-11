@@ -164,7 +164,7 @@ public:
         if (!suite.baseSuite.empty)
             pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
         foreach (ref pkg; parallel (pkgs, 8)) {
-            auto pkid = Package.getId (pkg);
+            immutable pkid = Package.getId (pkg);
 
             string[] contents;
             if (ccache.packageExists (pkid)) {
@@ -206,13 +206,13 @@ public:
     private string getMetadataHead (Suite suite, string section)
     {
         string head;
-        auto origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
+        immutable origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
 
         auto time = std.datetime.Clock.currTime ();
         time.fracSec = core.time.FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
-        auto timeStr = time.toISOString ();
+        immutable timeStr = time.toISOString ();
 
-        auto mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
+        immutable mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
@@ -257,8 +257,8 @@ public:
         mdataEntries ~= getMetadataHead (suite, section);
 
         // prepare destination
-        auto dataExportDir = buildPath (exportDir, "data", suite.name, section);
-        auto hintsExportDir = buildPath (exportDir, "hints", suite.name, section);
+        immutable dataExportDir = buildPath (exportDir, "data", suite.name, section);
+        immutable hintsExportDir = buildPath (exportDir, "hints", suite.name, section);
 
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);
@@ -274,7 +274,7 @@ public:
 
         // collect metadata, icons and hints for the given packages
         foreach (ref pkg; parallel (pkgs, 100)) {
-            auto pkid = Package.getId (pkg);
+            immutable pkid = Package.getId (pkg);
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
                 auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
@@ -285,7 +285,7 @@ public:
                 if (withIconTar) {
                     foreach (gcid; gcids) {
                         foreach (size; iconTarSizes) {
-                            auto iconDir = buildPath (dcache.mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
+                            immutable iconDir = buildPath (dcache.mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
                             if (!std.file.exists (iconDir))
                                 continue;
                             foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
@@ -320,7 +320,7 @@ public:
             dataFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
         else
             dataFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
-        string hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
+        immutable hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
         logInfo ("Writing metadata for %s/%s [%s]", suite.name, section, arch);
@@ -382,7 +382,7 @@ public:
 
         Package[string] pkgMap;
         foreach (ref pkg; pkgs) {
-            auto pkid = Package.getId (pkg);
+            immutable pkid = Package.getId (pkg);
             pkgMap[pkid] = pkg;
         }
 
@@ -419,7 +419,7 @@ public:
             auto suiteDataChanged = false;
             foreach (arch; suite.architectures) {
                 // update package contents information and flag boring packages as ignored
-                auto foundInteresting = seedContentsData (suite, section, arch);
+                immutable foundInteresting = seedContentsData (suite, section, arch);
 
                 // check if the suite/section/arch has actually changed
                 if (!foundInteresting) {

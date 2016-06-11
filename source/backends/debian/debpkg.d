@@ -49,13 +49,13 @@ private:
     string debFname;
 
 public:
-    @property string name () { return pkgname; }
-    @property string ver () { return pkgver; }
-    @property string arch () { return pkgarch; }
-    @property string[string] description () { return desc; }
-    @property string filename () { return debFname; }
+    @property string name () const { return pkgname; }
+    @property string ver () const { return pkgver; }
+    @property string arch () const { return pkgarch; }
+    @property const(string[string]) description () const { return desc; }
+    @property string filename () const { return debFname; }
     @property void filename (string fname) { debFname = fname; }
-    @property string maintainer () { return pkgmaintainer; }
+    @property string maintainer () const { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)

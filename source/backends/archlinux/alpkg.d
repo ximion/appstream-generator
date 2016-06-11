@@ -43,16 +43,21 @@ private:
     ArchiveDecompressor archive;
 
 public:
-    @property string name () { return pkgname; }
+    @property string name () const { return pkgname; }
     @property void   name (string val) { pkgname = val; }
-    @property string ver () { return pkgver; }
+
+    @property string ver () const { return pkgver; }
     @property void   ver (string val) { pkgver = val; }
-    @property string arch () { return pkgarch; }
+
+    @property string arch () const { return pkgarch; }
     @property void   arch (string val) { pkgarch = val; }
-    @property string[string] description () { return desc; }
-    @property string filename () { return pkgFname; }
+
+    @property const(string[string]) description () const { return desc; }
+
+    @property string filename () const { return pkgFname; }
     @property void filename (string fname) { pkgFname = fname; }
-    @property string maintainer () { return pkgmaintainer; }
+
+    @property string maintainer () const { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
 
     bool isValid ()

@@ -37,13 +37,13 @@ private:
     string testPkgFname;
 
 public:
-    @property string name () { return pkgname; }
-    @property string ver () { return pkgver; }
-    @property string arch () { return pkgarch; }
-    @property string[string] description () { return desc; }
-    @property string filename () { return testPkgFname; }
+    @property string name () const { return pkgname; }
+    @property string ver () const { return pkgver; }
+    @property string arch () const { return pkgarch; }
+    @property const(string[string]) description () const { return desc; }
+    @property string filename () const { return testPkgFname; }
     @property void filename (string fname) { testPkgFname = fname; }
-    @property string maintainer () { return pkgmaintainer; }
+    @property string maintainer () const { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)

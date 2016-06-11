@@ -398,7 +398,12 @@ public:
      *      iconPath      = The (absolute) path to the icon.
      *      size          = The size the icon should be stored in.
      **/
-    private bool storeIcon (Component cpt, GeneratorResult gres, string cptExportPath, Package sourcePkg, string iconPath, ImageSize size)
+    private bool storeIcon (Component cpt,
+                            GeneratorResult gres,
+                            string cptExportPath,
+                            Package sourcePkg,
+                            string iconPath,
+                            ImageSize size)
     {
         // don't store an icon if we are already ignoring this component
         //if cpt.has_ignore_reason():

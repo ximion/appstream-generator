@@ -35,40 +35,40 @@ enum LogSeverity : string
 }
 
 @trusted
-void logMessage (LogSeverity, string, Args...) (LogSeverity severity, string tmpl, Args args)
+void logMessage (LogSeverity, string, Args...) (const LogSeverity severity, const string tmpl, const Args args)
 {
     auto time = Clock.currTime ();
-    auto timeStr = format ("%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour,time.minute, time.second);
+    auto timeStr = "%d-%02d-%02d %02d:%02d:%02d".format (time.year, time.month, time.day, time.hour,time.minute, time.second);
     writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
 }
 
 @trusted
-void logDebug (string, Args...) (string tmpl, Args args)
+void logDebug (string, Args...) (const string tmpl, const Args args)
 {
     if (__verbose)
         logMessage (LogSeverity.DEBUG, tmpl, args);
 }
 
 @safe
-void logInfo (string, Args...) (string tmpl, Args args)
+void logInfo (string, Args...) (const string tmpl, const Args args)
 {
     logMessage (LogSeverity.INFO, tmpl, args);
 }
 
 @safe
-void logWarning (string, Args...) (string tmpl, Args args)
+void logWarning (string, Args...) (const string tmpl, const Args args)
 {
     logMessage (LogSeverity.WARNING, tmpl, args);
 }
 
 @safe
-void logError (string, Args...) (string tmpl, Args args)
+void logError (string, Args...) (const string tmpl, const Args args)
 {
     logMessage (LogSeverity.ERROR, tmpl, args);
 }
 
 @trusted
-void setVerbose (bool enabled)
+void setVerbose (const bool enabled)
 {
     __verbose = enabled;
 }

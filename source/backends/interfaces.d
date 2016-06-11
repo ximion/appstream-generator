@@ -29,13 +29,13 @@ public import ag.datacache;
  */
 interface Package
 {
-    @property string name ();
-    @property string ver ();
-    @property string arch ();
-    @property string maintainer ();
-    @property string[string] description ();
+    @property string name () const;
+    @property string ver () const;
+    @property string arch () const;
+    @property string maintainer () const;
+    @property const(string[string]) description () const;
 
-    @property string filename ();   // only used for diagnostic information and reporting
+    @property string filename () const; // only used for diagnostic information and reporting
     @property string[] contents ();
 
     void setDescription (string desc,
@@ -44,9 +44,9 @@ interface Package
     const(ubyte)[] getFileData (string fname);
     void close ();
 
-    static string getId (Package pkg)
+    static string getId (const Package pkg)
     {
-        return format ("%s/%s/%s", pkg.name, pkg.ver, pkg.arch);
+        return "%s/%s/%s".format (pkg.name, pkg.ver, pkg.arch);
     }
 
     static bool isValid (Package pkg)

@@ -100,7 +100,7 @@ class Config
     // Thread global
     private __gshared Config instance_;
 
-    static Config get()
+    static Config get ()
     {
         if (!instantiated_) {
             synchronized (Config.classinfo) {
