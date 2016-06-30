@@ -73,7 +73,8 @@ enum GeneratorFeature
     NO_DOWNLOADS        = 1 << 2,
     STORE_SCREENSHOTS   = 1 << 3,
     OPTIPNG             = 1 << 4,
-    METADATA_TIMESTAMPS = 1 << 5
+    METADATA_TIMESTAMPS = 1 << 5,
+    IMMUTABLE_SUITES    = 1 << 6
 }
 
 class Config
@@ -198,6 +199,13 @@ class Config
         foreach (suiteName; root["Suites"].object.byKey ()) {
             Suite suite;
             suite.name = suiteName;
+
+            // having a suite named "pool" will result in the media pool being copied on
+            // itself if immutableSuites is used. Since 'pool' is a bad suite name anyway,
+            // we error out early on this.
+            if (suiteName == "pool")
+                throw new Exception ("The name 'pool' is forbidden for a suite.");
+
             auto sn = root["Suites"][suiteName];
             if ("dataPriority" in sn)
                 suite.dataPriority = to!int (sn["dataPriority"].integer);
@@ -221,6 +229,7 @@ class Config
         setFeature (GeneratorFeature.STORE_SCREENSHOTS, true);
         setFeature (GeneratorFeature.OPTIPNG, true);
         setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
+        setFeature (GeneratorFeature.IMMUTABLE_SUITES, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -243,6 +252,9 @@ class Config
                             setFeature (GeneratorFeature.OPTIPNG, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     case "metadataTimestamps":
+                            setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "immutableSuites":
                             setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     default:

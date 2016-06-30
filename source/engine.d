@@ -212,7 +212,10 @@ public:
         time.fracSec = core.time.FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
         immutable timeStr = time.toISOString ();
 
-        immutable mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
+        string mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
+        if (conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+            mediaPoolUrl = buildPath (conf.mediaBaseUrl, suite.name);
+        }
 
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
@@ -272,6 +275,14 @@ public:
             }
         }
 
+        immutable useImmutableSuites = conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES);
+        // select the media export target directory
+        string mediaExportDir;
+        if (useImmutableSuites)
+            mediaExportDir = buildNormalizedPath (dcache.mediaExportPoolDir, "..", suite.name);
+        else
+            mediaExportDir = dcache.mediaExportPoolDir;
+
         // collect metadata, icons and hints for the given packages
         foreach (ref pkg; parallel (pkgs, 100)) {
             immutable pkid = Package.getId (pkg);
@@ -282,10 +293,24 @@ public:
                     synchronized (this) mdataEntries ~= mres;
                 }
 
-                if (withIconTar) {
-                    foreach (gcid; gcids) {
+                // nothing left to do if we don't need to deal with icon tarballs and
+                // immutable suites.
+                if ((!useImmutableSuites) && (!withIconTar))
+                    continue;
+
+                foreach (gcid; gcids) {
+                    // Symlink data from the pool to the suite-specific directories
+                    if (useImmutableSuites) {
+                        immutable gcidMediaPoolPath = buildPath (dcache.mediaExportPoolDir, gcid);
+                        immutable gcidMediaSuitePath = buildPath (mediaExportDir, gcid);
+                        if (!std.file.exists (gcidMediaSuitePath))
+                            ag.utils.copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
+                    }
+
+                    // compile list of icon-tarball files
+                    if (withIconTar) {
                         foreach (size; iconTarSizes) {
-                            immutable iconDir = buildPath (dcache.mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
+                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
                             if (!std.file.exists (iconDir))
                                 continue;
                             foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
@@ -429,7 +454,7 @@ public:
 
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = new IconHandler (dcache.mediaExportDir,
+                auto iconh = new IconHandler (dcache.mediaExportPoolDir,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
                 processPackages (pkgs, iconh);

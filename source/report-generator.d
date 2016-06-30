@@ -110,7 +110,7 @@ public:
 
         exportDir = buildPath (conf.workspaceDir, "export");
         htmlExportDir = buildPath (exportDir, "html");
-        mediaPoolDir = dcache.mediaExportDir;
+        mediaPoolDir = dcache.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
         // we need the data cache to get hint and metainfo data

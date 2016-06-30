@@ -75,7 +75,7 @@ public:
     }
 
     @property
-    string mediaExportDir ()
+    string mediaExportPoolDir ()
     {
         return mediaDir;
     }

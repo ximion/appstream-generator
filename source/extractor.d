@@ -195,7 +195,7 @@ public:
             // download and resize screenshots.
             // we don't even need to call this if no downloads are allowed.
             if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
-                processScreenshots (gres, cpt, dcache.mediaExportDir);
+                processScreenshots (gres, cpt, dcache.mediaExportPoolDir);
         }
 
         // this removes invalid components and cleans up the result

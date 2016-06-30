@@ -152,37 +152,54 @@ string getCidFromGlobalID (string gcid) pure
     return parts[2];
 }
 
+@trusted
+void hardlink (const string srcFname, const string destFname)
+{
+    import core.sys.posix.unistd;
+    import core.stdc.string;
+    writeln ("%s -> %s", srcFname, destFname);
+    immutable res = link (srcFname.toStringz, destFname.toStringz);
+    if (res != 0)
+        throw new std.file.FileException ("Unable to create link: %s".format (strerror (core.stdc.errno.errno)));
+}
+
 /**
- * Copy a directory using parallelism.
+ * Copy a directory using multiple threads.
  * This function follows symbolic links,
  * and replaces them with actual directories
  * in destDir.
  *
- * Original (c) Jay Norwood
+ * Params:
+ *      srcDir = Source directory to copy.
+ *      destDir = Path to the destination directory.
+ *      useHardlinks = Use hardlinks instead of copying files.
  */
-void copyDir (in string srcDir, in string destDir)
+void copyDir (in string srcDir, in string destDir, bool useHardlinks = false)
 {
     import std.file;
     import std.path;
     import std.parallelism;
+    import std.array : appender;
 
     auto deSrc = DirEntry (srcDir);
-	string[] files;
+	auto files = appender!(string[]);
 
 	if (!exists (destDir)) {
-		mkdirRecurse (destDir); // makes dest root and all required parents
+		mkdirRecurse (destDir);
 	}
 
- 	auto destDe = DirEntry (destDir);
-	if(!destDe.isDir ()) {
-		throw new FileException (destDe.name, " is not a directory");
+ 	auto deDest = DirEntry (destDir);
+	if(!deDest.isDir ()) {
+		throw new FileException (deDest.name, " is not a directory");
 	}
 
-	string destName = destDe.name ~ '/';
-	string destRoot = destName;
+	immutable destRoot = deDest.name ~ '/';
 
 	if (!deSrc.isDir ()) {
-		std.file.copy (deSrc.name, destRoot);
+        if (useHardlinks)
+            hardlink (deSrc.name, destRoot);
+        else
+		    std.file.copy (deSrc.name, destRoot);
 	} else {
 		auto srcLen = deSrc.name.length;
         if (!std.file.exists (destRoot))
@@ -200,9 +217,13 @@ void copyDir (in string srcDir, in string destDir)
  		}
 
 		// parallel foreach for regular files
-		foreach (fn; taskPool.parallel (files,100)) {
-			string dfn = destRoot ~ fn[srcLen..$];
-			std.file.copy (fn,dfn);
+		foreach (fn; taskPool.parallel (files.data, 100)) {
+			immutable destFn = destRoot ~ fn[srcLen..$];
+
+            if (useHardlinks)
+                hardlink (fn, destFn);
+            else
+    		    std.file.copy (fn, destFn);
 		}
 	}
 }
