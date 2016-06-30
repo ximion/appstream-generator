@@ -491,10 +491,6 @@ public:
             }
         }
 
-        // drop orphaned metadata
-        dropOrphanedData (dbDataXml);
-        dropOrphanedData (dbDataYaml);
-
         bool dirEmpty (string dir)
         {
             bool empty = true;
@@ -505,6 +501,22 @@ public:
             return empty;
         }
 
+        void cleanupDirs (string rootPath) {
+            auto pdir = buildNormalizedPath (rootPath, "..");
+            if (dirEmpty (pdir))
+                rmdir (pdir);
+            pdir = buildNormalizedPath (pdir, "..");
+            if (dirEmpty (pdir))
+                rmdir (pdir);
+        }
+
+        // drop orphaned metadata
+        dropOrphanedData (dbDataXml);
+        dropOrphanedData (dbDataYaml);
+
+        // we need the global Config instance here
+        auto conf = Config.get ();
+
         auto mdirLen = mediaDir.length;
         foreach (path; dirEntries (mediaDir, SpanMode.depth, false)) {
             if (path.length <= mdirLen)
@@ -513,7 +525,7 @@ public:
             auto split = std.array.array (pathSplitter (relPath));
             if (split.length != 4)
                 continue;
-            auto gcid = relPath;
+            immutable gcid = relPath;
 
             if (gcidReferenced (gcid))
                 continue;
@@ -523,12 +535,23 @@ public:
                 rmdirRecurse (path);
 
             // remove possibly empty directories
-            auto pdir = buildNormalizedPath (path, "..");
-            if (dirEmpty (pdir))
-                rmdir (pdir);
-            pdir = buildNormalizedPath (pdir, "..");
-            if (dirEmpty (pdir))
-                rmdir (pdir);
+            cleanupDirs (path);
+
+            // expire data in suite-specific media directories,
+            // if suite is not marked as immutable
+            if (conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+                foreach (ref suite; conf.suites) {
+                    if (suite.isImmutable)
+                        continue;
+                    immutable suiteGCIDMediaDir = buildNormalizedPath (mediaDir, "..", suite.name, gcid);
+
+                    if (std.file.exists (suiteGCIDMediaDir))
+                        rmdirRecurse (suiteGCIDMediaDir);
+
+                    // remove possibly empty directories
+                    cleanupDirs (suiteGCIDMediaDir);
+                }
+            }
 
             logInfo ("Expired media for '%s'", gcid);
         }

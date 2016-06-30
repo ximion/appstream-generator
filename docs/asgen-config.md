@@ -62,6 +62,7 @@ architectures | A list of architectures which should be processed for this suite
 baseSuite | An optional base suite name which should be used in addition to the child suite to resolve icons (only the `main` section of that suite is considered).
 dataPriority | An integer value representing the priority the data generated for this suite should have. Metadata with a higher priority will override existing data (think of an `-updates` suite wanting to override data shipped with the base suite). If this is not set, AppStream client tools will assume the priority being `0`.
 useIconTheme | Set a specific icon theme name with highest priority for this suite. This is useful if you want a different default icon theme providing icons for generic icon names (by default, the default themes of KDE and GNOME are used).
+immutable | If set to `true`, the state of the metadata files and exported data will be frozen, and no more changes to the data for this suite will be allowed. This only works if the `immutableSuites` feature is enabled.
 
 
 ### Enabling and disabling features
@@ -77,3 +78,4 @@ noDownloads | Do not attempt any downloads. This will implicitly disable any han
 createScreenshotsStore | Mirror screenshots and create thumbnails of them in `media/`. This will yield the best experience with software-centers, and also allow full control over which screenshots are displayed. Disabling this will make clients pull screenshots from 3rd-party upstream servers. *Default: `ON`*
 optimizePNGSize | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. *Default: `ON`*
 metadataTimestamps | Write timestamps into generated metadata files. *Default: `ON`*
+immutableSuites | Allow suites to be marked as immutable. This is useful for distributions with fixed releases, but not for rolling release distributions or continuously updated repositories. *Default: `ON`*

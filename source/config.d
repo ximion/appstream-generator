@@ -43,6 +43,7 @@ struct Suite
     string iconTheme;
     string[] sections;
     string[] architectures;
+    bool isImmutable;
 }
 
 /**
@@ -196,6 +197,7 @@ class Config
                 break;
         }
 
+        auto hasImmutableSuites = false;
         foreach (suiteName; root["Suites"].object.byKey ()) {
             Suite suite;
             suite.name = suiteName;
@@ -219,6 +221,11 @@ class Config
             if ("architectures" in sn)
                 foreach (arch; sn["architectures"].array)
                     suite.architectures ~= arch.str;
+            if ("immutable" in sn) {
+                suite.isImmutable = sn["immutable"].type == JSON_TYPE.TRUE;
+                if (suite.isImmutable)
+                    hasImmutableSuites = true;
+            }
 
             suites ~= suite;
         }
@@ -267,7 +274,7 @@ class Config
         if (featureEnabled (GeneratorFeature.OPTIPNG)) {
             if (!std.file.exists ("/usr/bin/optipng")) {
                 setFeature (GeneratorFeature.OPTIPNG, false);
-                logError ("Disabled feature 'optimizePNGSize': The `optipng` binary was not found.");
+                logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
             }
         }
 
@@ -276,6 +283,12 @@ class Config
             // a message to the logs to make debugging easier.
             // in general, running with noDownloads is discouraged.
             logWarning ("Configuration does not permit downloading files. Several features will not be available.");
+        }
+
+        if (!featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+            // Immutable suites won't work if the feature is disabled - log this error
+            if (hasImmutableSuites)
+                logError ("Suites are defined as immutable, but the `immutableSuites` feature is disabled. Immutability will not work!");
         }
     }
 
