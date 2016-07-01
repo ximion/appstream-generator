@@ -503,6 +503,9 @@ public:
 
         void cleanupDirs (string rootPath) {
             auto pdir = buildNormalizedPath (rootPath, "..");
+            if (!std.file.exists (pdir))
+                return;
+
             if (dirEmpty (pdir))
                 rmdir (pdir);
             pdir = buildNormalizedPath (pdir, "..");

@@ -303,7 +303,7 @@ public:
                     if (useImmutableSuites) {
                         immutable gcidMediaPoolPath = buildPath (dcache.mediaExportPoolDir, gcid);
                         immutable gcidMediaSuitePath = buildPath (mediaExportDir, gcid);
-                        if (!std.file.exists (gcidMediaSuitePath))
+                        if ((!std.file.exists (gcidMediaSuitePath)) && (std.file.exists (gcidMediaPoolPath)))
                             ag.utils.copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
                     }
 

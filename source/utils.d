@@ -157,7 +157,7 @@ void hardlink (const string srcFname, const string destFname)
 {
     import core.sys.posix.unistd;
     import core.stdc.string;
-    writeln ("%s -> %s", srcFname, destFname);
+
     immutable res = link (srcFname.toStringz, destFname.toStringz);
     if (res != 0)
         throw new std.file.FileException ("Unable to create link: %s".format (strerror (core.stdc.errno.errno)));
