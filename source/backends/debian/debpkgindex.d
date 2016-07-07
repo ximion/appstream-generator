@@ -91,7 +91,8 @@ public:
 
             // TODO: We actually need a Markdown-ish parser here if we want to support
             // listings in package descriptions properly.
-            string description = "<p>";
+            auto description = appender!string;
+            description.put ("<p>");
             bool first = true;
             foreach (l; split) {
                 if (l.strip () == ".") {
@@ -109,7 +110,7 @@ public:
             }
             description ~= "</p>";
 
-            (*pkgP).setDescription (description, "C");
+            (*pkgP).setDescription (description.data, "C");
         } while (tagf.nextSection ());
     }
 

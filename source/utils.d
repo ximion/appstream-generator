@@ -182,50 +182,50 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false)
     import std.array : appender;
 
     auto deSrc = DirEntry (srcDir);
-	auto files = appender!(string[]);
+    auto files = appender!(string[]);
 
-	if (!exists (destDir)) {
-		mkdirRecurse (destDir);
-	}
+    if (!exists (destDir)) {
+        mkdirRecurse (destDir);
+    }
 
  	auto deDest = DirEntry (destDir);
-	if(!deDest.isDir ()) {
-		throw new FileException (deDest.name, " is not a directory");
-	}
+    if(!deDest.isDir ()) {
+        throw new FileException (deDest.name, " is not a directory");
+    }
 
-	immutable destRoot = deDest.name ~ '/';
+    immutable destRoot = deDest.name ~ '/';
 
-	if (!deSrc.isDir ()) {
+    if (!deSrc.isDir ()) {
         if (useHardlinks)
             hardlink (deSrc.name, destRoot);
         else
-		    std.file.copy (deSrc.name, destRoot);
-	} else {
-		auto srcLen = deSrc.name.length;
+            std.file.copy (deSrc.name, destRoot);
+    } else {
+        auto srcLen = deSrc.name.length;
         if (!std.file.exists (destRoot))
             mkdir (destRoot);
 
-		// make an array of the regular files only, also create the directory structure
-		// Since it is SpanMode.breadth, we can just use mkdir
- 		foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, true)) {
-			if (attrIsDir (e.attributes)) {
-				auto childDir = destRoot ~ e.name[srcLen..$];
-				mkdir (childDir);
-			} else {
-				files ~= e.name;
-			}
- 		}
+        // make an array of the regular files and create the directory structure
+        // Since it is SpanMode.breadth, we can just use mkdir
+        foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, true)) {
+            if (attrIsDir (e.attributes)) {
+                auto childDir = destRoot ~ e.name[srcLen..$];
+                mkdir (childDir);
+            } else {
+                files ~= e.name;
+            }
+        }
 
-		// parallel foreach for regular files
-		foreach (fn; taskPool.parallel (files.data, 100)) {
-			immutable destFn = destRoot ~ fn[srcLen..$];
+        // parallel foreach for regular files
+        foreach (fn; taskPool.parallel (files.data, 100)) {
+            immutable destFn = destRoot ~ fn[srcLen..$];
 
             if (useHardlinks)
                 hardlink (fn, destFn);
             else
-    		    std.file.copy (fn, destFn);
-		}
-	}
+                std.file.copy (fn, destFn);
+        }
+    }
 }
 
 /**

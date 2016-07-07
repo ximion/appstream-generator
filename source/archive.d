@@ -470,7 +470,7 @@ public:
 
         if (type == ArchiveType.GZIP) {
             archive_write_add_filter_gzip (ar);
-            archive_write_set_filter_option (ar, "gz", "timestamp", null);
+            archive_write_set_filter_option (ar, "gzip", "timestamp", null);
         } else {
             archive_write_add_filter_xz (ar);
         }

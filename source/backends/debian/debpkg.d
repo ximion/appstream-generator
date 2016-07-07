@@ -21,9 +21,8 @@ module ag.backend.debian.debpkg;
 
 import std.stdio;
 import std.string;
-import std.process : pipeProcess, Redirect, wait;
-import std.file;
-import std.array : empty;
+import std.array : empty, appender;
+import std.file : rmdirRecurse;
 import ag.config;
 import ag.archive;
 import ag.backend.intf;
@@ -192,16 +191,15 @@ public:
             return [];
         }
 
-        // TODO: Preallocate space for the contents list using
-        // the splitLines count?
-
+        auto contentsAppender = appender!(string[]);
         foreach (line; md5sums.splitLines ()) {
             auto parts = line.split ("  ");
             if (parts.length <= 0)
                 continue;
             string c = join (parts[1..$], "  ");
-            contentsL ~= "/" ~ c;
+            contentsAppender.put ("/" ~ c);
         }
+        contentsL = contentsAppender.data;
 
         contentsRead = true;
         return contentsL;
@@ -210,7 +208,7 @@ public:
     void close ()
     {
         try {
-            if (exists (tmpDir))
+            if (std.file.exists (tmpDir))
                 rmdirRecurse (tmpDir);
             dataArchive = null;
             controlArchive = null;

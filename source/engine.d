@@ -206,7 +206,7 @@ public:
     private string getMetadataHead (Suite suite, string section)
     {
         string head;
-        immutable origin = format ("%s-%s-%s", conf.projectName.toLower, suite.name.toLower, section.toLower);
+        immutable origin = "%s-%s-%s".format (conf.projectName.toLower, suite.name.toLower, section.toLower);
 
         auto time = std.datetime.Clock.currTime ();
         time.fracSec = core.time.FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
