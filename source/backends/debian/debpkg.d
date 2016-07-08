@@ -21,6 +21,7 @@ module ag.backend.debian.debpkg;
 
 import std.stdio;
 import std.string;
+import std.path;
 import std.array : empty, appender;
 import std.file : rmdirRecurse, mkdirRecurse;
 static import std.file;
@@ -28,6 +29,7 @@ import ag.config;
 import ag.archive;
 import ag.backend.intf;
 import ag.logging;
+import ag.utils : isRemote, downloadFile;
 
 
 class DebPackage : Package
@@ -56,7 +58,17 @@ public:
     @property override const(string[string]) description () const { return desc; }
 
     override
-    @property string filename () const { return debFname; }
+    @property string filename () const {
+        if (debFname.isRemote) {
+            immutable auto path = buildPath (tmpDir, debFname.baseName);
+
+            /* XXX: Retry? */
+            downloadFile (debFname, path);
+
+            return path;
+        }
+        return debFname;
+    }
     @property void   filename (string fname) { debFname = fname; }
 
     override
@@ -65,8 +77,6 @@ public:
 
     this (string pname, string pver, string parch)
     {
-        import std.path;
-
         pkgname = pname;
         pkgver = pver;
         pkgarch = parch;
@@ -94,7 +104,6 @@ public:
         auto pa = new ArchiveDecompressor ();
         if (!dataArchive) {
             import std.regex;
-            import std.path;
 
             // extract the payload to a temporary location first
             pa.open (this.filename);
@@ -119,7 +128,6 @@ public:
         auto ca = new ArchiveDecompressor ();
         if (!controlArchive) {
             import std.regex;
-            import std.path;
 
             // extract the payload to a temporary location first
             ca.open (this.filename);

@@ -19,6 +19,8 @@
 
 module ag.utils;
 
+import ag.logging;
+
 import std.stdio : writeln;
 import std.string;
 import std.ascii : letters, digits;
@@ -307,6 +309,38 @@ ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
     return res.data;
 }
 
+@safe
+bool isRemote (const string uri)
+{
+    import std.regex;
+
+    auto uriregex = ctRegex!(`^(https?|ftps?)://`);
+
+    auto match = matchFirst(uri, uriregex);
+
+    return (!match.empty);
+}
+
+void downloadFile (const string url, const string dest)
+{
+    import std.file;
+    import std.path;
+    import std.net.curl;
+
+    if (dest.exists) {
+        logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
+        return;
+    }
+
+    mkdirRecurse (dest.dirName);
+
+    logDebug ("Downloading %s", url);
+    auto contents = get!(AutoProtocol, ubyte) (url);
+    logDebug ("Downloaded %s", url);
+
+    std.file.write (dest, contents);
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");
@@ -327,4 +361,7 @@ unittest
     assert (ImageSize (48) < ImageSize (64));
 
     assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
+
+    assert (isRemote ("http://test.com"));
+    assert (!isRemote ("/srv/"));
 }
