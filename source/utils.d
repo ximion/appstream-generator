@@ -321,11 +321,35 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
-void downloadFile (const string url, const string dest)
+private int onProgressCb (size_t dlTotal,
+                          size_t dlNow,
+                          size_t ulTotal,
+                          size_t ulNow)
+{
+    logDebug ("Got %d/%d", dlNow, dlTotal);
+
+    return 0;
+}
+
+private ulong onReceiveCb (string dest, ubyte[] data)
 {
     import std.file;
-    import std.path;
+
+    logDebug ("Downloaded %d bytes", data.length);
+    std.file.write (dest, data);
+
+    return data.length;
+}
+
+void downloadFile (const string url, const string dest)
+{
+    import core.time;
+
+    import std.file;
     import std.net.curl;
+    import std.path;
+
+    assert (isRemote (url));
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
@@ -334,11 +358,23 @@ void downloadFile (const string url, const string dest)
 
     mkdirRecurse (dest.dirName);
 
+    /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
     logDebug ("Downloading %s", url);
-    auto contents = get!(AutoProtocol, ubyte) (url);
-    logDebug ("Downloaded %s", url);
-
-    std.file.write (dest, contents);
+    if (url.startsWith ("http")) {
+        auto downloader = HTTP (url);
+        downloader.onProgress = (dt, dn, ut, un) => onProgressCb (dt, dn, ut, un);
+        downloader.connectTimeout = dur!"seconds" (30);
+        downloader.dataTimeout = dur!"seconds" (30);
+        downloader.onReceive = (data) => onReceiveCb (dest, data);
+        downloader.perform();
+    } else {
+        auto downloader = FTP (url);
+        downloader.onProgress = (dt, dn, ut, un) => onProgressCb (dt, dn, ut, un);
+        downloader.connectTimeout = dur!"seconds" (30);
+        downloader.dataTimeout = dur!"seconds" (30);
+        downloader.onReceive = (data) => onReceiveCb (dest, data);
+        downloader.perform();
+    }
 }
 
 unittest
