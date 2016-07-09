@@ -321,19 +321,8 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
-private int onProgressCb (size_t dlTotal,
-                          size_t dlNow,
-                          size_t ulTotal,
-                          size_t ulNow)
-{
-    logDebug ("Got %d/%d", dlNow, dlTotal);
-
-    return 0;
-}
-
 private ulong onReceiveCb (File f, ubyte[] data)
 {
-    logDebug ("Downloaded %d bytes", data.length);
     f.write (data);
 
     return data.length;
@@ -361,19 +350,19 @@ void downloadFile (const string url, const string dest)
     auto f = File (dest, "w");
     if (url.startsWith ("http")) {
         auto downloader = HTTP (url);
-        downloader.onProgress = (dt, dn, ut, un) => onProgressCb (dt, dn, ut, un);
         downloader.connectTimeout = dur!"seconds" (30);
         downloader.dataTimeout = dur!"seconds" (30);
         downloader.onReceive = (data) => onReceiveCb (f, data);
         downloader.perform();
     } else {
         auto downloader = FTP (url);
-        downloader.onProgress = (dt, dn, ut, un) => onProgressCb (dt, dn, ut, un);
         downloader.connectTimeout = dur!"seconds" (30);
         downloader.dataTimeout = dur!"seconds" (30);
         downloader.onReceive = (data) => onReceiveCb (f, data);
         downloader.perform();
     }
+    logDebug ("Downloaded %s", url);
+    f.close();
 }
 
 unittest
