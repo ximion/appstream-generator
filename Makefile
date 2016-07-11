@@ -1,9 +1,9 @@
 # Makefile for AppStream Generator
 all:
-	dub build
+	dub build --parallel
 
 build:
-	dub build
+	dub build --parallel
 
 test:
 	dub test
