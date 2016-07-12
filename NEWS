@@ -1,3 +1,23 @@
+Version 0.4.0
+~~~~~~~~~~~~~~
+Released: 2016-07-12
+
+Features:
+ * README: Add link to D tour
+ * Run optipng with standard settings
+ * Add command to forget extracted data for a package
+ * Implement immutable suites
+ * Use appender more often and apply some style fixes
+ * Build with parallel by default when using Makefile
+ * Drop some deprecated stuff
+
+Bugfixes:
+ * Display an error when processing a suite without section or arch
+ * debian: Fix exception message if directory does not exist
+ * Code improvements: More pure, more safe, more trusted
+ * Drop global data validation result box
+ * Don't crash if media pool directory does not exist and immutable suites are used
+
 Version 0.3.0
 ~~~~~~~~~~~~~~
 Released: 2016-05-24
