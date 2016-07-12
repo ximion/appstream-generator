@@ -10,12 +10,10 @@
 
     "buildTypes": {
         "debug": {
-            "buildOptions": ["debugMode", "debugInfo"],
-            "dflags": ["-Wall", "-Werror"]
+            "buildOptions": ["debugMode", "debugInfo"]
         },
         "debug-optimize": {
-            "buildOptions": ["debugMode", "debugInfo", "optimize"],
-            "dflags": ["-Wall", "-Werror"]
+            "buildOptions": ["debugMode", "debugInfo", "optimize"]
         },
         "debug-profile": {
             "buildOptions": ["debugMode", "debugInfo", "profile"]
@@ -25,8 +23,6 @@
     "targetPath": "build",
     "targetType": "executable",
     "buildRequirements": ["disallowDeprecations"],
-    "x-sourcePaths": ["source", "build/bindings"],
-    "x-importPaths": ["build/bindings"],
 
     "dflags": ["-Wl,--push-state,-no-as-needed", "-lcurl", "-Wl,--pop-state"],
     "systemDependencies": "LMDB,

@@ -19,8 +19,6 @@
 
 module c.cairo;
 
-import std.cstream;
-
 extern(C):
 nothrow:
 @nogc:

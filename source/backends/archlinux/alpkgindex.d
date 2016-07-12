@@ -23,6 +23,7 @@ import std.stdio;
 import std.path;
 import std.string;
 import std.algorithm : canFind;
+static import std.file;
 
 import ag.logging;
 import ag.archive;

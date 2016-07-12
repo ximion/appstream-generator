@@ -19,7 +19,7 @@
 
 module c.libarchive;
 
-import std.cstream;
+import core.stdc.stdio;
 
 extern(C):
 nothrow:

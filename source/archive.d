@@ -24,6 +24,7 @@ import std.string;
 import std.file;
 import std.regex;
 import std.conv : to;
+import std.path : buildNormalizedPath;
 import ag.std.concurrency.generator;
 
 import c.libarchive;
@@ -336,7 +337,7 @@ public:
             if (pathname.endsWith ("/"))
                 continue;
 
-            auto path = std.path.buildNormalizedPath ("/", to!string (pathname));
+            auto path = buildNormalizedPath ("/", to!string (pathname));
             contents ~= path;
         }
 

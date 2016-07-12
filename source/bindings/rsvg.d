@@ -19,7 +19,6 @@
 
 module c.rsvg;
 
-import std.cstream;
 import gi.glibtypes;
 import c.cairo;
 

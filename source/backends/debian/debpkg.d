@@ -22,7 +22,7 @@ module ag.backend.debian.debpkg;
 import std.stdio;
 import std.string;
 import std.array : empty, appender;
-import std.file : rmdirRecurse;
+import std.file : rmdirRecurse, mkdirRecurse;
 import ag.config;
 import ag.archive;
 import ag.backend.intf;
@@ -155,6 +155,8 @@ public:
     @property
     string[] contents ()
     {
+        import std.utf;
+
         if (contentsRead)
             return contentsL;
 
@@ -185,7 +187,7 @@ public:
 
         auto md5sums = cast(string) md5sumsData;
         try {
-            md5sums = std.utf.toUTF8 (md5sums);
+            md5sums = md5sums.toUTF8;
         } catch (Exception e) {
             logError ("Could not decode md5sums file for package %s: %s", Package.getId (this), e.msg);
             return [];

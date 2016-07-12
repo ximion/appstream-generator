@@ -19,7 +19,6 @@
 
 module c.gdkpixbuf;
 
-import std.cstream;
 import gi.glibtypes;
 import gi.giotypes;
 import c.cairo;
