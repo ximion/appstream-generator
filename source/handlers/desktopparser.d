@@ -96,10 +96,11 @@ private string[] filterCategories (string[] cats)
             case "Qt":
             case "GNOME":
             case "KDE":
+            case "GUI":
             case "Application":
                 break;
             default:
-                if (!cat.empty)
+                if (!cat.empty && !cat.toLower.startsWith ("x-"))
                     rescats ~= cat;
         }
     }
