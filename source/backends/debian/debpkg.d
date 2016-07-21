@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.array : empty, appender;
 import std.file : rmdirRecurse, mkdirRecurse;
+static import std.file;
 import ag.config;
 import ag.archive;
 import ag.backend.intf;

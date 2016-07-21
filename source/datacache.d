@@ -21,9 +21,11 @@ module ag.datacache;
 
 import std.stdio;
 import std.string;
-import std.conv : to;
+import std.conv : to, octal;
 import std.file : mkdirRecurse;
+import std.path : buildPath, buildNormalizedPath, pathSplitter;
 import std.json;
+static import std.math;
 
 import c.lmdb;
 import appstream.Metadata;
@@ -125,7 +127,7 @@ public:
         checkError (rc, "mdb_env_set_mapsize");
 
         // open database
-        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, std.conv.octal!755);
+        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, octal!755);
         checkError (rc, "mdb_env_open");
 
         // open sub-databases in the environment
@@ -155,13 +157,12 @@ public:
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
 
-        this.mediaDir = std.path.buildPath (mediaBaseDir, "pool");
+        this.mediaDir = buildPath (mediaBaseDir, "pool");
         mkdirRecurse (this.mediaDir);
     }
 
     void open (Config conf)
     {
-        import std.path : buildPath;
         this.open (buildPath (conf.workspaceDir, "cache", "main"), buildPath (conf.workspaceDir, "export", "media"));
     }
 
@@ -438,7 +439,7 @@ public:
 
         bool[string] gcids;
         while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
-            auto pkval = std.conv.to!string (fromStringz (cast(char*) dval.mv_data));
+            auto pkval = to!string (fromStringz (cast(char*) dval.mv_data));
             if ((pkval == "ignore") || (pkval == "seen"))
                 continue;
 
@@ -452,7 +453,7 @@ public:
     void cleanupCruft ()
     {
         import std.file;
-        import std.path;
+        import std.array : array;
 
         if (mediaDir is null) {
             logError ("Can not clean up cruft: No media directory is set.");
@@ -480,7 +481,7 @@ public:
 
             MDB_val ckey;
             while (cur.mdb_cursor_get (&ckey, null, MDB_NEXT) == 0) {
-                auto gcid = std.conv.to!string (fromStringz (cast(char*) ckey.mv_data));
+                auto gcid = to!string (fromStringz (cast(char*) ckey.mv_data));
                 if (gcidReferenced (gcid))
                     continue;
 
@@ -525,7 +526,7 @@ public:
             if (path.length <= mdirLen)
                 continue;
             auto relPath = path[mdirLen+1..$];
-            auto split = std.array.array (pathSplitter (relPath));
+            auto split = array (pathSplitter (relPath));
             if (split.length != 4)
                 continue;
             immutable gcid = relPath;
@@ -575,7 +576,7 @@ public:
 
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
-            auto pkid = std.conv.to!string (fromStringz (cast(char*) pkey.mv_data));
+            auto pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
             if (pkid in pkgSet)
                 continue;
 
@@ -589,8 +590,10 @@ public:
 
     void addStatistics (JSONValue stats)
     {
+        import core.stdc.time : time;
+
         MDB_val dbkey, dbvalue;
-        size_t unixTime = core.stdc.time.time (null);
+        size_t unixTime = time (null);
 
         auto statsJsonStr = toJSON (&stats);
 
@@ -642,7 +645,7 @@ public:
         checkError (res, "mdb_cursor_open (stats)");
 
         while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
-            auto jsonData = std.conv.to!string (fromStringz (cast(char*) dval.mv_data));
+            auto jsonData = to!string (fromStringz (cast(char*) dval.mv_data));
             stats[*(cast(size_t*) dkey.mv_data)] = jsonData;
         }
 

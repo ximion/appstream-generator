@@ -21,9 +21,10 @@ module ag.contentscache;
 
 import std.stdio;
 import std.string;
-import std.conv : to;
+import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.array : join, split, empty;
+static import std.math;
 
 import c.lmdb;
 import ag.config;
@@ -94,7 +95,7 @@ public:
         checkError (rc, "mdb_env_set_mapsize");
 
         // open database
-        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, std.conv.octal!755);
+        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, octal!755);
         checkError (rc, "mdb_env_open");
 
         // open sub-databases in the environment
@@ -317,7 +318,7 @@ public:
 
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
-            auto pkid = std.conv.to!string (fromStringz (cast(char*) pkey.mv_data));
+            auto pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
             if (pkid in pkgSet)
                 continue;
 

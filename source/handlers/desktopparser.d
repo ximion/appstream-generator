@@ -22,13 +22,14 @@ module ag.handlers.desktopparser;
 import std.path : baseName;
 import std.uni : toLower;
 import std.string : format, indexOf, chomp, lastIndexOf;
-import std.array : split;
+import std.array : split, empty;
 import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Provided;
 import appstream.Icon;
+static import std.regex;
 
 import ag.result;
 import ag.utils;

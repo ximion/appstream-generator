@@ -18,7 +18,7 @@
  */
 
 import std.stdio;
-import std.path;
+import std.path : getcwd, buildPath;
 import std.getopt;
 import std.string : format;
 import core.stdc.stdlib;

@@ -22,16 +22,20 @@ module ag.handlers.screenshothandler;
 import std.path : baseName, buildPath;
 import std.uni : toLower;
 import std.string : format;
+import std.array : empty;
+import std.algorithm : startsWith;
 import std.stdio;
 import gobject.ObjectG;
 import gi.appstream;
 import appstream.Component;
 import appstream.Screenshot;
 import appstream.Image;
+static import std.file;
 
 import ag.config;
 import ag.result;
 import ag.utils;
+static import ag.image;
 
 
 private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (224, 126)];

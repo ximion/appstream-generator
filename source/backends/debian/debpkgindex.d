@@ -23,11 +23,14 @@ import std.stdio;
 import std.path;
 import std.string;
 import std.algorithm : remove;
+import std.array : appender;
+static import std.file;
 
 import ag.logging;
 import ag.backend.intf;
 import ag.backend.debian.tagfile;
 import ag.backend.debian.debpkg;
+import ag.utils : escapeXml;
 
 
 class DebianPackageIndex : PackageIndex
@@ -106,7 +109,7 @@ public:
                 else
                     description ~= " ";
 
-                description ~= ag.utils.escapeXml (l);
+                description ~= escapeXml (l);
             }
             description ~= "</p>";
 
@@ -179,6 +182,8 @@ public:
 
     bool hasChanges (DataCache dcache, string suite, string section, string arch)
     {
+        import std.json;
+
         auto indexFname = getIndexFile (suite, section, arch);
         // if the file doesn't exit, we will emit a warning later anyway, so we just ignore this here
         if (!std.file.exists (indexFname))
@@ -195,7 +200,7 @@ public:
 
         auto repoInfo = dcache.getRepoInfo (suite, section, arch);
         scope (exit) {
-            repoInfo.object["mtime"] = std.json.JSONValue (currentTime);
+            repoInfo.object["mtime"] = JSONValue (currentTime);
             dcache.setRepoInfo (suite, section, arch, repoInfo);
         }
 

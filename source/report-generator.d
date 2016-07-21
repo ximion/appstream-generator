@@ -22,8 +22,9 @@ module ag.reportgenerator;
 import std.stdio;
 import std.string;
 import std.parallelism;
-import std.path : buildPath, buildNormalizedPath;
+import std.path : buildPath, buildNormalizedPath, dirName;
 import std.file : mkdirRecurse, rmdirRecurse;
+static import std.file;
 import std.array : empty;
 import std.json;
 
@@ -188,6 +189,8 @@ public:
 
     private void setupMustacheContext (Mustache.Context context)
     {
+        import std.datetime : Clock;
+
         string[string] partials;
 
         // this implements a very cheap way to get template inheritance
@@ -210,7 +213,7 @@ public:
                 return *partialCP;
         };
 
-        auto time = std.datetime.Clock.currTime ();
+        auto time = Clock.currTime ();
         auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
@@ -224,7 +227,7 @@ public:
         setupMustacheContext (context);
 
         auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
-        mkdirRecurse (dirName (fname));
+        std.file.mkdirRecurse (dirName (fname));
 
         if (!std.file.exists (buildPath (templateDir, pageID ~ ".html"))) {
             if (std.file.exists (buildPath (defaultTemplateDir, pageID ~ ".html")))
@@ -242,6 +245,8 @@ public:
 
     private void renderPagesFor (string suiteName, string section, DataSummary dsum)
     {
+        static import std.regex;
+
         if (templateDir is null) {
             logError ("Can not render HTML: No page templates found.");
             return;
@@ -651,6 +656,8 @@ public:
 
     void exportStatistics ()
     {
+        import std.algorithm : sort;
+
         logInfo ("Exporting statistical data.");
 
         // return all statistics we have from the database
@@ -722,10 +729,10 @@ public:
             foreach (section; smap[suite].object.byKey ()) {
                 auto sso = smap[suite][section].object;
 
-                std.algorithm.sort!(compareJData) (sso["errors"].array);
-                std.algorithm.sort!(compareJData) (sso["warnings"].array);
-                std.algorithm.sort!(compareJData) (sso["infos"].array);
-                std.algorithm.sort!(compareJData) (sso["metadata"].array);
+                sort!(compareJData) (sso["errors"].array);
+                sort!(compareJData) (sso["warnings"].array);
+                sort!(compareJData) (sso["infos"].array);
+                sort!(compareJData) (sso["metadata"].array);
             }
         }
 

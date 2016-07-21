@@ -22,9 +22,11 @@ module ag.engine;
 import std.stdio;
 import std.string;
 import std.parallelism;
-import std.path : buildPath;
+import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
+static import core.memory;
+static import std.file;
 import appstream.Component;
 
 import ag.config;
@@ -35,6 +37,7 @@ import ag.contentscache;
 import ag.result;
 import ag.hint;
 import ag.reportgenerator;
+import ag.utils : copyDir;
 
 import ag.backend.intf;
 import ag.backend.dummy;
@@ -205,11 +208,14 @@ public:
 
     private string getMetadataHead (Suite suite, string section)
     {
+        import std.datetime : Clock;
+        import core.time : FracSec;
+
         string head;
         immutable origin = "%s-%s-%s".format (conf.projectName.toLower, suite.name.toLower, section.toLower);
 
-        auto time = std.datetime.Clock.currTime ();
-        time.fracSec = core.time.FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
+        auto time = Clock.currTime ();
+        time.fracSec = FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
         immutable timeStr = time.toISOString ();
 
         string mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
@@ -304,7 +310,7 @@ public:
                         immutable gcidMediaPoolPath = buildPath (dcache.mediaExportPoolDir, gcid);
                         immutable gcidMediaSuitePath = buildPath (mediaExportDir, gcid);
                         if ((!std.file.exists (gcidMediaSuitePath)) && (std.file.exists (gcidMediaPoolPath)))
-                            ag.utils.copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
+                            copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
                     }
 
                     // compile list of icon-tarball files

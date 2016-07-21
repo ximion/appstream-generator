@@ -21,6 +21,8 @@ module ag.extractor;
 
 import std.stdio;
 import std.string;
+import std.path : baseName;
+import std.algorithm : canFind;
 import appstream.Component;
 
 import ag.config;

@@ -31,6 +31,7 @@ import std.parallelism;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
+static import std.file;
 
 import ag.utils;
 import ag.logging;
@@ -39,6 +40,7 @@ import ag.image;
 import ag.backend.intf;
 import ag.contentscache;
 import ag.std.concurrency.generator;
+static import ag.config;
 
 
 // all image extensions that we recognize as possible for icons.

@@ -23,8 +23,10 @@ import std.stdio;
 import std.array;
 import std.string : format, toLower;
 import std.path : dirName, getcwd;
+import std.conv : to;
 import std.json;
 import std.typecons;
+static import std.file;
 
 import ag.utils;
 import ag.logging;

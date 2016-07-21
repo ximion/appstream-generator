@@ -144,6 +144,7 @@ class HintsStorage
     private this ()
     {
         import std.path;
+        static import std.file;
 
         // find the hint definition file
         auto hintsDefFile = getDataPath ("asgen-hints.json");
