@@ -65,7 +65,8 @@ enum Backend
     Unknown,
     Dummy,
     Debian,
-    Archlinux
+    Archlinux,
+    RpmMd
 }
 
 enum GeneratorFeature
@@ -193,6 +194,11 @@ class Config
             case "arch":
             case "archlinux":
                 this.backend = Backend.Archlinux;
+                this.metadataType = DataType.XML;
+                break;
+            case "mageia":
+            case "rpmmd":
+                this.backend = Backend.RpmMd;
                 this.metadataType = DataType.XML;
                 break;
             default:
