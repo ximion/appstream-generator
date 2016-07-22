@@ -89,7 +89,7 @@ public:
     override
     string toString ()
     {
-        return format ("%s/%s/%s", name, ver, arch);
+        return "%s/%s/%s".format (name, ver, arch);
     }
 
     void setDescription (string text, string locale)

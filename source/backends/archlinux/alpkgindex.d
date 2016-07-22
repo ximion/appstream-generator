@@ -23,6 +23,7 @@ import std.stdio;
 import std.path;
 import std.string;
 import std.algorithm : canFind;
+import std.array : appender;
 static import std.file;
 
 import ag.logging;
@@ -58,7 +59,7 @@ public:
         if (pkgDesc is null)
             return;
 
-        auto desc = "<p>" ~ pkgDesc ~ "</p>";
+        auto desc = "<p>%s</p>".format (pkgDesc);
         pkg.setDescription (desc, "C");
     }
 
@@ -112,15 +113,15 @@ public:
                     }
                 }
 
-                string[] contents;
+                auto contents = appender!(string[]);
                 foreach (l; filesStr.splitLines ())
                     contents ~= "/" ~ l;
-                pkg.contents = contents;
+                pkg.contents = contents.data;
             }
         }
 
         // perform a sanity check, so we will never emit invalid packages
-        Package[] pkgs;
+        auto pkgs = appender!(Package[]);
         foreach (ref pkg; pkgsMap.byValue ()) {
             if (Package.isValid (pkg))
                 pkgs ~= pkg;
@@ -128,7 +129,7 @@ public:
                 logError ("Found an invalid package (name, architecture or version is missing). This is a bug.");
         }
 
-        return pkgs;
+        return pkgs.data;
     }
 
     Package[] packagesFor (string suite, string section, string arch)
@@ -136,7 +137,7 @@ public:
         if ((suite == "arch") || (suite == "archlinux"))
             suite = "";
 
-        string id = suite ~ "-" ~ section ~ "-" ~ arch;
+        immutable id = "%s-%s-%s".format (suite, section, arch);
         if (id !in pkgCache) {
             auto pkgs = loadPackages (suite, section, arch);
             synchronized (this) pkgCache[id] = pkgs;

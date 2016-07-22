@@ -119,7 +119,7 @@ public:
 
     private string getIndexFile (string suite, string section, string arch)
     {
-        auto binDistsPath = buildPath (rootDir, "dists", suite, section, "binary-%s".format (arch));
+        immutable binDistsPath = buildPath (rootDir, "dists", suite, section, "binary-%s".format (arch));
         auto indexFname = buildPath (binDistsPath, "Packages.gz");
         if (!std.file.exists (indexFname))
             indexFname = buildPath (binDistsPath, "Packages.xz");
@@ -171,7 +171,7 @@ public:
 
     Package[] packagesFor (string suite, string section, string arch)
     {
-        string id = suite ~ "/" ~ section ~ "/" ~ arch;
+        immutable id = "%s/%s/%s".format (suite, section, arch);
         if (id !in pkgCache) {
             auto pkgs = loadPackages (suite, section, arch);
             synchronized (this) pkgCache[id] = pkgs;

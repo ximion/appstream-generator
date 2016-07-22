@@ -25,6 +25,7 @@ import std.file;
 import std.regex;
 import std.conv : to;
 import std.path : buildNormalizedPath;
+import std.array : appender;
 import ag.std.concurrency.generator;
 
 import c.libarchive;
@@ -43,13 +44,13 @@ private string readArchiveData (archive *ar, string name = null)
     immutable BUFFER_SIZE = 8192;
     int ret;
     size_t size;
-    string data;
     char[BUFFER_SIZE] buff;
+    auto data = appender!string;
 
     ret = archive_read_next_header (ar, &ae);
 
     if (ret == ARCHIVE_EOF)
-        return data;
+        return data.data;
 
     if (ret != ARCHIVE_OK) {
         if (name is null)
@@ -73,7 +74,7 @@ private string readArchiveData (archive *ar, string name = null)
         data ~= buff[0..size];
     }
 
-    return data;
+    return data.data;
 }
 
 string decompressFile (string fname)
@@ -124,13 +125,13 @@ private:
         const void *buff = null;
         size_t size = 0UL;
         long offset = 0;
-        ubyte[] res;
+        auto res = appender!(ubyte[]);
 
         while (archive_read_data_block (ar, &buff, &size, &offset) == ARCHIVE_OK) {
             res ~= cast(ubyte[]) buff[0..size];
         }
 
-        return res;
+        return res.data;
 	}
 
     void extractEntryTo (archive *ar, string fname)
@@ -291,7 +292,7 @@ public:
         import std.path;
         archive *ar;
         archive_entry *en;
-        string[] matches;
+        auto matches = appender!(string[]);
 
         try {
             ar = openArchive ();
@@ -313,7 +314,7 @@ public:
             }
         }
 
-        return matches;
+        return matches.data;
     }
 
     string[] readContents ()
@@ -329,7 +330,7 @@ public:
         }
         scope (exit) archive_read_free (ar);
 
-        string[] contents;
+        auto contents = appender!(string[]);
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
 
@@ -341,7 +342,7 @@ public:
             contents ~= path;
         }
 
-        return contents;
+        return contents.data;
     }
 
     /**
