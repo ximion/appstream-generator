@@ -31,7 +31,7 @@ import ag.backend.intf;
 import ag.backend.debian.tagfile;
 import ag.backend.debian.debpkg;
 import ag.config;
-import ag.utils : escapeXml, isRemote, downloadFile;
+import ag.utils : escapeXml, isRemote, downloadIfNecessary;
 
 
 class DebianPackageIndex : PackageIndex
@@ -63,20 +63,12 @@ public:
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
-        immutable auto enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.xz");
-
+        immutable auto enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.%s");
         string enDescFname;
 
-        if (rootDir.isRemote) {
-            enDescFname = buildPath (tmpDir, enDescPath);
-            immutable auto uri = buildPath (rootDir, enDescPath);
-
-            downloadFile (uri, enDescFname);
-        } else {
-            enDescFname = buildPath (rootDir, enDescPath);
-        }
-
-        if (!std.file.exists (enDescFname)) {
+        try {
+            enDescFname = downloadIfNecessary (rootDir, tmpDir, enDescPath);
+        } catch (Exception ex) {
             logDebug ("No long descriptions for %s/%s", suite, section);
             return;
         }
@@ -136,39 +128,9 @@ public:
 
     private string getIndexFile (string suite, string section, string arch)
     {
-        immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
-        immutable binDistsPath = buildPath (rootDir, path);
+        immutable auto path = buildPath ("dists", suite, section, "binary-%s".format (arch));
 
-        string indexFname;
-
-        if (rootDir.isRemote) {
-            import std.file;
-            import std.net.curl : CurlException;
-
-            foreach (string ext; ["xz", "gz"]) {
-                try {
-                    indexFname = buildPath (tmpDir, path, format ("Packages.%s", ext));
-                    immutable auto uri = buildPath (binDistsPath, format ("Packages.%s", ext));
-
-                    /* This should use download(), but that doesn't throw errors */
-                    downloadFile (uri, indexFname);
-
-                    break;
-                } catch (CurlException ex) {
-                    logDebug ("Couldn't download: %s", ex.msg);
-                    indexFname = null;
-                }
-
-                if (indexFname.empty)
-                    throw new Exception (format ("Couldn't download index file for %s/%s/%s", suite, section, arch));
-            }
-        } else {
-            indexFname = buildPath (binDistsPath, "Packages.gz");
-            if (!std.file.exists (indexFname))
-                indexFname = buildPath (binDistsPath, "Packages.xz");
-        }
-
-        return indexFname;
+        return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
     }
 
     private DebPackage[] loadPackages (string suite, string section, string arch)
