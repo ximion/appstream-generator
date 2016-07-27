@@ -337,6 +337,15 @@ private ulong onReceiveCb (File f, ubyte[] data)
  *      retryCount = Number of times to retry on timeout.
  */
 void downloadFile (const string url, const string dest, const uint retryCount = 5)
+in
+{
+    assert (isRemote (url));
+}
+out
+{
+    assert (std.file.exists (dest));
+}
+body
 {
     import core.time;
 
@@ -344,7 +353,6 @@ void downloadFile (const string url, const string dest, const uint retryCount = 
     import std.net.curl;
     import std.path;
 
-    assert (isRemote (url));
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
