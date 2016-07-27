@@ -25,6 +25,21 @@ import std.string;
 import ag.logging;
 import ag.utils : downloadFile, isRemote;
 
+/**
+ * If prefix is remote, download prefix + suffix, otherwise check if prefix +
+ * suffix exists.
+ *
+ * Returns: Path to the file, which is guaranteed to exist.
+ *
+ * Params:
+ *      prefix = First part of the address, i.e.
+ *               "http://ftp.debian.org/debian/" or "/srv/mirrors/debian/"
+ *      destPrefix = If the file is remote, the directory to save it under,
+ *                   which is created if necessary.
+ *      suffix = the rest of the address, so that prefix + suffix is a full
+ *               path or URL, i.e.
+ *               "dists/unstable/main/binary-i386/Packages.xz"
+ */
 immutable (string) downloadIfNecessary (const string prefix,
                                         const string destPrefix,
                                         const string suffix)
