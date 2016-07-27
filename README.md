@@ -19,7 +19,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * dub [1]
  * glib2 (>= 2.46)
  * AppStream [2]
- * libarchive [3]
+ * libarchive (>= 3.2) [3]
  * LMDB [4]
  * Cairo
  * GdkPixbuf 2.0

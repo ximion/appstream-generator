@@ -292,6 +292,21 @@ bool existsAndIsDir (string path) @safe
     return false;
 }
 
+/**
+ * Convert a string array into a byte array.
+ */
+ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
+{
+    auto res = appender!(ubyte[]);
+    res.reserve (strArray.length * 2); // make a guess, we will likely need much more space
+
+    foreach (ref s; strArray) {
+        res ~= cast(ubyte[]) s;
+    }
+
+    return res.data;
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");
@@ -310,4 +325,6 @@ unittest
     assert (ImageSize (1024, 420).toInt () == 1024);
     assert (ImageSize (1024, 800) > ImageSize (64, 32));
     assert (ImageSize (48) < ImageSize (64));
+
+    assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
 }

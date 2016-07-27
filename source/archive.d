@@ -406,22 +406,30 @@ public:
     }
 }
 
-/*
-void compressAndSave (ubyte[] data, string fname, ArchiveType atype)
+/**
+ * Save data to a compressed file.
+ *
+ * Params:
+ *      data = The data to save.
+ *      fname = The filename the data should be saved to.
+ *      atype = The archive type (GZ or XZ).
+ */
+void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
 {
     archive *ar;
 
     ar = archive_write_new ();
     scope (exit) archive_write_free (ar);
 
-    if (atype == ArchiveType.GZIP)
-        archive_write_add_filter_gzip (ar);
-    else
-        archive_write_add_filter_xz (ar);
-
     archive_write_set_format_raw (ar);
+    if (atype == ArchiveType.GZIP) {
+        archive_write_add_filter_gzip (ar);
+        archive_write_set_filter_option (ar, "gzip", "timestamp", null);
+    } else {
+        archive_write_add_filter_xz (ar);
+    }
 
-    auto ret = archive_write_open_filename (ar, toStringz (fname));
+    auto ret = archive_write_open_filename (ar, fname.toStringz);
     if (ret != ARCHIVE_OK)
         throw new Exception (format ("Unable to open file '%s': %s", fname, fromStringz (archive_error_string (ar))));
 
@@ -429,32 +437,13 @@ void compressAndSave (ubyte[] data, string fname, ArchiveType atype)
     entry = archive_entry_new ();
     scope (exit) archive_entry_free (entry);
 
+    archive_entry_set_filetype (entry, AE_IFREG);
     archive_entry_set_size (entry, ubyte.sizeof * data.length);
     archive_write_header (ar, entry);
 
     archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
     archive_write_close (ar);
 }
-*/
-
-void saveCompressed (string fname, ArchiveType atype)
-{
-    import std.process;
-
-    Pid pid;
-    File cf;
-    if (atype == ArchiveType.GZIP) {
-        cf = File (fname ~ ".gz", "w");
-        pid = spawnProcess (["gzip", "-c", fname], std.stdio.stdin, cf);
-    } else {
-        cf = File (fname ~ ".xz", "w");
-        pid = spawnProcess (["xz", "-c", fname], std.stdio.stdin, cf);
-    }
-
-    wait (pid);
-    cf.close ();
-}
-
 
 class ArchiveCompressor
 {

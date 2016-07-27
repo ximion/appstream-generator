@@ -20,6 +20,7 @@
 module c.libarchive;
 
 import core.stdc.stdio;
+import std.conv : octal;
 
 extern(C):
 nothrow:
@@ -35,6 +36,15 @@ immutable ARCHIVE_RETRY	= -10; /* Retry might succeed. */
 immutable ARCHIVE_WARN  = -20; /* Partial success. */
 immutable ARCHIVE_FAILED = -25; /* Current operation cannot complete. */
 immutable ARCHIVE_FATAL = -30;  /* No more operations are possible. */
+
+immutable AE_IFMT   = octal!170000;
+immutable AE_IFREG	= octal!100000;
+immutable AE_IFLNK	= octal!120000;
+immutable AE_IFSOCK	= octal!140000;
+immutable AE_IFCHR	= octal!20000;
+immutable AE_IFBLK	= octal!60000;
+immutable AE_IFDIR	= octal!40000;
+immutable AE_IFIFO	= octal!10000;
 
 const(char) *archive_error_string (archive*);
 int archive_errno (archive*);
@@ -83,6 +93,7 @@ int archive_write_add_filter_gzip (archive*);
 int archive_write_add_filter_xz (archive*);
 int archive_write_set_format_pax (archive*);
 int archive_write_set_format_pax_restricted (archive*);
+int archive_write_set_format_raw (archive*);
 //int archive_write_set_format_raw (archive *a); /// Will be available in the next version of libarchive (to be released in 2016)
 int archive_write_set_format_by_name (archive*, const(char) *name);
 

@@ -37,7 +37,7 @@ import ag.contentscache;
 import ag.result;
 import ag.hint;
 import ag.reportgenerator;
-import ag.utils : copyDir;
+import ag.utils : copyDir, stringArrayToByteArray;
 
 import ag.backend.intf;
 import ag.backend.dummy;
@@ -259,17 +259,21 @@ public:
     private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
         import ag.archive;
-        auto mdataEntries = appender!(string[]);
-        auto hintEntries = appender!(string[]);
+        auto mdataFile = appender!(string[]);
+        auto hintsFile = appender!(string[]);
 
         // reserve some space for our data
-        mdataEntries.reserve (pkgs.length / 2);
-        hintEntries.reserve (240);
+        mdataFile.reserve (pkgs.length / 2);
+        hintsFile.reserve (240);
+
+        // prepare hints file
+        hintsFile ~= "[";
 
         logInfo ("Exporting data for %s (%s/%s)", suite.name, section, arch);
 
         // add metadata document header
-        mdataEntries ~= getMetadataHead (suite, section);
+        mdataFile ~= getMetadataHead (suite, section);
+        mdataFile ~= "\n";
 
         // prepare destination
         immutable dataExportDir = buildPath (exportDir, "data", suite.name, section);
@@ -296,13 +300,17 @@ public:
             mediaExportDir = dcache.mediaExportPoolDir;
 
         // collect metadata, icons and hints for the given packages
+        bool firstHintEntry = true;
         foreach (ref pkg; parallel (pkgs, 100)) {
             immutable pkid = pkg.id;
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
                 auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
                 if (!mres.empty) {
-                    synchronized (this) mdataEntries ~= mres;
+                    synchronized (this) {
+                        mdataFile ~= mres;
+                        mdataFile ~= "\n";
+                    }
                 }
 
                 // nothing left to do if we don't need to deal with icon tarballs and
@@ -310,7 +318,7 @@ public:
                 if ((!useImmutableSuites) && (!withIconTar))
                     continue;
 
-                foreach (gcid; gcids) {
+                foreach (ref gcid; gcids) {
                     // Symlink data from the pool to the suite-specific directories
                     if (useImmutableSuites) {
                         immutable gcidMediaPoolPath = buildPath (dcache.mediaExportPoolDir, gcid);
@@ -321,11 +329,11 @@ public:
 
                     // compile list of icon-tarball files
                     if (withIconTar) {
-                        foreach (size; iconTarSizes) {
-                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", format ("%sx%s", size, size));
+                        foreach (ref size; iconTarSizes) {
+                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", "%sx%s".format (size, size));
                             if (!std.file.exists (iconDir))
                                 continue;
-                            foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
+                            foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
                                 iconTarFiles[size] ~= path;
                             }
                         }
@@ -333,9 +341,17 @@ public:
                 }
             }
 
-            auto hres = dcache.getHints (pkid);
+            immutable hres = dcache.getHints (pkid);
             if (!hres.empty) {
-                synchronized (this) hintEntries ~= hres;
+                synchronized (this) {
+                    if (firstHintEntry) {
+                        firstHintEntry = false;
+                        hintsFile ~= hres;
+                    } else {
+                        hintsFile ~= ",\n";
+                        hintsFile ~= hres;
+                    }
+                }
             }
         }
 
@@ -352,51 +368,35 @@ public:
             }
         }
 
-        string dataFname;
+        string dataBaseFname;
         if (conf.metadataType == DataType.XML)
-            dataFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
+            dataBaseFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
         else
-            dataFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
-        immutable hintsFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
+            dataBaseFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
+        immutable hintsBaseFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
         logInfo ("Writing metadata for %s/%s [%s]", suite.name, section, arch);
-        auto mf = File (dataFname, "w");
-        foreach (ref entry; mdataEntries.data) {
-            mf.writeln (entry);
-        }
+
         // add the closing XML tag for XML metadata
         if (conf.metadataType == DataType.XML)
-            mf.writeln ("</components>");
-        mf.flush ();
-        mf.close ();
+            mdataFile ~= "</components>\n";
 
-        // compress metadata
-        saveCompressed (dataFname, ArchiveType.GZIP);
-        saveCompressed (dataFname, ArchiveType.XZ);
-        std.file.remove (dataFname);
+        // compress metadata and save it to disk
+        auto mdataFileBytes = stringArrayToByteArray (mdataFile.data);
+        compressAndSave (mdataFileBytes, dataBaseFname ~ ".gz", ArchiveType.GZIP);
+        compressAndSave (mdataFileBytes, dataBaseFname ~ ".xz", ArchiveType.XZ);
 
         // write hints
         logInfo ("Writing hints for %s/%s [%s]", suite.name, section, arch);
-        auto hf = File (hintsFname, "w");
-        hf.writeln ("[");
-        bool firstLine = true;
-        foreach (ref entry; hintEntries.data) {
-            if (firstLine) {
-                firstLine = false;
-                hf.write (entry);
-            } else {
-                hf.write (",\n" ~ entry);
-            }
-        }
-        hf.writeln ("\n]");
-        hf.flush ();
-        hf.close ();
+
+        // finalize the JSON hints document
+        hintsFile ~= "\n]\n";
 
         // compress hints
-        saveCompressed (hintsFname, ArchiveType.GZIP);
-        saveCompressed (hintsFname, ArchiveType.XZ);
-        std.file.remove (hintsFname);
+        auto hintsFileBytes = stringArrayToByteArray (hintsFile.data);
+        compressAndSave (hintsFileBytes, hintsBaseFname ~ ".gz", ArchiveType.GZIP);
+        compressAndSave (hintsFileBytes, hintsBaseFname ~ ".xz", ArchiveType.XZ);
     }
 
     private Package[string] getIconCandidatePackages (Suite suite, string section, string arch)
