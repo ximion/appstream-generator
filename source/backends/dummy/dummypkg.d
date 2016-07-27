@@ -37,14 +37,19 @@ private:
     string testPkgFname;
 
 public:
-    @property string name () const { return pkgname; }
-    @property string ver () const { return pkgver; }
-    @property string arch () const { return pkgarch; }
-    @property const(string[string]) description () const { return desc; }
+    @property override string name () const { return pkgname; }
+    @property override string ver () const { return pkgver; }
+    @property override string arch () const { return pkgarch; }
+
+    @property override const(string[string]) description () const { return desc; }
+
+    override
     @property string filename () const { return testPkgFname; }
-    @property void filename (string fname) { testPkgFname = fname; }
+    @property void   filename (string fname) { testPkgFname = fname; }
+
+    override
     @property string maintainer () const { return pkgmaintainer; }
-    @property void maintainer (string maint) { pkgmaintainer = maint; }
+    @property void   maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)
     {
@@ -57,35 +62,24 @@ public:
     {
     }
 
-    bool isValid ()
-    {
-        if ((!name) || (!ver) || (!arch))
-            return false;
-        return true;
-    }
-
-    override
-    string toString ()
-    {
-        return format ("%s/%s/%s", name, ver, arch);
-    }
-
     void setDescription (string text, string locale)
     {
         desc[locale] = text;
     }
 
+    override
     ubyte[] getFileData (string fname)
     {
         return ['N', 'O', 'T', 'H', 'I', 'N', 'G'];
     }
 
-    @property
+    @property override
     string[] contents ()
     {
         return ["NOTHING1", "NOTHING2"];
     }
 
+    override
     void close ()
     {
     }

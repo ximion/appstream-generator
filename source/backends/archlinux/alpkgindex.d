@@ -123,7 +123,7 @@ public:
         // perform a sanity check, so we will never emit invalid packages
         auto pkgs = appender!(Package[]);
         foreach (ref pkg; pkgsMap.byValue ()) {
-            if (Package.isValid (pkg))
+            if (pkg.isValid)
                 pkgs ~= pkg;
             else
                 logError ("Found an invalid package (name, architecture or version is missing). This is a bug.");

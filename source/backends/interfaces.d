@@ -27,34 +27,76 @@ public import ag.datacache;
 /**
  * Represents a distribution package in the generator.
  */
-interface Package
+abstract class Package
 {
-    @property string name () const;
-    @property string ver () const;
-    @property string arch () const;
+    @property string name () const @safe pure;
+    @property string ver () const @safe pure;
+    @property string arch () const @safe pure;
     @property string maintainer () const;
+
+    /**
+     * A associative array containing package descriptions.
+     * Key is the language (or locale), value the description.
+     *
+     * E.g.: ["en": "A description.", "de": "Eine Beschreibung"]
+     */
     @property const(string[string]) description () const;
 
-    @property string filename () const; // only used for diagnostic information and reporting
+    /**
+     * Filename of the package. This string is only used for
+     * issue reporting and other information, the file is never
+     * accessed directly (all data is retrieved via getFileData())
+     */
+    @property string filename () const;
+
+    /**
+     * A list payload files this package contains.
+     */
     @property string[] contents ();
 
-    void setDescription (string desc,
-                         string locale);
+    /**
+     * Obtain data for a specific file in the package.
+     */
+    abstract const(ubyte)[] getFileData (string fname);
 
-    const(ubyte)[] getFileData (string fname);
-    void close ();
+    /**
+     * Close the package. This function is called when we will
+     * no longer request any file data from this package.
+     */
+    abstract void close ();
 
-    static string getId (const Package pkg)
-    {
-        return "%s/%s/%s".format (pkg.name, pkg.ver, pkg.arch);
-    }
-
-    static bool isValid (Package pkg)
+    private string pkid;
+    /**
+     * Get the unique identifier for this package.
+     * The ID is supposed to be unique per backend, it should never appear
+     * multiple times in suites/sections.
+     */
+    @property
+    final string id () @safe pure
     {
         import std.array : empty;
-        return (!pkg.name.empty ()) &&
-               (!pkg.ver.empty ()) &&
-               (!pkg.arch.empty ());
+        if (pkid.empty)
+            pkid = "%s/%s/%s".format (this.name, this.ver, this.arch);
+        return pkid;
+    }
+
+    /**
+     * Check if the package is valid.
+     * A Package must at least have a name, version and architecture defined.
+     */
+    @safe pure
+    final bool isValid ()
+    {
+        import std.array : empty;
+        return (!name.empty) &&
+               (!ver.empty) &&
+               (!arch.empty);
+    }
+
+    @safe pure override
+    string toString ()
+    {
+        return id;
     }
 }
 

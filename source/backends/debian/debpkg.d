@@ -49,14 +49,19 @@ private:
     string debFname;
 
 public:
-    @property string name () const { return pkgname; }
-    @property string ver () const { return pkgver; }
-    @property string arch () const { return pkgarch; }
-    @property const(string[string]) description () const { return desc; }
+    @property override string name () const { return pkgname; }
+    @property override string ver () const { return pkgver; }
+    @property override string arch () const { return pkgarch; }
+
+    @property override const(string[string]) description () const { return desc; }
+
+    override
     @property string filename () const { return debFname; }
-    @property void filename (string fname) { debFname = fname; }
+    @property void   filename (string fname) { debFname = fname; }
+
+    override
     @property string maintainer () const { return pkgmaintainer; }
-    @property void maintainer (string maint) { pkgmaintainer = maint; }
+    @property void   maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)
     {
@@ -74,22 +79,9 @@ public:
 
     ~this ()
     {
-        // FIXME: Makes the GC crash - find out why (the error should be ignored...)
-        // if (tmpDir !is null)
+        // FIXME: We can't properly clean up because we can't GC-allocate in a destructor (leads to crashes),
+        // see if this is fixed in a future version of D, or simply don't use the GC in close ().
         // close ();
-    }
-
-    bool isValid ()
-    {
-        if ((!name) || (!ver) || (!arch))
-            return false;
-        return true;
-    }
-
-    override
-    string toString ()
-    {
-        return "%s/%s/%s".format (name, ver, arch);
     }
 
     void setDescription (string text, string locale)
@@ -147,13 +139,14 @@ public:
         return ca;
     }
 
+    override
     const(ubyte)[] getFileData (string fname)
     {
         auto pa = openPayloadArchive ();
         return pa.readData (fname);
     }
 
-    @property
+    @property override
     string[] contents ()
     {
         import std.utf;
@@ -182,7 +175,7 @@ public:
         try {
             md5sumsData = ca.readData ("./md5sums");
         } catch (Exception e) {
-            logWarning ("Could not read md5sums file for package %s: %s", Package.getId (this), e.msg);
+            logWarning ("Could not read md5sums file for package %s: %s", this.id, e.msg);
             return [];
         }
 
@@ -190,7 +183,7 @@ public:
         try {
             md5sums = md5sums.toUTF8;
         } catch (Exception e) {
-            logError ("Could not decode md5sums file for package %s: %s", Package.getId (this), e.msg);
+            logError ("Could not decode md5sums file for package %s: %s", this.id, e.msg);
             return [];
         }
 
@@ -208,6 +201,7 @@ public:
         return contentsL;
     }
 
+    override
     void close ()
     {
         try {

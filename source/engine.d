@@ -109,11 +109,9 @@ public:
      */
     private void processPackages (Package[] pkgs, IconHandler iconh)
     {
-        GeneratorResult[] results;
-
         auto mde = new DataExtractor (dcache, iconh);
-        foreach (ref pkg; parallel (pkgs, 4)) {
-            auto pkid = Package.getId (pkg);
+        foreach (ref pkg; parallel (pkgs)) {
+            immutable pkid = pkg.id;
             if (dcache.packageExists (pkid))
                 continue;
 
@@ -139,7 +137,7 @@ public:
      **/
     private bool seedContentsData (Suite suite, string section, string arch)
     {
-        bool packageInteresting (string[] contents)
+        bool packageInteresting (const string[] contents)
         {
             foreach (ref c; contents) {
                 if (c.startsWith ("/usr/share/applications/"))
@@ -171,7 +169,7 @@ public:
         if (!suite.baseSuite.empty)
             pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
         foreach (ref pkg; parallel (pkgs, 8)) {
-            immutable pkid = Package.getId (pkg);
+            immutable pkid = pkg.id;
 
             string[] contents;
             if (ccache.packageExists (pkid)) {
@@ -261,8 +259,12 @@ public:
     private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
         import ag.archive;
-        string[] mdataEntries;
-        string[] hintEntries;
+        auto mdataEntries = appender!(string[]);
+        auto hintEntries = appender!(string[]);
+
+        // reserve some space for our data
+        mdataEntries.reserve (pkgs.length / 2);
+        hintEntries.reserve (240);
 
         logInfo ("Exporting data for %s (%s/%s)", suite.name, section, arch);
 
@@ -295,7 +297,7 @@ public:
 
         // collect metadata, icons and hints for the given packages
         foreach (ref pkg; parallel (pkgs, 100)) {
-            immutable pkid = Package.getId (pkg);
+            immutable pkid = pkg.id;
             auto gcids = dcache.getGCIDsForPackage (pkid);
             if (gcids !is null) {
                 auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
@@ -360,7 +362,7 @@ public:
         // write metadata
         logInfo ("Writing metadata for %s/%s [%s]", suite.name, section, arch);
         auto mf = File (dataFname, "w");
-        foreach (ref entry; mdataEntries) {
+        foreach (ref entry; mdataEntries.data) {
             mf.writeln (entry);
         }
         // add the closing XML tag for XML metadata
@@ -379,7 +381,7 @@ public:
         auto hf = File (hintsFname, "w");
         hf.writeln ("[");
         bool firstLine = true;
-        foreach (ref entry; hintEntries) {
+        foreach (ref entry; hintEntries.data) {
             if (firstLine) {
                 firstLine = false;
                 hf.write (entry);
@@ -403,8 +405,8 @@ public:
         // on Debian and Ubuntu.
         // FIXME: This is a hack, find a sane way to get rid of this, or at least get rid of the
         // distro-specific hardcoding.
-        Package[] pkgs;
-        foreach (newSection; ["main", "universe"]) {
+        auto pkgs = appender!(Package[]);
+        foreach (ref newSection; ["main", "universe"]) {
             if ((section != newSection) && (suite.sections.canFind (newSection))) {
                 pkgs ~= pkgIndex.packagesFor (suite.name, newSection, arch);
                 if (!suite.baseSuite.empty)
@@ -416,8 +418,8 @@ public:
         pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
 
         Package[string] pkgMap;
-        foreach (ref pkg; pkgs) {
-            immutable pkid = Package.getId (pkg);
+        foreach (ref pkg; pkgs.data) {
+            immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
         }
 
@@ -427,7 +429,7 @@ public:
     void run (string suite_name)
     {
         Suite suite;
-        foreach (s; conf.suites)
+        foreach (ref s; conf.suites)
             if (s.name == suite_name)
                 suite = s;
 
@@ -449,22 +451,21 @@ public:
             return;
         }
 
-        Component[] cpts;
         GeneratorHint[string] hints;
         auto reportgen = new ReportGenerator (dcache);
 
         auto dataChanged = false;
-        foreach (section; suite.sections) {
-            Package[] sectionPkgs;
+        foreach (ref section; suite.sections) {
+            auto sectionPkgs = appender!(Package[]);
             auto iconTarBuilt = false;
             auto suiteDataChanged = false;
-            foreach (arch; suite.architectures) {
+            foreach (ref arch; suite.architectures) {
                 // update package contents information and flag boring packages as ignored
                 immutable foundInteresting = seedContentsData (suite, section, arch);
 
                 // check if the suite/section/arch has actually changed
                 if (!foundInteresting) {
-                    logInfo ("Skipping %s/%s [%s], no interesting new packages last update.", suite.name, section, arch);
+                    logInfo ("Skipping %s/%s [%s], no interesting new packages since last update.", suite.name, section, arch);
                     continue;
                 }
 
@@ -492,7 +493,7 @@ public:
 
             // write reports & statistics and render HTML, if that option is selected
             if (suiteDataChanged) {
-                reportgen.processFor (suite.name, section, sectionPkgs);
+                reportgen.processFor (suite.name, section, sectionPkgs.data);
                 dataChanged = true;
             }
 
@@ -523,12 +524,12 @@ public:
         logInfo ("Cleaning up superseded data.");
         // build a set of all valid packages
         foreach (ref suite; conf.suites) {
-            foreach (string section; suite.sections) {
-                foreach (string arch; parallel (suite.architectures)) {
+            foreach (ref section; suite.sections) {
+                foreach (ref arch; parallel (suite.architectures)) {
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
-                            auto pkid = Package.getId (pkg);
+                            immutable pkid = pkg.id;
                             pkgSet[pkid] = true;
                         }
                     }
@@ -557,16 +558,16 @@ public:
     void removeHintsComponents (string suite_name)
     {
         Suite suite;
-        foreach (s; conf.suites)
+        foreach (ref s; conf.suites)
             if (s.name == suite_name)
                 suite = s;
 
-        foreach (string section; suite.sections) {
-            foreach (string arch; parallel (suite.architectures)) {
+        foreach (ref section; suite.sections) {
+            foreach (ref arch; parallel (suite.architectures)) {
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
 
                 foreach (ref pkg; pkgs) {
-                    auto pkid = Package.getId (pkg);
+                    auto pkid = pkg.id;
 
                     if (!dcache.packageExists (pkid))
                         continue;
@@ -598,7 +599,7 @@ public:
             logInfo ("Removed package with ID: %s", pkid);
         } else {
             auto pkids = dcache.getPkidsMatching (identifier);
-            foreach (pkid; pkids) {
+            foreach (ref pkid; pkids) {
                 dcache.removePackage (pkid);
                 if (ccache.packageExists (pkid))
                     ccache.removePackage (pkid);

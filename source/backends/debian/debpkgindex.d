@@ -56,7 +56,7 @@ public:
         indexChanged = null;
     }
 
-    private void loadPackageLongDescs (Package[string] pkgs, string suite, string section)
+    private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
         auto enDescFname = buildPath (rootDir, "dists", suite, section, "i18n", "Translation-en.bz2");
         if (!std.file.exists (enDescFname)) {
@@ -126,7 +126,7 @@ public:
         return indexFname;
     }
 
-    private Package[] loadPackages (string suite, string section, string arch)
+    private DebPackage[] loadPackages (string suite, string section, string arch)
     {
         auto indexFname = getIndexFile (suite, section, arch);
         if (!std.file.exists (indexFname)) {
@@ -143,7 +143,7 @@ public:
 
         logDebug ("Opened: %s", indexFname);
 
-        Package[string] pkgs;
+        DebPackage[string] pkgs;
         do {
             auto name = tagf.readField ("Package");
             auto ver  = tagf.readField ("Version");
@@ -174,7 +174,7 @@ public:
         immutable id = "%s/%s/%s".format (suite, section, arch);
         if (id !in pkgCache) {
             auto pkgs = loadPackages (suite, section, arch);
-            synchronized (this) pkgCache[id] = pkgs;
+            synchronized (this) pkgCache[id] = to!(Package[]) (pkgs);
         }
 
         return pkgCache[id];

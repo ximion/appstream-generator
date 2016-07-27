@@ -43,41 +43,35 @@ private:
     ArchiveDecompressor archive;
 
 public:
+    override
     @property string name () const { return pkgname; }
     @property void   name (string val) { pkgname = val; }
 
+    override
     @property string ver () const { return pkgver; }
     @property void   ver (string val) { pkgver = val; }
 
+    override
     @property string arch () const { return pkgarch; }
     @property void   arch (string val) { pkgarch = val; }
 
+    override
     @property const(string[string]) description () const { return desc; }
 
+    override
     @property string filename () const { return pkgFname; }
     @property void filename (string fname) { pkgFname = fname; }
 
+    override
     @property string maintainer () const { return pkgmaintainer; }
     @property void maintainer (string maint) { pkgmaintainer = maint; }
-
-    bool isValid ()
-    {
-        if ((!name) || (!ver) || (!arch))
-            return false;
-        return true;
-    }
-
-    override
-    string toString ()
-    {
-        return "%s/%s/%s".format (name, ver, arch);
-    }
 
     void setDescription (string text, string locale)
     {
         desc[locale] = text;
     }
 
+    override
     const(ubyte)[] getFileData (string fname)
     {
         if (archive is null) {
@@ -88,7 +82,7 @@ public:
         return archive.readData (fname);
     }
 
-    @property
+    @property override
     string[] contents ()
     {
         return contentsL;
@@ -100,6 +94,7 @@ public:
         contentsL = c;
     }
 
+    override
     void close ()
     {
         archive = null;

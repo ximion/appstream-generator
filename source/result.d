@@ -41,15 +41,15 @@ private:
     HintList[string] hints;
 
 public:
-    string pkid;
-    string pkgname;
+    immutable string pkid;
+    immutable string pkgname;
     Package pkg;
 
 public:
 
     this (Package pkg)
     {
-        this.pkid = Package.getId (pkg);
+        this.pkid = pkg.id;
         this.pkgname = pkg.name;
         this.pkg = pkg;
     }

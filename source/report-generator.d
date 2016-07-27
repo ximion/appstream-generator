@@ -125,14 +125,6 @@ public:
         mustache.ext = "html";
     }
 
-    private static bool isDir (string path)
-    {
-        if (std.file.exists (path))
-            if (std.file.isDir (path))
-                return true;
-        return false;
-    }
-
     private string[] splitBlockData (string str, string blockType)
     {
         auto content = str.strip ();
@@ -454,7 +446,7 @@ public:
         mdata.setParserMode (ParserMode.DISTRO);
 
         foreach (ref pkg; pkgs) {
-            auto pkid = Package.getId (pkg);
+            immutable pkid = pkg.id;
 
             auto gcids = dcache.getGCIDsForPackage (pkid);
             auto hintsData = dcache.getHints (pkid);
