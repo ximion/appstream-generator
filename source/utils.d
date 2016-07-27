@@ -323,7 +323,7 @@ bool isRemote (const string uri)
 
 private ulong onReceiveCb (File f, ubyte[] data)
 {
-    f.write (data);
+    f.rawWrite (data);
 
     return data.length;
 }
@@ -347,7 +347,7 @@ void downloadFile (const string url, const string dest)
 
     /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
     logDebug ("Downloading %s", url);
-    auto f = File (dest, "w");
+    auto f = File (dest, "wb");
     if (url.startsWith ("http")) {
         auto downloader = HTTP (url);
         downloader.connectTimeout = dur!"seconds" (30);
