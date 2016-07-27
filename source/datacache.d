@@ -24,6 +24,7 @@ import std.string;
 import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.path : buildPath, buildNormalizedPath, pathSplitter;
+import std.array : appender;
 import std.json;
 static import std.math;
 
@@ -374,7 +375,7 @@ public:
         if (pkval == "seen")
             return null;
 
-        string[] validCids;
+        auto validCids = appender!(string[]);
         auto cids = pkval.split ("\n");
         foreach (cid; cids) {
             if (cid.empty)
@@ -382,7 +383,7 @@ public:
             validCids ~= cid;
         }
 
-        return validCids;
+        return validCids.data;
     }
 
     string[] getMetadataForPackage (DataType dtype, string pkid)
@@ -391,14 +392,14 @@ public:
         if (gcids is null)
             return null;
 
-        string[] res;
+        auto res = appender!(string[]);
         foreach (cid; gcids) {
             auto data = getMetadata (dtype, cid);
             if (!data.empty)
                 res ~= data;
         }
 
-        return res;
+        return res.data;
     }
 
     /**
@@ -481,7 +482,7 @@ public:
 
             MDB_val ckey;
             while (cur.mdb_cursor_get (&ckey, null, MDB_NEXT) == 0) {
-                auto gcid = to!string (fromStringz (cast(char*) ckey.mv_data));
+                immutable gcid = to!string (fromStringz (cast(char*) ckey.mv_data));
                 if (gcidReferenced (gcid))
                     continue;
 
@@ -495,7 +496,7 @@ public:
         bool dirEmpty (string dir)
         {
             bool empty = true;
-            foreach (e; dirEntries (dir, SpanMode.shallow, false)) {
+            foreach (ref e; dirEntries (dir, SpanMode.shallow, false)) {
                 empty = false;
                 break;
             }
@@ -522,10 +523,10 @@ public:
         auto conf = Config.get ();
 
         auto mdirLen = mediaDir.length;
-        foreach (path; dirEntries (mediaDir, SpanMode.depth, false)) {
+        foreach (ref path; dirEntries (mediaDir, SpanMode.depth, false)) {
             if (path.length <= mdirLen)
                 continue;
-            auto relPath = path[mdirLen+1..$];
+            immutable relPath = path[mdirLen+1..$];
             auto split = array (pathSplitter (relPath));
             if (split.length != 4)
                 continue;
@@ -576,7 +577,7 @@ public:
 
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
-            auto pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
+            immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
             if (pkid in pkgSet)
                 continue;
 
@@ -702,7 +703,7 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open (pkid-match)");
 
-        string[] pkids;
+        auto pkids = appender!(string[]);
         prefix ~= "/";
         while (cur.mdb_cursor_get (&dkey, null, MDB_NEXT) == 0) {
             auto pkid = to!string (fromStringz (cast(char*) dkey.mv_data));
@@ -710,6 +711,6 @@ public:
                 pkids ~= pkid;
         }
 
-        return pkids;
+        return pkids.data;
     }
 }

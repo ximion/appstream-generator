@@ -529,8 +529,7 @@ public:
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
-                            immutable pkid = pkg.id;
-                            pkgSet[pkid] = true;
+                            pkgSet[pkg.id] = true;
                         }
                     }
                 }
@@ -589,7 +588,7 @@ public:
 
         if (identifier.count ("/") == 3) {
             // we have a package-id, so we can do a targeted remove
-            auto pkid = identifier;
+            immutable pkid = identifier;
             logDebug ("Considering %s to be a package-id.", pkid);
 
             if (ccache.packageExists (pkid))

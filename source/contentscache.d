@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.conv : to, octal;
 import std.file : mkdirRecurse;
-import std.array : join, split, empty;
+import std.array : appender, join, split, empty;
 static import std.math;
 
 import c.lmdb;
@@ -205,7 +205,7 @@ public:
         MDB_val key, value;
 
         // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index)
-        string[] iconInfo;
+        auto iconInfo = appender!(string[]);
         foreach (ref c; contents) {
             if ((c.startsWith ("/usr/share/icons/")) ||
                 (c.startsWith ("/usr/share/pixmaps/"))) {
@@ -213,7 +213,7 @@ public:
                 }
         }
 
-        string contentsStr = contents.join ("\n");
+        immutable contentsStr = contents.join ("\n");
         key = makeDbValue (pkid);
         value = makeDbValue (contentsStr);
 
@@ -224,9 +224,9 @@ public:
         auto res = txn.mdb_put (dbContents, &key, &value, 0);
         checkError (res, "mdb_put");
 
-        if (!iconInfo.empty ()) {
+        if (!iconInfo.data.empty) {
             // we have icon information, store it too
-            string iconsStr = iconInfo.join ("\n");
+            immutable iconsStr = iconInfo.data.join ("\n");
             value = makeDbValue (iconsStr);
 
             res = txn.mdb_put (dbIcons, &key, &value, 0);
@@ -318,7 +318,7 @@ public:
 
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
-            auto pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
+            immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
             if (pkid in pkgSet)
                 continue;
 
