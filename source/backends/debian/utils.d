@@ -26,8 +26,8 @@ import ag.logging;
 import ag.utils : downloadFile, isRemote;
 
 /**
- * If prefix is remote, download prefix + suffix, otherwise check if prefix +
- * suffix exists.
+ * If prefix is remote, download the first of (prefix + suffix).{xz,bz2,gz},
+ * otherwise check if any of (prefix + suffix).{xz,bz2,gz} exists.
  *
  * Returns: Path to the file, which is guaranteed to exist.
  *
@@ -36,9 +36,11 @@ import ag.utils : downloadFile, isRemote;
  *               "http://ftp.debian.org/debian/" or "/srv/mirrors/debian/"
  *      destPrefix = If the file is remote, the directory to save it under,
  *                   which is created if necessary.
- *      suffix = the rest of the address, so that prefix + suffix is a full
- *               path or URL, i.e.
- *               "dists/unstable/main/binary-i386/Packages.xz"
+ *      suffix = the rest of the address, so that (prefix +
+ *               suffix).format({xz,bz2,gz}) is a full path or URL, i.e.
+ *               "dists/unstable/main/binary-i386/Packages.%s". The suffix must
+ *               contain exactly one "%s"; this function is only suitable for
+ *               finding `.xz`, `.bz2` and `.gz` files.
  */
 immutable (string) downloadIfNecessary (const string prefix,
                                         const string destPrefix,
