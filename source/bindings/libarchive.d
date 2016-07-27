@@ -38,13 +38,13 @@ immutable ARCHIVE_FAILED = -25; /* Current operation cannot complete. */
 immutable ARCHIVE_FATAL = -30;  /* No more operations are possible. */
 
 immutable AE_IFMT   = octal!170000;
-immutable AE_IFREG	= octal!100000;
-immutable AE_IFLNK	= octal!120000;
-immutable AE_IFSOCK	= octal!140000;
-immutable AE_IFCHR	= octal!20000;
-immutable AE_IFBLK	= octal!60000;
-immutable AE_IFDIR	= octal!40000;
-immutable AE_IFIFO	= octal!10000;
+immutable AE_IFREG  = octal!100000;
+immutable AE_IFLNK  = octal!120000;
+immutable AE_IFSOCK = octal!140000;
+immutable AE_IFCHR  = octal!20000;
+immutable AE_IFBLK  = octal!60000;
+immutable AE_IFDIR  = octal!40000;
+immutable AE_IFIFO  = octal!10000;
 
 const(char) *archive_error_string (archive*);
 int archive_errno (archive*);
