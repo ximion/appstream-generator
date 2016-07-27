@@ -328,7 +328,15 @@ private ulong onReceiveCb (File f, ubyte[] data)
     return data.length;
 }
 
-void downloadFile (const string url, const string dest)
+/**
+ * Download `url` to `dest`.
+ *
+ * Params:
+ *      url = The URL to download.
+ *      dest = The location for the downloaded file.
+ *      retryCount = Number of times to retry on timeout.
+ */
+void downloadFile (const string url, const string dest, const uint retryCount = 5)
 {
     import core.time;
 
@@ -347,22 +355,36 @@ void downloadFile (const string url, const string dest)
 
     /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
     logDebug ("Downloading %s", url);
-    auto f = File (dest, "wb");
-    if (url.startsWith ("http")) {
-        auto downloader = HTTP (url);
-        downloader.connectTimeout = dur!"seconds" (30);
-        downloader.dataTimeout = dur!"seconds" (30);
-        downloader.onReceive = (data) => onReceiveCb (f, data);
-        downloader.perform();
-    } else {
-        auto downloader = FTP (url);
-        downloader.connectTimeout = dur!"seconds" (30);
-        downloader.dataTimeout = dur!"seconds" (30);
-        downloader.onReceive = (data) => onReceiveCb (f, data);
-        downloader.perform();
+    try {
+        auto f = File (dest, "wb");
+        scope(exit) f.close();
+        scope(failure) remove(dest);
+
+        if (url.startsWith ("http")) {
+            auto downloader = HTTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (f, data);
+            downloader.perform();
+        } else {
+            auto downloader = FTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (f, data);
+            downloader.perform();
+        }
+        logDebug ("Downloaded %s", url);
+    } catch (CurlTimeoutException e) {
+        if (retryCount > 0) {
+            logDebug ("Failed to download %s, will retry %d more %s",
+                      url,
+                      retryCount,
+                      retryCount > 1 ? "times" : "time");
+            downloadFile (url, dest, retryCount - 1);
+        } else {
+            throw e;
+        }
     }
-    logDebug ("Downloaded %s", url);
-    f.close();
 }
 
 unittest
