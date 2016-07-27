@@ -63,7 +63,7 @@ public:
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
-        immutable auto enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.%s");
+        immutable enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.%s");
         string enDescFname;
 
         try {
@@ -128,7 +128,7 @@ public:
 
     private string getIndexFile (string suite, string section, string arch)
     {
-        immutable auto path = buildPath ("dists", suite, section, "binary-%s".format (arch));
+        immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
 
         return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
     }

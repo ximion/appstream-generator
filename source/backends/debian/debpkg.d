@@ -60,7 +60,7 @@ public:
     override
     @property string filename () const {
         if (debFname.isRemote) {
-            immutable auto path = buildPath (tmpDir, debFname.baseName);
+            immutable path = buildPath (tmpDir, debFname.baseName);
 
             /* XXX: Retry? */
             downloadFile (debFname, path);
