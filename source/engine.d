@@ -259,8 +259,8 @@ public:
     private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
         import ag.archive;
-        auto mdataFile = appender!(string[]);
-        auto hintsFile = appender!(string[]);
+        auto mdataFile = appender!string;
+        auto hintsFile = appender!string;
 
         // reserve some space for our data
         mdataFile.reserve (pkgs.length / 2);
@@ -308,8 +308,8 @@ public:
                 auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
                 if (!mres.empty) {
                     synchronized (this) {
-                        mdataFile ~= mres;
-                        mdataFile ~= "\n";
+                        foreach (ref md; mres)
+                            mdataFile ~= "%s\n".format (md);
                     }
                 }
 
@@ -383,7 +383,7 @@ public:
             mdataFile ~= "</components>\n";
 
         // compress metadata and save it to disk
-        auto mdataFileBytes = stringArrayToByteArray (mdataFile.data);
+        auto mdataFileBytes = cast(ubyte[]) mdataFile.data;
         compressAndSave (mdataFileBytes, dataBaseFname ~ ".gz", ArchiveType.GZIP);
         compressAndSave (mdataFileBytes, dataBaseFname ~ ".xz", ArchiveType.XZ);
 
@@ -394,7 +394,7 @@ public:
         hintsFile ~= "\n]\n";
 
         // compress hints
-        auto hintsFileBytes = stringArrayToByteArray (hintsFile.data);
+        auto hintsFileBytes = cast(ubyte[]) hintsFile.data;
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".gz", ArchiveType.GZIP);
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".xz", ArchiveType.XZ);
     }
