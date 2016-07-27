@@ -30,8 +30,9 @@ import ag.logging;
 import ag.backend.intf;
 import ag.backend.debian.tagfile;
 import ag.backend.debian.debpkg;
+import ag.backend.debian.utils;
 import ag.config;
-import ag.utils : escapeXml, isRemote, downloadIfNecessary;
+import ag.utils : escapeXml, isRemote;
 
 
 class DebianPackageIndex : PackageIndex

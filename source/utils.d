@@ -365,36 +365,6 @@ void downloadFile (const string url, const string dest)
     f.close();
 }
 
-string downloadIfNecessary (const string prefix, const string destPrefix, const string suffix)
-{
-    import std.net.curl;
-    import std.path;
-
-    immutable exts = ["xz", "bz2", "gz"];
-    foreach (ref ext; exts) {
-        immutable fileName = format (buildPath (prefix, suffix), ext);
-        immutable destFileName = format (buildPath (destPrefix, suffix), ext);
-
-        if (fileName.isRemote) {
-            try {
-                /* This should use download(), but that doesn't throw errors */
-                downloadFile (fileName, destFileName);
-
-                return destFileName;
-            } catch (CurlException ex) {
-                logDebug ("Couldn't download: %s", ex.msg);
-            }
-        } else {
-            if (std.file.exists (fileName))
-                return fileName;
-        }
-    }
-
-    /* all extensions failed, so we failed */
-    throw new Exception (format ("Couldn't obtain any file matching %s",
-                         buildPath (prefix, suffix)));
-}
-
 unittest
 {
     writeln ("TEST: ", "GCID");
