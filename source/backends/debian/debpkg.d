@@ -62,7 +62,6 @@ public:
         if (debFname.isRemote) {
             immutable path = buildPath (tmpDir, debFname.baseName);
 
-            /* XXX: Retry? */
             downloadFile (debFname, path);
 
             return path;
