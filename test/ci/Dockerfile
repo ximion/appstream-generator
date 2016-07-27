@@ -1,7 +1,7 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM ubuntu:xenial
+FROM debian:stretch
 
 # prepare
 RUN apt-get update -qq
