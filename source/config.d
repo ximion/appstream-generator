@@ -22,13 +22,13 @@ module ag.config;
 import std.stdio;
 import std.array;
 import std.string : format, toLower;
-import std.path : dirName, getcwd;
+import std.path : dirName, getcwd, buildPath, buildNormalizedPath;
 import std.conv : to;
 import std.json;
 import std.typecons;
 static import std.file;
 
-import ag.utils;
+import ag.utils : existsAndIsDir, randomString;
 import ag.logging;
 
 
@@ -121,6 +121,68 @@ class Config
 
     private this () {
         appstreamVersion = "0.8";
+    }
+
+    @property
+    const string databaseDir () {
+        return buildPath (workspaceDir, "db");
+    }
+
+    @property
+    const string cacheRootDir () {
+        return buildPath (workspaceDir, "cache");
+    }
+
+    @property
+    const string exportDir () {
+        return buildPath (workspaceDir, "export");
+    }
+
+    @property
+    const string mediaExportDir () {
+        return buildPath (exportDir, "media");
+    }
+
+    @property
+    string templateDir () {
+        // find a suitable template directory
+        // first check the workspace
+        auto tdir = buildPath (workspaceDir, "templates");
+        tdir = getVendorTemplateDir (tdir, true);
+
+        if (tdir is null) {
+            immutable exeDir = dirName (std.file.thisExePath ());
+            tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
+
+            tdir = getVendorTemplateDir (tdir);
+            if (tdir is null) {
+                tdir = getVendorTemplateDir ("/usr/share/appstream/templates");
+            }
+        }
+
+        return tdir;
+    }
+
+    /**
+     * Helper function to determine a vendor template directory.
+     */
+    private string getVendorTemplateDir (const string dir, bool allowRoot = false) @safe
+    {
+        string tdir;
+        if (projectName !is null) {
+            tdir = buildPath (dir, projectName.toLower ());
+            if (existsAndIsDir (tdir))
+                return tdir;
+        }
+        tdir = buildPath (dir, "default");
+        if (existsAndIsDir (tdir))
+            return tdir;
+        if (allowRoot) {
+            if (existsAndIsDir (dir))
+                return dir;
+        }
+
+        return null;
     }
 
     private void setFeature (GeneratorFeature feature, bool enabled)
@@ -310,12 +372,9 @@ class Config
      */
     string getTmpDir ()
     {
-        import std.file;
-        import std.path;
-
         if (tmpDir.empty) {
             synchronized (this) {
-                tmpDir = buildPath (tempDir (), format ("asgen-%s", randomString (8)));
+                tmpDir = buildPath (cacheRootDir, "tmp", format ("asgen-%s", randomString (8)));
             }
         }
 

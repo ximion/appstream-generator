@@ -109,7 +109,7 @@ public:
     {
         this.conf = Config.get ();
 
-        exportDir = buildPath (conf.workspaceDir, "export");
+        exportDir = conf.exportDir;
         htmlExportDir = buildPath (exportDir, "html");
         mediaPoolDir = dcache.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
@@ -117,23 +117,9 @@ public:
         // we need the data cache to get hint and metainfo data
         this.dcache = dcache;
 
-        // find a suitable template directory
-        // first check the workspace
-        auto tdir = buildPath (conf.workspaceDir, "templates");
-        tdir = getVendorTemplateDir (tdir, true);
-
-        if (tdir is null) {
-            auto exeDir = dirName (std.file.thisExePath ());
-            tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
-
-            tdir = getVendorTemplateDir (tdir);
-            if (tdir is null) {
-                tdir = getVendorTemplateDir ("/usr/share/appstream/templates");
-            }
-        }
-
-        templateDir = tdir;
-        defaultTemplateDir = buildNormalizedPath (tdir, "..", "default");
+        // get template directory
+        templateDir = conf.templateDir;
+        defaultTemplateDir = buildNormalizedPath (templateDir, "..", "default");
 
         mustache.path = templateDir;
         mustache.ext = "html";
@@ -145,25 +131,6 @@ public:
             if (std.file.isDir (path))
                 return true;
         return false;
-    }
-
-    private string getVendorTemplateDir (string dir, bool allowRoot = false)
-    {
-        string tdir;
-        if (conf.projectName !is null) {
-            tdir = buildPath (dir, conf.projectName.toLower ());
-            if (isDir (tdir))
-                return tdir;
-        }
-        tdir = buildPath (dir, "default");
-        if (isDir (tdir))
-            return tdir;
-        if (allowRoot) {
-            if (isDir (dir))
-                return dir;
-        }
-
-        return null;
     }
 
     private string[] splitBlockData (string str, string blockType)

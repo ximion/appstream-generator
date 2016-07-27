@@ -281,6 +281,17 @@ string getDataPath (string fname)
     return resPath;
 }
 
+/**
+ * Check if a path exists and is a directory.
+ */
+bool existsAndIsDir (string path) @safe
+{
+    if (std.file.exists (path))
+        if (std.file.isDir (path))
+            return true;
+    return false;
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");

@@ -121,7 +121,7 @@ public:
     void open (Config conf)
     {
         import std.path : buildPath;
-        this.open (buildPath (conf.workspaceDir, "cache", "contents"));
+        this.open (buildPath (conf.databaseDir, "contents"));
     }
 
     private MDB_val makeDbValue (string data)

@@ -163,7 +163,7 @@ public:
 
     void open (Config conf)
     {
-        this.open (buildPath (conf.workspaceDir, "cache", "main"), buildPath (conf.workspaceDir, "export", "media"));
+        this.open (buildPath (conf.databaseDir, "main"), conf.mediaExportDir);
     }
 
     private MDB_val makeDbValue (string data)

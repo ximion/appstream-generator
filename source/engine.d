@@ -84,7 +84,7 @@ public:
         }
 
         // where the final metadata gets stored
-        exportDir = buildPath (conf.workspaceDir, "export");
+        exportDir = conf.exportDir;
 
         // create cache in cache directory on workspace
         dcache = new DataCache ();
@@ -516,6 +516,9 @@ public:
     void runCleanup ()
     {
         bool[string] pkgSet;
+
+        logInfo ("Cleaning up temporary data.");
+        rmdirRecurse (buildPath (conf.cacheRootDir, "tmp"));
 
         logInfo ("Cleaning up superseded data.");
         // build a set of all valid packages
