@@ -30,7 +30,9 @@ import ag.logging;
 import ag.backend.intf;
 import ag.backend.debian.tagfile;
 import ag.backend.debian.debpkg;
-import ag.utils : escapeXml;
+import ag.backend.debian.utils;
+import ag.config;
+import ag.utils : escapeXml, isRemote;
 
 
 class DebianPackageIndex : PackageIndex
@@ -40,14 +42,18 @@ private:
     string rootDir;
     Package[][string] pkgCache;
     bool[string] indexChanged;
+    string tmpDir;
 
 public:
 
     this (string dir)
     {
         this.rootDir = dir;
-        if (!std.file.exists (dir))
+        if (!dir.isRemote && !std.file.exists (dir))
             throw new Exception ("Directory '%s' does not exist.".format (dir));
+
+        auto conf = Config.get ();
+        tmpDir = buildPath (conf.getTmpDir (), dir.baseName);
     }
 
     void release ()
@@ -58,8 +64,12 @@ public:
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
-        auto enDescFname = buildPath (rootDir, "dists", suite, section, "i18n", "Translation-en.bz2");
-        if (!std.file.exists (enDescFname)) {
+        immutable enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.%s");
+        string enDescFname;
+
+        try {
+            enDescFname = downloadIfNecessary (rootDir, tmpDir, enDescPath);
+        } catch (Exception ex) {
             logDebug ("No long descriptions for %s/%s", suite, section);
             return;
         }
@@ -119,11 +129,9 @@ public:
 
     private string getIndexFile (string suite, string section, string arch)
     {
-        immutable binDistsPath = buildPath (rootDir, "dists", suite, section, "binary-%s".format (arch));
-        auto indexFname = buildPath (binDistsPath, "Packages.gz");
-        if (!std.file.exists (indexFname))
-            indexFname = buildPath (binDistsPath, "Packages.xz");
-        return indexFname;
+        immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
+
+        return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
     }
 
     private DebPackage[] loadPackages (string suite, string section, string arch)

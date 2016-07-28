@@ -19,7 +19,9 @@
 
 module ag.utils;
 
-import std.stdio : writeln;
+import ag.logging;
+
+import std.stdio : File, write, writeln;
 import std.string;
 import std.ascii : letters, digits;
 import std.conv : to;
@@ -307,6 +309,92 @@ ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
     return res.data;
 }
 
+@safe
+bool isRemote (const string uri)
+{
+    import std.regex;
+
+    auto uriregex = ctRegex!(`^(https?|ftps?)://`);
+
+    auto match = matchFirst(uri, uriregex);
+
+    return (!match.empty);
+}
+
+private ulong onReceiveCb (File f, ubyte[] data)
+{
+    f.rawWrite (data);
+
+    return data.length;
+}
+
+/**
+ * Download `url` to `dest`.
+ *
+ * Params:
+ *      url = The URL to download.
+ *      dest = The location for the downloaded file.
+ *      retryCount = Number of times to retry on timeout.
+ */
+void downloadFile (const string url, const string dest, const uint retryCount = 5)
+in
+{
+    assert (isRemote (url));
+}
+out
+{
+    assert (std.file.exists (dest));
+}
+body
+{
+    import core.time;
+
+    import std.file;
+    import std.net.curl;
+    import std.path;
+
+
+    if (dest.exists) {
+        logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
+        return;
+    }
+
+    mkdirRecurse (dest.dirName);
+
+    /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
+    logDebug ("Downloading %s", url);
+    try {
+        auto f = File (dest, "wb");
+        scope(exit) f.close();
+        scope(failure) remove(dest);
+
+        if (url.startsWith ("http")) {
+            auto downloader = HTTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (f, data);
+            downloader.perform();
+        } else {
+            auto downloader = FTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (f, data);
+            downloader.perform();
+        }
+        logDebug ("Downloaded %s", url);
+    } catch (CurlTimeoutException e) {
+        if (retryCount > 0) {
+            logDebug ("Failed to download %s, will retry %d more %s",
+                      url,
+                      retryCount,
+                      retryCount > 1 ? "times" : "time");
+            downloadFile (url, dest, retryCount - 1);
+        } else {
+            throw e;
+        }
+    }
+}
+
 unittest
 {
     writeln ("TEST: ", "GCID");
@@ -327,4 +415,7 @@ unittest
     assert (ImageSize (48) < ImageSize (64));
 
     assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
+
+    assert (isRemote ("http://test.com"));
+    assert (!isRemote ("/srv/"));
 }
