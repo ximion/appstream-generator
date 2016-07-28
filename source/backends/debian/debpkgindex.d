@@ -69,17 +69,13 @@ public:
 
         try {
             enDescFname = downloadIfNecessary (rootDir, tmpDir, enDescPath);
-        } catch (Exception ex) {
-            logDebug ("No long descriptions for %s/%s", suite, section);
+        } catch (Exception e) {
+            logDebug ("No long descriptions for %s/%s: %s", suite, section, e.msg);
             return;
         }
 
         auto tagf = new TagFile ();
-        try {
-            tagf.open (enDescFname);
-        } catch (Exception e) {
-            throw e;
-        }
+        tagf.open (enDescFname);
 
         logDebug ("Opened: %s", enDescFname);
         do {
@@ -105,7 +101,7 @@ public:
             // TODO: We actually need a Markdown-ish parser here if we want to support
             // listings in package descriptions properly.
             auto description = appender!string;
-            description.put ("<p>");
+            description ~= "<p>";
             bool first = true;
             foreach (l; split) {
                 if (l.strip () == ".") {
@@ -143,19 +139,14 @@ public:
         }
 
         auto tagf = new TagFile ();
-        try {
-            tagf.open (indexFname);
-        } catch (Exception e) {
-            throw e;
-        }
-
+        tagf.open (indexFname);
         logDebug ("Opened: %s", indexFname);
 
         DebPackage[string] pkgs;
         do {
-            auto name = tagf.readField ("Package");
-            auto ver  = tagf.readField ("Version");
-            auto fname  = tagf.readField ("Filename");
+            auto name  = tagf.readField ("Package");
+            auto ver   = tagf.readField ("Version");
+            auto fname = tagf.readField ("Filename");
             if (!name)
                 continue;
 

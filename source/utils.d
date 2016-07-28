@@ -309,23 +309,18 @@ ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
     return res.data;
 }
 
+/**
+ * Check if string contains a remote URI.
+ */
 @safe
 bool isRemote (const string uri)
 {
     import std.regex;
 
     auto uriregex = ctRegex!(`^(https?|ftps?)://`);
-
-    auto match = matchFirst(uri, uriregex);
+    auto match = matchFirst (uri, uriregex);
 
     return (!match.empty);
-}
-
-private ulong onReceiveCb (File f, ubyte[] data)
-{
-    f.rawWrite (data);
-
-    return data.length;
 }
 
 /**
@@ -357,6 +352,12 @@ body
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
         return;
+    }
+
+    ulong onReceiveCb (File f, ubyte[] data)
+    {
+        f.rawWrite (data);
+        return data.length;
     }
 
     mkdirRecurse (dest.dirName);
@@ -417,5 +418,7 @@ unittest
     assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
 
     assert (isRemote ("http://test.com"));
-    assert (!isRemote ("/srv/"));
+    assert (isRemote ("https://example.org"));
+    assert (!isRemote ("/srv/mirror"));
+    assert (!isRemote ("file:///srv/test"));
 }
