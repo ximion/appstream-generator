@@ -52,7 +52,7 @@ private string getLocaleFromKey (string key)
     locale = chomp (locale, ".utf-8");
     locale = chomp (locale, ".UTF-8");
 
-    auto delim = locale.lastIndexOf (".");
+    auto delim = locale.lastIndexOf ('.');
     if (delim > 0) {
         // looks like we need to drop another encoding suffix
         // (but we need to make sure it actually is one)

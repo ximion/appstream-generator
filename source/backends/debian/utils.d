@@ -21,6 +21,7 @@
 module ag.backend.debian.utils;
 
 import std.string;
+static import std.file;
 
 import ag.logging;
 import ag.utils : downloadFile, isRemote;

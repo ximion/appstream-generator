@@ -24,6 +24,7 @@ import std.path;
 import std.string;
 import std.algorithm : remove;
 import std.array : appender;
+import std.conv : to;
 static import std.file;
 
 import ag.logging;

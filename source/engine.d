@@ -20,10 +20,11 @@
 module ag.engine;
 
 import std.stdio;
-import std.string;
 import std.parallelism;
+import std.string : format, count, toLower, startsWith;
+import std.array : appender, empty;
 import std.path : buildPath, buildNormalizedPath;
-import std.file : mkdirRecurse;
+import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
 static import core.memory;
 static import std.file;
@@ -211,13 +212,19 @@ public:
     private string getMetadataHead (Suite suite, string section)
     {
         import std.datetime : Clock;
-        import core.time : FracSec;
+        version (GNU)
+            import core.time : FracSec;
+        else
+            import core.time : Duration;
 
         string head;
         immutable origin = "%s-%s-%s".format (conf.projectName.toLower, suite.name.toLower, section.toLower);
 
         auto time = Clock.currTime ();
-        time.fracSec = FracSec.zero; // we don't want fractional seconds. FIXME: this is "fracSecs" in newer Phobos (must be adjusted on upgrade)
+        version (GNU)
+            time.fracSec = FracSec.zero; // we don't want fractional seconds.
+        else
+            time.fracSecs = Duration.zero; // for newer Phobos
         immutable timeStr = time.toISOString ();
 
         string mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
