@@ -25,7 +25,6 @@
     "buildRequirements": ["disallowDeprecations"],
 
     "dflags-gdc": ["-Wl,--push-state,-no-as-needed", "-lcurl", "-Wl,--pop-state"],
-    "dflags-ldc": ["-relocation-model=pic"],
     "systemDependencies": "LMDB,
                            AppStream,
                            GLib2,
