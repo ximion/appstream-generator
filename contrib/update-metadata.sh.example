@@ -39,9 +39,6 @@ for suite in $SUITES; do
     appstream-generator process $suite
 done
 
-# Cleanup superseded data
-appstream-generator cleanup
-
 # Sync updated data to public directory
 rsync -ak --delete-after --link-dest="$PUBLIC_DIR/" "$WORKSPACE_DIR/export/" "$PUBLIC_DIR/"
 

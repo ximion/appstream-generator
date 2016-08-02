@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# Script cleaning up the AppStream metadata pool and cache.
+# This script should be run by a cronjob (e.g. every week).
+#
+
+set -e
+set -o pipefail
+set -u
+
+WORKSPACE_DIR="/srv/appstream/workspace"
+
+# only run one instance of the script
+LOCKFILE="$WORKSPACE_DIR/.lock"
+cleanup() {
+    rm -f "$LOCKFILE"
+}
+
+if ! lockfile -r8 $LOCKFILE; then
+    echo "aborting AppStream metadata cleanup because $LOCKFILE has already been locked"
+    exit 0
+fi
+trap cleanup 0
+
+# Start logging
+logdir="$WORKSPACE_DIR/logs/`date "+%Y/%m"`"
+mkdir -p $logdir
+NOW=`date "+%d_%H%M"`
+LOGFILE="$logdir/${NOW}_cleanup.log"
+exec >> "$LOGFILE" 2>&1
+
+cd $WORKSPACE_DIR
+
+# Cleanup superseded data
+appstream-generator cleanup
+
+# finish logging
+exec > /dev/null 2>&1
