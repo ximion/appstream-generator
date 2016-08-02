@@ -77,7 +77,9 @@
 
     <script type="text/javascript">
       function dataUseJSTime(data) {
-          return data.map(function(v) [v[0] * 1000, v[1]]);
+          return data.map(function(v) {
+              return [v[0] * 1000, v[1]];
+          });
       }
 
       $.getJSON("{{root_url}}/statistics.json", function(allData) {
