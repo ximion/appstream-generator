@@ -180,7 +180,7 @@ public:
         return pkgCache[id];
     }
 
-    bool hasChanges (DataCache dcache, string suite, string section, string arch)
+    bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         import std.json;
 
@@ -198,10 +198,10 @@ public:
         std.file.getTimes (indexFname, atime, mtime);
         auto currentTime = mtime.toUnixTime ();
 
-        auto repoInfo = dcache.getRepoInfo (suite, section, arch);
+        auto repoInfo = dstore.getRepoInfo (suite, section, arch);
         scope (exit) {
             repoInfo.object["mtime"] = JSONValue (currentTime);
-            dcache.setRepoInfo (suite, section, arch, repoInfo);
+            dstore.setRepoInfo (suite, section, arch, repoInfo);
         }
 
         if ("mtime" !in repoInfo.object) {

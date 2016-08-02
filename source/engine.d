@@ -33,8 +33,8 @@ import appstream.Component;
 import ag.config;
 import ag.logging;
 import ag.extractor;
-import ag.datacache;
-import ag.contentscache;
+import ag.datastore;
+import ag.contentsstore;
 import ag.result;
 import ag.hint;
 import ag.reportgenerator;
@@ -56,7 +56,7 @@ private:
     Config conf;
     PackageIndex pkgIndex;
 
-    DataCache dcache;
+    DataStore dstore;
     string exportDir;
 
     bool m_forced;
@@ -88,8 +88,8 @@ public:
         exportDir = conf.exportDir;
 
         // create cache in cache directory on workspace
-        dcache = new DataCache ();
-        dcache.open (conf);
+        dstore = new DataStore ();
+        dstore.open (conf);
     }
 
     @property
@@ -110,16 +110,16 @@ public:
      */
     private void processPackages (Package[] pkgs, IconHandler iconh)
     {
-        auto mde = new DataExtractor (dcache, iconh);
+        auto mde = new DataExtractor (dstore, iconh);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
-            if (dcache.packageExists (pkid))
+            if (dstore.packageExists (pkid))
                 continue;
 
             auto res = mde.processPackage (pkg);
             synchronized (this) {
                 // write resulting data into the database
-                dcache.addGeneratorResult (this.conf.metadataType, res);
+                dstore.addGeneratorResult (this.conf.metadataType, res);
 
                 logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
             }
@@ -153,7 +153,7 @@ public:
         }
 
         // check if the index has changed data, skip the update if there's nothing new
-        if ((!pkgIndex.hasChanges (dcache, suite.name, section, arch)) && (!this.forced)) {
+        if ((!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced)) {
             logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
             return false;
         }
@@ -161,8 +161,8 @@ public:
         logInfo ("Scanning new packages for %s/%s [%s]", suite.name, section, arch);
 
         // open package contents cache
-        auto ccache = new ContentsCache ();
-        ccache.open (conf);
+        auto cstore = new ContentsStore ();
+        cstore.open (conf);
 
         // get contents information for packages and add them to the database
         auto interestingFound = false;
@@ -173,30 +173,30 @@ public:
             immutable pkid = pkg.id;
 
             string[] contents;
-            if (ccache.packageExists (pkid)) {
-                if (dcache.packageExists (pkid)) {
+            if (cstore.packageExists (pkid)) {
+                if (dstore.packageExists (pkid)) {
                     // TODO: Unfortunately, packages can move between suites without changing their ID.
                     // This means as soon as we have an interesting package, even if we already processed it,
                     // we need to regenerate the output metadata.
                     // For that to happen, we set interestingFound to true here. Later, a more elegent solution
                     // would be desirable here, ideally one which doesn't force us to track which package is
                     // in which suite as well.
-                    if (!dcache.isIgnored (pkid))
+                    if (!dstore.isIgnored (pkid))
                         interestingFound = true;
                     continue;
                 }
                 // we will complement the main database with ignore data, in case it
                 // went missing.
-                contents = ccache.getContents (pkid);
+                contents = cstore.getContents (pkid);
             } else {
                 // add contents to the index
                 contents = pkg.contents;
-                ccache.addContents (pkid, contents);
+                cstore.addContents (pkid, contents);
             }
 
             // check if we can already mark this package as ignored, and print some log messages
             if (!packageInteresting (contents)) {
-                dcache.setPackageIgnore (pkid);
+                dstore.setPackageIgnore (pkid);
                 logInfo ("Scanned %s, no interesting files found.", pkid);
                 // we won't use this anymore
                 pkg.close ();
@@ -302,17 +302,17 @@ public:
         // select the media export target directory
         string mediaExportDir;
         if (useImmutableSuites)
-            mediaExportDir = buildNormalizedPath (dcache.mediaExportPoolDir, "..", suite.name);
+            mediaExportDir = buildNormalizedPath (dstore.mediaExportPoolDir, "..", suite.name);
         else
-            mediaExportDir = dcache.mediaExportPoolDir;
+            mediaExportDir = dstore.mediaExportPoolDir;
 
         // collect metadata, icons and hints for the given packages
         bool firstHintEntry = true;
         foreach (ref pkg; parallel (pkgs, 100)) {
             immutable pkid = pkg.id;
-            auto gcids = dcache.getGCIDsForPackage (pkid);
+            auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids !is null) {
-                auto mres = dcache.getMetadataForPackage (conf.metadataType, pkid);
+                auto mres = dstore.getMetadataForPackage (conf.metadataType, pkid);
                 if (!mres.empty) {
                     synchronized (this) {
                         foreach (ref md; mres)
@@ -328,7 +328,7 @@ public:
                 foreach (ref gcid; gcids) {
                     // Symlink data from the pool to the suite-specific directories
                     if (useImmutableSuites) {
-                        immutable gcidMediaPoolPath = buildPath (dcache.mediaExportPoolDir, gcid);
+                        immutable gcidMediaPoolPath = buildPath (dstore.mediaExportPoolDir, gcid);
                         immutable gcidMediaSuitePath = buildPath (mediaExportDir, gcid);
                         if ((!std.file.exists (gcidMediaSuitePath)) && (std.file.exists (gcidMediaPoolPath)))
                             copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
@@ -348,7 +348,7 @@ public:
                 }
             }
 
-            immutable hres = dcache.getHints (pkid);
+            immutable hres = dstore.getHints (pkid);
             if (!hres.empty) {
                 synchronized (this) {
                     if (firstHintEntry) {
@@ -459,7 +459,7 @@ public:
         }
 
         GeneratorHint[string] hints;
-        auto reportgen = new ReportGenerator (dcache);
+        auto reportgen = new ReportGenerator (dstore);
 
         auto dataChanged = false;
         foreach (ref section; suite.sections) {
@@ -478,7 +478,7 @@ public:
 
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = new IconHandler (dcache.mediaExportPoolDir,
+                auto iconh = new IconHandler (dstore.mediaExportPoolDir,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
                 processPackages (pkgs, iconh);
@@ -544,15 +544,15 @@ public:
         }
 
         // open package contents cache
-        auto ccache = new ContentsCache ();
-        ccache.open (conf);
+        auto cstore = new ContentsStore ();
+        cstore.open (conf);
 
         // remove packages from the caches which are no longer in the archive
-        ccache.removePackagesNotInSet (pkgSet);
-        dcache.removePackagesNotInSet (pkgSet);
+        cstore.removePackagesNotInSet (pkgSet);
+        dstore.removePackagesNotInSet (pkgSet);
 
         // remove orphaned data and media
-        dcache.cleanupCruft ();
+        dstore.cleanupCruft ();
     }
 
     /**
@@ -575,45 +575,45 @@ public:
                 foreach (ref pkg; pkgs) {
                     auto pkid = pkg.id;
 
-                    if (!dcache.packageExists (pkid))
+                    if (!dstore.packageExists (pkid))
                         continue;
-                    if (dcache.isIgnored (pkid))
+                    if (dstore.isIgnored (pkid))
                         continue;
 
-                    dcache.removePackage (pkid);
+                    dstore.removePackage (pkid);
                 }
             }
         }
 
-        dcache.cleanupCruft ();
+        dstore.cleanupCruft ();
     }
 
     void forgetPackage (string identifier)
     {
-        auto ccache = new ContentsCache ();
-        ccache.open (conf);
+        auto cstore = new ContentsStore ();
+        cstore.open (conf);
 
         if (identifier.count ("/") == 3) {
             // we have a package-id, so we can do a targeted remove
             immutable pkid = identifier;
             logDebug ("Considering %s to be a package-id.", pkid);
 
-            if (ccache.packageExists (pkid))
-                ccache.removePackage (pkid);
-            if (dcache.packageExists (pkid))
-                dcache.removePackage (pkid);
+            if (cstore.packageExists (pkid))
+                cstore.removePackage (pkid);
+            if (dstore.packageExists (pkid))
+                dstore.removePackage (pkid);
             logInfo ("Removed package with ID: %s", pkid);
         } else {
-            auto pkids = dcache.getPkidsMatching (identifier);
+            auto pkids = dstore.getPkidsMatching (identifier);
             foreach (ref pkid; pkids) {
-                dcache.removePackage (pkid);
-                if (ccache.packageExists (pkid))
-                    ccache.removePackage (pkid);
+                dstore.removePackage (pkid);
+                if (cstore.packageExists (pkid))
+                    cstore.removePackage (pkid);
                 logInfo ("Removed package with ID: %s", pkid);
             }
         }
 
         // remove orphaned data and media
-        dcache.cleanupCruft ();
+        dstore.cleanupCruft ();
     }
 }

@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.datacache;
+module ag.datastore;
 
 import std.stdio;
 import std.string;
@@ -44,7 +44,7 @@ import ag.result;
  * issues found as well as statistics about the metadata evolution
  * over time.
  **/
-class DataCache
+class DataStore
 {
 
 private:

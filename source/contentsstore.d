@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.contentscache;
+module ag.contentsstore;
 
 import std.stdio;
 import std.string;
@@ -36,7 +36,7 @@ import ag.logging;
  * This is useful for finding icons and for re-scanning
  * packages which become interesting later.
  **/
-class ContentsCache
+class ContentsStore
 {
 
 private:

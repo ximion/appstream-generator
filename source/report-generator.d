@@ -36,7 +36,7 @@ import ag.config;
 import ag.logging;
 import ag.hint;
 import ag.backend.intf;
-import ag.datacache;
+import ag.datastore;
 
 
 private alias MustacheEngine!(string) Mustache;
@@ -47,7 +47,7 @@ class ReportGenerator
 private:
     Config conf;
     PackageIndex pkgIndex;
-    DataCache dcache;
+    DataStore dstore;
 
     string exportDir;
     string htmlExportDir;
@@ -105,17 +105,17 @@ private:
 
 public:
 
-    this (DataCache dcache)
+    this (DataStore db)
     {
         this.conf = Config.get ();
 
         exportDir = conf.exportDir;
         htmlExportDir = buildPath (exportDir, "html");
-        mediaPoolDir = dcache.mediaExportPoolDir;
+        mediaPoolDir = dstore.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
         // we need the data cache to get hint and metainfo data
-        this.dcache = dcache;
+        dstore = db;
 
         // get template directory
         templateDir = conf.templateDir;
@@ -448,8 +448,8 @@ public:
         foreach (ref pkg; pkgs) {
             immutable pkid = pkg.id;
 
-            auto gcids = dcache.getGCIDsForPackage (pkid);
-            auto hintsData = dcache.getHints (pkid);
+            auto gcids = dstore.getGCIDsForPackage (pkid);
+            auto hintsData = dstore.getHints (pkid);
             if ((hintsData is null) && (gcids is null))
                 continue;
 
@@ -491,7 +491,7 @@ public:
 
                     MetadataEntry me;
                     me.identifier = cid;
-                    me.data = dcache.getMetadata (dtype, gcid);
+                    me.data = dstore.getMetadata (dtype, gcid);
 
                     mdata.clearComponents ();
                     if (dtype == DataType.YAML)
@@ -610,7 +610,7 @@ public:
                                 "totalWarnings": JSONValue (dsum.totalWarnings),
                                 "totalErrors": JSONValue (dsum.totalErrors),
                                 "totalMetadata": JSONValue (dsum.totalMetadata)]);
-        dcache.addStatistics (stat);
+        dstore.addStatistics (stat);
     }
 
     void exportStatistics ()
@@ -620,7 +620,7 @@ public:
         logInfo ("Exporting statistical data.");
 
         // return all statistics we have from the database
-        auto statsCollection = dcache.getStatistics ();
+        auto statsCollection = dstore.getStatistics ();
 
         auto emptyJsonObject ()
         {

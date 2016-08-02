@@ -38,7 +38,7 @@ import ag.logging;
 import ag.result;
 import ag.image;
 import ag.backend.intf;
-import ag.contentscache;
+import ag.contentsstore;
 import ag.std.concurrency.generator;
 static import ag.config;
 
@@ -216,7 +216,7 @@ public:
         }
 
         // open package contents cache
-        auto ccache = new ContentsCache ();
+        auto ccache = new ContentsStore ();
         ccache.open (ag.config.Config.get ());
 
         // load data from the contents index.

@@ -29,7 +29,7 @@ import ag.config;
 import ag.hint;
 import ag.result;
 import ag.backend.intf;
-import ag.datacache;
+import ag.datastore;
 import ag.handlers;
 
 
@@ -40,16 +40,16 @@ private:
     Component[] cpts;
     GeneratorHint[] hints;
 
-    DataCache dcache;
+    DataStore dstore;
     IconHandler iconh;
     Config conf;
     DataType dtype;
 
 public:
 
-    this (DataCache cache, IconHandler iconHandler)
+    this (DataStore db, IconHandler iconHandler)
     {
-        dcache = cache;
+        dstore = db;
         iconh = iconHandler;
         conf = Config.get ();
         dtype = conf.metadataType;
@@ -115,7 +115,7 @@ public:
                 // do a validation of the file. Validation is slow, so we allow
                 // the user to disable this feature.
                 if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
-                    if (!dcache.metadataExists (dtype, gres.gcidForComponent (cpt)))
+                    if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
                         validateMetaInfoFile (cpt, gres, data);
                 }
                 continue;
@@ -135,7 +135,7 @@ public:
             // do a validation of the file. Validation is slow, so we allow
             // the user to disable this feature.
             if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
-                if (!dcache.metadataExists (dtype, gres.gcidForComponent (cpt)))
+                if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
                     validateMetaInfoFile (cpt, gres, data);
             }
         }
@@ -153,7 +153,7 @@ public:
             auto gcid = gres.gcidForComponent (cpt);
 
             // don't run expensive operations if the metadata already exists
-            auto existingMData = dcache.getMetadata (dtype, gcid);
+            auto existingMData = dstore.getMetadata (dtype, gcid);
             if (existingMData !is null) {
                 // To account for packages which change their package name, we
                 // also need to check if the package this component is associated
@@ -197,7 +197,7 @@ public:
             // download and resize screenshots.
             // we don't even need to call this if no downloads are allowed.
             if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
-                processScreenshots (gres, cpt, dcache.mediaExportPoolDir);
+                processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
         }
 
         // this removes invalid components and cleans up the result

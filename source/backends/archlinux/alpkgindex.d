@@ -146,7 +146,7 @@ public:
         return pkgCache[id];
     }
 
-    bool hasChanges (DataCache dcache, string suite, string section, string arch)
+    bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         return true;
     }

@@ -21,7 +21,7 @@ module ag.backend.intf;
 
 import std.string;
 import std.container;
-public import ag.datacache;
+public import ag.datastore;
 
 
 /**
@@ -128,7 +128,7 @@ interface PackageIndex
      * For the lifetime of the PackagesIndex, this method must return the same result,
      * which means an internal cache is useful.
      */
-    bool hasChanges (DataCache dcache,
+    bool hasChanges (DataStore dstore,
                      string suite,
                      string section,
                      string arch);
