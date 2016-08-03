@@ -529,7 +529,9 @@ public:
         bool[string] pkgSet;
 
         logInfo ("Cleaning up temporary data.");
-        rmdirRecurse (buildPath (conf.cacheRootDir, "tmp"));
+        immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");
+        if (std.file.exists (tmpDir))
+            rmdirRecurse (tmpDir);
 
         logInfo ("Cleaning up superseded data.");
         // build a set of all valid packages
@@ -555,7 +557,25 @@ public:
         dstore.removePackagesNotInSet (pkgSet);
 
         // remove orphaned data and media
+        logInfo ("Cleaning up obsolete media.");
         dstore.cleanupCruft ();
+
+        // cleanup duplicate statistical entries
+        auto allStats = dstore.getStatistics ();
+        string lastJData;
+        size_t lastTime;
+        foreach (timestamp; allStats.byKey ()) {
+            if (lastTime > timestamp)
+                continue;
+            auto jdata = allStats[timestamp];
+            if (lastJData == jdata) {
+                logDebug ("Removing superfluous statistical entry: %s", timestamp);
+                dstore.removeStatistics (timestamp);
+            }
+
+            lastTime = timestamp;
+            lastJData = jdata;
+        }
     }
 
     /**
