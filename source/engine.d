@@ -525,23 +525,37 @@ public:
 
     private void cleanupStatistics ()
     {
+        import std.json;
         import std.algorithm : sort;
 
         auto allStats = dstore.getStatistics ();
         sort!("a.time < b.time") (allStats);
-        string lastJData = "";
-        size_t lastTime = -1;
+        string[string] lastJData;
+        size_t[string] lastTime;
         foreach (ref entry; allStats) {
-            if (lastTime > entry.time)
+            if (entry.data.type == JSON_TYPE.ARRAY) {
+                // we don't clean up combined statistics entries, and therefoire need to reset
+                // the last-data hashmaps as soon as we encounter one to not loose data.
+                lastJData.clear;
+                lastTime.clear;
                 continue;
-            auto jdata = entry.data.toString;
-            if (lastJData == jdata) {
-                logInfo ("Removing superfluous statistical entry: %s", entry.time);
-                dstore.removeStatistics (entry.time);
             }
 
-            lastTime = entry.time;
-            lastJData = jdata;
+            immutable ssid = format ("%s-%s", entry.data["suite"].str, entry.data["section"].str);
+            if (ssid !in lastJData) {
+                lastJData[ssid] = entry.data.toString;
+                lastTime[ssid]  = entry.time;
+                continue;
+            }
+
+            auto jdata = entry.data.toString;
+            if (lastJData[ssid] == jdata) {
+                logInfo ("Removing superfluous statistics entry: %s", lastTime[ssid]);
+                dstore.removeStatistics (lastTime[ssid]);
+            }
+
+            lastTime[ssid] = entry.time;
+            lastJData[ssid] = jdata;
         }
     }
 
@@ -583,6 +597,7 @@ public:
         dstore.cleanupCruft ();
 
         // cleanup duplicate statistical entries
+        logInfo ("Cleaning up excess statistical data.");
         cleanupStatistics ();
     }
 

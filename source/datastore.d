@@ -619,29 +619,6 @@ public:
         return stats.data;
     }
 
-    private Tuple!(size_t, "time", JSONValue, "stats") getLastStatistics ()
-    {
-        MDB_val dkey, dval;
-        MDB_cursorp cur;
-
-        auto txn = newTransaction (MDB_RDONLY);
-        scope (exit) quitTransaction (txn);
-
-        auto res = txn.mdb_cursor_open (dbStats, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open (stats)");
-
-        string statsData;
-        size_t time;
-        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
-            statsData = to!string (fromStringz (cast(char*) dval.mv_data));
-            time = *(cast(size_t*) dkey.mv_data);
-        }
-        auto stats = parseJSON (statsData);
-
-        return typeof(return) (time, stats);
-    }
-
     void removeStatistics (size_t time)
     {
         MDB_val dbkey;
@@ -666,12 +643,6 @@ public:
         size_t unixTime = time (null);
 
         auto statsJsonStr = stats.toString ();
-
-        // simple straightforward attempt at cleaning up duplicate and useless
-        // statistics entries.
-        auto lastStatsInfo = getLastStatistics ();
-        if (lastStatsInfo.stats.toString () == statsJsonStr)
-            removeStatistics (lastStatsInfo.time);
 
         dbkey.mv_size = size_t.sizeof;
         dbkey.mv_data = &unixTime;
