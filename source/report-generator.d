@@ -680,7 +680,19 @@ public:
 
         bool compareJData (JSONValue x, JSONValue y) @trusted
         {
-            return x.array[0].integer < y.array[0].integer;
+            size_t xv;
+            size_t yv;
+            if (x.array[0].type == JSON_TYPE.UINTEGER)
+                xv = x.array[0].uinteger;
+            else
+                xv = x.array[0].integer;
+
+            if (y.array[0].type == JSON_TYPE.UINTEGER)
+                yv = y.array[0].uinteger;
+            else
+                yv = y.array[0].integer;
+
+            return xv < yv;
         }
 
         // ensure our data is sorted ascending by X
