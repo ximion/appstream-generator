@@ -16,9 +16,9 @@ clean:
 	rm -rf .dub/
 	rm -f dub.selections.json
 	rm -rf contrib/setup/js_tmp/
-	rm -rf data/templates/default/static/js/d3/
+	rm -rf data/templates/default/static/js/flot/
 	rm -rf data/templates/default/static/js/highlight/
-	rm -rf data/templates/default/static/js/rickshaw/
+	rm -rf data/templates/default/static/js/jquery/
 
 install:
 	./contrib/setup/install.sh
