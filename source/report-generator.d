@@ -639,9 +639,9 @@ public:
         // create JSON for use with e.g. Rickshaw graph
         auto smap = emptyJsonObject ();
 
-        foreach (timestamp; statsCollection.byKey ()) {
-            auto jdata = statsCollection[timestamp];
-            auto js = parseJSON (jdata);
+        foreach (ref entry; statsCollection) {
+            auto js = entry.data;
+            immutable timestamp = entry.time;
             JSONValue jstats;
             if (js.type == JSON_TYPE.ARRAY)
                 jstats = js;

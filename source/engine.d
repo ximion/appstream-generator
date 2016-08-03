@@ -524,11 +524,33 @@ public:
             reportgen.exportStatistics ();
     }
 
+    private void cleanupStatistics ()
+    {
+        import std.algorithm : sort;
+
+        auto allStats = dstore.getStatistics ();
+        sort!("a.time < b.time") (allStats);
+        string lastJData = "";
+        size_t lastTime = -1;
+        foreach (ref entry; allStats) {
+            if (lastTime > entry.time)
+                continue;
+            auto jdata = entry.data.toString;
+            if (lastJData == jdata) {
+                logInfo ("Removing superfluous statistical entry: %s", entry.time);
+                dstore.removeStatistics (entry.time);
+            }
+
+            lastTime = entry.time;
+            lastJData = jdata;
+        }
+    }
+
     void runCleanup ()
     {
         bool[string] pkgSet;
 
-        logInfo ("Cleaning up temporary data.");
+        logInfo ("Cleaning up left over temporary data.");
         immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");
         if (std.file.exists (tmpDir))
             rmdirRecurse (tmpDir);
@@ -561,21 +583,7 @@ public:
         dstore.cleanupCruft ();
 
         // cleanup duplicate statistical entries
-        auto allStats = dstore.getStatistics ();
-        string lastJData;
-        size_t lastTime;
-        foreach (timestamp; allStats.byKey ()) {
-            if (lastTime > timestamp)
-                continue;
-            auto jdata = allStats[timestamp];
-            if (lastJData == jdata) {
-                logDebug ("Removing superfluous statistical entry: %s", timestamp);
-                dstore.removeStatistics (timestamp);
-            }
-
-            lastTime = timestamp;
-            lastJData = jdata;
-        }
+        cleanupStatistics ();
     }
 
     /**

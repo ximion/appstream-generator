@@ -64,6 +64,12 @@ private:
 
 public:
 
+    struct StatisticsEntry
+    {
+        size_t time;
+        JSONValue data;
+    }
+
     this ()
     {
         opened = false;
@@ -590,11 +596,10 @@ public:
         }
     }
 
-    string[size_t] getStatistics ()
+    StatisticsEntry[] getStatistics ()
     {
         MDB_val dkey, dval;
         MDB_cursorp cur;
-        string[size_t] stats;
 
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
@@ -603,12 +608,15 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open (stats)");
 
+        auto stats = appender!(StatisticsEntry[]);
         while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
             auto jsonData = to!string (fromStringz (cast(char*) dval.mv_data));
-            stats[*(cast(size_t*) dkey.mv_data)] = jsonData;
+            auto timestamp = *(cast(size_t*) dkey.mv_data);
+            auto sentry = StatisticsEntry (timestamp, parseJSON (jsonData));
+            stats ~= sentry;
         }
 
-        return stats;
+        return stats.data;
     }
 
     private Tuple!(size_t, "time", JSONValue, "stats") getLastStatistics ()
