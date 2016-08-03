@@ -26,6 +26,7 @@ import std.regex;
 import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
+import ag.logging;
 import ag.std.concurrency.generator;
 
 import c.libarchive;
@@ -494,6 +495,8 @@ public:
     }
 
     void addFile (string fname, string dest = null)
+    in { assert (std.file.exists (fname)); }
+    body
     {
         import std.conv : octal;
         import std.path : baseName;
@@ -507,7 +510,7 @@ public:
         if (dest is null)
             dest = baseName (fname);
 
-        lstat (toStringz (fname), &st);
+        lstat (fname.toStringz, &st);
         entry = archive_entry_new ();
         scope (exit) archive_entry_free (entry);
         archive_entry_set_pathname (entry, toStringz (dest));

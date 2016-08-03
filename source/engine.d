@@ -22,7 +22,7 @@ module ag.engine;
 import std.stdio;
 import std.parallelism;
 import std.string : format, count, toLower, startsWith;
-import std.array : appender, empty;
+import std.array : Appender, appender, empty;
 import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
@@ -291,10 +291,10 @@ public:
 
         // prepare icon-tarball array
         immutable iconTarSizes = ["64", "128"];
-        string[][string] iconTarFiles;
+        Appender!(string[])[string] iconTarFiles;
         if (withIconTar) {
             foreach (size; iconTarSizes) {
-                iconTarFiles[size] = [];
+                iconTarFiles[size] = appender!(string[]);
             }
         }
 
@@ -308,6 +308,7 @@ public:
 
         // collect metadata, icons and hints for the given packages
         bool firstHintEntry = true;
+        logDebug ("Building final metadata and hints files.");
         foreach (ref pkg; parallel (pkgs, 100)) {
             immutable pkid = pkg.id;
             auto gcids = dstore.getGCIDsForPackage (pkid);
@@ -340,7 +341,7 @@ public:
                             immutable iconDir = buildPath (mediaExportDir, gcid, "icons", "%sx%s".format (size, size));
                             if (!std.file.exists (iconDir))
                                 continue;
-                            foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
+                            foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
                                 iconTarFiles[size] ~= path;
                             }
                         }
@@ -364,11 +365,13 @@ public:
 
         // create the icon tarballs
         if (withIconTar) {
+            logDebug ("Creating icon tarball.");
             foreach (size; iconTarSizes) {
                 auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
                 iconTar.open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
-                sort!("a < b", SwapStrategy.stable)(iconTarFiles[size]);
-                foreach (fname; iconTarFiles[size]) {
+                auto iconFiles = iconTarFiles[size].data;
+                sort!("a < b", SwapStrategy.stable)(iconFiles);
+                foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }
                 iconTar.close ();
