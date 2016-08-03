@@ -109,13 +109,13 @@ public:
     {
         this.conf = Config.get ();
 
+        // we need the data store to get hint and metainfo data
+        dstore = db;
+
         exportDir = conf.exportDir;
         htmlExportDir = buildPath (exportDir, "html");
         mediaPoolDir = dstore.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
-
-        // we need the data cache to get hint and metainfo data
-        dstore = db;
 
         // get template directory
         templateDir = conf.templateDir;

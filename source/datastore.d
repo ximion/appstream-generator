@@ -25,6 +25,7 @@ import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.path : buildPath, buildNormalizedPath, pathSplitter;
 import std.array : appender;
+import std.typecons : Tuple;
 import std.json;
 static import std.math;
 
@@ -589,6 +590,66 @@ public:
         }
     }
 
+    string[size_t] getStatistics ()
+    {
+        MDB_val dkey, dval;
+        MDB_cursorp cur;
+        string[size_t] stats;
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbStats, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (stats)");
+
+        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
+            auto jsonData = to!string (fromStringz (cast(char*) dval.mv_data));
+            stats[*(cast(size_t*) dkey.mv_data)] = jsonData;
+        }
+
+        return stats;
+    }
+
+    private Tuple!(size_t, "time", JSONValue, "stats") getLastStatistics ()
+    {
+        MDB_val dkey, dval;
+        MDB_cursorp cur;
+
+        auto txn = newTransaction (MDB_RDONLY);
+        scope (exit) quitTransaction (txn);
+
+        auto res = txn.mdb_cursor_open (dbStats, &cur);
+        scope (exit) cur.mdb_cursor_close ();
+        checkError (res, "mdb_cursor_open (stats)");
+
+        string statsData;
+        size_t time;
+        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
+            statsData = to!string (fromStringz (cast(char*) dval.mv_data));
+            time = *(cast(size_t*) dkey.mv_data);
+        }
+        auto stats = parseJSON (statsData);
+
+        return typeof(return) (time, stats);
+    }
+
+    void removeStatistics (size_t time)
+    {
+        MDB_val dbkey;
+
+        dbkey.mv_size = size_t.sizeof;
+        dbkey.mv_data = &time;
+
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        auto res = txn.mdb_del (dbStats, &dbkey, null);
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del");
+    }
+
     void addStatistics (JSONValue stats)
     {
         import core.stdc.time : time;
@@ -596,7 +657,13 @@ public:
         MDB_val dbkey, dbvalue;
         size_t unixTime = time (null);
 
-        auto statsJsonStr = toJSON (&stats);
+        auto statsJsonStr = stats.toString ();
+
+        // simple straightforward attempt at cleaning up duplicate and useless
+        // statistics entries.
+        auto lastStatsInfo = getLastStatistics ();
+        if (lastStatsInfo.stats.toString () == statsJsonStr)
+            removeStatistics (lastStatsInfo.time);
 
         dbkey.mv_size = size_t.sizeof;
         dbkey.mv_data = &unixTime;
@@ -630,27 +697,6 @@ public:
             res = txn.mdb_put (dbStats, &dbkey, &dbvalue, 0);
         }
         checkError (res, "mdb_put (stats)");
-    }
-
-    string[long] getStatistics ()
-    {
-        MDB_val dkey, dval;
-        MDB_cursorp cur;
-        string[long] stats;
-
-        auto txn = newTransaction (MDB_RDONLY);
-        scope (exit) quitTransaction (txn);
-
-        auto res = txn.mdb_cursor_open (dbStats, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open (stats)");
-
-        while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
-            auto jsonData = to!string (fromStringz (cast(char*) dval.mv_data));
-            stats[*(cast(size_t*) dkey.mv_data)] = jsonData;
-        }
-
-        return stats;
     }
 
     JSONValue getRepoInfo (string suite, string section, string arch)
