@@ -461,7 +461,6 @@ public:
             return;
         }
 
-        GeneratorHint[string] hints;
         auto reportgen = new ReportGenerator (dstore);
 
         auto dataChanged = false;
@@ -575,6 +574,7 @@ public:
         cstore.open (conf);
 
         // remove packages from the caches which are no longer in the archive
+        pkgSet.rehash;
         cstore.removePackagesNotInSet (pkgSet);
         dstore.removePackagesNotInSet (pkgSet);
 

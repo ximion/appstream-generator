@@ -599,6 +599,11 @@ public:
             }
         }
 
+        // rehash the tables for slightly better performance
+        dsum.hintEntries.rehash;
+        dsum.mdataEntries.rehash;
+        dsum.pkgSummaries.rehash;
+
         return dsum;
     }
 

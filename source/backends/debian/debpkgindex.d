@@ -166,7 +166,7 @@ public:
         // load long descriptions
         loadPackageLongDescs (pkgs, suite, section);
 
-        return pkgs.values ();
+        return pkgs.values;
     }
 
     Package[] packagesFor (string suite, string section, string arch)
