@@ -5,6 +5,10 @@ all:
 build:
 	dub build --parallel
 
+fast:
+	@echo "! Building without optimizations"
+	dub build --parallel --build=debug-nooptimize
+
 test:
 	dub test
 

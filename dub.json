@@ -10,13 +10,10 @@
 
     "buildTypes": {
         "debug": {
+            "buildOptions": ["debugMode", "debugInfo", "optimize", "inline"]
+        },
+        "debug-nooptimize": {
             "buildOptions": ["debugMode", "debugInfo"]
-        },
-        "debug-optimize": {
-            "buildOptions": ["debugMode", "debugInfo", "optimize"]
-        },
-        "debug-profile": {
-            "buildOptions": ["debugMode", "debugInfo", "profile"]
         }
     },
 
