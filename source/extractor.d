@@ -17,20 +17,18 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.extractor;
-
 import std.stdio;
 import std.string;
 import std.path : baseName;
 import std.algorithm : canFind;
 import appstream.Component;
 
-import ag.config;
-import ag.hint;
-import ag.result;
-import ag.backend.intf;
-import ag.datastore;
-import ag.handlers;
+import config;
+import hint;
+import result;
+import backends.interfaces;
+import datastore;
+import handlers;
 
 
 class DataExtractor

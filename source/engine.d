@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.engine;
-
 import std.stdio;
 import std.parallelism;
 import std.string : format, count, toLower, startsWith;
@@ -30,23 +28,23 @@ static import core.memory;
 static import std.file;
 import appstream.Component;
 
-import ag.config;
-import ag.logging;
-import ag.extractor;
-import ag.datastore;
-import ag.contentsstore;
-import ag.result;
-import ag.hint;
-import ag.reportgenerator;
-import ag.utils : copyDir, stringArrayToByteArray;
+import config;
+import logging;
+import extractor;
+import datastore;
+import contentsstore;
+import result;
+import hint;
+import reportgenerator;
+import utils : copyDir, stringArrayToByteArray;
 
-import ag.backend.intf;
-import ag.backend.dummy;
-import ag.backend.debian;
-import ag.backend.archlinux;
-import ag.backend.rpmmd;
+import backends.interfaces;
+import backends.dummy;
+import backends.debian;
+import backends.archlinux;
+import backends.rpmmd;
 
-import ag.handlers.iconhandler;
+import handlers.iconhandler;
 
 
 class Engine
@@ -265,7 +263,7 @@ public:
      */
     private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
-        import ag.archive;
+        import zarchive;
         auto mdataFile = appender!string;
         auto hintsFile = appender!string;
 

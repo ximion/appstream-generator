@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian.pkgindex;
+module backends.debian.debpkgindex;
 
 import std.stdio;
 import std.path;
@@ -27,13 +27,13 @@ import std.array : appender;
 import std.conv : to;
 static import std.file;
 
-import ag.logging;
-import ag.backend.intf;
-import ag.backend.debian.tagfile;
-import ag.backend.debian.debpkg;
-import ag.backend.debian.utils;
-import ag.config;
-import ag.utils : escapeXml, isRemote;
+import logging;
+import backends.interfaces;
+import backends.debian.tagfile;
+import backends.debian.debpkg;
+import backends.debian.debutils;
+import config;
+import utils : escapeXml, isRemote;
 
 
 class DebianPackageIndex : PackageIndex

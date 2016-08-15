@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers.metainfovalidator;
+module handlers.metainfovalidator;
 
 import std.path : baseName;
 import std.uni : toLower;
@@ -29,8 +29,8 @@ import appstream.Component;
 import glib.ListG;
 import gobject.ObjectG;
 
-import ag.result;
-import ag.utils;
+import result;
+import utils;
 
 
 void validateMetaInfoFile (Component cpt, GeneratorResult res, string data)

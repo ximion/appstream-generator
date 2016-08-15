@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian;
+module backends.debian;
 
-public import ag.backend.debian.debpkg;
-public import ag.backend.debian.pkgindex;
+public import backends.debian.debpkg;
+public import backends.debian.debpkgindex;

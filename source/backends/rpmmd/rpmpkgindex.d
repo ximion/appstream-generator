@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.rpmmd.pkgindex;
+module backends.rpmmd.rpmpkgindex;
 
 import std.stdio;
 import std.path;
@@ -25,9 +25,9 @@ import std.string;
 import std.algorithm : canFind;
 static import std.file;
 
-import ag.logging;
-import ag.backend.intf;
-import ag.backend.rpmmd.rpmpkg;
+import logging;
+import backends.interfaces;
+import backends.rpmmd.rpmpkg;
 
 
 class RPMPackageIndex : PackageIndex

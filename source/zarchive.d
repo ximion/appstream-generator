@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.archive;
-
 import std.stdio;
 import std.string;
 import std.file;
@@ -26,10 +24,10 @@ import std.regex;
 import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
-import ag.logging;
-import ag.std.concurrency.generator;
+import logging;
+import bindings.concurrency_generator;
 
-import c.libarchive;
+import bindings.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65536;
 

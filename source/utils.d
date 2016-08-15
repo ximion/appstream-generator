@@ -17,10 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.utils;
-
-import ag.logging;
-
 import std.stdio : File, write, writeln;
 import std.string;
 import std.ascii : letters, digits;
@@ -30,6 +26,8 @@ import std.range : chain;
 import std.algorithm : startsWith;
 import std.array : appender;
 static import std.file;
+
+import logging;
 
 
 public immutable GENERIC_BUFFER_SIZE = 2048;

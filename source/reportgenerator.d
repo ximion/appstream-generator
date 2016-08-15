@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.reportgenerator;
-
 import std.stdio;
 import std.string;
 import std.parallelism;
@@ -31,12 +29,12 @@ import std.json;
 import mustache;
 import appstream.Metadata;
 
-import ag.utils;
-import ag.config;
-import ag.logging;
-import ag.hint;
-import ag.backend.intf;
-import ag.datastore;
+import utils;
+import config;
+import logging;
+import hint;
+import backends.interfaces;
+import datastore;
 
 
 private alias MustacheEngine!(string) Mustache;
@@ -176,7 +174,7 @@ public:
         auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
-        context["generator_version"] = ag.config.generatorVersion;
+        context["generator_version"] = config.generatorVersion;
         context["project_name"] = conf.projectName;
         context["root_url"] = conf.htmlBaseUrl;
     }

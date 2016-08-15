@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers.metainfoparser;
+module handlers.metainfoparser;
 
 import std.path : baseName;
 import std.uni : toLower;
@@ -26,8 +26,8 @@ import std.stdio;
 import appstream.Metadata;
 import appstream.Component;
 
-import ag.result;
-import ag.utils;
+import result;
+import utils;
 
 
 Component parseMetaInfoFile (GeneratorResult res, string data)

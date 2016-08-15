@@ -17,13 +17,13 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.dummy.dummypkg;
+module backends.dummy.dummypkg;
 
 import std.stdio;
 import std.string;
 import std.array : empty;
-import ag.backend.intf;
-import ag.logging;
+import backends.interfaces;
+import logging;
 
 
 class DummyPackage : Package

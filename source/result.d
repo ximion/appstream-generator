@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.result;
-
 import std.stdio;
 import std.string;
 import std.array : empty;
@@ -26,9 +24,9 @@ import std.conv : to;
 import std.json;
 import appstream.Component;
 
-import ag.hint;
-import ag.utils : buildCptGlobalID;
-import ag.backend.intf;
+import hint;
+import utils : buildCptGlobalID;
+import backends.interfaces;
 
 
 class GeneratorResult

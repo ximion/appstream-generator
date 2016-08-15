@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.logging;
-
 import std.stdio;
 import std.string : format;
 import std.datetime;

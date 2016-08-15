@@ -10,7 +10,7 @@
 *          http://www.boost.org/LICENSE_1_0.txt)
 */
 
-module ag.std.concurrency.generator;
+module bindings.concurrency_generator;
 
 import std.concurrency;
 import core.thread;

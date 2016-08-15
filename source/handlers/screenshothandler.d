@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers.screenshothandler;
+module handlers.screenshothandler;
 
 import std.path : baseName, buildPath;
 import std.uni : toLower;
@@ -32,10 +32,10 @@ import appstream.Screenshot;
 import appstream.Image;
 static import std.file;
 
-import ag.config;
-import ag.result;
-import ag.utils;
-static import ag.image;
+import config;
+import result;
+import utils;
+static import image;
 
 
 private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (224, 126)];
@@ -81,7 +81,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
     // drop all images
     imgArr.removeRange (0, imgArr.len);
 
-    auto conf = ag.config.Config.get ();
+    auto conf = config.Config.get ();
     auto origImgUrl = initImg.getUrl ();
 
     ubyte[] imgData;
@@ -123,7 +123,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         auto srcImgUrl =  buildPath (cptScreenshotsUrl, srcImgName);
 
         // save the source screenshot as PNG image
-        auto srcImg = new ag.image.Image (imgData, ag.image.ImageFormat.PNG);
+        auto srcImg = new image.Image (imgData, image.ImageFormat.PNG);
         srcImg.savePng (srcImgPath);
 
         auto img = new Image ();
@@ -163,7 +163,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             continue;
 
         try {
-            auto thumb = new ag.image.Image (imgData, ag.image.ImageFormat.PNG);
+            auto thumb = new image.Image (imgData, image.ImageFormat.PNG);
             if (size.width > size.height)
                 thumb.scaleToWidth (size.width);
             else

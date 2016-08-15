@@ -17,16 +17,16 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.dummy.pkgindex;
+module backends.dummy.pkgindex;
 
 import std.stdio;
 import std.path;
 import std.string;
 import std.algorithm : remove;
 
-import ag.logging;
-import ag.backend.intf;
-import ag.backend.dummy.dummypkg;
+import logging;
+import backends.interfaces;
+import backends.dummy.dummypkg;
 
 
 class DummyPackageIndex : PackageIndex

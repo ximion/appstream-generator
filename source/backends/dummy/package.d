@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.dummy;
+module backends.dummy;
 
-public import ag.backend.dummy.dummypkg;
-public import ag.backend.dummy.pkgindex;
+public import backends.dummy.dummypkg;
+public import backends.dummy.pkgindex;

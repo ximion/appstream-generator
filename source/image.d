@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.image;
-
 import std.stdio;
 import std.string;
 import std.conv : to;
@@ -26,15 +24,16 @@ import std.path : baseName;
 import std.math;
 import core.stdc.stdarg;
 import core.stdc.stdio;
-import c.cairo;
-import c.rsvg;
-import c.gdkpixbuf;
+
+import bindings.cairo;
+import bindings.rsvg;
+import bindings.gdkpixbuf;
 
 import gi.glibtypes;
 import gi.glib;
 
-import ag.logging;
-import ag.config;
+import logging;
+import config;
 
 
 enum ImageFormat {
@@ -50,7 +49,7 @@ private void optimizePNG (string fname)
 {
     import std.process;
 
-    auto conf = ag.config.Config.get ();
+    auto conf = config.Config.get ();
     if (!conf.featureEnabled (GeneratorFeature.OPTIPNG))
         return;
 
@@ -257,7 +256,7 @@ public:
 
     void writeText (string fname, string text, const uint borderWidth = 4, const uint linePadding = 2)
     {
-        import c.freetype;
+        import bindings.freetype;
 
         FT_Library library;
         FT_Face fface;

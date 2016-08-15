@@ -23,9 +23,9 @@ import std.getopt;
 import std.string : format;
 import core.stdc.stdlib;
 
-import ag.logging;
-import ag.config;
-import ag.engine;
+import logging;
+import config;
+import engine;
 
 
 private immutable helpText =
@@ -77,7 +77,7 @@ void main(string[] args)
     }
 
     if (showVersion) {
-        writeln ("Generator version: ", ag.config.generatorVersion);
+        writeln ("Generator version: ", config.generatorVersion);
         return;
     }
 
@@ -101,7 +101,7 @@ void main(string[] args)
 
     // globally enable verbose mode, if requested
     if (verbose) {
-        ag.logging.setVerbose (true);
+        logging.setVerbose (true);
     }
 
     auto engine = new Engine ();

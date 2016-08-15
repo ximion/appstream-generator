@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian.debpkg;
+module backends.debian.debpkg;
 
 import std.stdio;
 import std.string;
@@ -25,11 +25,12 @@ import std.path;
 import std.array : empty, appender;
 import std.file : rmdirRecurse, mkdirRecurse;
 static import std.file;
-import ag.config;
-import ag.archive;
-import ag.backend.intf;
-import ag.logging;
-import ag.utils : isRemote, downloadFile;
+
+import config;
+import zarchive;
+import backends.interfaces;
+import logging;
+import utils : isRemote, downloadFile;
 
 
 class DebPackage : Package

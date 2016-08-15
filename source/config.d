@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.config;
-
 import std.stdio;
 import std.array;
 import std.string : format, toLower;
@@ -28,8 +26,8 @@ import std.json;
 import std.typecons;
 static import std.file;
 
-import ag.utils : existsAndIsDir, randomString;
-import ag.logging;
+import utils : existsAndIsDir, randomString;
+import logging;
 
 
 public immutable generatorVersion = "0.5";

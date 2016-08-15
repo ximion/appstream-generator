@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.contentsstore;
-
 import std.stdio;
 import std.string;
 import std.conv : to, octal;
@@ -26,9 +24,9 @@ import std.file : mkdirRecurse;
 import std.array : appender, join, split, empty;
 static import std.math;
 
-import c.lmdb;
-import ag.config;
-import ag.logging;
+import bindings.lmdb;
+import config;
+import logging;
 
 
 /**

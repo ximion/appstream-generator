@@ -17,10 +17,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module c.rsvg;
+module bindings.rsvg;
 
 import gi.glibtypes;
-import c.cairo;
+import bindings.cairo;
 
 extern(C):
 nothrow:

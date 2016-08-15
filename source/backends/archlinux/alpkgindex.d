@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.archlinux.pkgindex;
+module backends.archlinux.alpkgindex;
 
 import std.stdio;
 import std.path;
@@ -26,11 +26,11 @@ import std.algorithm : canFind;
 import std.array : appender;
 static import std.file;
 
-import ag.logging;
-import ag.archive;
-import ag.backend.intf;
-import ag.backend.archlinux.alpkg;
-import ag.backend.archlinux.listfile;
+import logging;
+import zarchive;
+import backends.interfaces;
+import backends.archlinux.alpkg;
+import backends.archlinux.listfile;
 
 
 class ArchPackageIndex : PackageIndex

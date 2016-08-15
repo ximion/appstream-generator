@@ -17,15 +17,15 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.archlinux.alpkg;
+module backends.archlinux.alpkg;
 
 import std.stdio;
 import std.string;
 import std.array : empty;
 
-import ag.logging;
-import ag.archive;
-import ag.backend.intf;
+import logging;
+import zarchive;
+import backends.interfaces;
 
 
 class ArchPackage : Package

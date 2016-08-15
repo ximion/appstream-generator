@@ -18,13 +18,13 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian.utils;
+module backends.debian.debutils;
 
 import std.string;
 static import std.file;
 
-import ag.logging;
-import ag.utils : downloadFile, isRemote;
+import logging;
+import utils : downloadFile, isRemote;
 
 /**
  * If prefix is remote, download the first of (prefix + suffix).{xz,bz2,gz},

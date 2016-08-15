@@ -1,5 +1,5 @@
 
-module ag.backend.archlinux;
+module backends.archlinux;
 
-public import ag.backend.archlinux.alpkg;
-public import ag.backend.archlinux.pkgindex;
+public import backends.archlinux.alpkg;
+public import backends.archlinux.alpkgindex;

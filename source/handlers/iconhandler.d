@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers.iconhandler;
+module handlers.iconhandler;
 
 import std.stdio;
 import std.string;
@@ -33,14 +33,14 @@ import appstream.Component;
 import appstream.Icon;
 static import std.file;
 
-import ag.utils;
-import ag.logging;
-import ag.result;
-import ag.image;
-import ag.backend.intf;
-import ag.contentsstore;
-import ag.std.concurrency.generator;
-static import ag.config;
+import utils;
+import logging;
+import result;
+import image;
+import backends.interfaces;
+import contentsstore;
+import bindings.concurrency_generator;
+static import config;
 
 
 // all image extensions that we recognize as possible for icons.
@@ -217,7 +217,7 @@ public:
 
         // open package contents cache
         auto ccache = new ContentsStore ();
-        ccache.open (ag.config.Config.get ());
+        ccache.open (config.Config.get ());
 
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,

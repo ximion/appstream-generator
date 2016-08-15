@@ -17,14 +17,12 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.hint;
-
 import std.stdio;
 import std.string;
 import std.json;
 
-import ag.logging;
-import ag.utils;
+import logging;
+import utils;
 
 alias HintList = GeneratorHint[];
 

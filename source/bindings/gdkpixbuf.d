@@ -17,11 +17,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module c.gdkpixbuf;
+module bindings.gdkpixbuf;
 
 import gi.glibtypes;
 import gi.giotypes;
-import c.cairo;
+import bindings.cairo;
 
 extern(C):
 nothrow:

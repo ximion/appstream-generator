@@ -17,10 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.handlers;
-
-public import ag.handlers.desktopparser;
-public import ag.handlers.iconhandler;
-public import ag.handlers.metainfoparser;
-public import ag.handlers.metainfovalidator;
-public import ag.handlers.screenshothandler;
+public import handlers.desktopparser;
+public import handlers.iconhandler;
+public import handlers.metainfoparser;
+public import handlers.metainfovalidator;
+public import handlers.screenshothandler;

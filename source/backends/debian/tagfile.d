@@ -17,12 +17,12 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.debian.tagfile;
+module backends.debian.tagfile;
 
 import std.stdio;
 import std.string;
-import ag.archive;
-import ag.logging;
+import zarchive;
+import logging;
 
 
 class TagFile

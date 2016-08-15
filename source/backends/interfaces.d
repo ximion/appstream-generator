@@ -17,11 +17,11 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.backend.intf;
+module backends.interfaces;
 
 import std.string;
 import std.container;
-public import ag.datastore;
+public import datastore;
 
 
 /**

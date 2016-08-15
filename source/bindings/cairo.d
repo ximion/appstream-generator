@@ -17,7 +17,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module c.cairo;
+module bindings.cairo;
 
 extern(C):
 nothrow:
@@ -129,7 +129,7 @@ void cairo_move_to (cairo_p cr, double x, double y);
 void cairo_set_source_rgb (cairo_p cr, double red, double green, double blue);
 
 // Fonts
-import c.freetype;
+import bindings.freetype;
 cairo_font_face_p cairo_ft_font_face_create_for_ft_face (FT_Face face, int load_flags);
 void cairo_font_face_destroy (cairo_font_face_p font_face);
 cairo_status_t cairo_font_face_status (cairo_font_face_p font_face);

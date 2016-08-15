@@ -17,8 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module ag.datastore;
-
 import std.stdio;
 import std.string;
 import std.conv : to, octal;
@@ -29,14 +27,14 @@ import std.typecons : Tuple;
 import std.json;
 static import std.math;
 
-import c.lmdb;
+import bindings.lmdb;
 import appstream.Metadata;
 import appstream.Component;
 
-import ag.config;
-import ag.logging;
-import ag.config : DataType;
-import ag.result;
+import config;
+import logging;
+import config : DataType;
+import result;
 
 
 /**

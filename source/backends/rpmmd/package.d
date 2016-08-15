@@ -1,5 +1,5 @@
 
-module ag.backend.rpmmd;
+module backends.rpmmd;
 
-public import ag.backend.rpmmd.rpmpkg;
-public import ag.backend.rpmmd.pkgindex;
+public import backends.rpmmd.rpmpkg;
+public import backends.rpmmd.rpmpkgindex;
