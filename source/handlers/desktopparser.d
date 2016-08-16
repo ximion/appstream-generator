@@ -164,7 +164,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     if (cpt is null) {
         cpt = new Component ();
         cpt.setId (fnameBase);
-        cpt.setKind (ComponentKind.DESKTOP_APPLICATION);
+        cpt.setKind (ComponentKind.DESKTOP_APP);
         gres.addComponent (cpt);
     }
 
