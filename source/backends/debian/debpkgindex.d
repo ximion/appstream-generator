@@ -22,7 +22,7 @@ module backends.debian.debpkgindex;
 import std.stdio;
 import std.path;
 import std.string;
-import std.algorithm : remove;
+import std.algorithm : canFind, remove;
 import std.array : appender;
 import std.conv : to;
 static import std.file;
@@ -33,7 +33,7 @@ import backends.debian.tagfile;
 import backends.debian.debpkg;
 import backends.debian.debutils;
 import config;
-import utils : escapeXml, isRemote;
+import utils : escapeXml, getFile, isRemote;
 
 
 class DebianPackageIndex : PackageIndex
@@ -63,65 +63,106 @@ public:
         indexChanged = null;
     }
 
-    private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
+    private immutable(string[]) findTranslations (const string suite, const string section)
     {
-        immutable enDescPath = buildPath ("dists", suite, section, "i18n", "Translation-en.%s");
-        string enDescFname;
+        import std.regex : ctRegex, matchFirst;
+
+        immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
+        auto regex = ctRegex!(r"Translation-(\w+)$");
+        string[] ret;
 
         try {
-            enDescFname = downloadIfNecessary (rootDir, tmpDir, enDescPath);
-        } catch (Exception e) {
-            logDebug ("No long descriptions for %s/%s: %s", suite, section, e.msg);
-            return;
+            immutable string[] inReleaseContents = getFile (inRelease);
+
+            foreach (immutable string entry; inReleaseContents) {
+                auto match = entry.matchFirst(regex);
+
+                if (match.empty)
+                    continue;
+
+                if (!ret.canFind (match[1]))
+                    ret ~= match[1];
+            }
+        } catch (Exception ex) {
+            logDebug ("Couldn't download %s, will assume 'en' is available.", inRelease);
+            return ["en"];
         }
 
-        auto tagf = new TagFile ();
-        tagf.open (enDescFname);
+        return cast (immutable) ret;
+    }
 
-        logDebug ("Opened: %s", enDescFname);
-        do {
-            auto pkgname = tagf.readField ("Package");
-            auto rawDesc  = tagf.readField ("Description-en");
-            if (!pkgname)
-                continue;
-            if (!rawDesc)
-                continue;
+    private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
+    {
+        immutable langs = findTranslations (suite, section);
 
-            auto pkgP = (pkgname in pkgs);
-            if (pkgP is null)
-                continue;
+        foreach (immutable string lang; langs) {
 
-            auto split = rawDesc.split ("\n");
-            if (split.length < 2)
-                continue;
+            string fname;
 
-            // NOTE: .remove() removes the element, but does not alter the length of the array. Bug?
-            // (this is why we slice the array here)
-            split = split[1..$];
+            immutable fullPath = buildPath ("dists", suite, section, "i18n", "Translation-%s.%s".format(lang));
 
-            // TODO: We actually need a Markdown-ish parser here if we want to support
-            // listings in package descriptions properly.
-            auto description = appender!string;
-            description ~= "<p>";
-            bool first = true;
-            foreach (l; split) {
-                if (l.strip () == ".") {
-                    description ~= "</p>\n<p>";
-                    first = true;
-                    continue;
-                }
-
-                if (first)
-                    first = false;
-                else
-                    description ~= " ";
-
-                description ~= escapeXml (l);
+            try {
+                fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
+            } catch (Exception ex) {
+                logDebug ("No long descriptions for %s/%s", suite, section);
+                return;
             }
-            description ~= "</p>";
 
-            (*pkgP).setDescription (description.data, "C");
-        } while (tagf.nextSection ());
+            auto tagf = new TagFile ();
+            try {
+                tagf.open (fname);
+            } catch (Exception e) {
+                throw e;
+            }
+
+            logDebug ("Opened: %s", fname);
+            do {
+                auto pkgname = tagf.readField ("Package");
+                auto rawDesc  = tagf.readField ("Description-%s".format (lang));
+                if (!pkgname)
+                    continue;
+                if (!rawDesc)
+                    continue;
+
+                auto pkgP = (pkgname in pkgs);
+                if (pkgP is null)
+                    continue;
+
+                auto split = rawDesc.split ("\n");
+                if (split.length < 2)
+                    continue;
+
+                // NOTE: .remove() removes the element, but does not alter the length of the array. Bug?
+                // (this is why we slice the array here)
+                split = split[1..$];
+
+                // TODO: We actually need a Markdown-ish parser here if we want to support
+                // listings in package descriptions properly.
+                auto description = appender!string;
+                description ~= "<p>";
+                bool first = true;
+                foreach (l; split) {
+                    if (l.strip () == ".") {
+                        description ~= "</p>\n<p>";
+                        first = true;
+                        continue;
+                    }
+
+                    if (first)
+                        first = false;
+                    else
+                        description ~= " ";
+
+                    description ~= escapeXml (l);
+                }
+                description ~= "</p>";
+
+                if (lang == "en")
+                    (*pkgP).setDescription (description.data, "C");
+
+                (*pkgP).setDescription (description.data, lang);
+            } while (tagf.nextSection ());
+        }
     }
 
     private string getIndexFile (string suite, string section, string arch)
@@ -218,4 +259,14 @@ public:
         indexChanged[indexFname] = false;
         return false;
     }
+}
+
+unittest {
+    writeln ("TEST: ", "DebianPackageIndex");
+
+    auto pi = new DebianPackageIndex (buildPath (getcwd (), "test", "samples", "debian"));
+    assert (pi.findTranslations ("sid", "main") ==
+            ["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es", "eu", "fi", "fr", "hr", "hu",
+             "id", "it", "ja", "km", "ko", "ml", "nb", "nl", "pl", "pt", "pt_BR", "ro", "ru", "sk",
+             "sr", "sv", "tr", "uk", "vi", "zh", "zh_CN", "zh_TW"]);
 }
