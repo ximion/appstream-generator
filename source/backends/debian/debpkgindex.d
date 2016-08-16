@@ -99,7 +99,7 @@ public:
 
             string fname;
 
-            immutable fullPath = buildPath ("dists", suite, section, "i18n", "Translation-%s.%s".format(lang));
+            immutable fullPath = buildPath ("dists", suite, section, "i18n", "Translation-%s.%s".format(lang, "%s"));
 
             try {
                 fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
