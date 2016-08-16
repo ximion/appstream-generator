@@ -164,7 +164,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     if (cpt is null) {
         cpt = new Component ();
         cpt.setId (fnameBase);
-        cpt.setKind (ComponentKind.DESKTOP);
+        cpt.setKind (ComponentKind.DESKTOP_APPLICATION);
         gres.addComponent (cpt);
     }
 
@@ -199,7 +199,8 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             if (cats.empty)
                 continue;
 
-            cpt.setCategories (cats);
+            foreach (ref c; cats)
+                cpt.addCategory (c);
         } else if (key.startsWith ("Keywords")) {
             auto value = getValue (df, key);
             string[] kws = value.split (";");

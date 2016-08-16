@@ -104,7 +104,7 @@ public:
                 // finalize GCID checksum and continue
                 gres.updateComponentGCID (cpt, data);
 
-                if (cpt.getKind () == ComponentKind.DESKTOP) {
+                if (cpt.getKind () == ComponentKind.DESKTOP_APPLICATION) {
                     // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
                     gres.addHint (cpt.getId (), "missing-desktop-file");
                     continue;

@@ -202,7 +202,7 @@ public:
         // may remove entries from "cpts", breaking our foreach loop.
         foreach (cpt; cpts.dup.byValue ()) {
             auto ckind = cpt.getKind ();
-            if (ckind == ComponentKind.DESKTOP) {
+            if (ckind == ComponentKind.DESKTOP_APPLICATION) {
                 // checks specific for .desktop and web apps
                 if (cpt.getIcons ().len == 0)
                     addHint (cpt.getId (), "gui-app-without-icon");
@@ -222,7 +222,7 @@ public:
 
         // inject package descriptions, if needed
         foreach (cpt; cpts.byValue ()) {
-            if (cpt.getKind () == ComponentKind.DESKTOP) {
+            if (cpt.getKind () == ComponentKind.DESKTOP_APPLICATION) {
                 cpt.setActiveLocale ("C");
                 if (cpt.getDescription ().empty) {
                     auto descP = "C" in pkg.description;

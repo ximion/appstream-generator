@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module handlers;
+
 public import handlers.desktopparser;
 public import handlers.iconhandler;
 public import handlers.metainfoparser;

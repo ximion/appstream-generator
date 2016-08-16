@@ -301,7 +301,7 @@ public:
                             case ComponentKind.UNKNOWN:
                                 iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
                                 break;
-                            case ComponentKind.DESKTOP:
+                            case ComponentKind.DESKTOP_APPLICATION:
                                 if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
                                     iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
                                 else
