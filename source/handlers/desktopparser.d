@@ -244,7 +244,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
 unittest
 {
     import std.stdio : writeln;
-    import ag.backend.debian.debpkg;
+    import backends.dummy.dummypkg;
     writeln ("TEST: ", ".desktop file parser");
 
     auto data = """
@@ -256,7 +256,7 @@ Keywords=Flubber;Test;Meh;
 Keywords[de_DE]=Goethe;Schiller;Kant;
 """;
 
-    auto pkg = new DebPackage ("pkg", "1.0", "amd64");
+    auto pkg = new DummyPackage ("pkg", "1.0", "amd64");
     auto res = new GeneratorResult (pkg);
     auto cpt = parseDesktopFile (res, "foobar.desktop", data, false);
     assert (cpt !is null);

@@ -272,10 +272,10 @@ public:
 
 unittest
 {
-    import ag.backend.debian.debpkg;
+    import backends.dummy.dummypkg;
     writeln ("TEST: ", "GeneratorResult");
 
-    auto pkg = new DebPackage ("foobar", "1.0", "amd64");
+    auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
     auto res = new GeneratorResult (pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];

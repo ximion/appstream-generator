@@ -51,8 +51,7 @@ backend_sources = [
 gir_binding_sources = [
     'source/bindings/auto/appstream/Category.d',
     'source/bindings/auto/appstream/Component.d',
-    'source/bindings/auto/appstream/Database.d',
-    'source/bindings/auto/appstream/DataPool.d',
+    'source/bindings/auto/appstream/Pool.d',
     'source/bindings/auto/appstream/DistroDetails.d',
     'source/bindings/auto/appstream/Icon.d',
     'source/bindings/auto/appstream/Image.d',
