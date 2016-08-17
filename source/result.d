@@ -223,12 +223,18 @@ public:
         // inject package descriptions, if needed
         foreach (cpt; cpts.byValue ()) {
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
+                auto flags = cpt.getValueFlags;
+                cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+                scope(exit) cpt.setActiveLocale ("C");
+
                 foreach (kv; pkg.description.byKeyValue) {
                     immutable lang = kv.key;
                     immutable desc = kv.value;
                     cpt.setActiveLocale (lang);
+
                     if (cpt.getDescription ().empty) {
                         auto descP = lang in pkg.description;
+
                         if (descP !is null) {
                             cpt.setDescription (*descP, lang);
                             addHint (cpt.getId (), "description-from-package");
