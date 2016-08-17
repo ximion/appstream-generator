@@ -63,6 +63,7 @@ gir_binding_sources = [
     'source/bindings/auto/appstream/Translation.d',
     'source/bindings/auto/appstream/Validator.d',
     'source/bindings/auto/appstream/ValidatorIssue.d',
+    'source/bindings/auto/appstream/Suggested.d',
     'source/bindings/auto/gi/appstream.d',
     'source/bindings/auto/gi/appstreamtypes.d',
     'source/bindings/auto/gi/gio.d',
@@ -103,7 +104,6 @@ gir_binding_sources = [
     'source/bindings/auto/gio/ConverterT.d',
     'source/bindings/auto/gio/Credentials.d',
     'source/bindings/auto/gio/DatagramBasedIF.d',
-    'source/bindings/auto/gio/DataInputStream.d',
     'source/bindings/auto/gio/DataOutputStream.d',
     'source/bindings/auto/gio/DBusActionGroup.d',
     'source/bindings/auto/gio/DBusAnnotationInfo.d',
@@ -351,17 +351,83 @@ gir_binding_sources = [
     'source/bindings/auto/gobject/TypeValueTable.d',
     'source/bindings/auto/gobject/ValueArray.d',
     'source/bindings/auto/gobject/Value.d',
-    'source/bindings/auto/gobject/WeakRef.d',
+    'source/bindings/auto/gobject/WeakRef.d'
 ]
 
-src_dir = gir_bind_dir = include_directories('source/')
+# FIXME: including 'source/bindings/auto/gio/DataInputStream.d' in the
+# build process results in linker errors. Investigate why.
+
+src_dir = include_directories('source/')
 gir_bind_dir = include_directories('source/bindings/auto')
-other_include_dir = include_directories('/usr/include/d/mustache-d/src/')
 
+glib_dep      = dependency('glib-2.0')
+gobject_dep   = dependency('gobject-2.0')
+gio_dep       = dependency('gio-2.0')
+appstream_dep = dependency('appstream')
+lmdb_dep      = dependency('lmdb')
+archive_dep   = dependency('libarchive')
+cairo_dep     = dependency('cairo')
+gdkpixbuf_dep = dependency('gdk-pixbuf-2.0')
+rsvg_dep      = dependency('librsvg-2.0')
+freetype_dep  = dependency('freetype2')
+curl_dep      = dependency('libcurl')
 
-asgen_exe = executable ('appstream-generator',
-    [asgen_sources, backend_sources, gir_binding_sources],
-    include_directories : [src_dir, gir_bind_dir, other_include_dir],
+if meson.get_compiler('d').get_id() == 'gcc'
+    add_global_arguments('-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', language : 'd')
+endif
+
+# A couple of hacks to use the right copy of mustache-d
+mustache_d_file = '/usr/include/d/mustache-d/src/mustache.d'
+if run_command('[', '-e', mustache_d_file, ']').returncode() == 0
+    other_dir = include_directories('/usr/include/d/mustache-d/src')
+    mustache_sources = ['/usr/include/d/mustache-d/src/mustache.d']
+else
+    # TODO: Download the Git copy in this case, place it somewhere and
+    # make the build process use it.
+    error('Could not find mustache-d')
+endif
+
+asgen_exe = executable('appstream-generator',
+    [asgen_sources,
+    backend_sources,
+    gir_binding_sources,
+    mustache_sources],
+    include_directories : [src_dir,
+                           gir_bind_dir,
+                           other_dir],
+    dependencies : [glib_dep,
+                    gobject_dep,
+                    gio_dep,
+                    appstream_dep,
+                    lmdb_dep,
+                    archive_dep,
+                    cairo_dep,
+                    gdkpixbuf_dep,
+                    rsvg_dep,
+                    freetype_dep,
+                    curl_dep],
     install : true
 )
-#test('dlangtest', e)
+
+asgen_test_exe = executable('asgen_test',
+    [asgen_sources,
+    backend_sources,
+    gir_binding_sources,
+    mustache_sources],
+    include_directories : [src_dir,
+                           gir_bind_dir,
+                           other_dir],
+    dependencies : [glib_dep,
+                    gobject_dep,
+                    gio_dep,
+                    appstream_dep,
+                    lmdb_dep,
+                    archive_dep,
+                    cairo_dep,
+                    gdkpixbuf_dep,
+                    rsvg_dep,
+                    freetype_dep,
+                    curl_dep],
+    d_args : '-funittest'
+)
+test('asgen_test', asgen_test_exe)
