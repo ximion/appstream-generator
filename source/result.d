@@ -227,18 +227,12 @@ public:
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
                 scope(exit) cpt.setActiveLocale ("C");
 
-                foreach (kv; pkg.description.byKeyValue) {
-                    immutable lang = kv.key;
-                    immutable desc = kv.value;
+                foreach (const string lang, const string desc; pkg.description) {
                     cpt.setActiveLocale (lang);
 
                     if (cpt.getDescription ().empty) {
-                        auto descP = lang in pkg.description;
-
-                        if (descP !is null) {
-                            cpt.setDescription (*descP, lang);
-                            addHint (cpt.getId (), "description-from-package");
-                        }
+                        cpt.setDescription (desc, lang);
+                        addHint (cpt.getId (), "description-from-package");
                     }
                 }
             }

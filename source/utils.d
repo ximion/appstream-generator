@@ -24,7 +24,7 @@ import std.conv : to;
 import std.random : randomSample;
 import std.range : chain;
 import std.algorithm : startsWith;
-import std.array : array, appender;
+import std.array : appender;
 static import std.file;
 
 import logging;
@@ -335,7 +335,6 @@ body
     ulong onReceiveCb (File f, ubyte[] data)
     {
         f.rawWrite (data);
-
         return data.length;
     }
 
@@ -377,15 +376,19 @@ body
  *
  * Returns: The data if successful.
  */
-immutable (string[]) getFile (const string path, const uint retryCount = 5)
+string[] getFile (const string path, const uint retryCount = 5)
 {
     import core.stdc.stdlib : free;
     import core.sys.linux.stdio : fclose, open_memstream;
 
     char * ptr = null;
     scope (exit) free (ptr);
+
     size_t sz = 0;
+
     auto f = open_memstream (&ptr, &sz);
+    scope(exit) fclose(f);
+
     auto file = File.wrapFile(f);
 
     if (path.isRemote) {
@@ -394,14 +397,10 @@ immutable (string[]) getFile (const string path, const uint retryCount = 5)
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
 
-        return cast (immutable) std.file.readText (path).splitLines;
+        return std.file.readText (path).splitLines;
     }
 
-    fclose (f);
-
-    immutable lines = to!string (ptr.fromStringz).splitLines;
-
-    return lines;
+    return to!string (ptr.fromStringz).splitLines;
 }
 
 /**

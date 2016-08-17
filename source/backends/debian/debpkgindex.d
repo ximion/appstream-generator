@@ -69,37 +69,44 @@ public:
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
         auto regex = ctRegex!(r"Translation-(\w+)$");
-        string[] ret;
+        auto ret = appender!(string[]);
 
         try {
-            immutable string[] inReleaseContents = getFile (inRelease);
+            const inReleaseContents = getFile (inRelease);
 
-            foreach (immutable string entry; inReleaseContents) {
+            foreach (const ref entry; inReleaseContents) {
                 auto match = entry.matchFirst(regex);
 
                 if (match.empty)
                     continue;
 
-                if (!ret.canFind (match[1]))
-                    ret ~= match[1];
+                if (!ret.data.canFind (match[1]))
+                    ret.put (match[1]);
             }
         } catch (Exception ex) {
-            logDebug ("Couldn't download %s, will assume 'en' is available.", inRelease);
+            logWarning ("Couldn't download %s, will assume 'en' is available.", inRelease);
             return ["en"];
         }
 
-        return cast (immutable) ret;
+        return cast (immutable) ret.data;
     }
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
 
-        foreach (immutable string lang; langs) {
-
+        foreach (const ref lang; langs) {
             string fname;
 
-            immutable fullPath = buildPath ("dists", suite, section, "i18n", "Translation-%s.%s".format(lang, "%s"));
+            immutable fullPath = buildPath ("dists",
+                                            suite,
+                                            section,
+                                            "i18n",
+                                            /* here we explicitly substitute a
+                                             * "%s", because
+                                             * downloadIfNecessary will put the
+                                             * file extension there */
+                                            "Translation-%s.%s".format(lang, "%s"));
 
             try {
                 fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
@@ -132,12 +139,13 @@ public:
                 if (split.length < 2)
                     continue;
 
-                // NOTE: .remove() removes the element, but does not alter the length of the array. Bug?
-                // (this is why we slice the array here)
+                // NOTE: .remove() removes the element, but does not alter the
+                // length of the array. Bug?  (this is why we slice the array
+                // here)
                 split = split[1..$];
 
-                // TODO: We actually need a Markdown-ish parser here if we want to support
-                // listings in package descriptions properly.
+                // TODO: We actually need a Markdown-ish parser here if we want
+                // to support listings in package descriptions properly.
                 auto description = appender!string;
                 description ~= "<p>";
                 bool first = true;
@@ -266,7 +274,8 @@ unittest {
 
     auto pi = new DebianPackageIndex (buildPath (getcwd (), "test", "samples", "debian"));
     assert (pi.findTranslations ("sid", "main") ==
-            ["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es", "eu", "fi", "fr", "hr", "hu",
-             "id", "it", "ja", "km", "ko", "ml", "nb", "nl", "pl", "pt", "pt_BR", "ro", "ru", "sk",
-             "sr", "sv", "tr", "uk", "vi", "zh", "zh_CN", "zh_TW"]);
+            ["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es", "eu",
+             "fi", "fr", "hr", "hu", "id", "it", "ja", "km", "ko", "ml", "nb",
+             "nl", "pl", "pt", "pt_BR", "ro", "ru", "sk", "sr", "sv", "tr",
+             "uk", "vi", "zh", "zh_CN", "zh_TW"]);
 }
