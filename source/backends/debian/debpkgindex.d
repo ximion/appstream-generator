@@ -33,7 +33,7 @@ import backends.debian.tagfile;
 import backends.debian.debpkg;
 import backends.debian.debutils;
 import config;
-import utils : escapeXml, getFile, isRemote;
+import utils : escapeXml, getFileContents, isRemote;
 
 
 class DebianPackageIndex : PackageIndex
@@ -72,7 +72,7 @@ public:
         bool[string] ret;
 
         try {
-            const inReleaseContents = getFile (inRelease);
+            const inReleaseContents = getFileContents (inRelease);
 
             foreach (const ref entry; inReleaseContents) {
                 auto match = entry.matchFirst(regex);
@@ -115,11 +115,7 @@ public:
             }
 
             auto tagf = new TagFile ();
-            try {
-                tagf.open (fname);
-            } catch (Exception e) {
-                throw e;
-            }
+            tagf.open (fname);
 
             logDebug ("Opened: %s", fname);
             do {

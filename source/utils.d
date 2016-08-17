@@ -376,7 +376,7 @@ body
  *
  * Returns: The data if successful.
  */
-string[] getFile (const string path, const uint retryCount = 5)
+string[] getFileContents (const string path, const uint retryCount = 5)
 {
     import core.stdc.stdlib : free;
     import core.sys.linux.stdio : fclose, open_memstream;
@@ -387,9 +387,9 @@ string[] getFile (const string path, const uint retryCount = 5)
     size_t sz = 0;
 
     auto f = open_memstream (&ptr, &sz);
-    scope(exit) fclose(f);
+    scope (exit) fclose (f);
 
-    auto file = File.wrapFile(f);
+    auto file = File.wrapFile (f);
 
     if (path.isRemote) {
         download (path, file, retryCount);
@@ -433,8 +433,8 @@ body
     mkdirRecurse (dest.dirName);
 
     auto f = File (dest, "wb");
-    scope(exit) f.close();
-    scope(failure) remove(dest);
+    scope (exit) f.close();
+    scope (failure) remove(dest);
 
     download (url, f, retryCount);
 }

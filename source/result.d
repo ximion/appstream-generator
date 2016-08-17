@@ -225,7 +225,7 @@ public:
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
                 auto flags = cpt.getValueFlags;
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
-                scope(exit) cpt.setActiveLocale ("C");
+                scope (exit) cpt.setActiveLocale ("C");
 
                 foreach (const string lang, const string desc; pkg.description) {
                     cpt.setActiveLocale (lang);
