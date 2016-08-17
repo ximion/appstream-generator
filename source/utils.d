@@ -321,6 +321,88 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
+private void download (const string url, ref File dest, const uint retryCount = 5)
+in
+{
+    assert (url.isRemote);
+}
+body
+{
+    import core.time;
+
+    import std.net.curl : CurlTimeoutException, HTTP, FTP;
+
+    ulong onReceiveCb (File f, ubyte[] data)
+    {
+        f.rawWrite (data);
+        return data.length;
+    }
+
+    /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
+    logDebug ("Downloading %s", url);
+    try {
+        if (url.startsWith ("http")) {
+            auto downloader = HTTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (dest, data);
+            downloader.perform();
+        } else {
+            auto downloader = FTP (url);
+            downloader.connectTimeout = dur!"seconds" (30);
+            downloader.dataTimeout = dur!"seconds" (30);
+            downloader.onReceive = (data) => onReceiveCb (dest, data);
+            downloader.perform();
+        }
+        logDebug ("Downloaded %s", url);
+    } catch (CurlTimeoutException e) {
+        if (retryCount > 0) {
+            logDebug ("Failed to download %s, will retry %d more %s",
+                      url,
+                      retryCount,
+                      retryCount > 1 ? "times" : "time");
+            download (url, dest, retryCount - 1);
+        } else {
+            throw e;
+        }
+    }
+}
+
+/**
+ * Download or open `path` and return it as a string array.
+ *
+ * Params:
+ *      path = The path to access.
+ *
+ * Returns: The data if successful.
+ */
+string[] getFileContents (const string path, const uint retryCount = 5)
+{
+    import core.stdc.stdlib : free;
+    import core.sys.linux.stdio : fclose, open_memstream;
+
+    char * ptr = null;
+    scope (exit) free (ptr);
+
+    size_t sz = 0;
+
+    auto f = open_memstream (&ptr, &sz);
+    scope (exit) fclose (f);
+
+    auto file = File.wrapFile (f);
+
+    if (path.isRemote) {
+        download (path, file, retryCount);
+    } else {
+        if (!std.file.exists (path))
+            throw new Exception ("No such file '%s'", path);
+
+        return std.file.readText (path).splitLines;
+    }
+
+    return to!string (ptr.fromStringz).splitLines;
+}
+
 /**
  * Download `url` to `dest`.
  *
@@ -332,7 +414,7 @@ bool isRemote (const string uri)
 void downloadFile (const string url, const string dest, const uint retryCount = 5)
 in
 {
-    assert (isRemote (url));
+    assert (url.isRemote);
 }
 out
 {
@@ -340,58 +422,21 @@ out
 }
 body
 {
-    import core.time;
-
     import std.file;
-    import std.net.curl;
     import std.path;
-
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
         return;
     }
 
-    ulong onReceiveCb (File f, ubyte[] data)
-    {
-        f.rawWrite (data);
-        return data.length;
-    }
-
     mkdirRecurse (dest.dirName);
 
-    /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
-    logDebug ("Downloading %s", url);
-    try {
-        auto f = File (dest, "wb");
-        scope(exit) f.close();
-        scope(failure) remove(dest);
+    auto f = File (dest, "wb");
+    scope (exit) f.close();
+    scope (failure) remove(dest);
 
-        if (url.startsWith ("http")) {
-            auto downloader = HTTP (url);
-            downloader.connectTimeout = dur!"seconds" (30);
-            downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (f, data);
-            downloader.perform();
-        } else {
-            auto downloader = FTP (url);
-            downloader.connectTimeout = dur!"seconds" (30);
-            downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (f, data);
-            downloader.perform();
-        }
-        logDebug ("Downloaded %s", url);
-    } catch (CurlTimeoutException e) {
-        if (retryCount > 0) {
-            logDebug ("Failed to download %s, will retry %d more %s",
-                      url,
-                      retryCount,
-                      retryCount > 1 ? "times" : "time");
-            downloadFile (url, dest, retryCount - 1);
-        } else {
-            throw e;
-        }
-    }
+    download (url, f, retryCount);
 }
 
 unittest

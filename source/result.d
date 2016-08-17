@@ -223,11 +223,15 @@ public:
         // inject package descriptions, if needed
         foreach (cpt; cpts.byValue ()) {
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
-                cpt.setActiveLocale ("C");
-                if (cpt.getDescription ().empty) {
-                    auto descP = "C" in pkg.description;
-                    if (descP !is null) {
-                        cpt.setDescription (*descP, "C");
+                auto flags = cpt.getValueFlags;
+                cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+                scope (exit) cpt.setActiveLocale ("C");
+
+                foreach (const string lang, const string desc; pkg.description) {
+                    cpt.setActiveLocale (lang);
+
+                    if (cpt.getDescription ().empty) {
+                        cpt.setDescription (desc, lang);
                         addHint (cpt.getId (), "description-from-package");
                     }
                 }
