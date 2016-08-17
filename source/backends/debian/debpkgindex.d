@@ -22,7 +22,7 @@ module backends.debian.debpkgindex;
 import std.stdio;
 import std.path;
 import std.string;
-import std.algorithm : canFind, remove;
+import std.algorithm : remove;
 import std.array : appender;
 import std.conv : to;
 static import std.file;
@@ -69,7 +69,7 @@ public:
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
         auto regex = ctRegex!(r"Translation-(\w+)$");
-        auto ret = appender!(string[]);
+        bool[string] ret;
 
         try {
             const inReleaseContents = getFile (inRelease);
@@ -80,15 +80,14 @@ public:
                 if (match.empty)
                     continue;
 
-                if (!ret.data.canFind (match[1]))
-                    ret.put (match[1]);
+                ret[match[1]] = true;
             }
         } catch (Exception ex) {
             logWarning ("Couldn't download %s, will assume 'en' is available.", inRelease);
             return ["en"];
         }
 
-        return cast (immutable) ret.data;
+        return cast (immutable) ret.keys;
     }
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
@@ -270,12 +269,14 @@ public:
 }
 
 unittest {
+    import std.algorithm.sorting : sort;
+
     writeln ("TEST: ", "DebianPackageIndex");
 
     auto pi = new DebianPackageIndex (buildPath (getcwd (), "test", "samples", "debian"));
-    assert (pi.findTranslations ("sid", "main") ==
-            ["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es", "eu",
-             "fi", "fr", "hr", "hu", "id", "it", "ja", "km", "ko", "ml", "nb",
-             "nl", "pl", "pt", "pt_BR", "ro", "ru", "sk", "sr", "sv", "tr",
-             "uk", "vi", "zh", "zh_CN", "zh_TW"]);
+    assert (sort(pi.findTranslations ("sid", "main").dup) ==
+            sort(["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es",
+                   "eu", "fi", "fr", "hr", "hu", "id", "it", "ja", "km", "ko",
+                   "ml", "nb", "nl", "pl", "pt", "pt_BR", "ro", "ru", "sk",
+                   "sr", "sv", "tr", "uk", "vi", "zh", "zh_CN", "zh_TW"]));
 }
