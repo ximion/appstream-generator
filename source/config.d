@@ -65,6 +65,7 @@ enum Backend
     Unknown,
     Dummy,
     Debian,
+    Ubuntu,
     Archlinux,
     RpmMd
 }
@@ -274,6 +275,10 @@ class Config
                 break;
             case "debian":
                 this.backend = Backend.Debian;
+                this.metadataType = DataType.YAML;
+                break;
+            case "ubuntu":
+                this.backend = Backend.Ubuntu;
                 this.metadataType = DataType.YAML;
                 break;
             case "arch":

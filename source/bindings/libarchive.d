@@ -83,11 +83,9 @@ void archive_entry_set_size (archive_entry*, long);
 void archive_entry_set_filetype (archive_entry*, uint);
 void archive_entry_set_perm (archive_entry*, uint);
 void archive_entry_set_mtime (archive_entry*, ulong sec, long nsec);
-long archive_entry_size (archive_entry*);
 const(char)	*archive_entry_symlink (archive_entry*);
 
 archive *archive_write_new ();
-int archive_write_finish_entry (archive*);
 int archive_write_free (archive*);
 int archive_write_close (archive*);
 
@@ -102,7 +100,3 @@ int archive_write_set_format_by_name (archive*, const(char) *name);
 int archive_write_open_filename (archive*, const(char) *file);
 int archive_write_header (archive*, archive_entry*);
 size_t archive_write_data(archive*, const(void)*, size_t);
-size_t archive_write_data_block (archive*, const(void)*, size_t, long);
-
-archive *archive_write_disk_new ();
-int archive_write_disk_set_options (archive*, int);

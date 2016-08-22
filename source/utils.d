@@ -32,6 +32,7 @@ static import std.file;
 
 import logging;
 
+public immutable DESKTOP_GROUP = "Desktop Entry";
 
 public immutable GENERIC_BUFFER_SIZE = 2048;
 

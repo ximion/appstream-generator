@@ -35,9 +35,6 @@ import result;
 import utils;
 import config : Config, FormatVersion;
 
-
-immutable DESKTOP_GROUP = "Desktop Entry";
-
 private string getLocaleFromKey (string key)
 {
     if (!localeValid (key))
@@ -204,11 +201,18 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         if (key.startsWith ("Name")) {
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
-            cpt.setName (val, locale);
+            /* run backend specific hooks */
+            auto translations = gres.pkg.processDesktopFile (df, val);
+            translations[locale] = val;
+            foreach (key, value; translations)
+                cpt.setName (value, key);
         } else if (key.startsWith ("Comment")) {
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
-            cpt.setSummary (val, locale);
+            auto translations = gres.pkg.processDesktopFile (df, val);
+            translations[locale] = val;
+            foreach (key, value; translations)
+                cpt.setSummary (value, key);
         } else if (key == "Categories") {
             auto value = getValue (df, key);
             auto cats = value.split (";");
@@ -219,13 +223,15 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             foreach (ref c; cats)
                 cpt.addCategory (c);
         } else if (key.startsWith ("Keywords")) {
-            auto value = getValue (df, key);
-            auto kws = value.split (";");
-            kws = kws.stripRight ("");
-            if (kws.empty)
-                continue;
-
-            cpt.setKeywords (kws, locale);
+            auto val = getValue (df, key);
+            auto translations = gres.pkg.processDesktopFile (df, val);
+            translations[locale] = val;
+            foreach (key, value; translations) {
+                auto kws = value.split (";").stripRight ("");
+                if (kws.empty)
+                    continue;
+                cpt.setKeywords (kws, key);
+            }
         } else if (key == "MimeType") {
             auto value = getValue (df, key);
             immutable mts = value.split (";");
@@ -254,9 +260,6 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             cpt.addIcon (icon);
         }
     }
-
-    /* run backend specific hooks */
-    gres.pkg.processDesktopFile (cpt, df);
 
     return cpt;
 }

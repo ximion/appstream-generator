@@ -36,6 +36,7 @@ abstract class Package
     @property string ver () const @safe pure;
     @property string arch () const @safe pure;
     @property string maintainer () const;
+    @property Package[] otherPackages;
 
     /**
      * A associative array containing package descriptions.

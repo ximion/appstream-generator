@@ -41,6 +41,7 @@ import utils : copyDir, stringArrayToByteArray;
 import backends.interfaces;
 import backends.dummy;
 import backends.debian;
+import backends.ubuntu;
 import backends.archlinux;
 import backends.rpmmd;
 
@@ -71,6 +72,9 @@ public:
                 break;
             case Backend.Debian:
                 pkgIndex = new DebianPackageIndex (conf.archiveRoot);
+                break;
+            case Backend.Ubuntu:
+                pkgIndex = new UbuntuPackageIndex (conf.archiveRoot);
                 break;
             case Backend.Archlinux:
                 pkgIndex = new ArchPackageIndex (conf.archiveRoot);
