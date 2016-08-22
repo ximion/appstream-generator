@@ -255,6 +255,9 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         }
     }
 
+    /* run backend specific hooks */
+    gres.pkg.processDesktopFile (cpt, df);
+
     return cpt;
 }
 
