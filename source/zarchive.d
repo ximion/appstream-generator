@@ -247,6 +247,50 @@ public:
         return false;
     }
 
+    void extractArchive (const string dest)
+    in
+    {
+        import std.file : isDir;
+        assert (dest.isDir);
+    }
+    body
+    {
+        import std.file : chdir, getcwd;
+
+        archive *ar;
+        archive *ar_dest;
+        archive_entry *en;
+
+        const void *buf;
+        size_t size;
+        long offset;
+
+        string cwd;
+
+        cwd = getcwd ();
+
+        ar = openArchive ();
+        scope(exit) archive_read_free (ar);
+
+        dest.chdir;
+        scope(exit) cwd.chdir;
+
+        ar_dest = archive_write_disk_new ();
+        scope(exit) archive_write_free (ar_dest);
+
+        while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
+            if (archive_write_header (ar_dest, en) != ARCHIVE_OK ||
+                archive_entry_size (en) <= 0)
+                continue;
+
+            while (archive_read_data_block (ar, &buf, &size, &offset)  == ARCHIVE_OK) {
+                if (archive_write_data_block (ar_dest, buf, size, offset) != ARCHIVE_OK)
+                    throw new Exception ("Failed writing archive: %s".format(
+                                         archive_error_string (ar_dest).fromStringz));
+            }
+        }
+    }
+
     const(ubyte)[] readData (string fname)
     {
         import core.sys.posix.sys.stat;
@@ -553,4 +597,28 @@ unittest
        0x00, 0x00,
     ];
     assert (decompressData (emptyGz) == "");
+
+    writeln ("TEST: ", "Extracting a tarball");
+
+    import bindings.asgenstdilb : mkdtemp;
+    import std.file : buildPath, tempDir;
+
+    auto archive = buildPath (getcwd (), "test", "samples", "test.tar.xz");
+    assert (archive.exists);
+    auto ar = new ArchiveDecompressor ();
+
+    auto tmpdir = buildPath (tempDir, "asgenXXXXXX");
+    auto ctmpdir = new char[](tmpdir.length + 1);
+    ctmpdir[0 .. tmpdir.length] = tmpdir[];
+    ctmpdir[$ - 1] = '\0';
+
+    tmpdir = to!string(mkdtemp (ctmpdir.ptr));
+    scope(exit) rmdirRecurse (tmpdir);
+
+    ar.open (archive);
+    ar.extractArchive (tmpdir);
+
+    auto path = buildPath (tmpdir, "b", "a");
+    assert (path.exists);
+    assert (path.readText.chomp == "hello");
 }
