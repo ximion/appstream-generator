@@ -65,17 +65,17 @@ public:
 
     private immutable(string[]) findTranslations (const string suite, const string section)
     {
-        import std.regex : ctRegex, matchFirst;
+        import std.regex : matchFirst, regex;
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
-        auto regex = ctRegex!(r"Translation-(\w+)$");
+        auto translationregex = r"%s/i18n/Translation-(\w+)$".format (section).regex;
         bool[string] ret;
 
         try {
             const inReleaseContents = getFileContents (inRelease);
 
             foreach (const ref entry; inReleaseContents) {
-                auto match = entry.matchFirst(regex);
+                auto match = entry.matchFirst (translationregex);
 
                 if (match.empty)
                     continue;
@@ -110,8 +110,8 @@ public:
             try {
                 fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
             } catch (Exception ex) {
-                logDebug ("No long descriptions for %s/%s", suite, section);
-                return;
+                logDebug ("No translations for %s in %s/%s", lang, suite, section);
+                continue;
             }
 
             auto tagf = new TagFile ();
