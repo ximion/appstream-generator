@@ -428,6 +428,6 @@ asgen_test_exe = executable('asgen_test',
                     rsvg_dep,
                     freetype_dep,
                     curl_dep],
-    d_args : '-funittest'
+    d_args : meson.get_compiler('d').unittest_args()
 )
 test('asgen_test', asgen_test_exe)
