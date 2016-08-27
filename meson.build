@@ -49,13 +49,14 @@ backend_sources = [
 ]
 
 gir_binding_sources = [
+    'source/bindings/auto/appstream/Bundle.d',
     'source/bindings/auto/appstream/Category.d',
+    'source/bindings/auto/appstream/Checksum.d',
     'source/bindings/auto/appstream/Component.d',
     'source/bindings/auto/appstream/Pool.d',
     'source/bindings/auto/appstream/DistroDetails.d',
     'source/bindings/auto/appstream/Icon.d',
     'source/bindings/auto/appstream/Image.d',
-    'source/bindings/auto/appstream/MenuParser.d',
     'source/bindings/auto/appstream/Metadata.d',
     'source/bindings/auto/appstream/Provided.d',
     'source/bindings/auto/appstream/Release.d',

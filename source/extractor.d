@@ -174,11 +174,11 @@ public:
                     // We only catch that kind of problem later.
 
                     auto mdata = new Metadata ();
-                    mdata.setParserMode (ParserMode.DISTRO);
+                    mdata.setParserMode (ParserMode.COLLECTION);
                     if (dtype == DataType.YAML)
-                        mdata.parseYaml (existingMData);
+                        mdata.parse (existingMData, DataFormat.YAML);
                     else
-                        mdata.parseXml (existingMData);
+                        mdata.parse (existingMData, DataFormat.XML);
                     auto ecpt = mdata.getComponent ();
 
                     gres.addHint (cpt.getId (), "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);

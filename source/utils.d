@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@safe:
+
 import std.stdio : File, write, writeln;
 import std.string;
 import std.ascii : letters, digits;
@@ -25,6 +27,7 @@ import std.random : randomSample;
 import std.range : chain;
 import std.algorithm : startsWith;
 import std.array : appender;
+import std.path : buildPath, dirName;
 static import std.file;
 
 import logging;
@@ -176,7 +179,7 @@ void hardlink (const string srcFname, const string destFname)
  *      destDir = Path to the destination directory.
  *      useHardlinks = Use hardlinks instead of copying files.
  */
-void copyDir (in string srcDir, in string destDir, bool useHardlinks = false)
+void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @trusted
 {
     import std.file;
     import std.path;
@@ -321,7 +324,7 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
-private void download (const string url, ref File dest, const uint retryCount = 5)
+private void download (const string url, ref File dest, const uint retryCount = 5) @trusted
 in
 {
     assert (url.isRemote);
@@ -376,7 +379,7 @@ body
  *
  * Returns: The data if successful.
  */
-string[] getFileContents (const string path, const uint retryCount = 5)
+string[] getFileContents (const string path, const uint retryCount = 5) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.linux.stdio : fclose, open_memstream;
@@ -411,19 +414,12 @@ string[] getFileContents (const string path, const uint retryCount = 5)
  *      dest = The location for the downloaded file.
  *      retryCount = Number of times to retry on timeout.
  */
-void downloadFile (const string url, const string dest, const uint retryCount = 5)
-in
-{
-    assert (url.isRemote);
-}
-out
-{
-    assert (std.file.exists (dest));
-}
+void downloadFile (const string url, const string dest, const uint retryCount = 5) @trusted
+in  { assert (url.isRemote); }
+out { assert (std.file.exists (dest)); }
 body
 {
     import std.file;
-    import std.path;
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
@@ -437,6 +433,18 @@ body
     scope (failure) remove(dest);
 
     download (url, f, retryCount);
+}
+
+/**
+ * Get path of the directory with test samples.
+ * The function will look for test data in the current
+ * working directory.
+ */
+string
+getTestSamplesDir () @trusted
+{
+    import std.path : getcwd;
+    return buildPath (getcwd (), "test", "samples");
 }
 
 unittest

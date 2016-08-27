@@ -266,10 +266,11 @@ public:
 
 unittest {
     import std.algorithm.sorting : sort;
+    import utils : getTestSamplesDir;
 
     writeln ("TEST: ", "DebianPackageIndex");
 
-    auto pi = new DebianPackageIndex (buildPath (getcwd (), "test", "samples", "debian"));
+    auto pi = new DebianPackageIndex (buildPath (getTestSamplesDir (), "debian"));
     assert (sort(pi.findTranslations ("sid", "main").dup) ==
             sort(["en", "ca", "cs", "da", "de", "de_DE", "el", "eo", "es",
                    "eu", "fi", "fr", "hr", "hu", "id", "it", "ja", "km", "ko",

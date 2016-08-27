@@ -34,10 +34,10 @@ Component parseMetaInfoFile (GeneratorResult res, string data)
 {
     auto mdata = new Metadata ();
     mdata.setLocale ("ALL");
-    mdata.setParserMode (ParserMode.UPSTREAM);
+    mdata.setParserMode (ParserMode.COLLECTION);
 
     try {
-        mdata.parseXml (data);
+        mdata.parse (data, DataFormat.XML);
     } catch (Exception e) {
         res.addHint ("general", "metainfo-parsing-error", e.msg);
         return null;
