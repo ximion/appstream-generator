@@ -33,13 +33,17 @@ import appstream.Component;
 import appstream.Icon;
 static import std.file;
 
+version (GNU)
+	import bindings.concurrency_generator;
+else
+	import std.concurrency : Generator, yield;
+
 import utils;
 import logging;
 import result;
 import image;
 import backends.interfaces;
 import contentsstore;
-import bindings.concurrency_generator;
 static import config;
 
 

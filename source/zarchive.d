@@ -25,7 +25,11 @@ import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
 import logging;
-import bindings.concurrency_generator;
+
+version (GNU)
+	import bindings.concurrency_generator;
+else
+	import std.concurrency : Generator, yield;
 
 import bindings.libarchive;
 
