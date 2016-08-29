@@ -16,16 +16,15 @@ RUN apt-get install -yq --no-install-recommends \
     libglib2.0-dev \
     libxml2-dev \
     libgirepository1.0-dev \
-    libxapian-dev \
     libyaml-dev \
+    libstemmer-dev \
     xmlto \
-    gobject-introspection \
-    libprotobuf-dev \
-    protobuf-compiler
+    gobject-introspection
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
     dub \
+    meson \
     libcurl4-gnutls-dev \
     liblmdb-dev \
     libarchive-dev \
