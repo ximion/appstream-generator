@@ -152,10 +152,9 @@
 
 "description-from-package": {
   "text": ["This component gets its description from the package it is located in.<br/>",
-           "This has several disadvantages, like missing localization, too technical descriptions for users of software centers, different components having the same description, etc.<br/>",
-           "Please consider writing a metainfo file for this component. In the near future, components without metainfo file might be dropped from the metadata entirely.",
-           "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write",
-           "a metainfo file."],
+           "This has several disadvantages, like poor markup, too technical descriptions for users of software centers, different components having the same description, etc.<br/>",
+           "Please consider writing a metainfo file for this component to take the long description upstream. In future, components without metainfo file might be dropped from the metadata entirely.",
+           "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write a metainfo file."],
   "severity": "info"
 },
 

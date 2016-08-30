@@ -235,12 +235,16 @@ public:
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
                 scope (exit) cpt.setActiveLocale ("C");
 
-                foreach (const string lang, const string desc; pkg.description) {
+                bool desc_from_pkg_hint_added = false;
+                foreach (ref lang, ref desc; pkg.description) {
                     cpt.setActiveLocale (lang);
 
                     if (cpt.getDescription ().empty) {
                         cpt.setDescription (desc, lang);
-                        addHint (cpt.getId (), "description-from-package");
+                        if (!desc_from_pkg_hint_added) {
+                            addHint (cpt, "description-from-package", ["locale": lang]);
+                            desc_from_pkg_hint_added = true;
+                        }
                     }
                 }
             }
