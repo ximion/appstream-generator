@@ -233,20 +233,20 @@ public:
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
                 auto flags = cpt.getValueFlags;
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
-                scope (exit) cpt.setActiveLocale ("C");
 
-                bool desc_from_pkg_hint_added = false;
-                foreach (ref lang, ref desc; pkg.description) {
-                    cpt.setActiveLocale (lang);
-
-                    if (cpt.getDescription ().empty) {
-                        cpt.setDescription (desc, lang);
-                        if (!desc_from_pkg_hint_added) {
-                            addHint (cpt, "description-from-package", ["locale": lang]);
-                            desc_from_pkg_hint_added = true;
-                        }
+                cpt.setActiveLocale ("C");
+                if (cpt.getDescription ().empty) {
+                    // component doesn't have a long description, add one from
+                    // the packaging.
+                    auto desc_added = false;
+                    foreach (ref lang, ref desc; pkg.description) {
+                            cpt.setDescription (desc, lang);
+                            desc_added = true;
                     }
+                    if (desc_added)
+                        addHint (cpt, "description-from-package");
                 }
+
             }
         }
     }
