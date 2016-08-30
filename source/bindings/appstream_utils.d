@@ -24,5 +24,7 @@ import gi.glibtypes;
 extern(C):
 nothrow:
 @nogc:
+@system:
 
 bool as_utils_is_tld (const char *tld) pure;
+bool as_utils_is_category_name (const char *category_name) pure;

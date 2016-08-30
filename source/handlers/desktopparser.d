@@ -21,7 +21,7 @@ module handlers.desktopparser;
 
 import std.path : baseName;
 import std.uni : toLower;
-import std.string : format, indexOf, chomp, lastIndexOf;
+import std.string : format, indexOf, chomp, lastIndexOf, toStringz;
 import std.array : split, empty;
 import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
@@ -88,8 +88,10 @@ private string getValue (KeyFile kf, string key)
  * Filter out some useless categories which we don't want to have in the
  * AppStream metadata.
  */
-private string[] filterCategories (string[] cats)
+private string[] filterCategories (string cid, GeneratorResult gres, const(string[]) cats)
 {
+    import bindings.appstream_utils;
+
     string[] rescats;
     foreach (string cat; cats) {
         switch (cat) {
@@ -101,14 +103,18 @@ private string[] filterCategories (string[] cats)
             case "Application":
                 break;
             default:
-                if (!cat.empty && !cat.toLower.startsWith ("x-"))
-                    rescats ~= cat;
+                if (!cat.empty && !cat.toLower.startsWith ("x-")) {
+                    if (as_utils_is_category_name (cat.toStringz))
+                        rescats ~= cat;
+                    else
+                        gres.addHint (cid, "category-name-invalid", ["category": cat]);
+                }
+
         }
     }
 
     return rescats;
 }
-
 
 Component parseDesktopFile (GeneratorResult gres, string fname, string data, bool ignore_nodisplay = false)
 {
@@ -185,17 +191,17 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             continue;
 
         if (key.startsWith ("Name")) {
-            auto val = getValue (df, key);
+            immutable val = getValue (df, key);
             checkDesktopString (key, val);
             cpt.setName (val, locale);
         } else if (key.startsWith ("Comment")) {
-            auto val = getValue (df, key);
+            immutable val = getValue (df, key);
             checkDesktopString (key, val);
             cpt.setSummary (val, locale);
         } else if (key == "Categories") {
             auto value = getValue (df, key);
-            string[] cats = value.split (";");
-            cats = filterCategories (cats);
+            auto cats = value.split (";");
+            cats = filterCategories (fnameBase, gres, cats);
             if (cats.empty)
                 continue;
 
@@ -203,7 +209,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
                 cpt.addCategory (c);
         } else if (key.startsWith ("Keywords")) {
             auto value = getValue (df, key);
-            string[] kws = value.split (";");
+            auto kws = value.split (";");
             kws = kws.stripRight ("");
             if (kws.empty)
                 continue;
@@ -211,7 +217,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             cpt.setKeywords (kws, locale);
         } else if (key == "MimeType") {
             auto value = getValue (df, key);
-            string[] mts = value.split (";");
+            immutable mts = value.split (";");
             if (mts.empty)
                 continue;
 
@@ -221,7 +227,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
                 prov.setKind (ProvidedKind.MIMETYPE);
             }
 
-            foreach (string mt; mts) {
+            foreach (ref mt; mts) {
                 if (!mt.empty)
                     prov.addItem (mt);
             }

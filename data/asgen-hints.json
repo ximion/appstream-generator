@@ -163,6 +163,11 @@
   "text": ["Could not create the final metadata. This could have many causes, including a generator bug, but the likeliest cause is an error in the input metadata.<br/>",
            "The error message was: {{msg}}"],
   "severity": "error"
+},
+
+"category-name-invalid": {
+  "text": ["The category name {{category}} is invalid. The software can not be shown in this category."],
+  "severity": "warning"
 }
 
 }
