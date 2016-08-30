@@ -30,6 +30,13 @@ import result;
 import utils;
 
 
+private bool isMetainfoLicense (string license) pure
+{
+    import bindings.appstream_utils;
+    import std.string : toStringz;
+    return as_license_is_metadata_license (license.toStringz);
+}
+
 Component parseMetaInfoFile (GeneratorResult res, string data)
 {
     auto mdata = new Metadata ();
@@ -47,6 +54,12 @@ Component parseMetaInfoFile (GeneratorResult res, string data)
     if (cpt is null)
         return null;
     res.addComponent (cpt);
+
+    // check if we can actually legally use this metadata
+    if (!isMetainfoLicense (cpt.getMetadataLicense())) {
+        res.addHint (cpt, "metainfo-license-invalid", ["license": cpt.getMetadataLicense()]);
+        return null;
+    }
 
     return cpt;
 }

@@ -167,6 +167,13 @@
 "category-name-invalid": {
   "text": ["The category name {{category}} is invalid. The software can not be shown in this category."],
   "severity": "warning"
+},
+
+"metainfo-license-invalid": {
+  "text": ["The metainfo file does not seem to be licensed under a permissive license. Valid permissive licenses include FSFAP, CC0-1.0 or MIT.",
+           "Permissive licenses are required to allow distributors to include the metadata in mixed data collections without the risk of license violations due to mutually incompatible licenses.",
+           "If you think this message is an error and '{{license}}' is actually valid, please <a href=\"https://github.com/ximion/appstream/issues\">file a bug against AppStream</a>."],
+  "severity": "error"
 }
 
 }
