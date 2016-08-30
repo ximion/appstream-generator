@@ -99,6 +99,8 @@ public:
             gres.updateComponentGCID (cpt, pkg.ver);
 
             auto dfp = (cid in desktopFiles);
+            if (dfp is null)
+                dfp = (cid ~ ".desktop" in desktopFiles);
             if (dfp is null) {
                 // no .desktop file was found
                 // finalize GCID checksum and continue
