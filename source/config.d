@@ -32,7 +32,7 @@ import utils : existsAndIsDir, randomString;
 import logging;
 
 
-public immutable generatorVersion = "0.5";
+public immutable generatorVersion = "0.6";
 
 /**
  * Describes a suite in a software repository.

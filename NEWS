@@ -22,7 +22,6 @@ Features:
  * Adjust for AppStream 0.10 release (Matthias Klumpp)
  * Perform legal checks before allowing metadata to be added to the pool (Matthias Klumpp)
 
-
 Bugfixes:
  * Fix dataUseJSTime in section overview template (Blake Kostner)
  * debian: Only retrieve DDTP translations from the section we're looking at (Iain Lane)
