@@ -1,3 +1,40 @@
+Version 0.5.0
+~~~~~~~~~~~~~~
+Released: 2016-08-30
+
+Features:
+ * Add more speed and style optimizations, make Package an abstract class (Matthias Klumpp)
+ * Use a string appender instead of a string array for writing output (Matthias Klumpp)
+ * debian: Support downloading files from a mirror, instead of having them local (Iain Lane)
+ * debian: Support DDTP translations (Iain Lane)
+ * Ignore some more useless categories (Matthias Klumpp)
+ * Add skeleton for RPMMD (Matthias Klumpp)
+ * Add a few optimizations using immutable and appender (Matthias Klumpp)
+ * Do not spawn compressors anymore, use libarchive directly (Matthias Klumpp)
+ * Make compiling with LDC easier (Matthias Klumpp)
+ * Add example for cruft collection script (Matthias Klumpp)
+ * Allow cleaning up statistical data retroactively (Matthias Klumpp)
+ * Rehash hash tables that we query often (Matthias Klumpp)
+ * Always optimize debug builds (Matthias Klumpp)
+ * Make a splitbuild with Meson and Ninja possible (Matthias Klumpp)
+ * Use AppStream's knowledge about TLDs to build smarter global-component-ids (Matthias Klumpp)
+ * Allow specifying the format version metadata should be built for (Matthias Klumpp)
+ * Adjust for AppStream 0.10 release (Matthias Klumpp)
+ * Perform legal checks before allowing metadata to be added to the pool (Matthias Klumpp)
+
+
+Bugfixes:
+ * Fix dataUseJSTime in section overview template (Blake Kostner)
+ * debian: Only retrieve DDTP translations from the section we're looking at (Iain Lane)
+ * Fix deprecation warnings from LDC (Matthias Klumpp)
+ * Work around some weird JSON parser quirk (int incompatible with uint) (Matthias Klumpp)
+ * Prevent creating excess statistic entries (Matthias Klumpp)
+ * Fix potential crash (Matthias Klumpp)
+ * Use native generator when not compiling with GDC (Matthias Klumpp)
+ * Work correctly if CIDs omit the .desktop suffix (Matthias Klumpp)
+ * Only add valid category names to output (Matthias Klumpp)
+ * Don't emit description-from-package multiple times per package. (Matthias Klumpp)
+
 Version 0.4.0
 ~~~~~~~~~~~~~~
 Released: 2016-07-12
