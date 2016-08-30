@@ -19,7 +19,7 @@
 
 module bindings.appstream_utils;
 
-import gi.glibtypes;
+import gi.appstreamtypes;
 
 extern(C):
 nothrow:
@@ -28,3 +28,6 @@ nothrow:
 
 bool as_utils_is_tld (const char *tld) pure;
 bool as_utils_is_category_name (const char *category_name) pure;
+
+const(char) *as_format_version_to_string (FormatVersion ver) pure;
+FormatVersion as_format_version_from_string (const char *version_str) pure;

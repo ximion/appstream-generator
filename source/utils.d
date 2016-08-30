@@ -109,6 +109,19 @@ bool localeValid (string locale) pure
 }
 
 /**
+ * Check if the given string is a top-level domain name.
+ * The TLD list of AppStream is incomplete, but it will
+ * cover 99% of all cases.
+ * (in a short check on Debian, it covered all TLDs in use there)
+ */
+@trusted
+bool isTopLevelDomain (const string value) pure
+{
+    import bindings.appstream_utils;
+    return as_utils_is_tld (value.toStringz);
+}
+
+/**
  * Build a global component ID.
  *
  * The global-id is used as a global, unique identifier for this component.
@@ -118,11 +131,9 @@ bool localeValid (string locale) pure
  **/
 @trusted
 string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false) pure
-in { assert (cid.length > 2 ); }
+in { assert (cid.length >= 2); }
 body
 {
-    import bindings.appstream_utils;
-
     if (cid is null)
         return null;
     if ((!allowNoChecksum) && (checksum is null))
@@ -136,7 +147,7 @@ body
     immutable parts = cid.split (".");
     if (parts.length > 2) {
         // check if we have a valid TLD. If so, use the reverse-domain-name splitting.
-        if (as_utils_is_tld (parts[0].toStringz))
+        if (isTopLevelDomain (parts[0]))
             reverseDomainSplit = true;
     }
 
@@ -160,7 +171,7 @@ string getCidFromGlobalID (string gcid) pure
     auto parts = gcid.split ("/");
     if (parts.length != 4)
         return null;
-    if (as_utils_is_tld (parts[0].toStringz)) {
+    if (isTopLevelDomain (parts[0])) {
         return join (parts[0..3], ".");
     }
 

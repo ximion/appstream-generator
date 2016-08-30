@@ -128,17 +128,25 @@ public:
     /**
      * Add an issue hint to this result.
      * Params:
-     *      cid    = The component-id this tag is assigned to.
+     *      id = The component-id or component itself this tag is assigned to.
      *      tag    = The hint tag.
      *      params = Dictionary of parameters to insert into the issue report.
      **/
-    @safe
-    void addHint (string cid, string tag, string[string] params)
+    @trusted
+    void addHint (T) (T id, string tag, string[string] params)
+        if (is(T == string) || is(T == Component) || is(T == typeof(null)))
     {
+        static if (is(T == string)) {
+            immutable cid = id;
+        } else {
+            static if (is(T == typeof(null)))
+                immutable cid = "general";
+            else
+                immutable cid = id.getId ();
+        }
+
         auto hint = new GeneratorHint (tag, cid);
         hint.setVars (params);
-        if (cid is null)
-            cid = "general";
         hints[cid] ~= hint;
 
         // we stop dealing with this component when we encounter a fatal
@@ -150,17 +158,17 @@ public:
     /**
      * Add an issue hint to this result.
      * Params:
-     *      cid = The component-id this tag is assigned to.
+     *      id = The component-id or component itself this tag is assigned to.
      *      tag = The hint tag.
      *      msg = An error message to add to the report.
      **/
     @safe
-    void addHint (string cid, string tag, string msg = null)
+    void addHint (T) (T id, string tag, string msg = null)
     {
         string[string] vars;
         if (msg !is null)
             vars = ["msg": msg];
-        addHint (cid, tag, vars);
+        addHint (id, tag, vars);
     }
 
     /**

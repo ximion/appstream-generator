@@ -177,6 +177,8 @@ public:
 
                     auto mdata = new Metadata ();
                     mdata.setParserMode (ParserMode.COLLECTION);
+                    mdata.setFormatVersion (conf.formatVersion);
+
                     if (dtype == DataType.YAML)
                         mdata.parse (existingMData, DataFormat.YAML);
                     else

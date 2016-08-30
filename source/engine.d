@@ -232,7 +232,7 @@ public:
 
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-            head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.appstreamVersion, origin);
+            head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.formatVersionStr, origin);
             if (suite.dataPriority != 0)
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
             if (!conf.mediaBaseUrl.empty ())
@@ -245,7 +245,7 @@ public:
             head ~= format ("File: DEP-11\n"
                            "Version: '%s'\n"
                            "Origin: %s",
-                           conf.appstreamVersion,
+                           conf.formatVersionStr,
                            origin);
             if (!conf.mediaBaseUrl.empty ())
                 head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);

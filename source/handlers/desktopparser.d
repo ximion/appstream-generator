@@ -33,6 +33,7 @@ static import std.regex;
 
 import result;
 import utils;
+import config : Config, FormatVersion;
 
 
 immutable DESKTOP_GROUP = "Desktop Entry";
@@ -88,7 +89,7 @@ private string getValue (KeyFile kf, string key)
  * Filter out some useless categories which we don't want to have in the
  * AppStream metadata.
  */
-private string[] filterCategories (string cid, GeneratorResult gres, const(string[]) cats)
+private string[] filterCategories (Component cpt, GeneratorResult gres, const(string[]) cats)
 {
     import bindings.appstream_utils;
 
@@ -107,7 +108,7 @@ private string[] filterCategories (string cid, GeneratorResult gres, const(strin
                     if (as_utils_is_category_name (cat.toStringz))
                         rescats ~= cat;
                     else
-                        gres.addHint (cid, "category-name-invalid", ["category": cat]);
+                        gres.addHint (cpt, "category-name-invalid", ["category": cat]);
                 }
 
         }
@@ -169,7 +170,17 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     auto cpt = gres.getComponent (fnameBase);
     if (cpt is null) {
         cpt = new Component ();
-        cpt.setId (fnameBase);
+        // strip .desktop suffix if the reverse-domain-name scheme is followed and we build for
+        // a high AppStream version.
+        if (Config.get ().formatVersion >= FormatVersion.V0_10) {
+            immutable parts = fnameBase.split (".");
+            if (isTopLevelDomain (parts[0]))
+                cpt.setId (fnameBase[0..$-8]);
+            else
+                cpt.setId (fnameBase);
+        } else {
+            cpt.setId (fnameBase);
+        }
         cpt.setKind (ComponentKind.DESKTOP_APP);
         gres.addComponent (cpt);
     }
@@ -178,7 +189,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     {
         if (((str.startsWith ("\"")) && (str.endsWith ("\""))) ||
             ((str.startsWith ("\'")) && (str.endsWith ("\'")))) {
-                gres.addHint (fnameBase, "metainfo-quoted-value", ["value": str, "field": fieldId]);
+                gres.addHint (cpt, "metainfo-quoted-value", ["value": str, "field": fieldId]);
             }
     }
 
@@ -201,7 +212,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         } else if (key == "Categories") {
             auto value = getValue (df, key);
             auto cats = value.split (";");
-            cats = filterCategories (fnameBase, gres, cats);
+            cats = filterCategories (cpt, gres, cats);
             if (cats.empty)
                 continue;
 
@@ -276,4 +287,22 @@ Keywords[de_DE]=Goethe;Schiller;Kant;
     cpt.setActiveLocale ("de_DE");
     assert (cpt.getName () == "FööBär");
     assert (cpt.getKeywords () == ["Goethe", "Schiller", "Kant"]);
+
+    // test component-id trimming
+    res = new GeneratorResult (pkg);
+    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
+    assert (cpt !is null);
+
+    cpt = res.getComponent ("org.example.foobar");
+    assert (cpt !is null);
+
+    // legacy
+    Config.get ().formatVersion = FormatVersion.V0_8;
+    res = new GeneratorResult (pkg);
+    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
+    assert (cpt !is null);
+
+    cpt = res.getComponent ("org.example.foobar.desktop");
+    assert (cpt !is null);
+    Config.get ().formatVersion = FormatVersion.V0_10;
 }

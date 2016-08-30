@@ -62,7 +62,7 @@ immutable (string) downloadIfNecessary (const string prefix,
 
                 return destFileName;
             } catch (CurlException ex) {
-                logDebug ("Couldn't download: %s", ex.msg);
+                logDebug ("Could not download: %s", ex.msg);
             }
         } else {
             if (std.file.exists (fileName))
@@ -71,6 +71,6 @@ immutable (string) downloadIfNecessary (const string prefix,
     }
 
     /* all extensions failed, so we failed */
-    throw new Exception (format ("Couldn't obtain any file matching %s",
+    throw new Exception (format ("Could not obtain any file matching %s",
                          buildPath (prefix, suffix)));
 }

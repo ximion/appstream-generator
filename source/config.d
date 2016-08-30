@@ -26,6 +26,8 @@ import std.json;
 import std.typecons;
 static import std.file;
 
+public import gi.appstreamtypes : FormatVersion;
+
 import utils : existsAndIsDir, randomString;
 import logging;
 
@@ -81,7 +83,7 @@ enum GeneratorFeature
 
 class Config
 {
-    immutable string appstreamVersion;
+    FormatVersion formatVersion;
     string projectName;
     string archiveRoot;
     string mediaBaseUrl;
@@ -118,26 +120,38 @@ class Config
     }
 
     private this () {
-        appstreamVersion = "0.8";
+        formatVersion = FormatVersion.V0_10;
     }
 
     @property
-    const string databaseDir () {
+    string formatVersionStr ()
+    {
+        import bindings.appstream_utils;
+        import std.string : fromStringz;
+        return fromStringz (as_format_version_to_string (formatVersion));
+    }
+
+    @property
+    const string databaseDir ()
+    {
         return buildPath (workspaceDir, "db");
     }
 
     @property
-    const string cacheRootDir () {
+    const string cacheRootDir ()
+    {
         return buildPath (workspaceDir, "cache");
     }
 
     @property
-    const string exportDir () {
+    const string exportDir ()
+    {
         return buildPath (workspaceDir, "export");
     }
 
     @property
-    const string mediaExportDir () {
+    const string mediaExportDir ()
+    {
         return buildPath (exportDir, "media");
     }
 
@@ -237,6 +251,17 @@ class Config
 
         if ("CAInfo" in root)
             this.caInfo = root["CAInfo"].str;
+
+        // allow specifying the AppStream format version we build data for.
+        if ("FormatVersion" in root) {
+            immutable versionStr = root["FormatVersion"].str;
+            if (versionStr == "0.8")
+                formatVersion = FormatVersion.V0_8;
+            else if (versionStr == "0.9")
+                formatVersion = FormatVersion.V0_9;
+            else if (versionStr == "0.10")
+                formatVersion = FormatVersion.V0_10;
+        }
 
         // we default to the Debian backend for now
         auto backendName = "debian";

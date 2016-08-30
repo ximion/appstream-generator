@@ -83,11 +83,11 @@ public:
                 ret[match[1]] = true;
             }
         } catch (Exception ex) {
-            logWarning ("Couldn't download %s, will assume 'en' is available.", inRelease);
+            logWarning ("Could not get %s, will assume 'en' is available.", inRelease);
             return ["en"];
         }
 
-        return cast (immutable) ret.keys;
+        return cast(immutable) ret.keys;
     }
 
     private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)

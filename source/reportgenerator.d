@@ -442,6 +442,7 @@ public:
         auto dtype = conf.metadataType;
         auto mdata = new Metadata ();
         mdata.setParserMode (ParserMode.COLLECTION);
+        mdata.setFormatVersion (conf.formatVersion);
 
         foreach (ref pkg; pkgs) {
             immutable pkid = pkg.id;
