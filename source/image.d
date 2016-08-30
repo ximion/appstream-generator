@@ -331,9 +331,10 @@ unittest
 {
     import std.file : getcwd;
     import std.path : buildPath;
+    import utils : getTestSamplesDir;
     writeln ("TEST: ", "Image");
 
-    auto sampleImgPath = buildPath (getcwd(), "test", "samples", "appstream-logo.png");
+    auto sampleImgPath = buildPath (getTestSamplesDir (), "appstream-logo.png");
     writeln ("Loading image (file)");
     auto img = new Image (sampleImgPath);
 
@@ -362,7 +363,7 @@ unittest
     img.savePng ("/tmp/ag-iscale-d_test.png");
 
     writeln ("Rendering SVG");
-    auto sampleSvgPath = buildPath (getcwd(), "test", "samples", "table.svgz");
+    auto sampleSvgPath = buildPath (getTestSamplesDir (), "table.svgz");
     data = null;
     f = File (sampleSvgPath, "r");
     while (!f.eof) {
@@ -376,7 +377,7 @@ unittest
 
     writeln ("--toy: Test font rendering.");
     cv = new Canvas (400, 100);
-    cv.writeText (buildPath (getcwd(), "test", "samples", "NotoSans-Regular.ttf"),
+    cv.writeText (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"),
                   "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
     cv.savePng ("/tmp/ag-fontrender_test1.png");
 }

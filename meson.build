@@ -3,6 +3,7 @@ project('AppStream Generator', 'd')
 
 asgen_sources = ['source/app.d',
     'source/zarchive.d',
+    'source/bindings/appstream_utils.d',
     'source/bindings/cairo.d',
     'source/bindings/freetype.d',
     'source/bindings/gdkpixbuf.d',

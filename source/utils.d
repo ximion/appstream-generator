@@ -27,7 +27,7 @@ import std.random : randomSample;
 import std.range : chain;
 import std.algorithm : startsWith;
 import std.array : appender;
-import std.path : buildPath, dirName;
+import std.path : buildPath, dirName, buildNormalizedPath;
 static import std.file;
 
 import logging;
@@ -117,27 +117,36 @@ bool localeValid (string locale) pure
  * associated with this component.
  **/
 @trusted
-string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = false) pure
+string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false) pure
+in { assert (cid.length > 2 ); }
+body
 {
-    if (cptid is null)
+    import bindings.appstream_utils;
+
+    if (cid is null)
         return null;
     if ((!allowNoChecksum) && (checksum is null))
             return null;
     if (checksum is null)
         checksum = "";
 
-    string gid;
-    string[] parts = null;
-    if (startsWith (cptid, "org.", "net.", "com.", "io.", "edu.", "name.")) {
-        parts = cptid.split (".");
+    // check whether we can build the gcid by using the reverse domain name,
+    // or whether we should use the simple standard splitter.
+    auto reverseDomainSplit = false;
+    immutable parts = cid.split (".");
+    if (parts.length > 2) {
+        // check if we have a valid TLD. If so, use the reverse-domain-name splitting.
+        if (as_utils_is_tld (parts[0].toStringz))
+            reverseDomainSplit = true;
     }
 
-    if ((parts !is null) && (parts.length > 2))
-        gid = format ("%s/%s/%s/%s", parts[0].toLower(), parts[1], join (parts[2..$], "."), checksum);
+    string gcid;
+    if (reverseDomainSplit)
+        gcid = "%s/%s/%s/%s".format (parts[0].toLower(), parts[1], join (parts[2..$], "."), checksum);
     else
-        gid = format ("%s/%s/%s/%s", cptid[0].toLower(), cptid[0..2].toLower(), cptid, checksum);
+        gcid = "%s/%s/%s/%s".format (cid[0].toLower(), cid[0..2].toLower(), cid, checksum);
 
-    return gid;
+    return gcid;
 }
 
 /**
@@ -146,10 +155,12 @@ string buildCptGlobalID (string cptid, string checksum, bool allowNoChecksum = f
 @trusted
 string getCidFromGlobalID (string gcid) pure
 {
+    import bindings.appstream_utils;
+
     auto parts = gcid.split ("/");
     if (parts.length != 4)
         return null;
-    if (startsWith (parts[0], "org", "net", "com", "io", "edu.", "name")) {
+    if (as_utils_is_tld (parts[0].toStringz)) {
         return join (parts[0..3], ".");
     }
 
@@ -444,7 +455,13 @@ string
 getTestSamplesDir () @trusted
 {
     import std.path : getcwd;
-    return buildPath (getcwd (), "test", "samples");
+
+    auto path = buildPath (getcwd (), "test", "samples");
+    if (std.file.exists (path))
+        return path;
+    path = buildNormalizedPath (getcwd (), "..", "test", "samples");
+
+    return path;
 }
 
 unittest
