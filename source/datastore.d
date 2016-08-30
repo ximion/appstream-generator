@@ -336,9 +336,9 @@ public:
             string data;
             try {
                 if (dtype == DataType.XML) {
-                    data = mdata.componentsToCollection (DataFormat.XML);
+                    data = mdata.componentsToCollection (FormatKind.XML);
                 } else {
-                    data = mdata.componentsToCollection (DataFormat.YAML);
+                    data = mdata.componentsToCollection (FormatKind.YAML);
                 }
             } catch (Exception e) {
                 gres.addHint (cpt.getId (), "metadata-serialization-failed", e.msg);

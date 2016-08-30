@@ -441,7 +441,7 @@ public:
 
         auto dtype = conf.metadataType;
         auto mdata = new Metadata ();
-        mdata.setParserMode (ParserMode.COLLECTION);
+        mdata.setFormatStyle (FormatStyle.COLLECTION);
         mdata.setFormatVersion (conf.formatVersion);
 
         foreach (ref pkg; pkgs) {
@@ -494,9 +494,9 @@ public:
 
                     mdata.clearComponents ();
                     if (dtype == DataType.YAML)
-                        mdata.parse (me.data, DataFormat.YAML);
+                        mdata.parse (me.data, FormatKind.YAML);
                     else
-                        mdata.parse (me.data, DataFormat.XML);
+                        mdata.parse (me.data, FormatKind.XML);
                     auto cpt = mdata.getComponent ();
 
                     if (cpt !is null) {
