@@ -41,6 +41,11 @@ enum ArchiveType
     XZ
 }
 
+private const(char)[] getArchiveErrorMessage (archive *ar)
+{
+    return fromStringz (archive_error_string (ar));
+}
+
 private string readArchiveData (archive *ar, string name = null)
 {
     archive_entry *ae;
@@ -57,18 +62,18 @@ private string readArchiveData (archive *ar, string name = null)
 
     if (ret != ARCHIVE_OK) {
         if (name is null)
-            throw new Exception (format ("Unable to read header of compressed data."));
+            throw new Exception (format ("Unable to read header of compressed data: %s", getArchiveErrorMessage (ar)));
         else
-            throw new Exception (format ("Unable to read header of compressed file '%s'", name));
+            throw new Exception (format ("Unable to read header of compressed file '%s': %s", name, getArchiveErrorMessage (ar)));
     }
 
     while (true) {
         size = archive_read_data (ar, cast(void*) buff, BUFFER_SIZE);
         if (size < 0) {
             if (name is null)
-                throw new Exception (format ("Failed to read compressed data."));
+                throw new Exception (format ("Failed to read compressed data: %s", getArchiveErrorMessage (ar)));
             else
-                throw new Exception (format ("Failed to read data from '%s'", name));
+                throw new Exception (format ("Failed to read data from '%s': %s", name, getArchiveErrorMessage (ar)));
         }
 
         if (size == 0)
@@ -93,7 +98,7 @@ string decompressFile (string fname)
 
     ret = archive_read_open_filename (ar, toStringz (fname), 16384);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open compressed file '%s': %s", fname, fromStringz (archive_error_string (ar))));
+        throw new Exception (format ("Unable to open compressed file '%s': %s", fname, getArchiveErrorMessage (ar)));
 
     return readArchiveData (ar, fname);
 }
@@ -112,7 +117,7 @@ string decompressData (ubyte[] data)
     auto dSize = ubyte.sizeof * data.length;
     ret = archive_read_open_memory (ar, cast(void*) data, dSize);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open compressed data."));
+        throw new Exception (format ("Unable to open compressed data: %s", getArchiveErrorMessage (ar)));
 
     return readArchiveData (ar);
 }
@@ -177,7 +182,9 @@ private:
 
         auto ret = archive_read_open_filename (ar, archive_fname.toStringz (), DEFAULT_BLOCK_SIZE);
         if (ret != ARCHIVE_OK)
-            throw new Exception (format ("Unable to open compressed file '%s'", archive_fname));
+            throw new Exception (format ("Unable to open compressed file '%s': %s",
+                                 archive_fname,
+                                 getArchiveErrorMessage (ar)));
 
         return ar;
     }
@@ -434,7 +441,7 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
 
     auto ret = archive_write_open_filename (ar, fname.toStringz);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open file '%s': %s", fname, fromStringz (archive_error_string (ar))));
+        throw new Exception (format ("Unable to open file '%s': %s", fname, getArchiveErrorMessage (ar)));
 
     archive_entry *entry;
     entry = archive_entry_new ();
@@ -484,7 +491,7 @@ public:
         archiveFname = fname;
         auto ret = archive_write_open_filename (ar, toStringz (fname));
         if (ret != ARCHIVE_OK)
-            throw new Exception (format ("Unable to open file '%s'", fname));
+            throw new Exception (format ("Unable to open file '%s'", fname, getArchiveErrorMessage (ar)));
         closed = false;
     }
 
