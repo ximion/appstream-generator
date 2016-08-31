@@ -377,6 +377,10 @@ curl_dep      = dependency('libcurl')
 if meson.get_compiler('d').get_id() == 'gcc'
     add_global_arguments('-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', language : 'd')
 endif
+if meson.get_compiler('d').get_id() == 'llvm'
+    # work around: https://github.com/ldc-developers/ldc/issues/1727
+    add_global_arguments('-enable-cross-module-inlining=false', language : 'd')
+endif
 
 # A couple of hacks to use the right copy of mustache-d
 mustache_d_file = '/usr/include/d/mustache-d/src/mustache.d'
