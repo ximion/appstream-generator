@@ -687,14 +687,14 @@ public:
             size_t xv;
             size_t yv;
             if (x.array[0].type == JSON_TYPE.UINTEGER)
-                xv = x.array[0].uinteger;
+                xv = to!size_t (x.array[0].uinteger);
             else
-                xv = x.array[0].integer;
+                xv = to!size_t (x.array[0].integer);
 
             if (y.array[0].type == JSON_TYPE.UINTEGER)
-                yv = y.array[0].uinteger;
+                yv = to!size_t (y.array[0].uinteger);
             else
-                yv = y.array[0].integer;
+                yv = to!size_t (y.array[0].integer);
 
             return xv < yv;
         }

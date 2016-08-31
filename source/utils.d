@@ -370,13 +370,13 @@ body
             auto downloader = HTTP (url);
             downloader.connectTimeout = dur!"seconds" (30);
             downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (dest, data);
+            downloader.onReceive = ((data) => onReceiveCb (dest, data));
             downloader.perform();
         } else {
             auto downloader = FTP (url);
             downloader.connectTimeout = dur!"seconds" (30);
             downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (dest, data);
+            downloader.onReceive = ((data) => onReceiveCb (dest, data));
             downloader.perform();
         }
         logDebug ("Downloaded %s", url);
