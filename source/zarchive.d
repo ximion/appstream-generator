@@ -595,8 +595,9 @@ unittest
     writeln ("TEST: ", "Extracting a tarball");
 
     import std.file : buildPath, tempDir;
+    import utils : getTestSamplesDir;
 
-    auto archive = buildPath (getcwd (), "test", "samples", "test.tar.xz");
+    auto archive = buildPath (getTestSamplesDir (), "test.tar.xz");
     assert (archive.exists);
     auto ar = new ArchiveDecompressor ();
 
