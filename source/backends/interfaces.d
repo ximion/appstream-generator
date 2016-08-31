@@ -66,7 +66,7 @@ abstract class Package
     /**
      * Retrieve backend-specific translations.
      */
-    string[string] processDesktopFile (KeyFile desktopFile, const string text) { return null; }
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
 
     /**
      * Close the package. This function is called when we will

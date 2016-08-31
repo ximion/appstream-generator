@@ -47,7 +47,7 @@ class UbuntuPackage : DebPackage
         super (pname, pver, parch);
     }
 
-    override string[string] processDesktopFile (KeyFile desktopFile, const string text)
+    override string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
     {
         string langpackdomain;
 

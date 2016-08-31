@@ -202,14 +202,14 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
             /* run backend specific hooks */
-            auto translations = gres.pkg.processDesktopFile (df, val);
+            auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
             foreach (key, value; translations)
                 cpt.setName (value, key);
         } else if (key.startsWith ("Comment")) {
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
-            auto translations = gres.pkg.processDesktopFile (df, val);
+            auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
             foreach (key, value; translations)
                 cpt.setSummary (value, key);
@@ -224,7 +224,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
                 cpt.addCategory (c);
         } else if (key.startsWith ("Keywords")) {
             auto val = getValue (df, key);
-            auto translations = gres.pkg.processDesktopFile (df, val);
+            auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
             foreach (key, value; translations) {
                 auto kws = value.split (";").stripRight ("");
