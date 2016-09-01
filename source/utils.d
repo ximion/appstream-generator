@@ -411,21 +411,21 @@ string[] getFileContents (const string path, const uint retryCount = 5) @trusted
 
     size_t sz = 0;
 
-    auto f = open_memstream (&ptr, &sz);
-    scope (exit) fclose (f);
-
-    auto file = File.wrapFile (f);
-
     if (path.isRemote) {
-        download (path, file, retryCount);
+        {
+            auto f = open_memstream (&ptr, &sz);
+            scope (exit) fclose (f);
+            auto file = File.wrapFile (f);
+            download (path, file, retryCount);
+        }
+
+        return to!string (ptr.fromStringz).splitLines;
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
 
         return std.file.readText (path).splitLines;
     }
-
-    return to!string (ptr.fromStringz).splitLines;
 }
 
 /**
