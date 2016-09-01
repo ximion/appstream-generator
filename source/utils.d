@@ -347,14 +347,10 @@ bool isRemote (const string uri)
 }
 
 private void download (const string url, ref File dest, const uint retryCount = 5) @trusted
-in
-{
-    assert (url.isRemote);
-}
+in { assert (url.isRemote); }
 body
 {
     import core.time;
-
     import std.net.curl : CurlTimeoutException, HTTP, FTP;
 
     ulong onReceiveCb (File f, ubyte[] data)
