@@ -94,6 +94,8 @@ public:
     {
         immutable langs = findTranslations (suite, section);
 
+        logDebug ("Found translations for: %s", langs.join(", "));
+
         foreach (const ref lang; langs) {
             string fname;
 
@@ -117,7 +119,6 @@ public:
             auto tagf = new TagFile ();
             tagf.open (fname);
 
-            logDebug ("Opened: %s", fname);
             do {
                 auto pkgname = tagf.readField ("Package");
                 auto rawDesc  = tagf.readField ("Description-%s".format (lang));
