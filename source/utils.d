@@ -353,7 +353,7 @@ body
     import core.time;
     import std.net.curl : CurlTimeoutException, HTTP, FTP;
 
-    ulong onReceiveCb (File f, ubyte[] data)
+    size_t onReceiveCb (File f, ubyte[] data)
     {
         f.rawWrite (data);
         return data.length;
