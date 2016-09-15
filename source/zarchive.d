@@ -19,11 +19,11 @@
 
 import std.stdio;
 import std.string;
-import std.file;
 import std.regex;
 import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
+static import std.file;
 import logging;
 
 version (GNU)
@@ -35,7 +35,7 @@ version (unittest) {
     version (GNU) {
         extern(C) char *mkdtemp (char *) nothrow @nogc;
     } else {
-        import core.sys.posix.stdlib;
+        import core.sys.posix.stdlib : mkdtemp;
     }
 }
 
@@ -256,11 +256,7 @@ public:
     }
 
     void extractArchive (const string dest)
-    in
-    {
-        import std.file : isDir;
-        assert (dest.isDir);
-    }
+    in { assert (std.file.isDir (dest)); }
     body
     {
         import std.path;
@@ -274,8 +270,8 @@ public:
             auto pathname = buildPath (dest, archive_entry_pathname (en).fromStringz);
             /* at the moment we only handle directories and files */
             if (archive_entry_filetype (en) == AE_IFDIR) {
-                if (!pathname.exists)
-                    pathname.mkdir;
+                if (!std.file.exists (pathname))
+                    std.file.mkdir (pathname);
                 continue;
             }
 
@@ -598,7 +594,7 @@ unittest
     import utils : getTestSamplesDir;
 
     auto archive = buildPath (getTestSamplesDir (), "test.tar.xz");
-    assert (archive.exists);
+    assert (std.file.exists (archive));
     auto ar = new ArchiveDecompressor ();
 
     auto tmpdir = buildPath (tempDir, "asgenXXXXXX");
@@ -607,12 +603,12 @@ unittest
     ctmpdir[$ - 1] = '\0';
 
     tmpdir = to!string(mkdtemp (ctmpdir.ptr));
-    scope(exit) rmdirRecurse (tmpdir);
+    scope(exit) std.file.rmdirRecurse (tmpdir);
 
     ar.open (archive);
     ar.extractArchive (tmpdir);
 
     auto path = buildPath (tmpdir, "b", "a");
-    assert (path.exists);
-    assert (path.readText.chomp == "hello");
+    assert (std.file.exists (path));
+    assert (std.file.readText (path).chomp == "hello");
 }

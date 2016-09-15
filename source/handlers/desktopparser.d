@@ -211,7 +211,8 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             checkDesktopString (key, val);
             auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
-            foreach (key, value; translations)
+
+            foreach (ref key, ref value; translations)
                 cpt.setSummary (value, key);
         } else if (key == "Categories") {
             auto value = getValue (df, key);
@@ -226,7 +227,8 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             auto val = getValue (df, key);
             auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
-            foreach (key, value; translations) {
+
+            foreach (ref key, ref value; translations) {
                 auto kws = value.split (";").stripRight ("");
                 if (kws.empty)
                     continue;

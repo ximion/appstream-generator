@@ -39,10 +39,12 @@ import utils : escapeXml, getFileContents, isRemote;
 class DebianPackageIndex : PackageIndex
 {
 
-protected:
+private:
     string rootDir;
     Package[][string] pkgCache;
     bool[string] indexChanged;
+
+protected:
     string tmpDir;
 
 public:

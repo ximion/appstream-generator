@@ -36,7 +36,6 @@ abstract class Package
     @property string ver () const @safe pure;
     @property string arch () const @safe pure;
     @property string maintainer () const;
-    @property Package[] otherPackages;
 
     /**
      * A associative array containing package descriptions.
@@ -64,15 +63,17 @@ abstract class Package
     abstract const(ubyte)[] getFileData (string fname);
 
     /**
-     * Retrieve backend-specific translations.
-     */
-    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
-
-    /**
      * Close the package. This function is called when we will
      * no longer request any file data from this package.
      */
     abstract void close ();
+
+    /**
+     * Retrieve backend-specific translations.
+     *
+     * (currently only used by the Ubuntu backend)
+     */
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
 
     private string pkid;
     /**

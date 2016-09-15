@@ -48,7 +48,8 @@ class UbuntuPackage : DebPackage
         super (pname, pver, parch);
     }
 
-    override string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
+    override
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
     {
         string langpackdomain;
 
@@ -100,7 +101,7 @@ private:
                 if (!pkg.name.startsWith ("language-pack") || pkg.name in extracted)
                     continue;
 
-                UbuntuPackage upkg = to!UbuntuPackage (pkg);
+                auto upkg = to!UbuntuPackage (pkg);
 
                 logDebug ("Extracting %s", pkg.name);
                 upkg.extractPackage (langpackDir);
@@ -111,7 +112,6 @@ private:
             auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
 
             localeDir.mkdirRecurse ();
-
             foreach (locale; parallel (supportedd.dirEntries (SpanMode.shallow), 5))
             {
                     foreach (ref line; locale.readText.splitLines) {
@@ -133,7 +133,6 @@ private:
                             scope (exit) wait (pid);
                     }
             }
-
         }
 
         if (langpackLocales is null)

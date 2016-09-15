@@ -29,6 +29,9 @@ import std.container : Array, make;
 class UbuntuPackageIndex : DebianPackageIndex
 {
 
+private:
+    Array!Package allPackages;
+
 public:
     this (string dir)
     {
@@ -43,20 +46,18 @@ public:
         super (dir);
     }
 
-    override DebPackage newPackage (string name, string ver, string arch)
+    override
+    DebPackage newPackage (string name, string ver, string arch)
     {
         return new UbuntuPackage (name, ver, arch, tmpDir, allPackages);
     }
 
-    override Package[] packagesFor (string suite, string section, string arch)
+    override
+    Package[] packagesFor (string suite, string section, string arch)
     {
         auto pkgs = super.packagesFor (suite, section, arch);
 
         allPackages ~= pkgs;
-
         return pkgs;
     }
 }
-
-private:
-    Array!Package allPackages;

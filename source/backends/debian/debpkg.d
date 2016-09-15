@@ -35,7 +35,7 @@ import utils : isRemote, downloadFile;
 
 class DebPackage : Package
 {
-protected:
+private:
     string pkgname;
     string pkgver;
     string pkgarch;
@@ -130,7 +130,6 @@ public:
             mkdirRecurse (dest);
 
         auto pa = openPayloadArchive ();
-
         pa.extractArchive (dest);
     }
 
