@@ -31,19 +31,27 @@ asgen_sources = ['source/app.d',
 ]
 
 backend_sources = [
+    'source/backends/interfaces.d',
+
+    'source/backends/dummy/package.d',
+    'source/backends/dummy/dummypkg.d',
+    'source/backends/dummy/pkgindex.d',
+
+    'source/backends/archlinux/package.d',
     'source/backends/archlinux/alpkg.d',
     'source/backends/archlinux/alpkgindex.d',
     'source/backends/archlinux/listfile.d',
-    'source/backends/archlinux/package.d',
+
+    'source/backends/debian/package.d',
     'source/backends/debian/debpkg.d',
     'source/backends/debian/debpkgindex.d',
-    'source/backends/debian/package.d',
     'source/backends/debian/tagfile.d',
     'source/backends/debian/debutils.d',
-    'source/backends/dummy/dummypkg.d',
-    'source/backends/dummy/package.d',
-    'source/backends/dummy/pkgindex.d',
-    'source/backends/interfaces.d',
+
+    'source/backends/ubuntu/package.d',
+    'source/backends/ubuntu/ubupkg.d',
+    'source/backends/ubuntu/ubupkgindex.d',
+
     'source/backends/rpmmd/package.d',
     'source/backends/rpmmd/rpmpkg.d',
     'source/backends/rpmmd/rpmpkgindex.d',
