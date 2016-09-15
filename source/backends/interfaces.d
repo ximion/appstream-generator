@@ -19,6 +19,9 @@
 
 module backends.interfaces;
 
+import appstream.Component;
+import glib.KeyFile;
+
 import std.string;
 import std.container;
 public import datastore;
@@ -33,6 +36,7 @@ abstract class Package
     @property string ver () const @safe pure;
     @property string arch () const @safe pure;
     @property string maintainer () const;
+    @property Package[] otherPackages;
 
     /**
      * A associative array containing package descriptions.
@@ -58,6 +62,11 @@ abstract class Package
      * Obtain data for a specific file in the package.
      */
     abstract const(ubyte)[] getFileData (string fname);
+
+    /**
+     * Retrieve backend-specific translations.
+     */
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
 
     /**
      * Close the package. This function is called when we will

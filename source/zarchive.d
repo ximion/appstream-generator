@@ -31,6 +31,14 @@ version (GNU)
 else
 	import std.concurrency : Generator, yield;
 
+version (unittest) {
+    version (GNU) {
+        extern(C) char *mkdtemp (char *) nothrow @nogc;
+    } else {
+        import core.sys.posix.stdlib;
+    }
+}
+
 import bindings.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65536;
@@ -245,6 +253,36 @@ public:
         }
 
         return false;
+    }
+
+    void extractArchive (const string dest)
+    in
+    {
+        import std.file : isDir;
+        assert (dest.isDir);
+    }
+    body
+    {
+        import std.path;
+        archive *ar;
+        archive_entry *en;
+
+        ar = openArchive ();
+        scope(exit) archive_read_free (ar);
+
+        while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
+            auto pathname = buildPath (dest, archive_entry_pathname (en).fromStringz);
+            /* at the moment we only handle directories and files */
+            if (archive_entry_filetype (en) == AE_IFDIR) {
+                if (!pathname.exists)
+                    pathname.mkdir;
+                continue;
+            }
+
+            if (archive_entry_filetype (en) == AE_IFREG) {
+                this.extractEntryTo (ar, pathname);
+            }
+        }
     }
 
     const(ubyte)[] readData (string fname)
@@ -553,4 +591,28 @@ unittest
        0x00, 0x00,
     ];
     assert (decompressData (emptyGz) == "");
+
+    writeln ("TEST: ", "Extracting a tarball");
+
+    import std.file : buildPath, tempDir;
+    import utils : getTestSamplesDir;
+
+    auto archive = buildPath (getTestSamplesDir (), "test.tar.xz");
+    assert (archive.exists);
+    auto ar = new ArchiveDecompressor ();
+
+    auto tmpdir = buildPath (tempDir, "asgenXXXXXX");
+    auto ctmpdir = new char[](tmpdir.length + 1);
+    ctmpdir[0 .. tmpdir.length] = tmpdir[];
+    ctmpdir[$ - 1] = '\0';
+
+    tmpdir = to!string(mkdtemp (ctmpdir.ptr));
+    scope(exit) rmdirRecurse (tmpdir);
+
+    ar.open (archive);
+    ar.extractArchive (tmpdir);
+
+    auto path = buildPath (tmpdir, "b", "a");
+    assert (path.exists);
+    assert (path.readText.chomp == "hello");
 }

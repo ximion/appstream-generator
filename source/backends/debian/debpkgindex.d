@@ -39,7 +39,7 @@ import utils : escapeXml, getFileContents, isRemote;
 class DebianPackageIndex : PackageIndex
 {
 
-private:
+protected:
     string rootDir;
     Package[][string] pkgCache;
     bool[string] indexChanged;
@@ -176,6 +176,11 @@ public:
         return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
     }
 
+    protected DebPackage newPackage (string name, string ver, string arch)
+    {
+        return new DebPackage (name, ver, arch);
+    }
+
     private DebPackage[] loadPackages (string suite, string section, string arch)
     {
         auto indexFname = getIndexFile (suite, section, arch);
@@ -196,7 +201,7 @@ public:
             if (!name)
                 continue;
 
-            auto pkg = new DebPackage (name, ver, arch);
+            auto pkg = newPackage (name, ver, arch);
             pkg.filename = buildPath (rootDir, fname);
             pkg.maintainer = tagf.readField ("Maintainer");
 

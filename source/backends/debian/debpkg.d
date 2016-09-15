@@ -35,7 +35,7 @@ import utils : isRemote, downloadFile;
 
 class DebPackage : Package
 {
-private:
+protected:
     string pkgname;
     string pkgver;
     string pkgarch;
@@ -61,7 +61,7 @@ public:
     override
     @property string filename () const {
         if (debFname.isRemote) {
-            immutable path = buildPath (tmpDir, debFname.baseName);
+            immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
             downloadFile (debFname, path);
             return path;
         }
@@ -119,6 +119,19 @@ public:
 
         pa.open (dataArchive);
         return pa;
+    }
+
+    protected void extractPackage (const string dest = buildPath (tmpDir, name))
+    {
+        import std.file : exists;
+        import std.regex : ctRegex;
+
+        if (!dest.exists)
+            mkdirRecurse (dest);
+
+        auto pa = openPayloadArchive ();
+
+        pa.extractArchive (dest);
     }
 
     private auto openControlArchive ()
