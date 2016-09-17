@@ -503,9 +503,6 @@ public:
 
                 // log progress
                 logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
-
-                // free memory
-                gcCollect ();
             }
 
             // write reports & statistics and render HTML, if that option is selected
@@ -519,11 +516,13 @@ public:
             // that we can (mostly) free now - on some machines, the GC runs too late,
             // making the system run out of memory, which ultimately gets us OOM-killed.
             // we don't like that, and give the GC a hint to do the right thing.
+            pkgIndex.release ();
             gcCollect ();
         }
 
         // free some memory
         pkgIndex.release ();
+        gcCollect ();
 
         // render index pages & statistics
         reportgen.updateIndexPages ();
