@@ -24,7 +24,6 @@ import std.array : Appender, appender, empty;
 import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
-static import core.memory;
 static import std.file;
 import appstream.Component;
 
@@ -104,6 +103,13 @@ public:
     void forced (bool v)
     {
         m_forced = v;
+    }
+
+    private void gcCollect ()
+    {
+        static import core.memory;
+        logDebug ("Running GC collection");
+        core.memory.GC.collect ();
     }
 
     /**
@@ -499,7 +505,7 @@ public:
                 logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
 
                 // free memory
-                core.memory.GC.collect ();
+                gcCollect ();
             }
 
             // write reports & statistics and render HTML, if that option is selected
@@ -513,7 +519,7 @@ public:
             // that we can (mostly) free now - on some machines, the GC runs too late,
             // making the system run out of memory, which ultimately gets us OOM-killed.
             // we don't like that, and give the GC a hint to do the right thing.
-            core.memory.GC.collect ();
+            gcCollect ();
         }
 
         // free some memory
@@ -587,8 +593,15 @@ public:
                         }
                     }
                 }
+
+                // free some memory
+                pkgIndex.release ();
+                gcCollect ();
             }
         }
+
+        // release index resources
+        pkgIndex.release ();
 
         // open package contents cache
         auto cstore = new ContentsStore ();
@@ -598,6 +611,9 @@ public:
         pkgSet.rehash;
         cstore.removePackagesNotInSet (pkgSet);
         dstore.removePackagesNotInSet (pkgSet);
+
+        // enforce another GC cycle to free memory
+        gcCollect ();
 
         // remove orphaned data and media
         logInfo ("Cleaning up obsolete media.");
