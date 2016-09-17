@@ -581,7 +581,7 @@ public:
         if (std.file.exists (tmpDir))
             rmdirRecurse (tmpDir);
 
-        logInfo ("Cleaning up superseded data.");
+        logInfo ("Collecting information.");
         // build a set of all valid packages
         foreach (ref suite; conf.suites) {
             foreach (ref section; suite.sections) {
@@ -602,6 +602,8 @@ public:
 
         // release index resources
         pkgIndex.release ();
+
+        logInfo ("Cleaning up superseded data.");
 
         // open package contents cache
         auto cstore = new ContentsStore ();
