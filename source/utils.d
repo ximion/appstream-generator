@@ -352,7 +352,7 @@ in { assert (url.isRemote); }
 body
 {
     import core.time;
-    import std.net.curl : CurlTimeoutException, HTTP, FTP;
+    import std.net.curl : CurlException, HTTP, FTP;
 
     size_t onReceiveCb (File f, ubyte[] data)
     {
@@ -377,7 +377,7 @@ body
             downloader.perform();
         }
         logDebug ("Downloaded %s", url);
-    } catch (CurlTimeoutException e) {
+    } catch (CurlException e) {
         if (retryCount > 0) {
             logDebug ("Failed to download %s, will retry %d more %s",
                       url,

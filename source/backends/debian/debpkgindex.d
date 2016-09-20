@@ -74,15 +74,17 @@ public:
         bool[string] ret;
 
         try {
-            const inReleaseContents = getFileContents (inRelease);
+            synchronized (this) {
+                const inReleaseContents = getFileContents (inRelease);
 
-            foreach (const ref entry; inReleaseContents) {
-                auto match = entry.matchFirst (translationregex);
+                foreach (const ref entry; inReleaseContents) {
+                    auto match = entry.matchFirst (translationregex);
 
-                if (match.empty)
-                    continue;
+                    if (match.empty)
+                        continue;
 
-                ret[match[1]] = true;
+                    ret[match[1]] = true;
+                }
             }
         } catch (Exception ex) {
             logWarning ("Could not get %s, will assume 'en' is available.", inRelease);
@@ -112,7 +114,9 @@ public:
                                             "Translation-%s.%s".format(lang, "%s"));
 
             try {
-                fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
+                synchronized (this) {
+                    fname = downloadIfNecessary (rootDir, tmpDir, fullPath);
+                }
             } catch (Exception ex) {
                 logDebug ("No translations for %s in %s/%s", lang, suite, section);
                 continue;
@@ -175,7 +179,9 @@ public:
     {
         immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
 
-        return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
+        synchronized (this) {
+            return downloadIfNecessary (rootDir, tmpDir, buildPath (path, "Packages.%s"));
+        }
     }
 
     protected DebPackage newPackage (string name, string ver, string arch)
