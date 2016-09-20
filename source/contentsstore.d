@@ -93,7 +93,9 @@ public:
         checkError (rc, "mdb_env_set_mapsize");
 
         // open database
-        rc = dbEnv.mdb_env_open (dir.toStringz (), MDB_NOMETASYNC, octal!755);
+        rc = dbEnv.mdb_env_open (dir.toStringz (),
+                                 MDB_NOMETASYNC | MDB_NOTLS,
+                                 octal!755);
         checkError (rc, "mdb_env_open");
 
         // open sub-databases in the environment
