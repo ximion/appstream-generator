@@ -30,34 +30,43 @@ class UbuntuPackageIndex : DebianPackageIndex
 {
 
 private:
-    Array!Package allPackages;
+    Array!Package langpacks;
 
 public:
     this (string dir)
     {
         /*
          * UbuntuPackage needs to extract the langpacks, so we give it an array
-         * of all packages. We don't do this here, as you migh think makes
-         * sense, because it is a very expensive operation and we want to avoid
-         * doing it if it's not necessary (when no packages being processed are
-         * using langpacks).
+         * of langpacks. There is a small overhead when computing this array
+         * which might be unnecessary if no processed packages are using
+         * langpacks, but otherwise we need to keep a reference to all packages
+         * around, which is very expensive.
          */
-        allPackages = make!(Array!Package);
+        langpacks = make!(Array!Package);
         super (dir);
     }
 
     override
     DebPackage newPackage (string name, string ver, string arch)
     {
-        return new UbuntuPackage (name, ver, arch, tmpDir, allPackages);
+        return new UbuntuPackage (name, ver, arch, tmpDir, langpacks);
     }
 
     override
     Package[] packagesFor (string suite, string section, string arch)
     {
-        auto pkgs = super.packagesFor (suite, section, arch);
+        import std.string : startsWith;
 
-        allPackages ~= pkgs;
+        auto pkgs = super.packagesFor (suite, section, arch);
+        auto pkgslangpacks = appender!(Package[]);
+
+        foreach (ref pkg; pkgs) {
+                if (pkg.name.startsWith ("language-pack-"))
+                    pkgslangpacks ~= pkg;
+        }
+
+        langpacks ~= pkgslangpacks.data;
+
         return pkgs;
     }
 }

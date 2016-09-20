@@ -39,12 +39,12 @@ extern (C) char *bindtextdomain (const char *domainname, const char *dirName) no
 
 class UbuntuPackage : DebPackage
 {
-    this (string pname, string pver, string parch, string globalTmpDir, ref Array!Package allPackages)
+    this (string pname, string pver, string parch, string globalTmpDir, ref Array!Package langpacks)
     {
         this.globalTmpDir = globalTmpDir;
         this.langpackDir = buildPath (globalTmpDir, "langpacks");
         this.localeDir = buildPath (langpackDir, "locales");
-        this.allPackages = allPackages;
+        this.langpacks = langpacks;
         super (pname, pver, parch);
     }
 
@@ -78,7 +78,7 @@ private:
     string langpackDir;
     string localeDir;
     string[] langpackLocales;
-    Array!Package allPackages;
+    Array!Package langpacks;
 
     private void extractLangpacks ()
     {
@@ -97,8 +97,8 @@ private:
 
             langpackDir.mkdirRecurse ();
 
-            foreach (pkg; allPackages) {
-                if (!pkg.name.startsWith ("language-pack") || pkg.name in extracted)
+            foreach (ref pkg; langpacks) {
+                if (pkg.name in extracted)
                     continue;
 
                 auto upkg = to!UbuntuPackage (pkg);
@@ -108,6 +108,9 @@ private:
 
                 extracted[pkg.name] = true;
             }
+
+            // get back the memory
+            langpacks.clear;
 
             auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
 
@@ -133,6 +136,9 @@ private:
                             scope (exit) wait (pid);
                     }
             }
+        } else {
+            // we don't need it; we've already extracted the langpacks
+            langpacks.clear;
         }
 
         if (langpackLocales is null)
