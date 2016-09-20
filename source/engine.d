@@ -108,7 +108,7 @@ public:
     private void gcCollect ()
     {
         static import core.memory;
-        logDebug ("Running GC collection");
+        logDebug ("GC collection cycle triggered explicitly.");
         core.memory.GC.collect ();
     }
 
