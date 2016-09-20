@@ -62,7 +62,9 @@ public:
     @property string filename () const {
         if (debFname.isRemote) {
             immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
-            downloadFile (debFname, path);
+            synchronized (this) {
+                downloadFile (debFname, path);
+            }
             return path;
         }
         return debFname;
