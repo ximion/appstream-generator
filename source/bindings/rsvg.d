@@ -24,7 +24,6 @@ import bindings.cairo;
 
 extern(C):
 nothrow:
-@nogc:
 
 struct _RsvgHandle {}
 alias RsvgHandle = _RsvgHandle*;

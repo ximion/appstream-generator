@@ -34,6 +34,7 @@ import gi.glib;
 
 import logging;
 import config;
+import font : Font;
 
 
 enum ImageFormat {
@@ -254,25 +255,11 @@ public:
             throw new Exception ("Rendering of SVG images failed!");
     }
 
-    void writeText (string fname, string text, const uint borderWidth = 4, const uint linePadding = 2)
+    void writeText (Font font, string text, const uint borderWidth = 4, const uint linePadding = 2)
     {
-        import bindings.freetype;
+        import bindings.freetype : FT_LOAD_DEFAULT;
 
-        FT_Library library;
-        FT_Face fface;
-        FT_Error err;
-
-        err = FT_Init_FreeType (&library);
-        if (err != 0)
-            throw new Exception ("Unable to load FreeType. Error code: %s".format (err));
-        scope (exit) FT_Done_FreeType (library);
-
-        err = FT_New_Face (library, fname.toStringz (), 0, &fface);
-        if (err != 0)
-            throw new Exception ("Unable to load font face. Error code: %s".format (err));
-        scope (exit) FT_Done_Face (fface);
-
-        auto cff = cairo_ft_font_face_create_for_ft_face (fface, FT_LOAD_DEFAULT);
+        auto cff = cairo_ft_font_face_create_for_ft_face (font.fontFace, FT_LOAD_DEFAULT);
         scope (exit) cairo_font_face_destroy (cff);
 
         // set font face for Cairo surface
@@ -375,9 +362,11 @@ unittest
     writeln ("Saving rendered PNG");
     cv.savePng ("/tmp/ag-svgrender_test1.png");
 
-    writeln ("--toy: Test font rendering.");
+    writeln ("Font rendering");
+    auto font = new Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
+
     cv = new Canvas (400, 100);
-    cv.writeText (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"),
+    cv.writeText (font,
                   "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
     cv.savePng ("/tmp/ag-fontrender_test1.png");
 }

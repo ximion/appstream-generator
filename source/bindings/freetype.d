@@ -19,21 +19,10 @@
 
 module bindings.freetype;
 
+public import bindings.freetypeTypes;
+
 extern(C):
 nothrow:
-@nogc:
-
-alias FT_Error = int;
-alias FT_Byte = ubyte;
-alias FT_Long = long;
-
-immutable FT_LOAD_DEFAULT = 0x0;
-
-struct FT_LibraryRec_ {}
-alias FT_Library = FT_LibraryRec_*;
-
-struct FT_FaceRec_ {}
-alias FT_Face = FT_FaceRec_*;
 
 FT_Error FT_Init_FreeType (FT_Library *alibrary);
 FT_Error FT_Done_FreeType (FT_Library  library);
