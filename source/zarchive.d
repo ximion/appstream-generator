@@ -24,7 +24,9 @@ import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
 static import std.file;
+
 import logging;
+import utils : GENERIC_BUFFER_SIZE;
 
 version (GNU)
 	import bindings.concurrency_generator;
