@@ -18,7 +18,7 @@
 },
 
 "metainfo-parsing-error": {
-  "text": "Unable to parse AppStream upstream XML, the file is likely malformed.<br/>Error: {{msg}}",
+  "text": "Unable to parse AppStream metainfo file, the data is likely malformed.<br/>Error: {{msg}}",
   "severity": "error"
 },
 
@@ -65,7 +65,7 @@
 },
 
 "metainfo-no-id": {
-  "text": ["Could not determine an id for this component. The AppStream upstream metadata likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
+  "text": ["Could not determine an id for this component. The AppStream metainfo file likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
            "The identifier tag is essential for AppStream metadata, and must not be missing."],
   "severity": "error"
 },
@@ -84,6 +84,12 @@
   "text": ["The AppStream metadata should be updated to follow a more recent version of the specification.<br/>",
            "Please consult <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">the XML quickstart guide</a> for more information."],
   "severity": "warning"
+},
+
+"legacy-metainfo-directory": {
+  "text": ["The AppStream metainfo file was found in a legacy path.<br/>",
+           "Please install metainfo files into <code>/usr/share/metainfo</code>."],
+  "severity": "info"
 },
 
 "metainfo-screenshot-but-no-image": {
@@ -125,14 +131,15 @@
 },
 
 "metainfo-no-name": {
-  "text": "Component has no name specified. Ensure that the AppStream upstream metadata or the .desktop file (if there is any) specify a component name.",
+  "text": "Component has no name specified. Ensure that the AppStream metainfo file or the .desktop file (if there is any) specify a component name.",
   "severity": "error"
 },
 
 "metainfo-no-summary": {
   "text": ["Component does not contain a short summary. Ensure that the components metainfo file has a <code>summary</code> tag, or that its .desktop file",
            "has a <code>Comment=</code> field set.<br/>",
-           "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>."],
+           "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>",
+           "and the <a href=\"https://www.freedesktop.org/software/appstream/docs/sect-Metadata-Application.html#tag-dapp-summary\">MetaInfo specification</a>."],
   "severity": "error"
 },
 
@@ -144,7 +151,7 @@
 },
 
 "missing-desktop-file": {
-  "text": ["Found an AppStream upstream XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
+  "text": ["Found an AppStream metainfo XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
            "<code>&lt;id/&gt;</code> tag of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>",
            "Please fix the packaging or work with upstream to resolve this issue."],
   "severity": "error"
