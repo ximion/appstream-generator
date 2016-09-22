@@ -33,14 +33,6 @@ version (GNU)
 else
 	import std.concurrency : Generator, yield;
 
-version (unittest) {
-    version (GNU) {
-        extern(C) char *mkdtemp (char *) nothrow @nogc;
-    } else {
-        import core.sys.posix.stdlib : mkdtemp;
-    }
-}
-
 import bindings.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65536;
@@ -575,6 +567,14 @@ public:
         }
     }
 
+}
+
+version (unittest) {
+    version (GNU) {
+        extern(C) char *mkdtemp (char *) nothrow @nogc;
+    } else {
+        import core.sys.posix.stdlib : mkdtemp;
+    }
 }
 
 unittest

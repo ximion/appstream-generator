@@ -20,11 +20,12 @@
 
 module backends.ubuntu.ubupkgindex;
 
+import std.container : Array, make;
+import std.array : appender;
+
 import backends.debian;
 import backends.interfaces;
 import backends.ubuntu.ubupkg;
-
-import std.container : Array, make;
 
 class UbuntuPackageIndex : DebianPackageIndex
 {
