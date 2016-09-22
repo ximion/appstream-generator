@@ -57,10 +57,9 @@ private const(char)[] getArchiveErrorMessage (archive *ar)
 private string readArchiveData (archive *ar, string name = null)
 {
     archive_entry *ae;
-    immutable BUFFER_SIZE = 8192;
     int ret;
     size_t size;
-    char[BUFFER_SIZE] buff;
+    char[GENERIC_BUFFER_SIZE] buff;
     auto data = appender!string;
 
     ret = archive_read_next_header (ar, &ae);
@@ -76,7 +75,7 @@ private string readArchiveData (archive *ar, string name = null)
     }
 
     while (true) {
-        size = archive_read_data (ar, cast(void*) buff, BUFFER_SIZE);
+        size = archive_read_data (ar, cast(void*) buff, GENERIC_BUFFER_SIZE);
         if (size < 0) {
             if (name is null)
                 throw new Exception (format ("Failed to read compressed data: %s", getArchiveErrorMessage (ar)));
@@ -104,7 +103,7 @@ string decompressFile (string fname)
     archive_read_support_format_empty (ar);
     archive_read_support_filter_all (ar);
 
-    ret = archive_read_open_filename (ar, toStringz (fname), 16384);
+    ret = archive_read_open_filename (ar, toStringz (fname), DEFAULT_BLOCK_SIZE);
     if (ret != ARCHIVE_OK)
         throw new Exception (format ("Unable to open compressed file '%s': %s", fname, getArchiveErrorMessage (ar)));
 
