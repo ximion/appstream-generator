@@ -66,11 +66,11 @@ public:
                 desktopFiles[baseName (fname)] = fname;
                 continue;
             }
-            if ((fname.startsWith ("/usr/share/metainfo")) && (fname.endsWith (".xml"))) {
+            if ((fname.startsWith ("/usr/share/metainfo/")) && (fname.endsWith (".xml"))) {
                 metadataFiles ~= fname;
                 continue;
             }
-            if ((fname.startsWith ("/usr/share/appdata")) && (fname.endsWith (".xml"))) {
+            if ((fname.startsWith ("/usr/share/appdata/")) && (fname.endsWith (".xml"))) {
                 metadataFiles ~= fname;
                 continue;
             }
@@ -78,9 +78,6 @@ public:
 
         // now process metainfo XML files
         foreach (ref mfname; metadataFiles) {
-            if (!mfname.endsWith (".xml"))
-                continue;
-
             auto dataBytes = pkg.getFileData (mfname);
             auto data = cast(string) dataBytes;
             auto cpt = parseMetaInfoFile (gres, data);
@@ -90,8 +87,13 @@ public:
             // check if we need to extend this component's data with data from its .desktop file
             auto cid = cpt.getId ();
             if (cid.empty) {
-                gres.addHint ("general", "metainfo-no-id", ["fname": mfname]);
+                gres.addHint (null, "metainfo-no-id", ["fname": mfname]);
                 continue;
+            }
+
+            // check for legacy path
+            if (mfname.startsWith ("/usr/share/appdata/")) {
+                gres.addHint (null, "legacy-metainfo-directory", ["fname": mfname.baseName]);
             }
 
             // we need to add the version to re-download screenshot on every new upload.
