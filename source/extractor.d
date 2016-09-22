@@ -100,39 +100,34 @@ public:
             // otherwise, screenshots would only get updated if the actual metadata file was touched.
             gres.updateComponentGCID (cpt, pkg.ver);
 
-            auto dfp = (cid in desktopFiles);
-            if (dfp is null)
-                dfp = (cid ~ ".desktop" in desktopFiles);
-            if (dfp is null) {
-                // no .desktop file was found
-                // finalize GCID checksum and continue
-                gres.updateComponentGCID (cpt, data);
+            // if we have a desktop-application, find the .desktop file
+            // and merge its metadata with the metainfo file data.
+            // having no .desktop file present is a bug.
+            if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
+                auto dfp = cid in desktopFiles;
+                if (dfp is null)
+                    dfp = (cid ~ ".desktop") in desktopFiles;
+                if (dfp is null) {
+                    // no .desktop file was found
+                    // finalize GCID checksum and continue
+                    gres.updateComponentGCID (cpt, data);
 
-                if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
-                    // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
                     gres.addHint (cpt.getId (), "missing-desktop-file");
+                    // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
                     continue;
                 }
 
-                // do a validation of the file. Validation is slow, so we allow
-                // the user to disable this feature.
-                if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
-                    if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
-                        validateMetaInfoFile (cpt, gres, data);
-                }
-                continue;
+                // update component with .desktop file data, ignoring NoDisplay field
+                auto ddataBytes = pkg.getFileData (*dfp);
+                auto ddata = cast(string) ddataBytes;
+                parseDesktopFile (gres, *dfp, ddata, true);
+
+                // update GCID checksum
+                gres.updateComponentGCID (cpt, ddata);
+
+                // drop the .desktop file from the list, it has been handled
+                desktopFiles.remove (cid);
             }
-
-            // update component with .desktop file data, ignoring NoDisplay field
-            auto ddataBytes = pkg.getFileData (*dfp);
-            auto ddata = cast(string) ddataBytes;
-            parseDesktopFile (gres, *dfp, ddata, true);
-
-            // update GCID checksum
-            gres.updateComponentGCID (cpt, ddata);
-
-            // drop the .desktop file from the list, it has been handled
-            desktopFiles.remove (cid);
 
             // do a validation of the file. Validation is slow, so we allow
             // the user to disable this feature.
