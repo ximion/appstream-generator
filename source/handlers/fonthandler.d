@@ -115,7 +115,6 @@ void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir
     }
 }
 
-
 /**
  * Render an icon for this font package using one of its fonts.
  * (Since we have no better way to do this, we just pick the first font
@@ -137,7 +136,7 @@ private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, i
         if (!std.file.exists (iconStoreLocation)) {
             // we didn't create an icon yet - render it
             auto cv = new Canvas (size.width, size.height);
-            cv.writeText (font, "Abc\nxyZ", 3, 1);
+            cv.writeText (font, "Aa", 3, 1);
             cv.savePng (iconStoreLocation);
         }
 

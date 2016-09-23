@@ -382,8 +382,10 @@ archive_dep   = dependency('libarchive', version : '>= 3.2')
 cairo_dep     = dependency('cairo', version : '>= 1.12')
 gdkpixbuf_dep = dependency('gdk-pixbuf-2.0')
 rsvg_dep      = dependency('librsvg-2.0')
-freetype_dep  = dependency('freetype2')
 curl_dep      = dependency('libcurl')
+freetype_dep  = dependency('freetype2')
+fontconfig_dep  = dependency('fontconfig')
+pango_dep     = dependency('pango')
 
 if meson.get_compiler('d').get_id() == 'gcc'
     add_global_arguments('-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', language : 'd')
@@ -421,8 +423,10 @@ asgen_exe = executable('appstream-generator',
                     cairo_dep,
                     gdkpixbuf_dep,
                     rsvg_dep,
+                    curl_dep,
                     freetype_dep,
-                    curl_dep],
+                    fontconfig_dep,
+                    pango_dep],
     install : true
 )
 
@@ -443,8 +447,10 @@ asgen_test_exe = executable('asgen_test',
                     cairo_dep,
                     gdkpixbuf_dep,
                     rsvg_dep,
+                    curl_dep,
                     freetype_dep,
-                    curl_dep],
+                    fontconfig_dep,
+                    pango_dep],
     d_args : meson.get_compiler('d').unittest_args()
 )
 test('asgen_test', asgen_test_exe)

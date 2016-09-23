@@ -30,7 +30,9 @@
                            libarchive >= 3.2,
                            GDLib,
                            LibRSVG2,
-                           FreeType",
+                           FreeType,
+                           Fontconfig,
+                           Pango",
     "libs": ["lmdb",
              "archive",
              "glib-2.0",
@@ -40,5 +42,7 @@
              "cairo",
              "gdk-pixbuf-2.0",
              "librsvg-2.0",
-             "freetype"]
+             "freetype",
+             "fontconfig",
+             "pango"]
 }

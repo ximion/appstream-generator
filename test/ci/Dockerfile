@@ -29,7 +29,9 @@ RUN apt-get install -yq --no-install-recommends \
     liblmdb-dev \
     libarchive-dev \
     libgdk-pixbuf2.0-dev \
-    librsvg2-dev
+    librsvg2-dev \
+    libfontconfig1-dev \
+    libpango1.0-dev
 
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
