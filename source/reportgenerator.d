@@ -22,9 +22,10 @@ import std.string;
 import std.parallelism;
 import std.path : buildPath, buildNormalizedPath, dirName;
 import std.file : mkdirRecurse, rmdirRecurse;
-static import std.file;
 import std.array : empty;
 import std.json;
+import std.conv : to;
+static import std.file;
 
 import mustache;
 import appstream.Metadata;
