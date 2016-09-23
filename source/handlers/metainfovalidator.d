@@ -33,7 +33,7 @@ import result;
 import utils;
 
 
-void validateMetaInfoFile (Component cpt, GeneratorResult res, string data)
+void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
 {
     auto validator = new Validator ();
 

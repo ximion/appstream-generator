@@ -20,6 +20,7 @@
 module handlers;
 
 public import handlers.desktopparser;
+public import handlers.fonthandler;
 public import handlers.iconhandler;
 public import handlers.metainfoparser;
 public import handlers.metainfovalidator;

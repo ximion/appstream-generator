@@ -37,3 +37,7 @@ FT_Error FT_New_Memory_Face (FT_Library library,
                              FT_Long face_index,
                              FT_Face *aface);
 FT_Error FT_Done_Face (FT_Face face);
+
+FT_Error FT_Get_BDF_Charset_ID (FT_Face face,
+                                const char*  *acharset_encoding,
+                                const char*  *acharset_registry);

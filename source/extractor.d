@@ -133,7 +133,7 @@ public:
             // the user to disable this feature.
             if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
                 if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
-                    validateMetaInfoFile (cpt, gres, data);
+                    validateMetaInfoFile (gres, cpt, data);
             }
         }
 
@@ -197,6 +197,9 @@ public:
             // we don't even need to call this if no downloads are allowed.
             if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
+
+            // render font previews and extract font metadata
+            processFontData (gres, cpt, dstore.mediaExportPoolDir);
         }
 
         // this removes invalid components and cleans up the result

@@ -54,7 +54,7 @@ private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", "
 // the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
 
-private immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
+public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
 
 /**
  * Describes an icon theme as specified in the XDG theme spec.

@@ -97,6 +97,26 @@ public:
     }
 
     @property
+    string id ()
+    {
+        import std.string;
+        if (this.family is null)
+            return null;
+        if (this.style is null)
+            return null;
+        return "%s-%s".format (this.family.strip, this.style.strip);
+    }
+
+    @property
+    FT_Encoding charset ()
+    {
+        if (fface.num_charmaps == 0)
+            return FT_ENCODING_NONE;
+
+        return fface.charmaps[0].encoding;
+    }
+
+    @property
     FT_Face fontFace ()
     {
         return fface;
@@ -128,4 +148,5 @@ unittest
     font = new Font (data);
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
+    assert (font.charset == FT_ENCODING_UNICODE);
 }
