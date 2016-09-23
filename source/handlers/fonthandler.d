@@ -37,6 +37,41 @@ import font : Font;
 import handlers.iconhandler : wantedIconSizes;
 
 
+struct IconText {
+    string lang;
+    string value;
+}
+immutable IconText[] iconTexts =  [
+                IconText ("en", "Aa"),
+                IconText ("ar", "أب"),
+                IconText ("as", "অআই"),
+                IconText ("bn", "অআই"),
+                IconText ("be", "Аа"),
+                IconText ("bg", "Аа"),
+                IconText ("cs", "Aa"),
+                IconText ("da", "Aa"),
+                IconText ("de", "Aa"),
+                IconText ("es", "Aa"),
+                IconText ("fr", "Aa"),
+                IconText ("gu", "અબક"),
+                IconText ("hi", "अआइ"),
+                IconText ("he", "אב"),
+                IconText ("it", "Aa"),
+                IconText ("kn", "ಅಆಇ"),
+                IconText ("ml", "ആഇ"),
+                IconText ("ne", "अआइ"),
+                IconText ("nl", "Aa"),
+                IconText ("or", "ଅଆଇ"),
+                IconText ("pa", "ਅਆਇ"),
+                IconText ("pl", "ĄĘ"),
+                IconText ("pt", "Aa"),
+                IconText ("ru", "Аа"),
+                IconText ("sv", "Åäö"),
+                IconText ("ta", "அஆஇ"),
+                IconText ("te", "అఆఇ"),
+                IconText ("ua", "Аа"),
+                IconText ("zh-tw", "漢")];
+
 void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir)
 {
     if (cpt.getKind () != ComponentKind.FONT)
@@ -104,8 +139,14 @@ void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir
         immutable cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
 
         // TODO: Catch errors
-        auto font = new Font (fdata);
+        auto font = new Font (fdata, fontFile.baseName);
 
+        // add language information
+        foreach (ref lang; font.getLanguages) {
+            cpt.addLanguage (lang, 100);
+        }
+
+        // render an icon for our font
         if (!hasIcon)
             hasIcon = renderFontIcon (gres,
                                       font,

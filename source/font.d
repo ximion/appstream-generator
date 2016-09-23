@@ -19,11 +19,15 @@
 
 import std.string : format, fromStringz, toStringz;
 import std.conv : to;
+import std.path : buildPath, baseName;
+import std.array : empty, appender;
+static import std.file;
 
 import bindings.freetype;
+import bindings.fontconfig;
 
 import logging;
-import config;
+import config : Config;
 
 class Font
 {
@@ -32,6 +36,9 @@ private:
 
     FT_Library library;
     FT_Face fface;
+
+    FcConfig *fconfig;
+    FcPattern *fpattern;
 
     const(ubyte)[] fdata;
 
@@ -45,10 +52,13 @@ public:
         err = FT_New_Face (library, fname.toStringz (), 0, &fface);
         if (err != 0)
             throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
+
+        loadFontConfig (fname);
     }
 
-    this (const(ubyte)[] data)
+    this (const(ubyte)[] data, string fileBaseName)
     {
+        import std.stdio : File;
         initFreeType ();
 
         // we need to keep a reference, since FT doesn't copy
@@ -63,10 +73,27 @@ public:
                                   &fface);
         if (err != 0)
             throw new Exception ("Unable to load font face from memory. Error code: %s".format (err));
+
+
+        // we unfortunately need to create a stupid temporary file here, otherwise fontconfig
+        // does not work and we can not determine the right demo strings for this font.
+        auto cacheRoot = Config.get ().cacheRootDir;
+        if (!std.file.exists (cacheRoot))
+            cacheRoot = "/tmp/";
+        immutable fname = buildPath (cacheRoot, fileBaseName);
+        auto f = File (fname, "w");
+        f.rawWrite (data);
+        f.close ();
+
+        loadFontConfig (fname);
     }
 
     ~this ()
     {
+        if (fconfig !is null) {
+            //FcConfigAppFontClear (fconfig); // FIXME: This crashes...
+	        FcConfigDestroy (fconfig);
+        }
         if (fface !is null)
             FT_Done_Face (fface);
         if (library !is null)
@@ -82,6 +109,23 @@ public:
         err = FT_Init_FreeType (&library);
         if (err != 0)
             throw new Exception ("Unable to load FreeType. Error code: %s".format (err));
+    }
+
+    void loadFontConfig (string fname)
+    {
+    	// create a new fontconfig configuration
+    	fconfig = FcConfigCreate ();
+
+    	// ensure that default configuration and fonts are not loaded
+    	FcConfigSetCurrent (fconfig);
+
+    	// add just this one font
+    	FcConfigAppFontAddFile (fconfig, fname.toStringz);
+    	auto fonts = FcConfigGetFonts (fconfig, FcSetName.Application);
+    	if (fonts is null || fonts.fonts is null) {
+    		throw new Exception ("FcConfigGetFonts failed (for %s)".format (fname.baseName));
+    	}
+    	fpattern = fonts.fonts[0];
     }
 
     @property
@@ -121,6 +165,40 @@ public:
     {
         return fface;
     }
+
+    string[] getLanguages ()
+    {
+        auto fcRc = FcResult.Match;
+        FcValue fcValue;
+        auto res = appender!(string[]);
+
+        auto anyAdded = false;
+        for (uint i = 0; fcRc == FcResult.Match; i++) {
+            FcLangSet *ls;
+
+            fcRc = FcPatternGetLangSet (fpattern, FC_LANG, i, &ls);
+            if (fcRc == FcResult.Match) {
+                auto langs = FcLangSetGetLangs (ls);
+                auto list = FcStrListCreate (langs);
+                scope (exit) {
+                    FcStrListDone (list);
+                    FcStrSetDestroy (langs);
+                }
+
+                char *tmp;
+                FcStrListFirst (list);
+                while ((tmp = FcStrListNext (list)) !is null) {
+                    res ~= to!string (tmp.fromStringz);
+                    anyAdded = true;
+                }
+            }
+        }
+
+        // assume 'en' is available
+        if (!anyAdded)
+            res ~= "en";
+        return res.data;
+    }
 }
 
 unittest
@@ -145,8 +223,18 @@ unittest
     }
 
     // test reading from memory
-    font = new Font (data);
+    font = new Font (data, "test.ttf");
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);
+
+    assert (font.getLanguages == ["aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs", "bua",
+                                  "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "en", "eo", "es", "et", "eu",
+                                  "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht",
+                                  "hu", "hz", "ia", "id", "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am", "ku-tr",
+                                  "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt", "lv", "mg", "mh", "mi", "mk", "mn-mn", "mo", "ms", "mt",
+                                  "na", "nb", "nds", "ng", "nl", "nn", "no", "nr", "nso", "nv", "ny", "oc", "om", "os", "pap-an", "pap-aw", "pl", "pt", "qu", "quz",
+                                  "rm", "rn", "ro", "ru", "rw", "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn",
+                                  "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw", "ty", "tyv", "uk", "uz", "ve",
+                                  "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
 }
