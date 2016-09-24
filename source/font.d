@@ -76,9 +76,6 @@ private:
     FT_Library library;
     FT_Face fface;
 
-    FcConfig *fconfig;
-    FcPattern *fpattern;
-
     string[] languages_;
     string sampleText_;
     string sampleIconText_;
@@ -96,34 +93,26 @@ public:
             if (err != 0)
                 throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-            loadFontConfig (fname);
+            loadFontConfigData (fname);
         }
     }
 
     this (const(ubyte)[] data, string fileBaseName)
     {
         import std.stdio : File;
-        synchronized {
-            initFreeType ();
 
-            // we unfortunately need to create a stupid temporary file here, otherwise Fontconfig
-            // does not work and we can not determine the right demo strings for this font.
-            // (FreeType itself could load from memory)
-            auto cacheRoot = Config.get ().cacheRootDir;
-            if (!std.file.exists (cacheRoot))
-                cacheRoot = "/tmp/";
-            immutable fname = buildPath (cacheRoot, fileBaseName);
-            auto f = File (fname, "w");
-            f.rawWrite (data);
-            f.close ();
+        // we unfortunately need to create a stupid temporary file here, otherwise Fontconfig
+        // does not work and we can not determine the right demo strings for this font.
+        // (FreeType itself could load from memory)
+        auto cacheRoot = Config.get ().cacheRootDir;
+        if (!std.file.exists (cacheRoot))
+            cacheRoot = "/tmp/";
+        immutable fname = buildPath (cacheRoot, fileBaseName);
+        auto f = File (fname, "w");
+        f.rawWrite (data);
+        f.close ();
 
-            FT_Error err;
-            err = FT_New_Face (library, fname.toStringz (), 0, &fface);
-            if (err != 0)
-                throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
-
-            loadFontConfig (fname);
-        }
+        this (fname);
     }
 
     ~this ()
@@ -140,19 +129,14 @@ public:
             FT_Done_Face (fface);
         if (library !is null)
             FT_Done_Library (library);
-        if (fconfig !is null) {
-            //! FcConfigAppFontClear (fconfig); // FIXME: This crashes...
-            FcConfigDestroy (fconfig);
-        }
 
         fface = null;
         library = null;
-        fconfig = null;
     }
 
     private bool ready ()
     {
-        return fface !is null && library !is null && fconfig !is null;
+        return fface !is null && library !is null;
     }
 
     private void initFreeType ()
@@ -166,10 +150,14 @@ public:
             throw new Exception ("Unable to load FreeType. Error code: %s".format (err));
     }
 
-    private void loadFontConfig (string fname)
+    private void loadFontConfigData (string fname)
     {
     	// create a new fontconfig configuration
-    	fconfig = FcConfigCreate ();
+    	auto fconfig = FcConfigCreate ();
+        scope (exit) {
+            FcConfigAppFontClear (fconfig);
+            FcConfigDestroy (fconfig);
+        }
 
     	// ensure that default configuration and fonts are not loaded
     	FcConfigSetCurrent (fconfig);
@@ -180,7 +168,42 @@ public:
     	if (fonts is null || fonts.fonts is null) {
     		throw new Exception ("FcConfigGetFonts failed (for %s)".format (fname.baseName));
     	}
-    	fpattern = fonts.fonts[0];
+    	auto fpattern = fonts.fonts[0];
+
+        // initialize our icon-text map globally
+        initIconTextMap ();
+
+        // load supported locale
+        auto fcRc = FcResult.Match;
+        FcValue fcValue;
+        auto res = appender!(string[]);
+
+        auto anyAdded = false;
+        for (uint i = 0; fcRc == FcResult.Match; i++) {
+            FcLangSet *ls;
+
+            fcRc = FcPatternGetLangSet (fpattern, FC_LANG, i, &ls);
+            if (fcRc == FcResult.Match) {
+                auto langs = FcLangSetGetLangs (ls);
+                auto list = FcStrListCreate (langs);
+                scope (exit) {
+                    FcStrListDone (list);
+                    FcStrSetDestroy (langs);
+                }
+
+                char *tmp;
+                FcStrListFirst (list);
+                while ((tmp = FcStrListNext (list)) !is null) {
+                    res ~= to!string (tmp.fromStringz);
+                    anyAdded = true;
+                }
+            }
+        }
+
+        // assume 'en' is available
+        if (!anyAdded)
+            res ~= "en";
+        languages_ = res.data;
     }
 
     @property
@@ -230,43 +253,6 @@ public:
     @property
     string[] languages ()
     {
-        // check if we have cached this result
-        if (!languages_.empty)
-            return languages_;
-        assert (ready ());
-
-        initIconTextMap ();
-
-        auto fcRc = FcResult.Match;
-        FcValue fcValue;
-        auto res = appender!(string[]);
-
-        auto anyAdded = false;
-        for (uint i = 0; fcRc == FcResult.Match; i++) {
-            FcLangSet *ls;
-
-            fcRc = FcPatternGetLangSet (fpattern, FC_LANG, i, &ls);
-            if (fcRc == FcResult.Match) {
-                auto langs = FcLangSetGetLangs (ls);
-                auto list = FcStrListCreate (langs);
-                scope (exit) {
-                    FcStrListDone (list);
-                    FcStrSetDestroy (langs);
-                }
-
-                char *tmp;
-                FcStrListFirst (list);
-                while ((tmp = FcStrListNext (list)) !is null) {
-                    res ~= to!string (tmp.fromStringz);
-                    anyAdded = true;
-                }
-            }
-        }
-
-        // assume 'en' is available
-        if (!anyAdded)
-            res ~= "en";
-        languages_ = res.data;
         return languages_;
     }
 

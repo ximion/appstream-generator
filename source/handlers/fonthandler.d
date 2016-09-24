@@ -118,11 +118,6 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
         // TODO: Catch errors
         auto font = new Font (fdata, fontFile.baseName);
 
-        // FIXME: For some reason we need to ensure that *we* free the resources
-        // owned by the Font object, and not the GC.
-        // Otherwise this will crash with SIGBUS in FreeType.
-        scope (exit) font.release ();
-
         // add language information
         foreach (ref lang; font.languages) {
             cpt.addLanguage (lang, 100);
@@ -155,8 +150,6 @@ private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, i
 
         immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
-
-
 
         if (!std.file.exists (iconStoreLocation)) {
             // we didn't create an icon yet - render it
