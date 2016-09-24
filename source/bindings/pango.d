@@ -17,30 +17,13 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module bindings.rsvg;
-
-import gi.glibtypes;
-import bindings.cairo;
+module bindings.pango;
 
 extern(C):
 nothrow:
 @nogc:
 
-struct _RsvgHandle {}
-alias RsvgHandle = _RsvgHandle*;
+struct PangoLanguage {};
 
-struct RsvgDimensionData {
-    int width;
-    int height;
-    double em;
-    double ex;
-};
-
-RsvgHandle rsvg_handle_new ();
-void g_object_unref (void* object);
-
-bool rsvg_handle_write (RsvgHandle handle, const(ubyte) *buf, long count, GError **error);
-bool rsvg_handle_close (RsvgHandle handle, GError **error);
-void rsvg_handle_get_dimensions (RsvgHandle handle, RsvgDimensionData *dimension_data);
-
-bool rsvg_handle_render_cairo (RsvgHandle handle, cairo_p cr);
+PangoLanguage *pango_language_from_string (const(char) *language);
+const(char) *pango_language_get_sample_string (PangoLanguage *language);

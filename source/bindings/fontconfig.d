@@ -21,6 +21,7 @@ module bindings.fontconfig;
 
 extern(C):
 nothrow:
+@nogc:
 
 alias FcChar8 = char;
 alias FcBool = int;

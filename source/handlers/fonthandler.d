@@ -37,46 +37,23 @@ import font : Font;
 import handlers.iconhandler : wantedIconSizes;
 
 
-struct IconText {
-    string lang;
-    string value;
-}
-immutable IconText[] iconTexts =  [
-                IconText ("en", "Aa"),
-                IconText ("ar", "أب"),
-                IconText ("as", "অআই"),
-                IconText ("bn", "অআই"),
-                IconText ("be", "Аа"),
-                IconText ("bg", "Аа"),
-                IconText ("cs", "Aa"),
-                IconText ("da", "Aa"),
-                IconText ("de", "Aa"),
-                IconText ("es", "Aa"),
-                IconText ("fr", "Aa"),
-                IconText ("gu", "અબક"),
-                IconText ("hi", "अआइ"),
-                IconText ("he", "אב"),
-                IconText ("it", "Aa"),
-                IconText ("kn", "ಅಆಇ"),
-                IconText ("ml", "ആഇ"),
-                IconText ("ne", "अआइ"),
-                IconText ("nl", "Aa"),
-                IconText ("or", "ଅଆଇ"),
-                IconText ("pa", "ਅਆਇ"),
-                IconText ("pl", "ĄĘ"),
-                IconText ("pt", "Aa"),
-                IconText ("ru", "Аа"),
-                IconText ("sv", "Åäö"),
-                IconText ("ta", "அஆஇ"),
-                IconText ("te", "అఆఇ"),
-                IconText ("ua", "Аа"),
-                IconText ("zh-tw", "漢")];
-
 void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir)
 {
     if (cpt.getKind () != ComponentKind.FONT)
         return;
 
+    // Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
+    // just create multiple configurations in multiple threads, we need to run all
+    // font operations synchronized, which sucks.
+    // We can not even only make parts of the process synchronized, since we or other
+    // classes are dealing with a Font object all the time.
+    synchronized {
+        processFontDataInternal (gres, cpt, mediaExportDir);
+    }
+}
+
+void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaExportDir)
+{
     string[] fontHints;
     auto provided = cpt.getProvidedForKind (ProvidedKind.FONT);
     if (provided !is null) {
@@ -141,8 +118,13 @@ void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir
         // TODO: Catch errors
         auto font = new Font (fdata, fontFile.baseName);
 
+        // FIXME: For some reason we need to ensure that *we* free the resources
+        // owned by the Font object, and not the GC.
+        // Otherwise this will crash with SIGBUS in FreeType.
+        scope (exit) font.release ();
+
         // add language information
-        foreach (ref lang; font.getLanguages) {
+        foreach (ref lang; font.languages) {
             cpt.addLanguage (lang, 100);
         }
 
@@ -174,10 +156,12 @@ private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, i
         immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
 
+
+
         if (!std.file.exists (iconStoreLocation)) {
             // we didn't create an icon yet - render it
             auto cv = new Canvas (size.width, size.height);
-            cv.writeText (font, "Aa", 3, 1);
+            cv.writeText (font, font.sampleIconText, 3, 1);
             cv.savePng (iconStoreLocation);
         }
 

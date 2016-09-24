@@ -25,9 +25,48 @@ static import std.file;
 
 import bindings.freetype;
 import bindings.fontconfig;
+import bindings.pango;
 
 import logging;
 import config : Config;
+
+
+private static __gshared string[string] iconTexts;
+private void initIconTextMap ()
+{
+    if (iconTexts.length != 0)
+        return;
+    synchronized
+        iconTexts = ["en": "Aa",
+                     "ar": "أب",
+                     "as": "অআই",
+                     "bn": "অআই",
+                     "be": "Аа",
+                     "bg": "Аа",
+                     "cs": "Aa",
+                     "da": "Aa",
+                     "de": "Aa",
+                     "es": "Aa",
+                     "fr": "Aa",
+                     "gu": "અબક",
+                     "hi": "अआइ",
+                     "he": "אב",
+                     "it": "Aa",
+                     "kn": "ಅಆಇ",
+                     "ml": "ആഇ",
+                     "ne": "अआइ",
+                     "nl": "Aa",
+                     "or": "ଅଆଇ",
+                     "pa": "ਅਆਇ",
+                     "pl": "ĄĘ",
+                     "pt": "Aa",
+                     "ru": "Аа",
+                     "sv": "Åäö",
+                     "ta": "அஆஇ",
+                     "te": "అఆఇ",
+                     "ua": "Аа",
+                     "zh-tw": "漢"];
+}
 
 class Font
 {
@@ -40,67 +79,83 @@ private:
     FcConfig *fconfig;
     FcPattern *fpattern;
 
-    const(ubyte)[] fdata;
+    string[] languages_;
+    string sampleText_;
+    string sampleIconText_;
 
 public:
 
     this (string fname)
     {
-        initFreeType ();
+        // Nothing is threadsafe
+        synchronized {
+            initFreeType ();
 
-        FT_Error err;
-        err = FT_New_Face (library, fname.toStringz (), 0, &fface);
-        if (err != 0)
-            throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
+            FT_Error err;
+            err = FT_New_Face (library, fname.toStringz (), 0, &fface);
+            if (err != 0)
+                throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-        loadFontConfig (fname);
+            loadFontConfig (fname);
+        }
     }
 
     this (const(ubyte)[] data, string fileBaseName)
     {
         import std.stdio : File;
-        initFreeType ();
+        synchronized {
+            initFreeType ();
 
-        // we need to keep a reference, since FT doesn't copy
-        // the data.
-        fdata = data;
+            // we unfortunately need to create a stupid temporary file here, otherwise Fontconfig
+            // does not work and we can not determine the right demo strings for this font.
+            // (FreeType itself could load from memory)
+            auto cacheRoot = Config.get ().cacheRootDir;
+            if (!std.file.exists (cacheRoot))
+                cacheRoot = "/tmp/";
+            immutable fname = buildPath (cacheRoot, fileBaseName);
+            auto f = File (fname, "w");
+            f.rawWrite (data);
+            f.close ();
 
-        FT_Error err;
-        err = FT_New_Memory_Face (library,
-                                  cast(ubyte*) fdata,
-                                  ubyte.sizeof * fdata.length,
-                                  0,
-                                  &fface);
-        if (err != 0)
-            throw new Exception ("Unable to load font face from memory. Error code: %s".format (err));
+            FT_Error err;
+            err = FT_New_Face (library, fname.toStringz (), 0, &fface);
+            if (err != 0)
+                throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-
-        // we unfortunately need to create a stupid temporary file here, otherwise fontconfig
-        // does not work and we can not determine the right demo strings for this font.
-        auto cacheRoot = Config.get ().cacheRootDir;
-        if (!std.file.exists (cacheRoot))
-            cacheRoot = "/tmp/";
-        immutable fname = buildPath (cacheRoot, fileBaseName);
-        auto f = File (fname, "w");
-        f.rawWrite (data);
-        f.close ();
-
-        loadFontConfig (fname);
+            loadFontConfig (fname);
+        }
     }
 
     ~this ()
     {
-        if (fconfig !is null) {
-            //FcConfigAppFontClear (fconfig); // FIXME: This crashes...
-	        FcConfigDestroy (fconfig);
-        }
+        // We need to do this in sync, because Fontconfig is completely non-threadsafe,
+        // and FreeType has shown bad behavior as well.
+        synchronized
+            release ();
+    }
+
+    void release ()
+    {
         if (fface !is null)
             FT_Done_Face (fface);
         if (library !is null)
-            FT_Done_FreeType (library);
+            FT_Done_Library (library);
+        if (fconfig !is null) {
+            //! FcConfigAppFontClear (fconfig); // FIXME: This crashes...
+            FcConfigDestroy (fconfig);
+        }
+
+        fface = null;
+        library = null;
+        fconfig = null;
     }
 
-    void initFreeType ()
+    private bool ready ()
+    {
+        return fface !is null && library !is null && fconfig !is null;
+    }
+
+    private void initFreeType ()
     {
         library = null;
         fface = null;
@@ -111,7 +166,7 @@ public:
             throw new Exception ("Unable to load FreeType. Error code: %s".format (err));
     }
 
-    void loadFontConfig (string fname)
+    private void loadFontConfig (string fname)
     {
     	// create a new fontconfig configuration
     	fconfig = FcConfigCreate ();
@@ -131,12 +186,14 @@ public:
     @property
     string family ()
     {
+        assert (ready ());
         return to!string (fface.family_name.fromStringz);
     }
 
     @property
     string style ()
     {
+        assert (ready ());
         return to!string (fface.style_name.fromStringz);
     }
 
@@ -144,6 +201,8 @@ public:
     string id ()
     {
         import std.string;
+        assert (ready ());
+
         if (this.family is null)
             return null;
         if (this.style is null)
@@ -154,6 +213,7 @@ public:
     @property
     FT_Encoding charset ()
     {
+        assert (ready ());
         if (fface.num_charmaps == 0)
             return FT_ENCODING_NONE;
 
@@ -163,11 +223,20 @@ public:
     @property
     FT_Face fontFace ()
     {
+        assert (ready ());
         return fface;
     }
 
-    string[] getLanguages ()
+    @property
+    string[] languages ()
     {
+        // check if we have cached this result
+        if (!languages_.empty)
+            return languages_;
+        assert (ready ());
+
+        initIconTextMap ();
+
         auto fcRc = FcResult.Match;
         FcValue fcValue;
         auto res = appender!(string[]);
@@ -197,7 +266,55 @@ public:
         // assume 'en' is available
         if (!anyAdded)
             res ~= "en";
-        return res.data;
+        languages_ = res.data;
+        return languages_;
+    }
+
+    private void findSampleTexts ()
+    {
+        assert (ready ());
+
+        // determine our sample texts
+        foreach (ref lang; this.languages) {
+            auto plang = pango_language_from_string (lang.toStringz);
+            auto text = pango_language_get_sample_string (plang).fromStringz;
+
+			if (text is null)
+				continue;
+
+            sampleText_ = text.dup;
+            auto itP = lang in iconTexts;
+            if (itP !is null) {
+                sampleIconText_ = *itP;
+                break;
+            }
+		}
+
+        // set some default values if we have been unable to find any texts
+        if (sampleIconText_.empty) {
+            if (sampleText_.length > 3)
+                sampleIconText_ = sampleText_[0..2];
+            else
+                sampleIconText_ = "Aa";
+        }
+        if (sampleText_.empty)
+            sampleText_ = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
+    }
+
+    @property
+    string sampleText ()
+    {
+        if (sampleText_.empty)
+            findSampleTexts ();
+        return sampleText_;
+    }
+
+    @property
+    string sampleIconText ()
+    {
+        if (sampleIconText_.empty)
+            findSampleTexts ();
+        return sampleIconText_;
     }
 }
 
@@ -228,13 +345,13 @@ unittest
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);
 
-    assert (font.getLanguages == ["aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs", "bua",
-                                  "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "en", "eo", "es", "et", "eu",
-                                  "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht",
-                                  "hu", "hz", "ia", "id", "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am", "ku-tr",
-                                  "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt", "lv", "mg", "mh", "mi", "mk", "mn-mn", "mo", "ms", "mt",
-                                  "na", "nb", "nds", "ng", "nl", "nn", "no", "nr", "nso", "nv", "ny", "oc", "om", "os", "pap-an", "pap-aw", "pl", "pt", "qu", "quz",
-                                  "rm", "rn", "ro", "ru", "rw", "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn",
-                                  "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw", "ty", "tyv", "uk", "uz", "ve",
-                                  "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
+    assert (font.languages == ["aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs", "bua",
+                               "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "en", "eo", "es", "et", "eu",
+                               "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht",
+                               "hu", "hz", "ia", "id", "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am", "ku-tr",
+                               "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt", "lv", "mg", "mh", "mi", "mk", "mn-mn", "mo", "ms", "mt",
+                               "na", "nb", "nds", "ng", "nl", "nn", "no", "nr", "nso", "nv", "ny", "oc", "om", "os", "pap-an", "pap-aw", "pl", "pt", "qu", "quz",
+                               "rm", "rn", "ro", "ru", "rw", "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn",
+                               "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw", "ty", "tyv", "uk", "uz", "ve",
+                               "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
 }

@@ -24,6 +24,7 @@ import std.conv : octal;
 
 extern(C):
 nothrow:
+@nogc:
 static if (!is(typeof(usize))) private alias usize = size_t;
 
 struct archive {}

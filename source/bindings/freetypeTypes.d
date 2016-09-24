@@ -30,6 +30,7 @@ import core.stdc.config : c_long, c_ulong;
 
 extern(C):
 nothrow:
+@nogc:
 
 // config/ftconfig.h
 alias FT_Int16 = short;
@@ -141,7 +142,7 @@ alias FT_CharMap = FT_CharMapRec*;
 alias FT_ENC_TAG = FT_MAKE_TAG;
 
 alias FT_Encoding = FT_Tag;
-enum :FT_Tag {
+enum : FT_Tag {
     FT_ENCODING_NONE = 0,
     FT_ENCODING_MS_SYMBOL = FT_MAKE_TAG( 's','y','m','b' ),
     FT_ENCODING_UNICODE = FT_MAKE_TAG( 'u','n','i','c' ),

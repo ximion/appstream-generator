@@ -23,9 +23,10 @@ public import bindings.freetypeTypes;
 
 extern(C):
 nothrow:
+@nogc:
 
 FT_Error FT_Init_FreeType (FT_Library *alibrary);
-FT_Error FT_Done_FreeType (FT_Library  library);
+FT_Error FT_Done_Library (FT_Library library);
 
 FT_Error FT_New_Face (FT_Library library,
                       const(char) *filepathname,

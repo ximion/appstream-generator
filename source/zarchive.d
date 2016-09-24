@@ -531,7 +531,12 @@ public:
     }
 
     void addFile (string fname, string dest = null)
-    in { assert (std.file.exists (fname)); }
+    in {
+        if (!std.file.exists (fname)) {
+            logError ("File %s does not exist!", fname);
+            assert (0);
+        }
+    }
     body
     {
         import std.conv : octal;
