@@ -40,6 +40,8 @@ import asgen.handlers.iconhandler : wantedIconSizes;
 
 private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 48)];
 
+// NOTE: We assume fonts follow the common convertions for naming them, ideally
+// the ones outlined by Adobe in this document: https://partners.adobe.com/public/developer/en/font/5088.FontNames.pdf
 
 void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir)
 {

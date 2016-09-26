@@ -19,11 +19,11 @@
 
 module asgen.font;
 
-import std.string : format, fromStringz, toStringz;
+import std.string : format, fromStringz, toStringz, toLower;
 import std.conv : to;
 import std.path : buildPath, baseName;
 import std.array : empty, appender;
-import std.algorithm : canFind, remove;
+import std.algorithm : countUntil, remove;
 static import std.file;
 
 import asgen.bindings.freetype;
@@ -211,8 +211,11 @@ public:
         // prefer the English language if possible
         // this is a hack since some people don't set their
         // <languages> tag properly.
-        if (anyAdded && languages_.canFind ("en"))
+        immutable enIndex = languages_.countUntil ("en");
+        if (anyAdded && enIndex > 0) {
+            languages_ = languages_.remove (enIndex);
             languages_ = "en" ~ languages_;
+        }
     }
 
     @property
@@ -239,7 +242,7 @@ public:
             return null;
         if (this.style is null)
             return null;
-        return "%s-%s".format (this.family.strip, this.style.strip);
+        return "%s-%s".format (this.family.strip.toLower, this.style.strip.toLower);
     }
 
     @property
@@ -340,8 +343,9 @@ unittest
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);
 
-    assert (font.languages == ["aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs", "bua",
-                               "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "en", "eo", "es", "et", "eu",
+    writeln (font.languages);
+    assert (font.languages == ["en", "aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs",
+                               "bua", "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "eo", "es", "et", "eu",
                                "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht",
                                "hu", "hz", "ia", "id", "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am", "ku-tr",
                                "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt", "lv", "mg", "mh", "mi", "mk", "mn-mn", "mo", "ms", "mt",
