@@ -193,12 +193,18 @@ private:
     cairo_surface_p srf;
     cairo_p cr;
 
+    int width_;
+    int height_;
+
 public:
 
     this (int w, int h)
     {
          srf = cairo_image_surface_create (cairo_format_t.FORMAT_ARGB32, w, h);
          cr = cairo_create (srf);
+
+         width_ = w;
+         height_ = h;
     }
 
     ~this ()
@@ -212,13 +218,15 @@ public:
     @property
     uint width ()
     {
-        return srf.cairo_image_surface_get_width ();
+        return width_;
+        //! return srf.cairo_image_surface_get_width ();
     }
 
     @property
     uint height ()
     {
-        return srf.cairo_image_surface_get_height ();
+        return height_;
+        //! return srf.cairo_image_surface_get_height ();
     }
 
     void renderSvg (ubyte[] svgBytes)
@@ -257,7 +265,48 @@ public:
             throw new Exception ("Rendering of SVG images failed!");
     }
 
-    void writeText (Font font, string text, const uint borderWidth = 4, const uint linePadding = 2)
+    /**
+     * Draw a simple line of text without linebreaks to fill the canvas.
+     **/
+    void drawTextLine (Font font, string text, uint borderWidth = 4)
+    {
+        import asgen.bindings.freetype : FT_LOAD_DEFAULT;
+
+        auto cff = cairo_ft_font_face_create_for_ft_face (font.fontFace, FT_LOAD_DEFAULT);
+        scope (exit) cairo_font_face_destroy (cff);
+
+        // set font face for Cairo surface
+        auto status = cairo_font_face_status (cff);
+        if (status != cairo_status_t.STATUS_SUCCESS)
+            throw new Exception ("Could not set font face for Cairo: %s".format (to!string (status)));
+        cairo_set_font_face (cr, cff);
+
+        cairo_text_extents_t te;
+        uint textSize = 128;
+        while (textSize-- > 0) {
+            cairo_set_font_size (cr, textSize);
+            cairo_text_extents (cr, text.toStringz, &te);
+            if (te.width <= 0.01f || te.height <= 0.01f)
+                continue;
+            if (te.width < this.width - (borderWidth * 2) &&
+                te.height < this.height - (borderWidth * 2))
+			    break;
+	    }
+
+        // draw text
+    	cairo_move_to (cr,
+    		       (this.width / 2) - te.width / 2 - te.x_bearing,
+    		       (this.height / 2) - te.height / 2 - te.y_bearing);
+    	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+    	cairo_show_text (cr, text.toStringz);
+
+        cairo_save (cr);
+    }
+
+    /**
+     * Draw a longer text with linebreaks.
+     */
+    void drawText (Font font, string text, const uint borderWidth = 4, const uint linePad = 2)
     {
         import asgen.bindings.freetype : FT_LOAD_DEFAULT;
 
@@ -271,19 +320,27 @@ public:
         cairo_set_font_face (cr, cff);
 
         // calculate best font size
+        uint linePadding = linePad;
         auto lines = text.split ("\n");
-        string longestLine = lines[0];
-        ulong ll = 0;
-        foreach (line; lines) {
-            if (line.length > ll)
-                longestLine = line;
-            ll = line.length;
+        string longestLine;
+        if (lines.length <= 1) {
+            linePadding = 0;
+            longestLine = text;
+        } else {
+            ulong ll = 0;
+            longestLine = lines[0];
+            foreach (line; lines) {
+                if (line.length > ll)
+                    longestLine = line;
+                    ll = line.length;
+            }
         }
+
         cairo_text_extents_t te;
-        uint text_size = 64;
+        uint text_size = 128;
         while (text_size-- > 0) {
             cairo_set_font_size (cr, text_size);
-            cairo_text_extents (cr, longestLine.toStringz (), &te);
+            cairo_text_extents (cr, longestLine.toStringz, &te);
             if (te.width <= 0.01f || te.height <= 0.01f)
                 continue;
             if (te.width < this.width - (borderWidth * 2) &&
@@ -368,7 +425,7 @@ unittest
     auto font = new Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
 
     cv = new Canvas (400, 100);
-    cv.writeText (font,
+    cv.drawText (font,
                   "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
     cv.savePng ("/tmp/ag-fontrender_test1.png");
 }

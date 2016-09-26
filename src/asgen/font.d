@@ -23,6 +23,7 @@ import std.string : format, fromStringz, toStringz;
 import std.conv : to;
 import std.path : buildPath, baseName;
 import std.array : empty, appender;
+import std.algorithm : canFind, remove;
 static import std.file;
 
 import asgen.bindings.freetype;
@@ -206,6 +207,12 @@ public:
         if (!anyAdded)
             res ~= "en";
         languages_ = res.data;
+
+        // prefer the English language if possible
+        // this is a hack since some people don't set their
+        // <languages> tag properly.
+        if (anyAdded && languages_.canFind ("en"))
+            languages_ = "en" ~ languages_;
     }
 
     @property

@@ -27,6 +27,7 @@ import std.conv : to;
 import appstream.Component;
 import appstream.Icon;
 import appstream.Screenshot;
+static import appstream.Image;
 static import std.file;
 
 import asgen.utils;
@@ -35,6 +36,9 @@ import asgen.result;
 import asgen.image : Canvas;
 import asgen.font : Font;
 import asgen.handlers.iconhandler : wantedIconSizes;
+
+
+private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 48)];
 
 
 void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir)
@@ -93,7 +97,20 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
         }
     }
 
+    immutable gcid = gres.gcidForComponent (cpt);
+    if (gcid is null) {
+        gres.addHint (cpt, "internal-error", "No global ID could be found for the component.");
+        return;
+    }
+
+    // data export paths
+    immutable cptIconsPath = buildPath (mediaExportDir, gcid, "icons");
+    immutable cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
+    logDebug ("Rendering font data for %s", gcid);
+
+    // process font files
     auto hasIcon = false;
+    auto finalFonts = appender!(Font[]);
     foreach (ref fontFile; includeFonts.data) {
         const(ubyte)[] fdata;
         try {
@@ -103,20 +120,10 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
             return;
         }
 
-        immutable gcid = gres.gcidForComponent (cpt);
-        if (gcid is null) {
-            gres.addHint (cpt, "internal-error", "No global ID could be found for the component.");
-            return;
-        }
-
-        logDebug ("Rendering font data for %s", gcid);
-
-        // data export paths
-        immutable cptIconsPath = buildPath (mediaExportDir, gcid, "icons");
-        immutable cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
-
         // TODO: Catch errors
         auto font = new Font (fdata, fontFile.baseName);
+
+        logDebug ("Processing font %s", font.id);
 
         // add language information
         foreach (ref lang; font.languages) {
@@ -130,7 +137,14 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
                                       fontFile,
                                       cptIconsPath,
                                       cpt);
+        finalFonts ~= font;
     }
+
+    // render all sample screenshots for all font styles we have
+    renderFontScreenshots (gres,
+                           finalFonts.data,
+                           cptScreenshotsPath,
+                           cpt);
 }
 
 /**
@@ -154,7 +168,7 @@ private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, i
         if (!std.file.exists (iconStoreLocation)) {
             // we didn't create an icon yet - render it
             auto cv = new Canvas (size.width, size.height);
-            cv.writeText (font, font.sampleIconText, 3, 1);
+            cv.drawTextLine (font, font.sampleIconText);
             cv.savePng (iconStoreLocation);
         }
 
@@ -164,6 +178,60 @@ private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, i
         icon.setHeight (size.height);
         icon.setName (iconName);
         cpt.addIcon (icon);
+    }
+
+    return true;
+}
+
+/**
+ * Render a "screenshot" sample for this font.
+ **/
+private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutable string cptScreenshotsPath, Component cpt)
+{
+    std.file.mkdirRecurse (cptScreenshotsPath);
+
+    auto first = true;
+    foreach (ref font; fonts) {
+        immutable fid = font.id;
+        if (fid is null) {
+            logWarning ("%s: Ignored font screenshot rendering due to missing ID:", cpt.getId ());
+            continue;
+        }
+
+        auto scr = new Screenshot ();
+        if (first)
+            scr.setKind (ScreenshotKind.DEFAULT);
+        else
+            scr.setKind (ScreenshotKind.EXTRA);
+        scr.setCaption ("%s %s".format (font.family, font.style), "C");
+
+        if (first)
+            first = false;
+
+        auto cptScreenshotsUrl = buildPath (gres.gcidForComponent (cpt), "screenshots");
+        foreach (ref size; fontScreenshotSizes) {
+            immutable imgName = "image-%s_%s.png".format (fid, size.toString);
+            immutable imgFileName = buildPath (cptScreenshotsPath, imgName);
+            immutable imgUrl = buildPath (cptScreenshotsUrl, imgName);
+
+
+            if (!std.file.exists (imgFileName)) {
+                // we didn't create s screenshot yet - render it
+                auto cv = new Canvas (size.width, size.height);
+                cv.drawTextLine (font, font.sampleText);
+                cv.savePng (imgFileName);
+            }
+
+            auto img = new appstream.Image.Image ();
+            img.setKind (ImageKind.THUMBNAIL);
+            img.setWidth (size.width);
+            img.setHeight (size.height);
+            img.setUrl (imgUrl);
+
+            scr.addImage (img);
+        }
+
+        cpt.addScreenshot (scr);
     }
 
     return true;

@@ -104,15 +104,12 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
 
     auto gcid = gres.gcidForComponent (cpt);
     if (gcid is null) {
-        auto cid = cpt.getId ();
-        if (cid is null)
-            cid = "general";
-        gres.addHint (cid, "internal-error", "No global ID could be found for the component.");
+        gres.addHint (cpt, "internal-error", "No global ID could be found for the component.");
         return null;
     }
 
-    auto cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
-    auto cptScreenshotsUrl = buildPath (gcid, "screenshots");
+    immutable cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
+    immutable cptScreenshotsUrl = buildPath (gcid, "screenshots");
     std.file.mkdirRecurse (cptScreenshotsPath);
 
     uint sourceScrWidth;
