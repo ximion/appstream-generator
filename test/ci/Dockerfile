@@ -25,6 +25,7 @@ RUN apt-get install -yq --no-install-recommends \
 RUN apt-get install -yq --no-install-recommends \
     dub \
     meson \
+    libmustache-d-dev \
     libcurl4-gnutls-dev \
     liblmdb-dev \
     libarchive-dev \
