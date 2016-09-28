@@ -83,6 +83,12 @@ private:
     string sampleText_;
     string sampleIconText_;
 
+    // font properties
+    string slope_;
+    string opticalSize_;
+
+    immutable string fileBaseName;
+
 public:
 
     this (string fname)
@@ -97,6 +103,8 @@ public:
                 throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
             loadFontConfigData (fname);
+
+            fileBaseName = fname.baseName;
         }
     }
 
@@ -233,15 +241,21 @@ public:
     }
 
     @property
+    string fullName ()
+    {
+        return "%s %s".format (family, style);
+    }
+
+    @property
     string id ()
     {
         import std.string;
         assert (ready ());
 
         if (this.family is null)
-            return null;
+            return fileBaseName;
         if (this.style is null)
-            return null;
+            return fileBaseName;
         return "%s-%s".format (this.family.strip.toLower, this.style.strip.toLower);
     }
 

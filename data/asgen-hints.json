@@ -181,6 +181,12 @@
            "Permissive licenses are required to allow distributors to include the metadata in mixed data collections without the risk of license violations due to mutually incompatible licenses.",
            "If you think this message is an error and '{{license}}' is actually valid, please <a href=\"https://github.com/ximion/appstream/issues\">file a bug against AppStream</a>."],
   "severity": "error"
+},
+
+"font-metainfo-but-no-font": {
+  "text": ["A metainfo file with component-type <code>font</code> was found, but we could not find any font file (TrueType or OpenType) in the package.<br/>",
+           "This can mean that the <code>&lt;provides&gt; - &lt;font&gt;</code> tags contain wrong values that we could not map to the actual fonts, or that the package simply contained to suitable fonts."],
+  "severity": "error"
 }
 
 }

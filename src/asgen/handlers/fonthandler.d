@@ -21,8 +21,7 @@ module asgen.handlers.fonthandler;
 
 import std.path : baseName, buildPath;
 import std.array : appender;
-import std.string : format, fromStringz, startsWith, endsWith, strip;
-import std.algorithm : remove;
+import std.string : format, fromStringz, startsWith, endsWith, strip, toLower;
 import std.conv : to;
 import appstream.Component;
 import appstream.Icon;
@@ -43,88 +42,107 @@ private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 4
 // NOTE: We assume fonts follow the common convertions for naming them, ideally
 // the ones outlined by Adobe in this document: https://partners.adobe.com/public/developer/en/font/5088.FontNames.pdf
 
-void processFontData (GeneratorResult gres, Component cpt, string mediaExportDir)
+void processFontData (GeneratorResult gres, string mediaExportDir)
 {
-    if (cpt.getKind () != ComponentKind.FONT)
+    auto hasFonts = false;
+    foreach (ref cpt; gres.getComponents ()) {
+        if (cpt.getKind () != ComponentKind.FONT)
+            continue;
+        hasFonts = true;
+        break;
+    }
+
+    // nothing to do if we don't have fonts
+    if (!hasFonts)
         return;
 
-    // Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
-    // just create multiple configurations in multiple threads, we need to run all
-    // font operations synchronized, which sucks.
-    // We can not even only make parts of the process synchronized, since we or other
-    // classes are dealing with a Font object all the time.
-    synchronized {
-        processFontDataInternal (gres, cpt, mediaExportDir);
+    // create a map of all fonts we have in this package
+    Font[string] allFonts;
+
+    foreach (ref fname; gres.pkg.contents) {
+        if (!fname.startsWith ("/usr/share/fonts/"))
+            continue;
+        if (!fname.endsWith (".ttf", ".otf"))
+            continue;
+        // TODO: Can we support more font types?
+
+        const(ubyte)[] fdata;
+        try {
+            fdata = gres.pkg.getFileData (fname);
+        } catch (Exception e) {
+            gres.addHint (null, "pkg-extract-error", ["fname": fname.baseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
+            return;
+        }
+
+        immutable fontBaseName = fname.baseName;
+        logDebug ("Reading font %s", fontBaseName);
+
+        // TODO: Handle errors
+        auto font = new Font (fdata, fontBaseName);
+        allFonts[font.fullName.toLower] = font;
+    }
+
+    foreach (ref cpt; gres.getComponents ()) {
+        if (cpt.getKind () != ComponentKind.FONT)
+            continue;
+
+        processFontDataForComponent (gres, cpt, allFonts, mediaExportDir);
     }
 }
 
-void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaExportDir)
+void processFontDataForComponent (GeneratorResult gres, Component cpt, Font[string] allFonts, string mediaExportDir)
 {
-    string[] fontHints;
-    auto provided = cpt.getProvidedForKind (ProvidedKind.FONT);
-    if (provided !is null) {
-        auto fontHintsArr = provided.getItems ();
-
-        for (uint i = 0; i < fontHintsArr.len; i++) {
-            auto fontFname = (cast(char*) fontHintsArr.index (i)).fromStringz;
-            fontHints ~= to!string (fontFname);
-        }
-    }
-
-    // look for interesting fonts
-    auto includeFonts = appender!(string[]);
-    if (fontHints.length == 0) {
-        // we had no fonts defined in the metainfo file, just select all fonts that
-        // we can find.
-        foreach (ref fname; gres.pkg.contents) {
-            if (!fname.startsWith ("/usr/share/fonts/"))
-                continue;
-            if (!fname.endsWith (".ttf", ".otf"))
-                continue;
-            // TODO: Can we support more font types?
-            includeFonts ~= fname;
-        }
-    } else {
-        foreach (ref fname; gres.pkg.contents) {
-            if (!fname.startsWith ("/usr/share/fonts/"))
-                continue;
-
-            foreach (ref name; fontHints) {
-                if (fname.endsWith (name)) {
-                    includeFonts ~= fname;
-                    //fontHints.remove (name);
-                    break;
-                }
-            }
-        }
-    }
-
     immutable gcid = gres.gcidForComponent (cpt);
     if (gcid is null) {
         gres.addHint (cpt, "internal-error", "No global ID could be found for the component.");
         return;
     }
 
+    auto fontHints = appender!(string[]);
+    auto provided = cpt.getProvidedForKind (ProvidedKind.FONT);
+    if (provided !is null) {
+        auto fontHintsArr = provided.getItems ();
+
+        for (uint i = 0; i < fontHintsArr.len; i++) {
+            auto fontFullName = (cast(char*) fontHintsArr.index (i)).fromStringz;
+            fontHints ~= to!string (fontFullName).toLower;
+        }
+    }
+
     // data export paths
     immutable cptIconsPath = buildPath (mediaExportDir, gcid, "icons");
     immutable cptScreenshotsPath = buildPath (mediaExportDir, gcid, "screenshots");
+
+    // if we have no fonts hints, we simply process all the fonts
+    // we found n this package.
+    auto selectedFonts = appender!(Font[]);
+    if (fontHints.data.length == 0) {
+        foreach (ref font; allFonts.byValue)
+            selectedFonts ~= font;
+    } else {
+        // find fonts based on the hints we have
+        // the hint as well as the dictionary keys are all lowercased, so we
+        // can do case-insensitive matching here.
+        foreach (ref fontHint; fontHints.data) {
+            auto fontP = fontHint in allFonts;
+            if (fontP is null)
+                continue;
+            selectedFonts ~= *fontP;
+        }
+    }
+
+    // we have nothing to do if we did not select any font
+    // (this is a bug, since we filtered for font metainfo previously)
+    if (selectedFonts.data.length == 0) {
+        gres.addHint (cpt, "font-metainfo-but-no-font");
+        return;
+    }
+
     logDebug ("Rendering font data for %s", gcid);
 
     // process font files
     auto hasIcon = false;
-    auto finalFonts = appender!(Font[]);
-    foreach (ref fontFile; includeFonts.data) {
-        const(ubyte)[] fdata;
-        try {
-            fdata = gres.pkg.getFileData (fontFile);
-        } catch (Exception e) {
-            gres.addHint(cpt, "pkg-extract-error", ["fname": fontFile.baseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
-            return;
-        }
-
-        // TODO: Catch errors
-        auto font = new Font (fdata, fontFile.baseName);
-
+    foreach (ref font; selectedFonts.data) {
         logDebug ("Processing font %s", font.id);
 
         // add language information
@@ -136,15 +154,13 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
         if (!hasIcon)
             hasIcon = renderFontIcon (gres,
                                       font,
-                                      fontFile,
                                       cptIconsPath,
                                       cpt);
-        finalFonts ~= font;
     }
 
     // render all sample screenshots for all font styles we have
     renderFontScreenshots (gres,
-                           finalFonts.data,
+                           selectedFonts.data,
                            cptScreenshotsPath,
                            cpt);
 }
@@ -154,16 +170,13 @@ void processFontDataInternal (GeneratorResult gres, Component cpt, string mediaE
  * (Since we have no better way to do this, we just pick the first font
  * at time)
  **/
-private bool renderFontIcon (GeneratorResult gres, Font font, string fontFile, immutable string cptIconsPath, Component cpt)
+private bool renderFontIcon (GeneratorResult gres, Font font, immutable string cptIconsPath, Component cpt)
 {
     foreach (ref size; wantedIconSizes) {
         immutable path = buildPath (cptIconsPath, size.toString);
         std.file.mkdirRecurse (path);
 
-        auto fid = font.id;
-        if (fid is null)
-            fid = fontFile.baseName;
-
+        immutable fid = font.id;
         immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
 

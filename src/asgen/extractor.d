@@ -199,10 +199,10 @@ public:
             // we don't even need to call this if no downloads are allowed.
             if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
-
-            // render font previews and extract font metadata
-            processFontData (gres, cpt, dstore.mediaExportPoolDir);
         }
+
+        // render font previews and extract font metadata (if any of the components is a font)
+        processFontData (gres, dstore.mediaExportPoolDir);
 
         // this removes invalid components and cleans up the result
         gres.finalize ();
