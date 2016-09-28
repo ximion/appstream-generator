@@ -404,7 +404,13 @@ class Config
     {
         if (tmpDir.empty) {
             synchronized (this) {
-                tmpDir = buildPath (cacheRootDir, "tmp", format ("asgen-%s", randomString (8)));
+                string root;
+                if (cacheRootDir.empty)
+                    root = "/tmp/";
+                else
+                    root = cacheRootDir;
+
+                tmpDir = buildPath (root, "tmp", format ("asgen-%s", randomString (8)));
             }
         }
 

@@ -20,7 +20,7 @@
 module asgen.handlers.fonthandler;
 
 import std.path : baseName, buildPath;
-import std.array : appender;
+import std.array : appender, replace;
 import std.string : format, fromStringz, startsWith, endsWith, strip, toLower;
 import std.conv : to;
 import appstream.Component;
@@ -44,6 +44,8 @@ private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 4
 
 void processFontData (GeneratorResult gres, string mediaExportDir)
 {
+    import core.thread;
+
     auto hasFonts = false;
     foreach (ref cpt; gres.getComponents ()) {
         if (cpt.getKind () != ComponentKind.FONT)
@@ -52,13 +54,29 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         break;
     }
 
+    hasFonts = true;
+
     // nothing to do if we don't have fonts
     if (!hasFonts)
         return;
 
+    // Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
+    // just create multiple configurations in multiple threads, we need to run all
+    // font operations synchronized, which sucks.
+    // FreeType / Cairo also seems to have issues here, causing the generator to crash
+    // at random, or deadlock reliably when trying to get a Cairo/FT-internal Mutex
+    // (not exactly sure why, they probably clash with the Mutex we already hold to suspend
+    // threads)
+    // Just making the whole "read font data and draw fonts" process synchronous seems to
+    // fix all of the weird bugs.
+    processFontDataInternal (gres, mediaExportDir);
+}
+
+void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
+{
     // create a map of all fonts we have in this package
     Font[string] allFonts;
-
+    bool[string] fontFamilies;
     foreach (ref fname; gres.pkg.contents) {
         if (!fname.startsWith ("/usr/share/fonts/"))
             continue;
@@ -80,6 +98,17 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         // TODO: Handle errors
         auto font = new Font (fdata, fontBaseName);
         allFonts[font.fullName.toLower] = font;
+
+        if (!fontFamilies.get (font.family.toLower, false)) {
+            fontFamilies[font.family.toLower] = true;
+
+            auto cpt = new Component ();
+            cpt.setKind (ComponentKind.FONT);
+            cpt.setId ("org.example.%s".format (font.family.replace (" ", "")));
+            cpt.setSummary ("The %s font".format (font.family), "C");
+
+            gres.addComponent (cpt, gres.pkg.ver);
+        }
     }
 
     foreach (ref cpt; gres.getComponents ()) {

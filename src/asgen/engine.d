@@ -93,6 +93,10 @@ public:
         // create cache in cache directory on workspace
         dstore = new DataStore ();
         dstore.open (conf);
+
+        // for fontconfig non-threadsafety
+        import asgen.fcmutex;
+        setupFontconfigMutex ();
     }
 
     @property
@@ -156,6 +160,8 @@ public:
                 if (c.startsWith ("/usr/share/metainfo/"))
                     return true;
                 if (c.startsWith ("/usr/share/appdata/"))
+                    return true;
+                if (c.startsWith ("/usr/share/fonts/"))
                     return true;
             }
 

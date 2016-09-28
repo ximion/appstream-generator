@@ -22,7 +22,7 @@ module asgen.font;
 import std.string : format, fromStringz, toStringz, toLower;
 import std.conv : to;
 import std.path : buildPath, baseName;
-import std.array : empty, appender;
+import std.array : empty, appender, replace;
 import std.algorithm : countUntil, remove;
 static import std.file;
 
@@ -32,6 +32,7 @@ import asgen.bindings.pango;
 
 import asgen.logging;
 import asgen.config : Config;
+import asgen.fcmutex;
 
 
 private static __gshared string[string] iconTexts;
@@ -93,19 +94,16 @@ public:
 
     this (string fname)
     {
-        // Nothing is threadsafe
-        synchronized {
-            initFreeType ();
+        initFreeType ();
 
-            FT_Error err;
-            err = FT_New_Face (library, fname.toStringz (), 0, &fface);
-            if (err != 0)
-                throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
+        FT_Error err;
+        err = FT_New_Face (library, fname.toStringz (), 0, &fface);
+        if (err != 0)
+            throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-            loadFontConfigData (fname);
+        loadFontConfigData (fname);
 
-            fileBaseName = fname.baseName;
-        }
+        fileBaseName = fname.baseName;
     }
 
     this (const(ubyte)[] data, string fileBaseName)
@@ -115,10 +113,9 @@ public:
         // we unfortunately need to create a stupid temporary file here, otherwise Fontconfig
         // does not work and we can not determine the right demo strings for this font.
         // (FreeType itself could load from memory)
-        auto cacheRoot = Config.get ().cacheRootDir;
-        if (!std.file.exists (cacheRoot))
-            cacheRoot = "/tmp/";
-        immutable fname = buildPath (cacheRoot, fileBaseName);
+        immutable tmpRoot = Config.get ().getTmpDir;
+        std.file.mkdirRecurse (tmpRoot);
+        immutable fname = buildPath (tmpRoot, fileBaseName);
         auto f = File (fname, "w");
         f.rawWrite (data);
         f.close ();
@@ -128,10 +125,7 @@ public:
 
     ~this ()
     {
-        // We need to do this in sync, because Fontconfig is completely non-threadsafe,
-        // and FreeType has shown bad behavior as well.
-        synchronized
-            release ();
+        release ();
     }
 
     void release ()
@@ -163,11 +157,20 @@ public:
 
     private void loadFontConfigData (string fname)
     {
+        // we can only ever execute this without anything else touching Fontconfig
+        // running, since Fontconfig is completely non threadsafe (bah!)
+        // Otherwise it will mess with the applications global state,
+        // causing e.g. SVG rendering in other threads to segfault.
+        enterFontconfigCriticalSection ();
+
     	// create a new fontconfig configuration
     	auto fconfig = FcConfigCreate ();
         scope (exit) {
             FcConfigAppFontClear (fconfig);
             FcConfigDestroy (fconfig);
+
+            // allow FC actions, after we got rid of our Fontconfig instance.
+            leaveFontconfigCriticalSection ();
         }
 
     	// ensure that default configuration and fonts are not loaded
@@ -256,7 +259,8 @@ public:
             return fileBaseName;
         if (this.style is null)
             return fileBaseName;
-        return "%s-%s".format (this.family.strip.toLower, this.style.strip.toLower);
+        return "%s-%s".format (this.family.strip.toLower.replace (" ", ""),
+                               this.style.strip.toLower.replace (" ", ""));
     }
 
     @property

@@ -231,8 +231,21 @@ public:
 
     void renderSvg (ubyte[] svgBytes)
     {
+        import asgen.fcmutex;
+
+        // NOTE: unfortunately, Cairo/RSvg use Fontconfig internall, so
+        // we need to lock this down since a parallel-processed font
+        // might need to access this too.
+        // This can likely be optimized by checking whether it's really
+        // a Font that is holding the lock (= make only fonts increase the
+        // Mutex counter)
+        enterFontconfigCriticalSection ();
+
         auto handle = rsvg_handle_new ();
-        scope (exit) g_object_unref (handle);
+        scope (exit) {
+            g_object_unref (handle);
+            leaveFontconfigCriticalSection ();
+        }
 
         auto svgBSize = ubyte.sizeof * svgBytes.length;
         GError *error = null;
