@@ -37,6 +37,7 @@ import gi.glib;
 import asgen.logging;
 import asgen.config;
 import asgen.font : Font;
+import asgen.fcmutex;
 
 
 enum ImageFormat {
@@ -231,9 +232,7 @@ public:
 
     void renderSvg (ubyte[] svgBytes)
     {
-        import asgen.fcmutex;
-
-        // NOTE: unfortunately, Cairo/RSvg use Fontconfig internall, so
+        // NOTE: unfortunately, Cairo/RSvg uses Fontconfig internally, so
         // we need to lock this down since a parallel-processed font
         // might need to access this too.
         // This can likely be optimized by checking whether it's really
@@ -284,6 +283,8 @@ public:
     void drawTextLine (Font font, string text, uint borderWidth = 4)
     {
         import asgen.bindings.freetype : FT_LOAD_DEFAULT;
+        enterFontconfigCriticalSection ();
+        scope (exit) leaveFontconfigCriticalSection ();
 
         auto cff = cairo_ft_font_face_create_for_ft_face (font.fontFace, FT_LOAD_DEFAULT);
         scope (exit) cairo_font_face_destroy (cff);
@@ -322,6 +323,8 @@ public:
     void drawText (Font font, string text, const uint borderWidth = 4, const uint linePad = 2)
     {
         import asgen.bindings.freetype : FT_LOAD_DEFAULT;
+        enterFontconfigCriticalSection ();
+        scope (exit) leaveFontconfigCriticalSection ();
 
         auto cff = cairo_ft_font_face_create_for_ft_face (font.fontFace, FT_LOAD_DEFAULT);
         scope (exit) cairo_font_face_destroy (cff);

@@ -38,6 +38,8 @@ struct FcStrList {};
 struct FcStrSet {};
 
 immutable char *FC_LANG = "lang"; // String RFC 3066 langs
+immutable char *FC_STYLE = "style"; // String
+immutable char *FC_FULLNAME = "fullname"; // String
 
 struct FcFontSet {
     int nfont;
@@ -106,6 +108,10 @@ FcResult FcPatternGetLangSet (const FcPattern *p,
                               const char *object,
                               int n,
                               FcLangSet **ls);
+FcResult FcPatternGetString (const FcPattern *p,
+                             const char *object,
+                             int n,
+                             FcChar8 ** s);
 
 FcStrList *FcStrListCreate (FcStrSet *set);
 void FcStrListFirst (FcStrList *list);

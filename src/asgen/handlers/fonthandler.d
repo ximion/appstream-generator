@@ -39,9 +39,6 @@ import asgen.handlers.iconhandler : wantedIconSizes;
 
 private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 48)];
 
-// NOTE: We assume fonts follow the common convertions for naming them, ideally
-// the ones outlined by Adobe in this document: https://partners.adobe.com/public/developer/en/font/5088.FontNames.pdf
-
 void processFontData (GeneratorResult gres, string mediaExportDir)
 {
     import asgen.fcmutex;
@@ -116,12 +113,7 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
         if (cpt.getKind () != ComponentKind.FONT)
             continue;
 
-        // the data processing uses a lot of Fontconfig stuff internally, so it is easier
-        // to lock it down completely that to find each and every bit using Fontconfig internally
-        // and mutex that individually.
-        enterFontconfigCriticalSection ();
         processFontDataForComponent (gres, cpt, allFonts, mediaExportDir);
-        leaveFontconfigCriticalSection ();
     }
 }
 

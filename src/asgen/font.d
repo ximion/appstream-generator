@@ -35,6 +35,10 @@ import asgen.config : Config;
 import asgen.fcmutex;
 
 
+// NOTE: The font's full-name (and the family-style combo we use if the full name is unavailable), can be
+// determined on the command-line via:
+// fc-query --format='FN: %{fullname}\nFS: %{family[0]} %{style[0]}\n' <fontfile>
+
 private static __gshared string[string] iconTexts;
 private void initIconTextMap ()
 {
@@ -84,9 +88,8 @@ private:
     string sampleText_;
     string sampleIconText_;
 
-    // font properties
-    string slope_;
-    string opticalSize_;
+    string style_;
+    string fullname_;
 
     immutable string fileBaseName;
 
@@ -188,17 +191,17 @@ public:
         // initialize our icon-text map globally
         initIconTextMap ();
 
-        // load supported locale
-        auto fcRc = FcResult.Match;
-        FcValue fcValue;
+        // load information about the font
         auto res = appender!(string[]);
 
-        auto anyAdded = false;
-        for (uint i = 0; fcRc == FcResult.Match; i++) {
+        auto anyLangAdded = false;
+        auto match = true;
+        for (uint i = 0; match == true; i++) {
             FcLangSet *ls;
 
-            fcRc = FcPatternGetLangSet (fpattern, FC_LANG, i, &ls);
-            if (fcRc == FcResult.Match) {
+            match = false;
+            if (FcPatternGetLangSet (fpattern, FC_LANG, i, &ls) == FcResult.Match) {
+                match = true;
                 auto langs = FcLangSetGetLangs (ls);
                 auto list = FcStrListCreate (langs);
                 scope (exit) {
@@ -210,13 +213,23 @@ public:
                 FcStrListFirst (list);
                 while ((tmp = FcStrListNext (list)) !is null) {
                     res ~= to!string (tmp.fromStringz);
-                    anyAdded = true;
+                    anyLangAdded = true;
                 }
             }
         }
 
+        char *fullNameVal;
+        if (FcPatternGetString (fpattern, FC_FULLNAME, 9, &fullNameVal) == FcResult.Match) {
+            fullname_ = fullNameVal.fromStringz.dup;
+        }
+
+        char *styleVal;
+        if (FcPatternGetString (fpattern, FC_STYLE, 0, &styleVal) == FcResult.Match) {
+            style_ = styleVal.fromStringz.dup;
+        }
+
         // assume 'en' is available
-        if (!anyAdded)
+        if (!anyLangAdded)
             res ~= "en";
         languages_ = res.data;
 
@@ -224,7 +237,7 @@ public:
         // this is a hack since some people don't set their
         // <languages> tag properly.
         immutable enIndex = languages_.countUntil ("en");
-        if (anyAdded && enIndex > 0) {
+        if (anyLangAdded && enIndex > 0) {
             languages_ = languages_.remove (enIndex);
             languages_ = "en" ~ languages_;
         }
@@ -240,21 +253,22 @@ public:
     @property
     string style ()
     {
-        assert (ready ());
-        return to!string (fface.style_name.fromStringz);
+        return style_;
     }
 
     @property
     string fullName ()
     {
-        return "%s %s".format (family, style);
+        if (fullname_.empty)
+            return "%s %s".format (family, style);
+        else
+            return fullname_;
     }
 
     @property
     string id ()
     {
         import std.string;
-        assert (ready ());
 
         if (this.family is null)
             return fileBaseName;
