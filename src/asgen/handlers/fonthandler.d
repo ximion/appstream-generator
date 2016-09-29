@@ -44,7 +44,7 @@ private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 4
 
 void processFontData (GeneratorResult gres, string mediaExportDir)
 {
-    import core.thread;
+    import asgen.fcmutex;
 
     auto hasFonts = false;
     foreach (ref cpt; gres.getComponents ()) {
@@ -60,15 +60,13 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
     if (!hasFonts)
         return;
 
-    // Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
-    // just create multiple configurations in multiple threads, we need to run all
+    // NOTE: Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
+    // just create multiple configurations in multiple threads, we need to run almost all
     // font operations synchronized, which sucks.
     // FreeType / Cairo also seems to have issues here, causing the generator to crash
-    // at random, or deadlock reliably when trying to get a Cairo/FT-internal Mutex
-    // (not exactly sure why, they probably clash with the Mutex we already hold to suspend
-    // threads)
-    // Just making the whole "read font data and draw fonts" process synchronous seems to
-    // fix all of the weird bugs.
+    // at random, or deadlock reliably when trying to get a Cairo/FT-internal Mutex.
+    // Pay attention that enterFontconfigCriticalSection() are always balanced out with their
+    // leave counterpart, otherwise we will deadlock quickly.
     processFontDataInternal (gres, mediaExportDir);
 }
 
@@ -96,6 +94,7 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
         logDebug ("Reading font %s", fontBaseName);
 
         // TODO: Handle errors
+        // the font class locks the global mutex internally when reading data with Fontconfig
         auto font = new Font (fdata, fontBaseName);
         allFonts[font.fullName.toLower] = font;
 
@@ -112,10 +111,17 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
     }
 
     foreach (ref cpt; gres.getComponents ()) {
+        import asgen.fcmutex;
+
         if (cpt.getKind () != ComponentKind.FONT)
             continue;
 
+        // the data processing uses a lot of Fontconfig stuff internally, so it is easier
+        // to lock it down completely that to find each and every bit using Fontconfig internally
+        // and mutex that individually.
+        enterFontconfigCriticalSection ();
         processFontDataForComponent (gres, cpt, allFonts, mediaExportDir);
+        leaveFontconfigCriticalSection ();
     }
 }
 
@@ -172,7 +178,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, Font[stri
     // process font files
     auto hasIcon = false;
     foreach (ref font; selectedFonts.data) {
-        logDebug ("Processing font %s", font.id);
+        logDebug ("Processing font '%s'", font.id);
 
         // add language information
         foreach (ref lang; font.languages) {

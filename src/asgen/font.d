@@ -94,16 +94,17 @@ public:
 
     this (string fname)
     {
-        initFreeType ();
+        synchronized {
+            initFreeType ();
 
-        FT_Error err;
-        err = FT_New_Face (library, fname.toStringz (), 0, &fface);
-        if (err != 0)
-            throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
+            FT_Error err;
+            err = FT_New_Face (library, fname.toStringz (), 0, &fface);
+            if (err != 0)
+                throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-        loadFontConfigData (fname);
-
-        fileBaseName = fname.baseName;
+                loadFontConfigData (fname);
+                fileBaseName = fname.baseName;
+        }
     }
 
     this (const(ubyte)[] data, string fileBaseName)
