@@ -96,7 +96,8 @@ public:
 
         // for fontconfig non-threadsafety
         import asgen.fcmutex;
-        setupFontconfigMutex ();
+        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS))
+            setupFontconfigMutex ();
     }
 
     @property

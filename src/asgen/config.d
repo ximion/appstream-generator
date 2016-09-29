@@ -81,7 +81,8 @@ enum GeneratorFeature
     STORE_SCREENSHOTS   = 1 << 3,
     OPTIPNG             = 1 << 4,
     METADATA_TIMESTAMPS = 1 << 5,
-    IMMUTABLE_SUITES    = 1 << 6
+    IMMUTABLE_SUITES    = 1 << 6,
+    PROCESS_FONTS       = 1 << 6
 }
 
 class Config
@@ -337,6 +338,7 @@ class Config
         setFeature (GeneratorFeature.OPTIPNG, true);
         setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
         setFeature (GeneratorFeature.IMMUTABLE_SUITES, true);
+        setFeature (GeneratorFeature.PROCESS_FONTS, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -363,6 +365,9 @@ class Config
                             break;
                     case "immutableSuites":
                             setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "processFonts":
+                            setFeature (GeneratorFeature.PROCESS_FONTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     default:
                         break;

@@ -79,3 +79,4 @@ createScreenshotsStore | Mirror screenshots and create thumbnails of them in `me
 optimizePNGSize | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. *Default: `ON`*
 metadataTimestamps | Write timestamps into generated metadata files. *Default: `ON`*
 immutableSuites | Allow suites to be marked as immutable. This is useful for distributions with fixed releases, but not for rolling release distributions or continuously updated repositories. *Default: `ON`*
+processFonts | Include font metadata and render fonts. *Default: `ON`*

@@ -202,7 +202,8 @@ public:
         }
 
         // render font previews and extract font metadata (if any of the components is a font)
-        processFontData (gres, dstore.mediaExportPoolDir);
+        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS))
+            processFontData (gres, dstore.mediaExportPoolDir);
 
         // this removes invalid components and cleans up the result
         gres.finalize ();
