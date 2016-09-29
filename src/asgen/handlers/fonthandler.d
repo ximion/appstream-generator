@@ -51,8 +51,6 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         break;
     }
 
-    hasFonts = true;
-
     // nothing to do if we don't have fonts
     if (!hasFonts)
         return;
@@ -71,7 +69,6 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
 {
     // create a map of all fonts we have in this package
     Font[string] allFonts;
-    bool[string] fontFamilies;
     foreach (ref fname; gres.pkg.contents) {
         if (!fname.startsWith ("/usr/share/fonts/"))
             continue;
@@ -90,21 +87,15 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
         immutable fontBaseName = fname.baseName;
         logDebug ("Reading font %s", fontBaseName);
 
-        // TODO: Handle errors
         // the font class locks the global mutex internally when reading data with Fontconfig
-        auto font = new Font (fdata, fontBaseName);
-        allFonts[font.fullName.toLower] = font;
-
-        if (!fontFamilies.get (font.family.toLower, false)) {
-            fontFamilies[font.family.toLower] = true;
-
-            auto cpt = new Component ();
-            cpt.setKind (ComponentKind.FONT);
-            cpt.setId ("org.example.%s".format (font.family.replace (" ", "")));
-            cpt.setSummary ("The %s font".format (font.family), "C");
-
-            gres.addComponent (cpt, gres.pkg.ver);
+        Font font;
+        try {
+            font = new Font (fdata, fontBaseName);
+        } catch (Exception e) {
+            gres.addHint (null, "font-load-error", ["fname": fontBaseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
+            return;
         }
+        allFonts[font.fullName.toLower] = font;
     }
 
     foreach (ref cpt; gres.getComponents ()) {

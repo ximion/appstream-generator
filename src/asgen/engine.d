@@ -161,8 +161,6 @@ public:
                     return true;
                 if (c.startsWith ("/usr/share/appdata/"))
                     return true;
-                if (c.startsWith ("/usr/share/fonts/"))
-                    return true;
             }
 
             return false;
