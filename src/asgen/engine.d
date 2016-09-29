@@ -306,10 +306,10 @@ public:
 
         // prepare icon-tarball array
         immutable iconTarSizes = ["64", "128"];
-        Appender!(string[])[string] iconTarFiles;
+        Appender!(immutable(string)[])[string] iconTarFiles;
         if (withIconTar) {
             foreach (size; iconTarSizes) {
-                iconTarFiles[size] = appender!(string[]);
+                iconTarFiles[size] = appender!(immutable(string)[]);
             }
         }
 
@@ -356,8 +356,8 @@ public:
                             immutable iconDir = buildPath (mediaExportDir, gcid, "icons", "%sx%s".format (size, size));
                             if (!std.file.exists (iconDir))
                                 continue;
-                            foreach (path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
-                                iconTarFiles[size] ~= path;
+                            foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
+                                iconTarFiles[size] ~= path.idup;
                             }
                         }
                     }
@@ -382,10 +382,12 @@ public:
         if (withIconTar) {
             logDebug ("Creating icon tarball.");
             foreach (size; iconTarSizes) {
+                import std.conv : to;
+
                 auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
                 iconTar.open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
                 auto iconFiles = iconTarFiles[size].data;
-                sort!("a < b", SwapStrategy.stable)(iconFiles);
+                sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }

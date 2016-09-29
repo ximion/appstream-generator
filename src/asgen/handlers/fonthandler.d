@@ -165,7 +165,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, Font[stri
 
         // add language information
         foreach (ref lang; font.languages) {
-            cpt.addLanguage (lang, 100);
+            cpt.addLanguage (lang, 80);
         }
 
         // render an icon for our font
