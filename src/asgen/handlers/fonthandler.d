@@ -49,8 +49,6 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         break;
     }
 
-    hasFonts = true;
-
     // nothing to do if we don't have fonts
     if (!hasFonts)
         return;
@@ -62,7 +60,6 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
 {
     // create a map of all fonts we have in this package
     Font[string] allFonts;
-    Component[string] fontFamilies;
     foreach (ref fname; gres.pkg.contents) {
         if (!fname.startsWith ("/usr/share/fonts/"))
             continue;
@@ -90,30 +87,6 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
             return;
         }
         allFonts[font.fullName.toLower] = font;
-
-        auto famCptP = font.family.toLower in fontFamilies;
-        if (famCptP is null) {
-            import appstream.Provided;
-
-            auto cpt = new Component ();
-            cpt.setKind (ComponentKind.FONT);
-            cpt.setId ("org.example.%s".format (font.family.replace (" ", "")));
-            cpt.setName (font.family, "C");
-            cpt.setSummary ("The %s font".format (font.family), "C");
-
-            auto prov = new Provided;
-            prov.setKind (ProvidedKind.FONT);
-            prov.addItem (font.fullName);
-            cpt.addProvided (prov);
-
-            fontFamilies[font.family.toLower] = cpt;
-            gres.addComponent (cpt, gres.pkg.ver);
-        } else {
-            auto cpt = *famCptP;
-            auto prov = cpt.getProvidedForKind (ProvidedKind.FONT);
-            if (prov !is null)
-                prov.addItem (font.fullName);
-        }
     }
 
     foreach (ref cpt; gres.getComponents ()) {
