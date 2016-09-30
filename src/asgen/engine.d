@@ -57,6 +57,7 @@ private:
     PackageIndex pkgIndex;
 
     DataStore dstore;
+    ContentsStore cstore;
     string exportDir;
 
     bool m_forced;
@@ -93,6 +94,10 @@ public:
         // create cache in cache directory on workspace
         dstore = new DataStore ();
         dstore.open (conf);
+
+        // open package contents cache
+        cstore = new ContentsStore ();
+        cstore.open (conf);
 
         // for Cairo/Fontconfig issues with multithreading
         import asgen.image : setupFontconfigMutex;
@@ -174,10 +179,6 @@ public:
         }
 
         logInfo ("Scanning new packages for %s/%s [%s]", suite.name, section, arch);
-
-        // open package contents cache
-        auto cstore = new ContentsStore ();
-        cstore.open (conf);
 
         // get contents information for packages and add them to the database
         auto interestingFound = false;
@@ -613,10 +614,6 @@ public:
 
         logInfo ("Cleaning up superseded data.");
 
-        // open package contents cache
-        auto cstore = new ContentsStore ();
-        cstore.open (conf);
-
         // remove packages from the caches which are no longer in the archive
         pkgSet.rehash;
         cstore.removePackagesNotInSet (pkgSet);
@@ -669,9 +666,6 @@ public:
 
     void forgetPackage (string identifier)
     {
-        auto cstore = new ContentsStore ();
-        cstore.open (conf);
-
         if (identifier.count ("/") == 3) {
             // we have a package-id, so we can do a targeted remove
             immutable pkid = identifier;
