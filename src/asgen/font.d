@@ -167,26 +167,11 @@ public:
         // causing e.g. SVG rendering in other threads to segfault.
         enterFontconfigCriticalSection ();
 
-    	// create a new fontconfig configuration
-    	auto fconfig = FcConfigCreate ();
-        scope (exit) {
-            FcConfigAppFontClear (fconfig);
-            FcConfigDestroy (fconfig);
-
-            // allow FC actions, after we got rid of our Fontconfig instance.
-            leaveFontconfigCriticalSection ();
-        }
-
-    	// ensure that default configuration and fonts are not loaded
-    	FcConfigSetCurrent (fconfig);
-
-    	// add just this one font
-    	FcConfigAppFontAddFile (fconfig, fname.toStringz);
-    	auto fonts = FcConfigGetFonts (fconfig, FcSetName.Application);
-    	if (fonts is null || fonts.fonts is null) {
-    		throw new Exception ("FcConfigGetFonts failed (for %s)".format (fname.baseName));
-    	}
-    	auto fpattern = fonts.fonts[0];
+        // open FC font patter
+        // the count pointer has to be valid, otherwise FcFreeTypeQuery() crashes.
+        int c;
+        auto fpattern = FcFreeTypeQuery (fname.toStringz, 0, null, &c);
+        scope (exit) FcPatternDestroy (fpattern);
 
         // initialize our icon-text map globally
         initIconTextMap ();

@@ -37,6 +37,8 @@ struct FcRange {}
 struct FcStrList {};
 struct FcStrSet {};
 
+struct FcBlanks {};
+
 immutable char *FC_LANG = "lang"; // String RFC 3066 langs
 immutable char *FC_STYLE = "style"; // String
 immutable char *FC_FULLNAME = "fullname"; // String
@@ -90,6 +92,8 @@ enum FcResult {
     OutOfMemory
 };
 
+FcBool FcInit ();
+
 FcConfig *FcConfigCreate ();
 void FcConfigDestroy (FcConfig *config);
 
@@ -99,6 +103,12 @@ bool FcConfigAppFontAddFile (FcConfig *config,
                              const char *file);
 FcFontSet *FcConfigGetFonts (FcConfig *config,
                              FcSetName set);
+
+FcPattern *FcFreeTypeQuery (const FcChar8 *file,
+                            int id,
+                            FcBlanks *blanks,
+                            int *count);
+void FcPatternDestroy (FcPattern *p);
 
 FcResult FcPatternGet (const FcPattern *p,
                         const char *object,
