@@ -37,7 +37,9 @@ import gi.glib;
 import asgen.logging;
 import asgen.config;
 import asgen.font : Font;
-import asgen.fcmutex;
+import core.sync.mutex;
+
+private __gshared Mutex fontconfigMutex = null;
 
 
 enum ImageFormat {
@@ -61,6 +63,42 @@ private void optimizePNG (string fname)
     auto optipng = execute (["optipng", fname ]);
     if (optipng.status != 0)
         logWarning ("Optipng on '%s' failed with error code %s: %s", fname, optipng.status, optipng.output);
+}
+
+/**
+ * Helper method required so we do not modify the Fontconfig
+ * global state while reading it with another process.
+ *
+ * This prevents a weird deadlock when multiple threads are
+ * redering stuff that contains fonts.
+ **/
+private void
+enterFontconfigCriticalSection () @trusted
+{
+    if (fontconfigMutex is null)
+        return;
+    fontconfigMutex.lock ();
+}
+
+/**
+ * Helper method required so we do not modify the Fontconfig
+ * global state while reading it with another process.
+ *
+ * This prevents a weird deadlock when multiple threads are
+ * redering stuff that contains fonts.
+ **/
+private void
+leaveFontconfigCriticalSection () @trusted
+{
+    if (fontconfigMutex is null)
+        return;
+    fontconfigMutex.unlock ();
+}
+
+public void
+setupFontconfigMutex () @trusted
+{
+    fontconfigMutex = new Mutex;
 }
 
 class Image

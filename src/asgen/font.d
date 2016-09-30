@@ -19,7 +19,7 @@
 
 module asgen.font;
 
-import std.string : format, fromStringz, toStringz, toLower;
+import std.string : format, fromStringz, toStringz, toLower, strip;
 import std.conv : to;
 import std.path : buildPath, baseName;
 import std.array : empty, appender, replace;
@@ -32,7 +32,6 @@ import asgen.bindings.pango;
 
 import asgen.logging;
 import asgen.config : Config;
-import asgen.fcmutex;
 
 
 // NOTE: The font's full-name (and the family-style combo we use if the full name is unavailable), can be
@@ -97,6 +96,9 @@ public:
 
     this (string fname)
     {
+        // NOTE: Freetype is completely non-threadsafe, but we only use it in the constructor.
+        // So mark this section of code as synchronized to never run it in parallel (even having
+        // two Font objects constructed in parallel may lead to errors)
         synchronized {
             initFreeType ();
 
@@ -161,12 +163,6 @@ public:
 
     private void loadFontConfigData (string fname)
     {
-        // we can only ever execute this without anything else touching Fontconfig
-        // running, since Fontconfig is completely non threadsafe (bah!)
-        // Otherwise it will mess with the applications global state,
-        // causing e.g. SVG rendering in other threads to segfault.
-        enterFontconfigCriticalSection ();
-
         // open FC font patter
         // the count pointer has to be valid, otherwise FcFreeTypeQuery() crashes.
         int c;
@@ -289,6 +285,30 @@ public:
     private void findSampleTexts ()
     {
         assert (ready ());
+        import std.uni : byGrapheme, isGraphical, byCodePoint, Grapheme;
+        import std.range;
+
+        void setFallbackSampleTextIfRequired ()
+        {
+            if (sampleText_.empty)
+                sampleText_ = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
+
+            if (sampleIconText_.empty) {
+                import std.conv : text;
+
+                auto graphemes = sampleText_.byGrapheme;
+                if (graphemes.walkLength > 3)
+                    sampleIconText_ = graphemes.array[0..3].byCodePoint.text;
+                else
+                    sampleIconText_ = "Aa";
+            }
+        }
+
+        dchar getFirstUnichar (string str)
+        {
+            auto g = Grapheme (str);
+            return g[0];
+        }
 
         // determine our sample texts
         foreach (ref lang; this.languages) {
@@ -307,14 +327,51 @@ public:
 		}
 
         // set some default values if we have been unable to find any texts
-        if (sampleIconText_.empty) {
-            if (sampleText_.length > 3)
-                sampleIconText_ = sampleText_[0..2];
-            else
-                sampleIconText_ = "Aa";
+        setFallbackSampleTextIfRequired ();
+
+        // check if we have a font that can actually display the characters we picked - in case
+        // it doesn't, we just select random chars.
+        if (FT_Get_Char_Index (fface, getFirstUnichar (sampleIconText_)) == 0) {
+            sampleText_ = "☃❤✓☀★☂♞☯☢∞❄♫↺";
+            sampleIconText_ = "☃❤";
         }
-        if (sampleText_.empty)
-            sampleText_ = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
+        if (FT_Get_Char_Index (fface, getFirstUnichar (sampleIconText_)) == 0) {
+            import std.uni;
+            import std.utf : toUTF8;
+
+            sampleText_ = "";
+            sampleIconText_ = "";
+
+            auto count = 0;
+            for (uint map = 0; map < fface.num_charmaps; map++) {
+                auto charmap = fface.charmaps[map];
+
+                FT_Set_Charmap (fface, charmap);
+
+                FT_UInt gindex;
+                auto charcode = FT_Get_First_Char (fface, &gindex);
+                while (gindex != 0) {
+                    immutable chc = to!dchar (charcode);
+                    if (chc.isGraphical && !chc.isSpace && !chc.isPunctuation) {
+                        count++;
+                        sampleText_ ~= chc;
+                    }
+
+                    if (count >= 24)
+                        break;
+                    charcode = FT_Get_Next_Char (fface, charcode, &gindex);
+                }
+
+                if (count >= 24)
+                    break;
+            }
+
+            sampleText_ = sampleText_.strip;
+
+            // if we were unsuccessful at adding chars, set fallback again
+            // (and in this case, also set the icon text to something useful again)
+            setFallbackSampleTextIfRequired ();
+        }
     }
 
     @property

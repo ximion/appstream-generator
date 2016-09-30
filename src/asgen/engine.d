@@ -94,8 +94,8 @@ public:
         dstore = new DataStore ();
         dstore.open (conf);
 
-        // for fontconfig non-threadsafety
-        import asgen.fcmutex;
+        // for Cairo/Fontconfig issues with multithreading
+        import asgen.image : setupFontconfigMutex;
         if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS))
             setupFontconfigMutex ();
     }

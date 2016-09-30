@@ -41,8 +41,6 @@ private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 4
 
 void processFontData (GeneratorResult gres, string mediaExportDir)
 {
-    import asgen.fcmutex;
-
     auto hasFonts = false;
     foreach (ref cpt; gres.getComponents ()) {
         if (cpt.getKind () != ComponentKind.FONT)
@@ -51,17 +49,12 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         break;
     }
 
+    hasFonts = true;
+
     // nothing to do if we don't have fonts
     if (!hasFonts)
         return;
 
-    // NOTE: Thanks to Fontconfig being non-threadsafe and sometimes being confused if you
-    // just create multiple configurations in multiple threads, we need to run almost all
-    // font operations synchronized, which sucks.
-    // FreeType / Cairo also seems to have issues here, causing the generator to crash
-    // at random, or deadlock reliably when trying to get a Cairo/FT-internal Mutex.
-    // Pay attention that enterFontconfigCriticalSection() are always balanced out with their
-    // leave counterpart, otherwise we will deadlock quickly.
     processFontDataInternal (gres, mediaExportDir);
 }
 
@@ -69,6 +62,7 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
 {
     // create a map of all fonts we have in this package
     Font[string] allFonts;
+    Component[string] fontFamilies;
     foreach (ref fname; gres.pkg.contents) {
         if (!fname.startsWith ("/usr/share/fonts/"))
             continue;
@@ -96,11 +90,33 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
             return;
         }
         allFonts[font.fullName.toLower] = font;
+
+        auto famCptP = font.family.toLower in fontFamilies;
+        if (famCptP is null) {
+            import appstream.Provided;
+
+            auto cpt = new Component ();
+            cpt.setKind (ComponentKind.FONT);
+            cpt.setId ("org.example.%s".format (font.family.replace (" ", "")));
+            cpt.setName (font.family, "C");
+            cpt.setSummary ("The %s font".format (font.family), "C");
+
+            auto prov = new Provided;
+            prov.setKind (ProvidedKind.FONT);
+            prov.addItem (font.fullName);
+            cpt.addProvided (prov);
+
+            fontFamilies[font.family.toLower] = cpt;
+            gres.addComponent (cpt, gres.pkg.ver);
+        } else {
+            auto cpt = *famCptP;
+            auto prov = cpt.getProvidedForKind (ProvidedKind.FONT);
+            if (prov !is null)
+                prov.addItem (font.fullName);
+        }
     }
 
     foreach (ref cpt; gres.getComponents ()) {
-        import asgen.fcmutex;
-
         if (cpt.getKind () != ComponentKind.FONT)
             continue;
 

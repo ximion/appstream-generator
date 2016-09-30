@@ -42,3 +42,17 @@ FT_Error FT_Done_Face (FT_Face face);
 FT_Error FT_Get_BDF_Charset_ID (FT_Face face,
                                 const char*  *acharset_encoding,
                                 const char*  *acharset_registry);
+
+FT_UInt FT_Get_Char_Index (FT_Face face,
+                           FT_ULong charcode);
+
+FT_ULong FT_Get_First_Char (FT_Face face,
+                            FT_UInt *agindex);
+FT_ULong FT_Get_Next_Char (FT_Face face,
+                           FT_ULong char_code,
+                           FT_UInt  *agindex);
+
+FT_Error FT_Select_Charmap (FT_Face face,
+                            FT_Encoding encoding);
+FT_Error FT_Set_Charmap (FT_Face face,
+                         FT_CharMap  charmap);
