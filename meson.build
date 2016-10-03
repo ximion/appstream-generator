@@ -398,11 +398,9 @@ pango_dep     = dependency('pango')
 fontconfig_dep  = dependency('fontconfig')
 
 # A couple of hacks to use the right copy of mustache-d
-mustache_d_file = '/usr/include/d/mustache-d/src/mustache.d'
-if run_command('[', '-e', mustache_d_file, ']').returncode() == 0
-    other_dir = include_directories('/usr/include/d/mustache-d/src')
-    mustache_sources = ['/usr/include/d/mustache-d/src/mustache.d']
-else
+mustache_d_file = '/usr/include/d/mustache-d/mustache.d'
+mustache_dir = include_directories('/usr/include/d/mustache-d')
+if run_command('[', '-e', mustache_d_file, ']').returncode() != 0
     mustached_src_dir = build_root + '/3rd-party/mustache-d'
     if run_command('[', '-d', mustached_src_dir, ']').returncode() != 0
         message('Fetching Mustache-D from Github...')
@@ -410,9 +408,11 @@ else
         if git_get_requests.returncode() != 0
             error('Unable to fetch Mustache-D:\n' + git_get_requests.stderr())
         endif
-        mustache_d_file = mustached_src_dir + '/src/mustache.d'
     endif
+    mustache_d_file = mustached_src_dir + '/src/mustache.d'
+    mustache_dir = include_directories(mustached_src_dir + '/src')
 endif
+mustache_sources = [mustache_d_file]
 
 # Set a few flags to work around compiler bugs
 if meson.get_compiler('d').get_id() == 'gcc'
@@ -445,7 +445,7 @@ asgen_exe = executable('appstream-generator',
      mustache_sources],
     include_directories: [src_dir,
                           gir_bind_dir,
-                          other_dir],
+                          mustache_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
@@ -469,7 +469,7 @@ asgen_test_exe = executable('asgen_test',
     mustache_sources],
     include_directories: [src_dir,
                           gir_bind_dir,
-                          other_dir],
+                          mustache_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
