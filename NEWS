@@ -1,3 +1,43 @@
+Version 0.6.0
+~~~~~~~~~~~~~~
+Released: 2016-10-03
+
+Notes:
+ * If possible, you should build Meson with the LLVM D compiler and the
+   Meson build system now.
+
+Features:
+ * Produce better error messages on failed libarchive actions (Matthias Klumpp)
+ * Add a hook to the desktop file parser to run backend specific code (Iain Lane)
+ * Add an Ubuntu backend to retrieve langpack translations (Iain Lane)
+ * Open databases with NOTLS (Matthias Klumpp)
+ * Tweak the issue messages a bit (Matthias Klumpp)
+ * Complain about stuff in legacy paths (Matthias Klumpp)
+ * Only search for .desktop files if we have a DESKTOP_APP component (Matthias Klumpp)
+ * Create new Font class to read font metadata (Matthias Klumpp)
+ * Render an icon for fonts (Matthias Klumpp)
+ * Add dependencies on Pango, FreeType and Fontconfig (Matthias Klumpp)
+ * Determine languages a font supports (Matthias Klumpp)
+ * Reorganize code for proper namespacing (Matthias Klumpp)
+ * Render font screenshots (Matthias Klumpp)
+ * Map font full names to files in a spec-compliant way (Matthias Klumpp)
+ * Enable fonts support by default (Matthias Klumpp)
+ * Share ContentsStore between threads again (Matthias Klumpp)
+ * Make Meson a first-class buildsystem for asgen (Matthias Klumpp)
+ * Update README (Matthias Klumpp)
+
+Bugfixes:
+ * Fix build on non-64-bit architectures (Matthias Klumpp)
+ * Work around LDC bug (Matthias Klumpp)
+ * fclose() the memstream when we are done with it (Iain Lane)
+ * debpkgindex: Be less noisy about translations in debug mode (Iain Lane)
+ * Use getTestSamplesDir (Iain Lane)
+ * Retry on all curl errors, not just timeouts (Iain Lane)
+ * Synchronise downloading of files (Iain Lane)
+ * ubuntu: Don't reference all packages, just the ones we need (langpacks) (Iain Lane)
+ * Use an ugly mutex to work around Fontconfig issues (Matthias Klumpp)
+ * Make FC mutex a bit more fine-grained (Matthias Klumpp)
+
 Version 0.5.0
 ~~~~~~~~~~~~~~
 Released: 2016-08-30
