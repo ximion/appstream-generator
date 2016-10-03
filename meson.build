@@ -427,7 +427,7 @@ endif
 download_js = get_option('download_js')
 if download_js
     message('Downloading JavaScript libraries...')
-    if run_command('[', '-d', 'data/templates/default/static/js/jquery', ']').returncode() != 0
+    if run_command('[', '-d', 'data/templates/default/static/js', ']').returncode() != 0
         getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh'])
         if getjs_cmd.returncode() != 0
             error('Unable to download JavaScript files with Bower:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())

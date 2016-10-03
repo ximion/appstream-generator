@@ -8,6 +8,7 @@ fi
 bower --allow-root install jquery jquery-flot highlightjs
 
 JS_TARGET=../../data/templates/default/static/js
+[ ! -d "$JS_TARGET" ] && mkdir $JS_TARGET
 
 [ ! -d "$JS_TARGET/jquery" ] && mkdir $JS_TARGET/jquery
 install js_tmp/jquery/dist/*.min.js -t $JS_TARGET/jquery
