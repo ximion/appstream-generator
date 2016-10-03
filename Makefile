@@ -1,16 +1,13 @@
-# Makefile for AppStream Generator
+# Pseudo-Makefile for AppStream Generator
 all:
+	@echo "Please run Meson and Ninja manually. See README.md for details."
+
+build-dub:
 	dub build --parallel
 
-build:
-	dub build --parallel
-
-fast:
+build-dub-fast:
 	@echo "! Building without optimizations"
 	dub build --parallel --build=debug-nooptimize
-
-test:
-	dub test
 
 js:
 	cd contrib/setup && ./build_js.sh
@@ -24,11 +21,11 @@ clean:
 	rm -rf data/templates/default/static/js/highlight/
 	rm -rf data/templates/default/static/js/jquery/
 
-install:
+install-dub:
 	./contrib/setup/install.sh
 
 update-submodule:
 	git submodule init
 	git submodule update
 
-.PHONY: clean js test install update-submodule
+.PHONY: clean js test install-dub update-submodule

@@ -1,6 +1,11 @@
 project('AppStream Generator', 'd')
 
+source_root = meson.source_root()
+build_root = meson.build_root()
 
+#
+# Sources
+#
 asgen_sources = ['src/app.d',
     'src/asgen/zarchive.d',
     'src/asgen/bindings/appstream_utils.d',
@@ -372,6 +377,9 @@ gir_binding_sources = [
 # FIXME: including 'src/girepo/gio/DataInputStream.d' in the
 # build process results in linker errors. Investigate why.
 
+#
+# Dependencies
+#
 src_dir = include_directories('src/')
 gir_bind_dir = include_directories('src/girepo/')
 
@@ -386,9 +394,27 @@ gdkpixbuf_dep = dependency('gdk-pixbuf-2.0')
 rsvg_dep      = dependency('librsvg-2.0')
 curl_dep      = dependency('libcurl')
 freetype_dep  = dependency('freetype2')
-fontconfig_dep  = dependency('fontconfig')
 pango_dep     = dependency('pango')
+fontconfig_dep  = dependency('fontconfig')
 
+# A couple of hacks to use the right copy of mustache-d
+mustache_d_file = '/usr/include/d/mustache-d/src/mustache.d'
+if run_command('[', '-e', mustache_d_file, ']').returncode() == 0
+    other_dir = include_directories('/usr/include/d/mustache-d/src')
+    mustache_sources = ['/usr/include/d/mustache-d/src/mustache.d']
+else
+    mustached_src_dir = build_root + '/3rd-party/mustache-d'
+    if run_command('[', '-d', mustached_src_dir, ']').returncode() != 0
+        message('Fetching Mustache-D from Github...')
+        git_get_requests = run_command(['git', 'clone', 'https://github.com/repeatedly/mustache-d.git', mustached_src_dir])
+        if git_get_requests.returncode() != 0
+            error('Unable to fetch Mustache-D:\n' + git_get_requests.stderr())
+        endif
+        mustache_d_file = mustached_src_dir + '/src/mustache.d'
+    endif
+endif
+
+# Set a few flags to work around compiler bugs
 if meson.get_compiler('d').get_id() == 'gcc'
     add_global_arguments('-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', language : 'd')
 endif
@@ -397,25 +423,29 @@ if meson.get_compiler('d').get_id() == 'llvm'
     add_global_arguments('-enable-cross-module-inlining=false', language : 'd')
 endif
 
-# A couple of hacks to use the right copy of mustache-d
-mustache_d_file = '/usr/include/d/mustache-d/src/mustache.d'
-if run_command('[', '-e', mustache_d_file, ']').returncode() == 0
-    other_dir = include_directories('/usr/include/d/mustache-d/src')
-    mustache_sources = ['/usr/include/d/mustache-d/src/mustache.d']
-else
-    # TODO: Download the Git copy in this case, place it somewhere and
-    # make the build process use it.
-    error('Could not find mustache-d in system directories.')
+# Download JavaScript assets if requested
+download_js = get_option('download_js')
+if download_js
+    message('Downloading JavaScript libraries...')
+    if run_command('[', '-d', 'data/templates/default/static/js/jquery', ']').returncode() != 0
+        getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh'])
+        if getjs_cmd.returncode() != 0
+            error('Unable to download JavaScript files with Bower:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+        endif
+    endif
 endif
 
+#
+# Build and test
+#
 asgen_exe = executable('appstream-generator',
     [asgen_sources,
      backend_sources,
      gir_binding_sources,
      mustache_sources],
     include_directories: [src_dir,
-                           gir_bind_dir,
-                           other_dir],
+                          gir_bind_dir,
+                          other_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
@@ -456,3 +486,14 @@ asgen_test_exe = executable('asgen_test',
     d_args : meson.get_compiler('d').unittest_args()
 )
 test('asgen_tests', asgen_test_exe)
+
+#
+# Install
+#
+
+# data
+install_data('data/asgen-hints.json', install_dir: 'share/appstream')
+install_data('data/hicolor-theme-index.theme', install_dir: 'share/appstream')
+
+# templates
+install_subdir('data/templates/', install_dir: 'share/appstream')

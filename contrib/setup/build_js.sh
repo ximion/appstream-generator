@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if [ -n "$MESON_SOURCE_ROOT" ]; then
+    cd "$MESON_SOURCE_ROOT/contrib/setup/"
+fi
+
 bower --allow-root install jquery jquery-flot highlightjs
 
 JS_TARGET=../../data/templates/default/static/js
