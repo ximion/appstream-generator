@@ -8,7 +8,6 @@
 
  * Extract localization status for AppStream components and add them as
    `Languages` field.
- * Support font metainfo files and render fonts.
 
 === Whishlist / Random Ideas ===
 
