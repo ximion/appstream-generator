@@ -12,7 +12,8 @@ RUN apt-get install -yq git gcc gdc
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \
     cmake \
-    intltool \
+    gettext \
+    itstool \
     libglib2.0-dev \
     libxml2-dev \
     libgirepository1.0-dev \
