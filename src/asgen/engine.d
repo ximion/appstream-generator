@@ -392,7 +392,7 @@ public:
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }
-                iconTar.close ();
+                delete iconTar;
             }
         }
 

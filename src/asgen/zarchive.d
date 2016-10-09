@@ -164,12 +164,7 @@ private:
                 if (bytes_to_write > DEFAULT_BLOCK_SIZE)
                     bytes_to_write = DEFAULT_BLOCK_SIZE;
 
-                    try {
-                        f.rawWrite (buff[0..bytes_to_write]);
-                    } catch (Exception e) {
-                        throw e;
-                    }
-
+                f.rawWrite (buff[0..bytes_to_write]);
                 output_offset += bytes_to_write;
                 size -= bytes_to_write;
             }
@@ -183,7 +178,7 @@ private:
         archive_read_support_filter_all (ar);
         archive_read_support_format_all (ar);
 
-        auto ret = archive_read_open_filename (ar, archive_fname.toStringz (), DEFAULT_BLOCK_SIZE);
+        auto ret = archive_read_open_filename (ar, archive_fname.toStringz, DEFAULT_BLOCK_SIZE);
         if (ret != ARCHIVE_OK)
             throw new Exception (format ("Unable to open compressed file '%s': %s",
                                  archive_fname,
@@ -215,10 +210,6 @@ public:
         const(ubyte)[] data;
     }
 
-    this ()
-    {
-    }
-
     void open (string fname)
     {
         archive_fname = fname;
@@ -226,14 +217,9 @@ public:
 
     bool extractFileTo (string fname, string fdest)
     {
-        archive *ar;
         archive_entry *en;
 
-        try {
-            ar = openArchive ();
-        } catch (Exception e) {
-            throw e;
-        }
+        auto ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
@@ -255,10 +241,9 @@ public:
     body
     {
         import std.path;
-        archive *ar;
         archive_entry *en;
 
-        ar = openArchive ();
+        auto ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
@@ -280,10 +265,9 @@ public:
     {
         import core.sys.posix.sys.stat;
         import std.path;
-        archive *ar;
         archive_entry *en;
 
-        ar = openArchive ();
+        auto ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
         auto fnameAbs = absolutePath (fname, "/");
@@ -329,15 +313,10 @@ public:
     string[] extractFilesByRegex (Regex!char re, string destdir)
     {
         import std.path;
-        archive *ar;
         archive_entry *en;
         auto matches = appender!(string[]);
 
-        try {
-            ar = openArchive ();
-        } catch (Exception e) {
-            throw e;
-        }
+        auto ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
@@ -359,14 +338,9 @@ public:
     string[] readContents ()
     {
         import std.conv : to;
-        archive *ar;
         archive_entry *en;
 
-        try {
-            ar = openArchive ();
-        } catch (Exception e) {
-            throw e;
-        }
+        auto ar = openArchive ();
         scope (exit) archive_read_free (ar);
 
         auto contents = appender!(string[]);
@@ -394,14 +368,9 @@ public:
 
         auto gen = new Generator!ArchiveEntry (
         {
-            archive *ar;
             archive_entry *en;
 
-            try {
-                ar = openArchive ();
-            } catch (Exception e) {
-                throw e;
-            }
+            auto ar = openArchive ();
             scope (exit) archive_read_free (ar);
 
             while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
@@ -455,9 +424,7 @@ public:
  */
 void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
 {
-    archive *ar;
-
-    ar = archive_write_new ();
+    auto ar = archive_write_new ();
     scope (exit) archive_write_free (ar);
 
     archive_write_set_format_raw (ar);
@@ -518,7 +485,7 @@ public:
     void open (string fname)
     {
         archiveFname = fname;
-        auto ret = archive_write_open_filename (ar, toStringz (fname));
+        auto ret = archive_write_open_filename (ar, fname.toStringz);
         if (ret != ARCHIVE_OK)
             throw new Exception (format ("Unable to open file '%s'", fname, getArchiveErrorMessage (ar)));
         closed = false;
@@ -541,8 +508,8 @@ public:
     }
     body
     {
-        import std.conv : octal;
-        import std.path : baseName;
+        import std.conv: octal;
+        import std.path: baseName;
         import core.sys.posix.sys.stat;
 
         immutable BUFFER_SIZE = 8192;

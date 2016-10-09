@@ -125,8 +125,8 @@ public:
 
     protected void extractPackage (const string dest = buildPath (tmpDir, name))
     {
-        import std.file : exists;
-        import std.regex : ctRegex;
+        import std.file: exists;
+        import std.regex: ctRegex;
 
         if (!dest.exists)
             mkdirRecurse (dest);
