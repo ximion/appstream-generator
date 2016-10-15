@@ -402,7 +402,7 @@ body
 string[] getFileContents (const string path, const uint retryCount = 5) @trusted
 {
     import core.stdc.stdlib : free;
-    import core.sys.linux.stdio : fclose, open_memstream;
+    import core.sys.posix.stdio : fclose, open_memstream;
 
     char * ptr = null;
     scope (exit) free (ptr);
