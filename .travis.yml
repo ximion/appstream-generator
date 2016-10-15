@@ -8,7 +8,7 @@ services:
 
 d:
   - gdc
-  #- ldc -- LDC has problems with parallelization (doesn't seem to work on Package[] array)
+  - ldc
 
 before_script:
   - docker build -t asgen -f test/ci/Dockerfile .

@@ -24,6 +24,7 @@ RUN apt-get install -yq --no-install-recommends \
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
+    ldc \
     dub \
     meson \
     libmustache-d-dev \

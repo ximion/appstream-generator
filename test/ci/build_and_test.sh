@@ -1,19 +1,19 @@
 #!/bin/sh
-set -e
-
-echo "D compiler: $DC"
-set -x
-dub --version
-
 #
 # This script is supposed to run inside the AppStream Generator Docker container
 # on the CI system.
 #
+set -e
 
-# Build with dub
-dub build --parallel -v
+echo "D compiler: $DC"
+set -v
+$DC --version
+dub --version
+meson --version
 
+#
 # Build with Meson
+#
 mkdir -p build && cd build
 meson ..
 ninja
@@ -25,6 +25,11 @@ ninja
 DESTDIR=/tmp/install-ninja ninja install
 cd ..
 
-# Test getting JS stuff and installing (dub)
+#
+# Build with dub
+#
+dub build --parallel -v --compiler=$DC
+
+# Test getting JS stuff and installing
 make js
 make install DESTDIR=/tmp/install-tmp
