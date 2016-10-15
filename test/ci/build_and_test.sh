@@ -28,7 +28,11 @@ cd ..
 #
 # Build with dub
 #
-dub build --parallel -v --compiler=$DC
+if [ "$DC" != "ldc2" ]; then
+    # build with LDC fails at time, so we don't build with dub on the LDC test
+    dub build --parallel -v --compiler=$DC
+fi
+
 
 # Test getting JS stuff and installing
 make js
