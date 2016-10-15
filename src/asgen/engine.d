@@ -553,13 +553,8 @@ public:
             if (entry.data.type == JSON_TYPE.ARRAY) {
                 // we don't clean up combined statistics entries, and therefoire need to reset
                 // the last-data hashmaps as soon as we encounter one to not loose data.
-                version (GNU) {
-                    lastJData = null;
-                    lastTime = null;
-                } else {
-                    lastJData.clear;
-                    lastTime.clear;
-                }
+                lastJData = null;
+                lastTime = null;
                 continue;
             }
 
