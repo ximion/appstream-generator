@@ -39,7 +39,9 @@ import asgen.config : Config;
 // fc-query --format='FN: %{fullname}\nFS: %{family[0]} %{style[0]}\n' <fontfile>
 
 private static __gshared string[string] iconTexts;
-private void initIconTextMap ()
+
+// initialize module static data
+shared static this ()
 {
     if (iconTexts.length != 0)
         return;
@@ -168,9 +170,6 @@ public:
         int c;
         auto fpattern = FcFreeTypeQuery (fname.toStringz, 0, null, &c);
         scope (exit) FcPatternDestroy (fpattern);
-
-        // initialize our icon-text map globally
-        initIconTextMap ();
 
         // load information about the font
         auto res = appender!(string[]);
