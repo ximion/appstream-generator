@@ -591,6 +591,8 @@ public:
             foreach (ref section; suite.sections) {
                 foreach (ref arch; parallel (suite.architectures)) {
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                    if (!suite.baseSuite.empty)
+                        pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
                             pkgSet[pkg.id] = true;
