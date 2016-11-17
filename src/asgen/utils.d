@@ -29,6 +29,8 @@ import std.range : chain;
 import std.algorithm : startsWith;
 import std.array : appender;
 import std.path : buildPath, dirName, buildNormalizedPath;
+import std.typecons : Nullable;
+import std.datetime : Clock, parseRFC822DateTime, SysTime;
 static import std.file;
 
 import asgen.logging;
@@ -348,12 +350,14 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
-private void download (const string url, ref File dest, const uint retryCount = 5) @trusted
+private immutable(Nullable!SysTime) download (const string url, ref File dest, const uint retryCount = 5) @trusted
 in { assert (url.isRemote); }
 body
 {
     import core.time;
     import std.net.curl : CurlException, HTTP, FTP;
+
+    Nullable!SysTime ret;
 
     size_t onReceiveCb (File f, ubyte[] data)
     {
@@ -370,6 +374,10 @@ body
             downloader.dataTimeout = dur!"seconds" (30);
             downloader.onReceive = (data) => onReceiveCb (dest, data);
             downloader.perform();
+            if ("last-modified" in downloader.responseHeaders) {
+                    auto lastmodified = downloader.responseHeaders["last-modified"];
+                    ret = parseRFC822DateTime(lastmodified);
+            }
         } else {
             auto downloader = FTP (url);
             downloader.connectTimeout = dur!"seconds" (30);
@@ -389,6 +397,8 @@ body
             throw e;
         }
     }
+
+    return ret;
 }
 
 /**
@@ -449,10 +459,13 @@ body
     mkdirRecurse (dest.dirName);
 
     auto f = File (dest, "wb");
-    scope (exit) f.close ();
     scope (failure) remove (dest);
 
-    download (url, f, retryCount);
+    auto time = download (url, f, retryCount);
+
+    f.close ();
+    if (!time.isNull)
+        setTimes (dest, Clock.currTime, time);
 }
 
 /**
