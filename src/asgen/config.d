@@ -95,6 +95,7 @@ class Config
 
     Backend backend;
     Suite[] suites;
+    string[] oldsuites;
     DataType metadataType;
     uint enabledFeatures; // bitfield
 
@@ -329,6 +330,12 @@ class Config
             }
 
             suites ~= suite;
+        }
+
+        if ("Oldsuites" in root.object) {
+            import std.algorithm.iteration : map;
+
+            oldsuites = map!"a.str"(root["Oldsuites"].array).array;
         }
 
         // Enable features which are default-enabled

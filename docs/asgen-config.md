@@ -46,6 +46,7 @@ MetadataType | The type of the resulting AppStream metadata. Can be one of `YAML
 ArchiveRoot | A local URL to the mirror of your archive, containing the dists/ and pool/ directories
 MediaBaseUrl | The http or https URL which should be used in the generated metadata to fetch media like screenshots or icons
 HtmlBaseUrl | The http or https URL to the web location where the HTML hints will be published. (This setting is optional, but recommended)
+Oldsuites | This key exists to support migration from an alternative appstream generator. Given a list of suite names, the output HTML will link to `suitename/index.html`.
 Suites | Suites which should be recognized by the generator. Each suite has the components and architectures which should be searched for metadata as children. See below for more information.
 Features | Disable or enable selected generator features. For a detailed description see below.
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.

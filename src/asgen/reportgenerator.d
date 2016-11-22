@@ -758,6 +758,11 @@ public:
             renderPage ("sections_index", format ("%s/index", suite.name), secCtx);
         }
 
+        foreach (suite; conf.oldsuites) {
+            auto sub = context.addSubContext("oldsuites");
+            sub["suite"] = suite;
+        }
+
         renderPage ("main", "index", context);
 
         // copy static data, if present

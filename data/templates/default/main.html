@@ -17,6 +17,9 @@
     </p>
 
     <h1>Select a suite</h1>
+    {{#oldsuites}}
+      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
+    {{/oldsuites}}
     {{#suites}}
       <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
     {{/suites}}
