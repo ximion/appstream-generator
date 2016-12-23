@@ -416,7 +416,8 @@ mustache_sources = [mustache_d_file]
 
 # Set a few flags to work around compiler bugs
 if meson.get_compiler('d').get_id() == 'gcc'
-    add_global_arguments('-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', language : 'd')
+    add_global_arguments(['-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', '-no-pie'], language : 'd')
+    add_global_link_arguments('-no-pie', language : 'd')
 endif
 if meson.get_compiler('d').get_id() == 'llvm'
     # work around: https://github.com/ldc-developers/ldc/issues/1727
@@ -483,7 +484,7 @@ asgen_test_exe = executable('asgen_test',
                    freetype_dep,
                    fontconfig_dep,
                    pango_dep],
-    d_args : meson.get_compiler('d').unittest_args()
+    d_args: meson.get_compiler('d').unittest_args()
 )
 test('asgen_tests', asgen_test_exe)
 
