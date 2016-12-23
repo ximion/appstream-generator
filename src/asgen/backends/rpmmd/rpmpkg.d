@@ -74,10 +74,8 @@ public:
     override
     const(ubyte)[] getFileData (string fname)
     {
-        if (archive is null) {
-            archive = new ArchiveDecompressor ();
+        if (!archive.isOpen)
             archive.open (this.filename);
-        }
 
         return archive.readData (fname);
     }
@@ -97,6 +95,5 @@ public:
     override
     void close ()
     {
-        archive = null;
     }
 }

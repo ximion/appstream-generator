@@ -66,7 +66,7 @@ abstract class Package
      * Close the package. This function is called when we will
      * no longer request any file data from this package.
      */
-    abstract void close ();
+    abstract void close () {};
 
     /**
      * Retrieve backend-specific translations.

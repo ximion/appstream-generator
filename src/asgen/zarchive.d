@@ -25,6 +25,7 @@ import std.regex;
 import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
+import std.typecons : RefCounted, RefCountedAutoInitialize;
 static import std.file;
 
 import asgen.logging;
@@ -125,7 +126,7 @@ string decompressData (ubyte[] data)
     return readArchiveData (ar);
 }
 
-class ArchiveDecompressor
+struct ArchiveDecompressor
 {
 
 private:
@@ -213,6 +214,11 @@ public:
     void open (string fname)
     {
         archive_fname = fname;
+    }
+
+    bool isOpen ()
+    {
+        return archive_fname !is null;
     }
 
     bool extractFileTo (string fname, string fdest)
@@ -451,7 +457,7 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
     archive_write_close (ar);
 }
 
-class ArchiveCompressor
+struct ArchiveCompressor
 {
 
 private:
@@ -489,6 +495,11 @@ public:
         if (ret != ARCHIVE_OK)
             throw new Exception (format ("Unable to open file '%s'", fname, getArchiveErrorMessage (ar)));
         closed = false;
+    }
+
+    bool isOpen ()
+    {
+        return !closed;
     }
 
     void close ()
@@ -530,7 +541,7 @@ public:
         archive_entry_set_perm (entry, octal!755);
         archive_entry_set_mtime (entry, st.st_mtime, 0);
 
-        synchronized (this) {
+        synchronized {
             archive_write_header (ar, entry);
 
             auto f = File (fname, "r");
