@@ -101,7 +101,7 @@ setupFontconfigMutex () @trusted
     fontconfigMutex = new Mutex;
 }
 
-class Image
+struct Image
 {
 
 private:
@@ -225,7 +225,7 @@ public:
     }
 }
 
-class Canvas
+struct Canvas
 {
 
 private:
@@ -318,7 +318,7 @@ public:
     /**
      * Draw a simple line of text without linebreaks to fill the canvas.
      **/
-    void drawTextLine (Font font, string text, uint borderWidth = 4)
+    void drawTextLine (const ref Font font, string text, uint borderWidth = 4)
     {
         import asgen.bindings.freetype : FT_LOAD_DEFAULT;
         enterFontconfigCriticalSection ();
@@ -358,7 +358,7 @@ public:
     /**
      * Draw a longer text with linebreaks.
      */
-    void drawText (Font font, string text, const uint borderWidth = 4, const uint linePad = 2)
+    void drawText (const ref Font font, string text, const uint borderWidth = 4, const uint linePad = 2)
     {
         import asgen.bindings.freetype : FT_LOAD_DEFAULT;
         enterFontconfigCriticalSection ();
@@ -436,7 +436,7 @@ unittest
 
     auto sampleImgPath = buildPath (getTestSamplesDir (), "appstream-logo.png");
     writeln ("Loading image (file)");
-    auto img = new Image (sampleImgPath);
+    auto img = Image (sampleImgPath);
 
     writeln ("Scaling image");
     assert (img.width == 134);
@@ -456,7 +456,7 @@ unittest
         data ~= f.rawRead (buf);
     }
 
-    img = new Image (data, ImageFormat.PNG);
+    img = Image (data, ImageFormat.PNG);
     writeln ("Scaling image (data)");
     img.scale (124, 124);
     writeln ("Storing image (data)");
@@ -470,15 +470,15 @@ unittest
         char[300] buf;
         data ~= f.rawRead (buf);
     }
-    auto cv = new Canvas (512, 512);
+    auto cv = Canvas (512, 512);
     cv.renderSvg (data);
     writeln ("Saving rendered PNG");
     cv.savePng ("/tmp/ag-svgrender_test1.png");
 
     writeln ("Font rendering");
-    auto font = new Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
+    auto font = Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
 
-    cv = new Canvas (400, 100);
+    cv = Canvas (400, 100);
     cv.drawText (font,
                   "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
     cv.savePng ("/tmp/ag-fontrender_test1.png");

@@ -33,7 +33,7 @@ import asgen.datastore;
 import asgen.handlers;
 
 
-class DataExtractor
+struct DataExtractor
 {
 
 private:

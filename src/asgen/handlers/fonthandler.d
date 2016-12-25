@@ -81,7 +81,7 @@ void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
         // the font class locks the global mutex internally when reading data with Fontconfig
         Font font;
         try {
-            font = new Font (fdata, fontBaseName);
+            font = Font (fdata, fontBaseName);
         } catch (Exception e) {
             gres.addHint (null, "font-load-error", ["fname": fontBaseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
             return;

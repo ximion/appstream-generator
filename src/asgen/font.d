@@ -77,7 +77,7 @@ shared static this ()
                      "zh-tw": "漢"];
 }
 
-class Font
+struct Font
 {
 
 private:
@@ -92,7 +92,7 @@ private:
     string style_;
     string fullname_;
 
-    immutable string fileBaseName;
+    string fileBaseName;
 
 public:
 
@@ -147,7 +147,7 @@ public:
         library = null;
     }
 
-    private bool ready ()
+    private bool ready () const
     {
         return fface !is null && library !is null;
     }
@@ -269,14 +269,14 @@ public:
     }
 
     @property
-    FT_Face fontFace ()
+    const(FT_Face) fontFace () const
     {
         assert (ready ());
         return fface;
     }
 
     @property
-    string[] languages ()
+    const(string[]) languages () const
     {
         return languages_;
     }
@@ -400,7 +400,7 @@ unittest
     immutable fontFile = buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf");
 
     // test reading from file
-    auto font = new Font (fontFile);
+    auto font = Font (fontFile);
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
 
@@ -412,7 +412,7 @@ unittest
     }
 
     // test reading from memory
-    font = new Font (data, "test.ttf");
+    font = Font (data, "test.ttf");
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);

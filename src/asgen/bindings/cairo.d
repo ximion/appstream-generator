@@ -130,7 +130,7 @@ void cairo_set_source_rgb (cairo_p cr, double red, double green, double blue);
 
 // Fonts
 import asgen.bindings.freetype;
-cairo_font_face_p cairo_ft_font_face_create_for_ft_face (FT_Face face, int load_flags);
+cairo_font_face_p cairo_ft_font_face_create_for_ft_face (const(FT_Face) face, int load_flags);
 void cairo_font_face_destroy (cairo_font_face_p font_face);
 cairo_status_t cairo_font_face_status (cairo_font_face_p font_face);
 
