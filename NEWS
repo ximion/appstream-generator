@@ -1,3 +1,25 @@
+Version 0.6.1
+~~~~~~~~~~~~~~
+Released: 2016-12-26
+
+Features:
+ * Add a symlink so that Ubuntu uses the same template as Debian (Iain Lane)
+ * Support linking to "old suites" in the HTML index (Iain Lane)
+ * hints: icon-not-found: Explain the symlink problem for Debian & Ubuntu (Iain Lane)
+ * Add preliminary new asgen logo (Matthias Klumpp)
+ * Use struct for archive (Matthias Klumpp)
+ * Reuse AsMetadata while processing metainfo files (Matthias Klumpp)
+
+Bugfixes:
+ * Correctly install templates with Meson (Matthias Klumpp)
+ * meson: Make finding mustache-d more robust (Matthias Klumpp)
+ * Fix build with DMD (Antonio Rojas)
+ * engine: Don't clean packages in base suites (Iain Lane)
+ * download: If we have a last-modified date, set the mtime of the target file (Iain Lane)
+ * Simplify zarchive code a little (Matthias Klumpp)
+ * Use module initializer to initialize global static data (Matthias Klumpp)
+ * Fix build on Debian with GDC (Matthias Klumpp)
+
 Version 0.6.0
 ~~~~~~~~~~~~~~
 Released: 2016-10-03
