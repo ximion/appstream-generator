@@ -37,12 +37,8 @@ private bool isMetainfoLicense (string license) pure
     return as_license_is_metadata_license (license.toStringz);
 }
 
-Component parseMetaInfoFile (GeneratorResult res, string data)
+Component parseMetaInfoFile (Metadata mdata, GeneratorResult res, const string data)
 {
-    auto mdata = new Metadata ();
-    mdata.setLocale ("ALL");
-    mdata.setFormatStyle (FormatStyle.METAINFO);
-
     try {
         mdata.parse (data, FormatKind.XML);
     } catch (Exception e) {
@@ -62,4 +58,13 @@ Component parseMetaInfoFile (GeneratorResult res, string data)
     }
 
     return cpt;
+}
+
+Component parseMetaInfoFile (GeneratorResult res, const string data)
+{
+    auto mdata = new Metadata ();
+    mdata.setLocale ("ALL");
+    mdata.setFormatStyle (FormatStyle.METAINFO);
+
+    return parseMetaInfoFile (mdata, res, data);
 }

@@ -24,6 +24,7 @@ import std.string;
 import std.path : baseName;
 import std.algorithm : canFind;
 import appstream.Component;
+import appstream.Metadata;
 
 import asgen.config;
 import asgen.hint;
@@ -78,11 +79,18 @@ public:
             }
         }
 
+        // create new AppStream metadata parser
+        auto mdata = new Metadata ();
+        mdata.setLocale ("ALL");
+        mdata.setFormatStyle (FormatStyle.METAINFO);
+
         // now process metainfo XML files
         foreach (ref mfname; metadataFiles) {
             auto dataBytes = pkg.getFileData (mfname);
             auto data = cast(string) dataBytes;
-            auto cpt = parseMetaInfoFile (gres, data);
+
+            mdata.clearComponents ();
+            auto cpt = parseMetaInfoFile (mdata, gres, data);
             if (cpt is null)
                 continue;
 
@@ -168,21 +176,20 @@ public:
                 }
 
                 if (!samePkg) {
-                    import appstream.Metadata;
                     // The exact same metadata exists in a different package already, we emit an error hint.
                     // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
                     // but with the *same ID* exists.
                     // We only catch that kind of problem later.
 
-                    auto mdata = new Metadata ();
-                    mdata.setFormatStyle (FormatStyle.COLLECTION);
-                    mdata.setFormatVersion (conf.formatVersion);
+                    auto cdata = new Metadata ();
+                    cdata.setFormatStyle (FormatStyle.COLLECTION);
+                    cdata.setFormatVersion (conf.formatVersion);
 
                     if (dtype == DataType.YAML)
-                        mdata.parse (existingMData, FormatKind.YAML);
+                        cdata.parse (existingMData, FormatKind.YAML);
                     else
-                        mdata.parse (existingMData, FormatKind.XML);
-                    auto ecpt = mdata.getComponent ();
+                        cdata.parse (existingMData, FormatKind.XML);
+                    auto ecpt = cdata.getComponent ();
 
                     gres.addHint (cpt.getId (), "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);
                 }
