@@ -122,6 +122,8 @@ bool localeValid (string locale) pure
 bool isTopLevelDomain (const string value) pure
 {
     import asgen.bindings.appstream_utils;
+    if (value.empty)
+        return false;
     return as_utils_is_tld (value.toStringz);
 }
 
