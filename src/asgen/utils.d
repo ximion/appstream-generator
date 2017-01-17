@@ -27,7 +27,7 @@ import std.conv : to;
 import std.random : randomSample;
 import std.range : chain;
 import std.algorithm : startsWith;
-import std.array : appender;
+import std.array : appender, empty;
 import std.path : buildPath, dirName, buildNormalizedPath;
 import std.typecons : Nullable;
 import std.datetime : Clock, parseRFC822DateTime, SysTime;
