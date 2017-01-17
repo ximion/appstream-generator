@@ -33,6 +33,9 @@ import std.typecons : Nullable;
 import std.datetime : Clock, parseRFC822DateTime, SysTime;
 static import std.file;
 
+import appstream.Component;
+import appstream.Icon;
+
 import asgen.logging;
 
 public immutable DESKTOP_GROUP = "Desktop Entry";
@@ -486,6 +489,28 @@ getTestSamplesDir () @trusted
     path = buildNormalizedPath (getcwd (), "..", "test", "samples");
 
     return path;
+}
+
+/**
+ * Return stock icon for this component, or null if it does not
+ * have one.
+ */
+@system
+Nullable!Icon componentGetStockIcon (ref Component cpt)
+{
+    Nullable!Icon res;
+    auto iconsArr = cpt.getIcons ();
+
+    for (uint i = 0; i < iconsArr.len; i++) {
+        // cast array data to D AsIcon and keep a reference to the C struct
+        auto icon = new Icon (cast (AsIcon*) iconsArr.index (i));
+        if (icon.getKind() == IconKind.STOCK) {
+            res = icon;
+            return res;
+        }
+    }
+
+    return res;
 }
 
 unittest

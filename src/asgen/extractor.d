@@ -32,6 +32,7 @@ import asgen.result;
 import asgen.backends.interfaces;
 import asgen.datastore;
 import asgen.handlers;
+import asgen.utils : componentGetStockIcon;
 
 
 struct DataExtractor
@@ -118,25 +119,31 @@ public:
                 if (dfp is null)
                     dfp = (cid ~ ".desktop") in desktopFiles;
                 if (dfp is null) {
-                    // no .desktop file was found
-                    // finalize GCID checksum and continue
-                    gres.updateComponentGCID (cpt, data);
+                    if (componentGetStockIcon (cpt).isNull) {
+                        // no .desktop file was found and this component does not
+                        // define an icon - this means that a .desktop file is required
+                        // and can not be omitted, so we stop processing here.
+                        // Otherwise we take the data and see how far we get.
 
-                    gres.addHint (cpt.getId (), "missing-desktop-file");
-                    // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
-                    continue;
+                        // finalize GCID checksum and continue
+                        gres.updateComponentGCID (cpt, data);
+
+                        gres.addHint (cpt.getId (), "missing-desktop-file");
+                        // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
+                        continue;
+                    }
+                } else {
+                    // update component with .desktop file data, ignoring NoDisplay field
+                    auto ddataBytes = pkg.getFileData (*dfp);
+                    auto ddata = cast(string) ddataBytes;
+                    parseDesktopFile (gres, *dfp, ddata, true);
+
+                    // update GCID checksum
+                    gres.updateComponentGCID (cpt, ddata);
+
+                    // drop the .desktop file from the list, it has been handled
+                    desktopFiles.remove (cid);
                 }
-
-                // update component with .desktop file data, ignoring NoDisplay field
-                auto ddataBytes = pkg.getFileData (*dfp);
-                auto ddata = cast(string) ddataBytes;
-                parseDesktopFile (gres, *dfp, ddata, true);
-
-                // update GCID checksum
-                gres.updateComponentGCID (cpt, ddata);
-
-                // drop the .desktop file from the list, it has been handled
-                desktopFiles.remove (cid);
             }
 
             // do a validation of the file. Validation is slow, so we allow
