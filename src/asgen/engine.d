@@ -381,7 +381,7 @@ public:
 
         // create the icon tarballs
         if (withIconTar) {
-            logDebug ("Creating icon tarball.");
+            logInfo ("Creating icon tarball.");
             foreach (size; iconTarSizes) {
                 import std.conv : to;
 
@@ -394,6 +394,7 @@ public:
                 }
                 delete iconTar;
             }
+            logInfo ("Icon tarball(s) built.");
         }
 
         string dataBaseFname;
