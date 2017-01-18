@@ -4,6 +4,7 @@
 # on the CI system.
 #
 set -e
+export LANG=C.UTF-8
 
 echo "D compiler: $DC"
 set -v
