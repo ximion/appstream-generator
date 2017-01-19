@@ -29,7 +29,24 @@ import appstream.Component;
 import asgen.hint;
 import asgen.utils : buildCptGlobalID;
 import asgen.backends.interfaces;
+import asgen.config : Config;
 
+
+/**
+ * Helper function for GeneratorResult.finalize()
+ */
+extern(C)
+int evaluateCustomEntry (void *keyPtr, void *value, void *userData)
+{
+    auto key = (cast(const(char)*) keyPtr).fromStringz;
+    auto conf = *cast(Config*) userData;
+
+    if (key in conf.allowedCustomKeys)
+        return false; // FALSE, do not delete
+
+    // remove invalid key
+    return true;
+}
 
 class GeneratorResult
 {
@@ -208,6 +225,8 @@ public:
      */
     void finalize ()
     {
+        auto conf = Config.get ();
+
         // we need to duplicate the associative array, because the addHint() function
         // may remove entries from "cpts", breaking our foreach loop.
         foreach (cpt; cpts.dup.byValue ()) {
@@ -230,8 +249,8 @@ public:
                 addHint (cpt.getId (), "metainfo-no-summary");
         }
 
-        // inject package descriptions, if needed
         foreach (cpt; cpts.byValue ()) {
+            // inject package descriptions, if needed
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
                 auto flags = cpt.getValueFlags;
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
@@ -249,6 +268,22 @@ public:
                         addHint (cpt, "description-from-package");
                 }
 
+            }
+
+            // filter custom tags
+            auto customHashTable = cpt.getCustom ();
+            auto noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
+            if (customHashTable.size () > 0) {
+                import gi.glibtypes;
+
+                if (noCustomKeysAllowed) {
+                    // if we don't allow any custom keys, we can delete them faster
+                    customHashTable.removeAll ();
+                    continue;
+                }
+
+                // filter the custom values
+                customHashTable.foreachRemove (&evaluateCustomEntry, &conf);
             }
         }
     }

@@ -50,6 +50,7 @@ Oldsuites | This key exists to support migration from an alternative appstream g
 Suites | Suites which should be recognized by the generator. Each suite has the components and architectures which should be searched for metadata as children. See below for more information.
 Features | Disable or enable selected generator features. For a detailed description see below.
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.
+AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the collection metadata output. This key takes a list of custom-key strings as value.
 
 
 ### Suite fields

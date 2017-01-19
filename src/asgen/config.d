@@ -99,6 +99,8 @@ class Config
     DataType metadataType;
     uint enabledFeatures; // bitfield
 
+    bool[string] allowedCustomKeys; // set of allowed keys in <custom/> tags
+
     string workspaceDir;
 
     string caInfo;
@@ -337,6 +339,10 @@ class Config
 
             oldsuites = map!"a.str"(root["Oldsuites"].array).array;
         }
+
+        if ("AllowedCustomKeys" in root.object)
+            foreach (ref key; root["AllowedCustomKeys"].array)
+                allowedCustomKeys[key.str] = true;
 
         // Enable features which are default-enabled
         setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
