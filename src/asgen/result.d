@@ -268,6 +268,9 @@ public:
                         addHint (cpt, "description-from-package");
                 }
 
+                // desktop-application components are required to have a category
+                if (cpt.getCategories ().len <= 0)
+                    addHint (cpt, "no-valid-category");
             }
 
             // filter custom tags

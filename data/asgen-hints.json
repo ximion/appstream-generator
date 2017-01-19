@@ -177,6 +177,11 @@
   "severity": "warning"
 },
 
+"no-valid-category": {
+  "text": ["This software component is no member of any valid category."],
+  "severity": "error"
+},
+
 "metainfo-license-invalid": {
   "text": ["The metainfo file does not seem to be licensed under a permissive license. Valid permissive licenses include FSFAP, CC0-1.0 or MIT.",
            "Permissive licenses are required to allow distributors to include the metadata in mixed data collections without the risk of license violations due to mutually incompatible licenses.",
