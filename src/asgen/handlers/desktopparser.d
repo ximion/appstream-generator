@@ -199,6 +199,9 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             continue;
 
         if (key.startsWith ("Name")) {
+            if (!cpt.getName ().empty)
+                continue;
+
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
             /* run backend specific hooks */
@@ -207,6 +210,9 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             foreach (key, value; translations)
                 cpt.setName (value, key);
         } else if (key.startsWith ("Comment")) {
+            if (!cpt.getSummary ().empty)
+                continue;
+
             immutable val = getValue (df, key);
             checkDesktopString (key, val);
             auto translations = gres.pkg.getDesktopFileTranslations (df, val);
