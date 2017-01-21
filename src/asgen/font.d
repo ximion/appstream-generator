@@ -382,11 +382,25 @@ public:
     }
 
     @property
+    void sampleText (string val)
+    {
+        if (val.length > 2)
+            sampleText_ = val;
+    }
+
+    @property
     string sampleIconText ()
     {
         if (sampleIconText_.empty)
             findSampleTexts ();
         return sampleIconText_;
+    }
+
+    @property
+    void sampleIconText (string val)
+    {
+        if (val.length <= 3)
+            sampleIconText_ = val;
     }
 }
 

@@ -20,7 +20,7 @@
 module asgen.handlers.fonthandler;
 
 import std.path : baseName, buildPath;
-import std.array : appender, replace;
+import std.array : appender, replace, empty;
 import std.string : format, fromStringz, startsWith, endsWith, strip, toLower;
 import std.conv : to;
 import appstream.Component;
@@ -183,6 +183,11 @@ private bool renderFontIcon (GeneratorResult gres, Font font, immutable string c
         immutable path = buildPath (cptIconsPath, size.toString);
         std.file.mkdirRecurse (path);
 
+        // check if we have a custom icon text value (useful for symbolic fonts)
+        immutable customIconText = cpt.getCustomValue ("FontIconText");
+        if (!customIconText.empty)
+            font.sampleIconText = customIconText; // Font will ensure that the value does not exceed 3 chars
+
         immutable fid = font.id;
         immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
@@ -229,6 +234,15 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
 
         if (first)
             first = false;
+
+        // check if we have a custom sample text value (useful for symbolic fonts)
+        // we set this value for every fonr in the font-bundle, there is no way for this
+        // hack to select which font face should have the sample text.
+        // Since this hack only affects very few exotic fonts and should generally not
+        // be used, this should not be an issue.
+        immutable customSampleText = cpt.getCustomValue ("FontSampleText");
+        if (!customSampleText.empty)
+            font.sampleIconText = customSampleText;
 
         auto cptScreenshotsUrl = buildPath (gres.gcidForComponent (cpt), "screenshots");
         foreach (ref size; fontScreenshotSizes) {
