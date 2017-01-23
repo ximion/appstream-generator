@@ -41,23 +41,6 @@ private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 4
 
 void processFontData (GeneratorResult gres, string mediaExportDir)
 {
-    auto hasFonts = false;
-    foreach (ref cpt; gres.getComponents ()) {
-        if (cpt.getKind () != ComponentKind.FONT)
-            continue;
-        hasFonts = true;
-        break;
-    }
-
-    // nothing to do if we don't have fonts
-    if (!hasFonts)
-        return;
-
-    processFontDataInternal (gres, mediaExportDir);
-}
-
-void processFontDataInternal (GeneratorResult gres, string mediaExportDir)
-{
     // create a map of all fonts we have in this package
     Font[string] allFonts;
     foreach (ref fname; gres.pkg.contents) {

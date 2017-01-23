@@ -163,6 +163,7 @@ public:
                 gres.updateComponentGCID (cpt, ddata);
         }
 
+        auto hasFontComponent = false;
         foreach (ref cpt; gres.getComponents ()) {
             auto gcid = gres.gcidForComponent (cpt);
 
@@ -213,11 +214,21 @@ public:
             // we don't even need to call this if no downloads are allowed.
             if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
+
+            // we don't want to run expensive font processing if we don't have a font component.
+            // since the font handler needs to load all font data prior to processing the component,
+            // for efficiency we only record whether we need to process fonts here and then handle
+            // them at a later step.
+            // This improves performance for a package that contains multiple font components.
+            if (cpt.getKind () == ComponentKind.FONT)
+                hasFontComponent = true;
         }
 
         // render font previews and extract font metadata (if any of the components is a font)
-        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS))
-            processFontData (gres, dstore.mediaExportPoolDir);
+        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS)) {
+            if (hasFontComponent)
+                processFontData (gres, dstore.mediaExportPoolDir);
+        }
 
         // this removes invalid components and cleans up the result
         gres.finalize ();
