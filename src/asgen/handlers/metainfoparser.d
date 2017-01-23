@@ -57,6 +57,12 @@ Component parseMetaInfoFile (Metadata mdata, GeneratorResult res, const string d
         return null;
     }
 
+    // quit immediately if we have an unknown component type
+    if (cpt.getKind () == ComponentKind.UNKNOWN) {
+        res.addHint (cpt, "metainfo-unknown-type");
+        return null;
+    }
+
     return cpt;
 }
 
