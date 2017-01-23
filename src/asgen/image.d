@@ -48,7 +48,8 @@ enum ImageFormat {
     JPEG,
     GIF,
     SVG,
-    SVGZ
+    SVGZ,
+    XPM
 }
 
 private void optimizePNG (string fname)

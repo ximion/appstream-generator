@@ -52,7 +52,7 @@ static import asgen.config;
 private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", ".ico", ".xpm"];
 
 // the image extensions that we will actually allow software to have.
-private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg"];
+private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg", ".xpm"];
 
 public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
 
@@ -305,7 +305,7 @@ public:
 
     static private bool iconAllowed (string iconName)
     {
-        foreach (ext; allowedIconExts)
+        foreach (ref ext; allowedIconExts)
             if (iconName.endsWith (ext))
                 return true;
         return false;
@@ -321,6 +321,8 @@ public:
             return ImageFormat.SVG;
         if (fname.endsWith (".svgz"))
             return ImageFormat.SVGZ;
+        if (fname.endsWith (".xpm"))
+            return ImageFormat.XPM;
         return ImageFormat.UNKNOWN;
     }
 
@@ -392,6 +394,22 @@ public:
     }
 
     /**
+     * Strip file extension from icon.
+     */
+    string stripIconExt (ref string iconName)
+    {
+        if (iconName.endsWith (".png"))
+            return iconName[0..$-4];
+        if (iconName.endsWith (".svg"))
+            return iconName[0..$-4];
+        if (iconName.endsWith (".xpm"))
+            return iconName[0..$-4];
+        if (iconName.endsWith (".svgz"))
+            return iconName[0..$-5];
+        return iconName;
+    }
+
+    /**
      * Extracts the icon from the package and stores it in the cache.
      * Ensures the stored icon always has the size given in "size", and renders
      * scalable vectorgraphics if necessary.
@@ -411,10 +429,6 @@ public:
                             string iconPath,
                             ImageSize size)
     {
-        // don't store an icon if we are already ignoring this component
-        //if cpt.has_ignore_reason():
-        //    return False
-
         auto iformat = imageKindFromFile (iconPath);
         if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
@@ -424,8 +438,12 @@ public:
         auto path = buildPath (cptExportPath, "icons", size.toString ());
         auto iconName = format ("%s_%s", gres.pkgname,  baseName (iconPath));
 
-        iconName = iconName.replace(".svgz", ".png");
-        iconName = iconName.replace(".svg", ".png");
+        if (iconName.endsWith (".svgz"))
+            iconName = iconName.replace (".svgz", ".png");
+        else if (iconName.endsWith (".svg"))
+            iconName = iconName.replace (".svg", ".png");
+        else if (iconName.endsWith (".xpm"))
+            iconName = iconName.replace (".xpm", ".png");
         auto iconStoreLocation = buildPath (path, iconName);
 
         if (std.file.exists (iconStoreLocation)) {
@@ -455,10 +473,10 @@ public:
             return false;
         }
 
-        // create target directory
-        mkdirRecurse (path);
-
         if ((iformat == ImageFormat.SVG) || (iformat == ImageFormat.SVGZ)) {
+            // create target directory
+            mkdirRecurse (path);
+
             try {
                 auto cv = Canvas (size.width, size.height);
                 cv.renderSvg (iconData);
@@ -475,6 +493,15 @@ public:
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
+
+            if (iformat == ImageFormat.XPM) {
+                // we use XPM images only if they are large enough
+                if ((img.width < size.width) || (img.height < size.height))
+                    return false;
+            }
+
+            // create target directory
+            mkdirRecurse (path);
 
             try {
                 img.scale (size.width, size.height);
@@ -520,10 +547,9 @@ public:
             iconName  = baseName (iconName);
 
 
-            // Small hack: Strip .png from icon files to make the XDG and Pixmap finder
+            // Small hack: Strip .png and other extensions from icon files to make the XDG and Pixmap finder
             // work properly, which add their own icon extensions and find the most suitable icon.
-            if (iconName.endsWith (".png"))
-                iconName = iconName[0..$-4];
+            iconName = stripIconExt (iconName);
 
             string lastIconName = null;
             /// Search for an icon in XDG icon directories.
