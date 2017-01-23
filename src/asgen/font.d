@@ -199,7 +199,7 @@ public:
         }
 
         char *fullNameVal;
-        if (FcPatternGetString (fpattern, FC_FULLNAME, 9, &fullNameVal) == FcResult.Match) {
+        if (FcPatternGetString (fpattern, FC_FULLNAME, 0, &fullNameVal) == FcResult.Match) {
             fullname_ = fullNameVal.fromStringz.dup;
         }
 
