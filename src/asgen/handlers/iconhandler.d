@@ -478,9 +478,10 @@ public:
             mkdirRecurse (path);
 
             try {
-                auto cv = Canvas (size.width, size.height);
+                auto cv = new Canvas (size.width, size.height);
                 cv.renderSvg (iconData);
                 cv.savePng (iconStoreLocation);
+                delete cv;
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
@@ -488,7 +489,7 @@ public:
         } else {
             Image img;
             try {
-                img = Image (iconData, iformat);
+                img = new Image (iconData, iformat);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
@@ -510,6 +511,8 @@ public:
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
             }
+
+            delete img;
         }
 
         auto icon = new Icon ();

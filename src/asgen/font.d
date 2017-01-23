@@ -77,7 +77,7 @@ shared static this ()
                      "zh-tw": "漢"];
 }
 
-struct Font
+class Font
 {
 
 private:
@@ -92,7 +92,7 @@ private:
     string style_;
     string fullname_;
 
-    string fileBaseName;
+    immutable string fileBaseName;
 
 public:
 
@@ -414,7 +414,7 @@ unittest
     immutable fontFile = buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf");
 
     // test reading from file
-    auto font = Font (fontFile);
+    auto font = new Font (fontFile);
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
 
@@ -426,7 +426,7 @@ unittest
     }
 
     // test reading from memory
-    font = Font (data, "test.ttf");
+    font = new Font (data, "test.ttf");
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);

@@ -102,7 +102,7 @@ setupFontconfigMutex () @trusted
     fontconfigMutex = new Mutex;
 }
 
-struct Image
+class Image
 {
 
 private:
@@ -226,7 +226,7 @@ public:
     }
 }
 
-struct Canvas
+class Canvas
 {
 
 private:
@@ -437,7 +437,7 @@ unittest
 
     auto sampleImgPath = buildPath (getTestSamplesDir (), "appstream-logo.png");
     writeln ("Loading image (file)");
-    auto img = Image (sampleImgPath);
+    auto img = new Image (sampleImgPath);
 
     writeln ("Scaling image");
     assert (img.width == 134);
@@ -457,7 +457,7 @@ unittest
         data ~= f.rawRead (buf);
     }
 
-    img = Image (data, ImageFormat.PNG);
+    img = new Image (data, ImageFormat.PNG);
     writeln ("Scaling image (data)");
     img.scale (124, 124);
     writeln ("Storing image (data)");
@@ -471,15 +471,15 @@ unittest
         char[300] buf;
         data ~= f.rawRead (buf);
     }
-    auto cv = Canvas (512, 512);
+    auto cv = new Canvas (512, 512);
     cv.renderSvg (data);
     writeln ("Saving rendered PNG");
     cv.savePng ("/tmp/ag-svgrender_test1.png");
 
     writeln ("Font rendering");
-    auto font = Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
+    auto font = new Font (buildPath (getTestSamplesDir (), "NotoSans-Regular.ttf"));
 
-    cv = Canvas (400, 100);
+    cv = new Canvas (400, 100);
     cv.drawText (font,
                   "Hello World!\nSecond Line!\nThird line - äöüß!\nA very, very, very long line.");
     cv.savePng ("/tmp/ag-fontrender_test1.png");
