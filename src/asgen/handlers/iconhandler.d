@@ -684,7 +684,7 @@ unittest
         else
             valid = false;
 
-        if (fname.endsWith (".xpm"))
+        if (fname.endsWith (".ico"))
             assert (!valid);
         else
             assert (valid);

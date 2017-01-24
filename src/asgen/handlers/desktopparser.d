@@ -166,6 +166,14 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     // make sure we have a valid component to work on
     auto cpt = gres.getComponent (fnameBase);
     if (cpt is null) {
+        // try with the shortname as well
+        if (fnameBase.endsWith (".desktop")) {
+            auto fnameBaseNoext = fnameBase[0..$-8];
+            cpt = gres.getComponent (fnameBaseNoext);
+        }
+    }
+
+    if (cpt is null) {
         cpt = new Component ();
         // strip .desktop suffix if the reverse-domain-name scheme is followed and we build for
         // a high AppStream version.
@@ -190,6 +198,9 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             }
     }
 
+    immutable hadExistingCptName = !cpt.getName ().empty;
+    immutable hadExistingCptSummary = !cpt.getSummary ().empty;
+
     size_t dummy;
     auto keys = df.getKeys (DESKTOP_GROUP, dummy);
     foreach (string key; keys) {
@@ -199,7 +210,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             continue;
 
         if (key.startsWith ("Name")) {
-            if (!cpt.getName ().empty)
+            if (hadExistingCptName)
                 continue;
 
             immutable val = getValue (df, key);
@@ -210,7 +221,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             foreach (key, value; translations)
                 cpt.setName (value, key);
         } else if (key.startsWith ("Comment")) {
-            if (!cpt.getSummary ().empty)
+            if (hadExistingCptSummary)
                 continue;
 
             immutable val = getValue (df, key);
@@ -305,6 +316,24 @@ Keywords[de_DE]=Goethe;Schiller;Kant;
 
     cpt = res.getComponent ("org.example.foobar");
     assert (cpt !is null);
+
+    // test preexisting component
+    res = new GeneratorResult (pkg);
+    auto ecpt = new Component ();
+    ecpt.setKind (ComponentKind.DESKTOP_APP);
+    ecpt.setId ("org.example.foobar");
+    ecpt.setName ("TestX", "C");
+    ecpt.setSummary ("Summary of TestX", "C");
+    res.addComponent (ecpt);
+
+    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
+    assert (cpt !is null);
+    cpt = res.getComponent ("org.example.foobar");
+    assert (cpt !is null);
+
+    assert (cpt.getName () == "TestX");
+    assert (cpt.getSummary () == "Summary of TestX");
+    assert (cpt.getKeywords () == ["Flubber", "Test", "Meh"]);
 
     // legacy
     Config.get ().formatVersion = FormatVersion.V0_8;
