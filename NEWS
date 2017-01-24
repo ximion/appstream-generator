@@ -1,3 +1,29 @@
+Version 0.6.2
+~~~~~~~~~~~~~~
+Released: 2017-01-24
+
+Notes:
+ * GDC 6.x can't compile the project at time due to a GDC bug.
+   See https://bugzilla.gdcproject.org/show_bug.cgi?id=251 for more
+   information.
+
+Features:
+ * Support desktop-app metainfo files without .desktop file if they have an icon set
+ * Write log entry when starting/finishing icon tarball write
+ * Update AppStream bindings
+ * Allow to specify allowed <custom/> keys
+ * Don't show pedantic validator hints
+ * Allow metainfo file to specify sample texts for fonts
+ * Process XPM icons if they are large enough
+
+Bugfixes:
+ * Safeguard against TLD checks  with empty-or-null string
+ * Ensure desktop-apps have at least one valid category set
+ * Don't override metainfo name/summary with .desktop values
+ * Quit immediately if the component type is unknown
+ * Correctly read a font's full-name
+ * Don't needlessly reprocess fonts
+
 Version 0.6.1
 ~~~~~~~~~~~~~~
 Released: 2016-12-26
