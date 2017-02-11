@@ -183,17 +183,17 @@ public:
         // get contents information for packages and add them to the database
         auto interestingFound = false;
 
-        // First get the contents (only) of all packages in the base suite.
-        logInfo ("Scanning new packages for base suite %s/%s [%s]", suite.baseSuite, section, arch);
-        auto baseSuitePkgs = pkgIndex.packagesFor (suite.baseSuite, section, arch);
-        foreach (ref pkg; parallel (baseSuitePkgs, 8)) {
-            immutable pkid = pkg.id;
+        // First get the contents (only) of all packages in the base suite
+        if (!suite.baseSuite.empty) {
+            logInfo ("Scanning new packages for base suite %s/%s [%s]", suite.baseSuite, section, arch);
+            auto baseSuitePkgs = pkgIndex.packagesFor (suite.baseSuite, section, arch);
+            foreach (ref pkg; parallel (baseSuitePkgs, 8)) {
+                immutable pkid = pkg.id;
 
-            string[] contents;
-            if (!cstore.packageExists (pkid)) {
-                contents = pkg.contents;
-                cstore.addContents (pkid, contents);
-                logInfo ("Scanned %s for base suite.", pkid);
+                if (!cstore.packageExists (pkid)) {
+                    cstore.addContents (pkid, pkg.contents);
+                    logInfo ("Scanned %s for base suite.", pkid);
+                }
             }
         }
 
