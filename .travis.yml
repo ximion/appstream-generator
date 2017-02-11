@@ -7,7 +7,7 @@ services:
   - docker
 
 d:
-  - gdc
+  #- gdc -- DISABLED, see https://bugzilla.gdcproject.org/show_bug.cgi?id=251 for details
   - ldc
 
 before_script:
