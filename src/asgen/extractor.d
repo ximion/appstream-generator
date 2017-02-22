@@ -23,6 +23,7 @@ import std.stdio;
 import std.string;
 import std.path : baseName;
 import std.algorithm : canFind;
+import std.typecons : scoped;
 import appstream.Component;
 import appstream.Metadata;
 
@@ -35,7 +36,7 @@ import asgen.handlers;
 import asgen.utils : componentGetStockIcon;
 
 
-struct DataExtractor
+class DataExtractor
 {
 
 private:
@@ -81,7 +82,7 @@ public:
         }
 
         // create new AppStream metadata parser
-        auto mdata = new Metadata ();
+        auto mdata = scoped!Metadata ();
         mdata.setLocale ("ALL");
         mdata.setFormatStyle (FormatStyle.METAINFO);
 

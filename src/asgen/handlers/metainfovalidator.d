@@ -23,6 +23,8 @@ import std.path : baseName;
 import std.uni : toLower;
 import std.string : format;
 import std.stdio;
+import std.typecons : scoped;
+
 import appstream.Validator;
 import appstream.ValidatorIssue;
 import appstream.Component;
@@ -35,7 +37,7 @@ import asgen.utils;
 
 void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
 {
-    auto validator = new Validator ();
+    auto validator = scoped!Validator ();
 
     try {
         validator.validateData (data);

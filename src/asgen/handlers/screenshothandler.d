@@ -61,7 +61,7 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
     scrArr.removeRange (0, scrArr.len);
 
     // add valid screenshots back
-    foreach (scr; validScrs) {
+    foreach (ref scr; validScrs) {
         cpt.addScreenshot (scr);
     }
 }

@@ -27,6 +27,7 @@ import std.file : mkdirRecurse, rmdirRecurse;
 import std.array : empty;
 import std.json;
 import std.conv : to;
+import std.typecons : scoped;
 static import std.file;
 
 import mustache;
@@ -445,7 +446,7 @@ public:
         auto hintstore = HintsStorage.get ();
 
         auto dtype = conf.metadataType;
-        auto mdata = new Metadata ();
+        auto mdata = scoped!Metadata ();
         mdata.setFormatStyle (FormatStyle.COLLECTION);
         mdata.setFormatVersion (conf.formatVersion);
 
@@ -508,7 +509,7 @@ public:
                         auto iconsArr = cpt.getIcons ();
                         for (uint i = 0; i < iconsArr.len; i++) {
                             import appstream.Icon;
-                            auto icon = new Icon (cast (AsIcon*) iconsArr.index (i));
+                            auto icon = scoped!Icon (cast (AsIcon*) iconsArr.index (i));
 
                             if (icon.getKind () == IconKind.CACHED) {
                                 me.iconName = icon.getName ();

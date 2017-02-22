@@ -25,6 +25,8 @@ import std.string : format, indexOf, chomp, lastIndexOf, toStringz;
 import std.array : split, empty;
 import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
+import std.typecons : scoped;
+
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Provided;
@@ -118,7 +120,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
 {
     auto fnameBase = baseName (fname);
 
-    auto df = new KeyFile ();
+    auto df = scoped!KeyFile ();
     try {
         df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);
     } catch (Exception e) {

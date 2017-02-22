@@ -25,7 +25,7 @@ import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.path : buildPath, buildNormalizedPath, pathSplitter;
 import std.array : appender;
-import std.typecons : Tuple;
+import std.typecons : Tuple, scoped;
 import std.json;
 static import std.math;
 
@@ -58,7 +58,7 @@ private:
     MDB_dbi dbStats;
 
     bool opened;
-    Metadata mdata;
+    typeof(scoped!Metadata()) mdata;
 
     string mediaDir;
 
@@ -73,7 +73,7 @@ public:
     this ()
     {
         opened = false;
-        mdata = new Metadata ();
+        mdata = scoped!Metadata ();
         mdata.setLocale ("ALL");
         mdata.setFormatVersion (Config.get ().formatVersion);
         mdata.setWriteHeader(false);

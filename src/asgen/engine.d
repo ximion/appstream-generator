@@ -26,6 +26,7 @@ import std.array : Appender, appender, empty;
 import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
+import std.typecons : scoped;
 static import std.file;
 import appstream.Component;
 
@@ -130,7 +131,7 @@ public:
      */
     private void processPackages (Package[] pkgs, IconHandler iconh)
     {
-        auto mde = new DataExtractor (dstore, iconh);
+        auto mde = scoped!DataExtractor (dstore, iconh);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
             if (dstore.packageExists (pkid))
@@ -400,14 +401,13 @@ public:
             foreach (size; iconTarSizes) {
                 import std.conv : to;
 
-                auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
+                auto iconTar = scoped!ArchiveCompressor (ArchiveType.GZIP);
                 iconTar.open (buildPath (dataExportDir, format ("icons-%sx%s.tar.gz", size, size)));
                 auto iconFiles = iconTarFiles[size].data;
                 sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }
-                delete iconTar;
             }
             logInfo ("Icon tarball(s) built.");
         }
@@ -495,7 +495,7 @@ public:
             return;
         }
 
-        auto reportgen = new ReportGenerator (dstore);
+        auto reportgen = scoped!ReportGenerator (dstore);
 
         auto dataChanged = false;
         foreach (ref section; suite.sections) {
@@ -514,7 +514,7 @@ public:
 
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+                auto iconh = scoped!IconHandler (dstore.mediaExportPoolDir,
                                               getIconCandidatePackages (suite, section, arch),
                                               suite.iconTheme);
                 processPackages (pkgs, iconh);

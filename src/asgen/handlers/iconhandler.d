@@ -28,6 +28,7 @@ import std.file : mkdirRecurse;
 import std.algorithm : canFind;
 import std.variant;
 import std.parallelism;
+import std.typecons : scoped;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
@@ -220,7 +221,7 @@ public:
         }
 
         // open package contents cache
-        auto ccache = new ContentsStore ();
+        auto ccache = scoped!ContentsStore ();
         ccache.open (asgen.config.Config.get ());
 
         // load data from the contents index.
