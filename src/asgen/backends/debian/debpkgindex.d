@@ -56,7 +56,7 @@ public:
             throw new Exception ("Directory '%s' does not exist.".format (dir));
 
         auto conf = Config.get ();
-        tmpDir = buildPath (conf.getTmpDir (), dir.baseName);
+        tmpDir = buildPath (conf.getTmpDir, dir.baseName);
     }
 
     void release ()

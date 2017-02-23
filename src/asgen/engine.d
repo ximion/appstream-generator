@@ -138,7 +138,7 @@ public:
                 continue;
 
             auto res = mde.processPackage (pkg);
-            synchronized (this) {
+            synchronized (dstore) {
                 // write resulting data into the database
                 dstore.addGeneratorResult (this.conf.metadataType, res);
 

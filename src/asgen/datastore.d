@@ -58,7 +58,7 @@ private:
     MDB_dbi dbStats;
 
     bool opened;
-    typeof(scoped!Metadata()) mdata;
+    Metadata mdata;
 
     string mediaDir;
 
@@ -73,7 +73,7 @@ public:
     this ()
     {
         opened = false;
-        mdata = scoped!Metadata ();
+        mdata = new Metadata ();
         mdata.setLocale ("ALL");
         mdata.setFormatVersion (Config.get ().formatVersion);
         mdata.setWriteHeader(false);

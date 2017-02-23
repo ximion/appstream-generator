@@ -229,7 +229,7 @@ public:
 
         // we need to duplicate the associative array, because the addHint() function
         // may remove entries from "cpts", breaking our foreach loop.
-        foreach (cpt; cpts.dup.byValue ()) {
+        foreach (cpt; cpts.dup.byValue) {
             auto ckind = cpt.getKind ();
             if (ckind == ComponentKind.DESKTOP_APP) {
                 // checks specific for .desktop and web apps
@@ -249,7 +249,7 @@ public:
                 addHint (cpt.getId (), "metainfo-no-summary");
         }
 
-        foreach (cpt; cpts.byValue ()) {
+        foreach (cpt; cpts.byValue) {
             // inject package descriptions, if needed
             if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
                 auto flags = cpt.getValueFlags;
