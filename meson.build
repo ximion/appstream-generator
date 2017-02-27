@@ -18,7 +18,6 @@ asgen_sources = ['src/app.d',
     'src/asgen/bindings/libarchive.d',
     'src/asgen/bindings/lmdb.d',
     'src/asgen/bindings/rsvg.d',
-    'src/asgen/bindings/concurrency_generator.d',
     'src/asgen/config.d',
     'src/asgen/contentsstore.d',
     'src/asgen/datastore.d',
@@ -435,6 +434,13 @@ if download_js
         endif
     endif
 endif
+
+#
+# Sanitizers
+#
+# TODO: Make this a real option, not something to manually enable.
+#add_global_arguments(['-sanitize=address'], language : 'd')
+#add_global_link_arguments('-L-l:libasan.so.4.0.0', language : 'd')
 
 #
 # Build and test

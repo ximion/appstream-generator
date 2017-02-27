@@ -29,15 +29,11 @@ import std.algorithm : canFind;
 import std.variant;
 import std.parallelism;
 import std.typecons : scoped;
+import std.concurrency : Generator, yield;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
 static import std.file;
-
-version (GNU)
-	import asgen.bindings.concurrency_generator;
-else
-	import std.concurrency : Generator, yield;
 
 import asgen.utils;
 import asgen.logging;

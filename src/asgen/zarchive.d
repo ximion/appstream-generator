@@ -26,15 +26,11 @@ import std.conv : to;
 import std.path : buildNormalizedPath;
 import std.array : appender;
 import std.typecons : RefCounted, RefCountedAutoInitialize;
+import std.concurrency : Generator, yield;
 static import std.file;
 
 import asgen.logging;
 import asgen.utils : GENERIC_BUFFER_SIZE;
-
-version (GNU)
-	import asgen.bindings.concurrency_generator;
-else
-	import std.concurrency : Generator, yield;
 
 import asgen.bindings.libarchive;
 
