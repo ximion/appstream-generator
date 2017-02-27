@@ -27,6 +27,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * FreeType
  * Fontconfig
  * Pango
+ * libmustache-d
  * Bower (optional) [6]
 
 [1]: https://github.com/ldc-developers/ldc/releases
@@ -40,7 +41,7 @@ On Debian and derivatives of it, all build requirements can be installed using t
 ```ShellSession
 sudo apt install meson ldc libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
     librsvg2-dev liblmdb-dev libglib2.0-dev libcairo2-dev libcurl4-gnutls-dev \
-    libfreetype6-dev libfontconfig1-dev libpango1.0-dev
+    libfreetype6-dev libfontconfig1-dev libpango1.0-dev libmustache-d-dev
 ```
 
 ### Build instructions
