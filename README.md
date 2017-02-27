@@ -21,21 +21,22 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * AppStream [3]
  * libarchive (>= 3.2) [4]
  * LMDB [5]
+ * mustache-d [6]
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
  * FreeType
  * Fontconfig
  * Pango
- * libmustache-d
- * Bower (optional) [6]
+ * Bower (optional) [7]
 
 [1]: https://github.com/ldc-developers/ldc/releases
 [2]: http://mesonbuild.com/
 [3]: https://github.com/ximion/appstream
 [4]: http://www.libarchive.org/
 [5]: http://symas.com/mdb/
-[6]: http://bower.io/
+[6]: https://github.com/repeatedly/mustache-d
+[7]: http://bower.io/
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
