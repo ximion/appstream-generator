@@ -218,6 +218,14 @@ public:
                 continue;
             }
 
+            // filter out the most recent package version in the packages list
+            auto epkgP = name in pkgs;
+            if (epkgP !is null) {
+                auto epkg = *epkgP;
+                if (compareVersions (epkg.ver, pkg.ver) > 0)
+                    continue;
+            }
+
             pkgs[name] = pkg;
         } while (tagf.nextSection ());
 
