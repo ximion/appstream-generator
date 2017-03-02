@@ -102,7 +102,7 @@ setupFontconfigMutex () @trusted
     fontconfigMutex = new Mutex;
 }
 
-class Image
+final class Image
 {
 
 private:
@@ -226,7 +226,7 @@ public:
     }
 }
 
-class Canvas
+final class Canvas
 {
 
 private:

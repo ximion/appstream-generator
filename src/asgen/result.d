@@ -48,7 +48,7 @@ int evaluateCustomEntry (void *keyPtr, void *value, void *userData)
     return true;
 }
 
-class GeneratorResult
+final class GeneratorResult
 {
 
 private:

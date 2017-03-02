@@ -59,13 +59,13 @@ public:
         tmpDir = buildPath (conf.getTmpDir, dir.baseName);
     }
 
-    void release ()
+    final void release ()
     {
         pkgCache = null;
         indexChanged = null;
     }
 
-    private immutable(string[]) findTranslations (const string suite, const string section)
+    private final immutable(string[]) findTranslations (const string suite, const string section)
     {
         import std.regex : matchFirst, regex;
 
@@ -94,7 +94,7 @@ public:
         return cast(immutable) ret.keys;
     }
 
-    private void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
+    private final void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
 
@@ -175,7 +175,7 @@ public:
         }
     }
 
-    private string getIndexFile (string suite, string section, string arch)
+    private final string getIndexFile (string suite, string section, string arch)
     {
         immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
 
@@ -189,7 +189,7 @@ public:
         return new DebPackage (name, ver, arch);
     }
 
-    private DebPackage[] loadPackages (string suite, string section, string arch)
+    private final DebPackage[] loadPackages (string suite, string section, string arch)
     {
         auto indexFname = getIndexFile (suite, section, arch);
         if (!std.file.exists (indexFname)) {
@@ -246,7 +246,7 @@ public:
         return pkgCache[id];
     }
 
-    bool hasChanges (DataStore dstore, string suite, string section, string arch)
+    final bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         import std.json;
 

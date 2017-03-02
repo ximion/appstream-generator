@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 
 
-class ListFile
+final class ListFile
 {
 
 private:

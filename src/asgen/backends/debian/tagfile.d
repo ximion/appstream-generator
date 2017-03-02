@@ -25,7 +25,7 @@ import asgen.zarchive;
 import asgen.logging;
 
 
-class TagFile
+final class TagFile
 {
 
 private:

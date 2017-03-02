@@ -28,7 +28,7 @@ import asgen.zarchive;
 import asgen.backends.interfaces;
 
 
-class RPMPackage : Package
+final class RPMPackage : Package
 {
 private:
     string pkgname;

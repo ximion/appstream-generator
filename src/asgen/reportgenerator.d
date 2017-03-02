@@ -43,7 +43,7 @@ import asgen.datastore;
 
 private alias MustacheEngine!(string) Mustache;
 
-class ReportGenerator
+final class ReportGenerator
 {
 
 private:

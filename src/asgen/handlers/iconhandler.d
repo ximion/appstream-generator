@@ -56,7 +56,7 @@ public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
 /**
  * Describes an icon theme as specified in the XDG theme spec.
  */
-private class Theme
+private final class Theme
 {
 
 private:
@@ -173,7 +173,7 @@ public:
  * Finds icons in a software archive and stores them in the
  * correct sizes for a given AppStream component.
  */
-class IconHandler
+final class IconHandler
 {
 
 private:

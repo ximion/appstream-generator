@@ -27,7 +27,7 @@ import asgen.backends.debian;
 import asgen.backends.interfaces;
 import asgen.backends.ubuntu.ubupkg;
 
-class UbuntuPackageIndex : DebianPackageIndex
+final class UbuntuPackageIndex : DebianPackageIndex
 {
 
 private:

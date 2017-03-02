@@ -33,7 +33,7 @@ import asgen.backends.archlinux.alpkg;
 import asgen.backends.archlinux.listfile;
 
 
-class ArchPackageIndex : PackageIndex
+final class ArchPackageIndex : PackageIndex
 {
 
 private:

@@ -453,7 +453,7 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
     archive_write_close (ar);
 }
 
-class ArchiveCompressor
+final class ArchiveCompressor
 {
 
 private:

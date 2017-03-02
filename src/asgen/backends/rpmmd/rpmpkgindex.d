@@ -30,7 +30,7 @@ import asgen.backends.interfaces;
 import asgen.backends.rpmmd.rpmpkg;
 
 
-class RPMPackageIndex : PackageIndex
+final class RPMPackageIndex : PackageIndex
 {
 
 private:

@@ -59,7 +59,7 @@ private HintSeverity severityFromString (string str) pure
     }
 }
 
-class GeneratorHint
+final class GeneratorHint
 {
 
 private:
@@ -108,7 +108,7 @@ public:
 /**
  * Singleton holding information about the hint tags we know about.
  **/
-class HintsStorage
+final class HintsStorage
 {
     // Thread local
     private static bool instantiated_;

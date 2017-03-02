@@ -77,7 +77,7 @@ shared static this ()
                      "zh-tw": "漢"];
 }
 
-class Font
+final class Font
 {
 
 private:

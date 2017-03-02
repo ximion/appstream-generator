@@ -29,7 +29,7 @@ import asgen.backends.interfaces;
 import asgen.backends.dummy.dummypkg;
 
 
-class DummyPackageIndex : PackageIndex
+final class DummyPackageIndex : PackageIndex
 {
 
 private:

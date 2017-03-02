@@ -36,7 +36,7 @@ import asgen.handlers;
 import asgen.utils : componentGetStockIcon;
 
 
-class DataExtractor
+final class DataExtractor
 {
 
 private:

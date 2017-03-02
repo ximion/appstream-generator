@@ -45,7 +45,7 @@ import asgen.result;
  * issues found as well as statistics about the metadata evolution
  * over time.
  **/
-class DataStore
+final class DataStore
 {
 
 private:

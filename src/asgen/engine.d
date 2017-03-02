@@ -50,7 +50,7 @@ import asgen.backends.rpmmd;
 import asgen.handlers.iconhandler;
 
 
-class Engine
+final class Engine
 {
 
 private:

@@ -37,7 +37,7 @@ import asgen.backends.interfaces;
 
 extern (C) char *bindtextdomain (const char *domainname, const char *dirName) nothrow @nogc;
 
-class UbuntuPackage : DebPackage
+final class UbuntuPackage : DebPackage
 {
     this (string pname, string pver, string parch, string globalTmpDir, ref Array!Package langpacks)
     {

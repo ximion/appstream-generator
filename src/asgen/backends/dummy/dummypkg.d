@@ -26,7 +26,7 @@ import asgen.backends.interfaces;
 import asgen.logging;
 
 
-class DummyPackage : Package
+final class DummyPackage : Package
 {
 private:
     string pkgname;

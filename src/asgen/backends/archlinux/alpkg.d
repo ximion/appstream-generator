@@ -28,7 +28,7 @@ import asgen.zarchive;
 import asgen.backends.interfaces;
 
 
-class ArchPackage : Package
+final class ArchPackage : Package
 {
 private:
     string pkgname;

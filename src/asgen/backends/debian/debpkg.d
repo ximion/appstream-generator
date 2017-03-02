@@ -52,13 +52,13 @@ private:
     string debFname;
 
 public:
-    @property override string name () const { return pkgname; }
-    @property override string ver () const { return pkgver; }
-    @property override string arch () const { return pkgarch; }
+    final @property override string name () const { return pkgname; }
+    final @property override string ver () const { return pkgver; }
+    final @property override string arch () const { return pkgarch; }
 
-    @property override const(string[string]) description () const { return desc; }
+    final @property override const(string[string]) description () const { return desc; }
 
-    override
+    override final
     @property string filename () const {
         if (debFname.isRemote) {
             immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
@@ -69,11 +69,11 @@ public:
         }
         return debFname;
     }
-    @property void   filename (string fname) { debFname = fname; }
+    final @property void   filename (string fname) { debFname = fname; }
 
     override
-    @property string maintainer () const { return pkgmaintainer; }
-    @property void   maintainer (string maint) { pkgmaintainer = maint; }
+    final @property string maintainer () const { return pkgmaintainer; }
+    final @property void   maintainer (string maint) { pkgmaintainer = maint; }
 
     this (string pname, string pver, string parch)
     {
@@ -94,7 +94,7 @@ public:
         // close ();
     }
 
-    void setDescription (string text, string locale)
+    final void setDescription (string text, string locale)
     {
         desc[locale] = text;
     }
@@ -123,7 +123,7 @@ public:
         return pa;
     }
 
-    protected void extractPackage (const string dest = buildPath (tmpDir, name))
+    protected final void extractPackage (const string dest = buildPath (tmpDir, name))
     {
         import std.file : exists;
         import std.regex : ctRegex;
@@ -135,7 +135,7 @@ public:
         pa.extractArchive (dest);
     }
 
-    private auto openControlArchive ()
+    private final auto openControlArchive ()
     {
         auto ca = new ArchiveDecompressor ();
         if (!controlArchive) {
@@ -159,14 +159,14 @@ public:
         return ca;
     }
 
-    override
+    override final
     const(ubyte)[] getFileData (string fname)
     {
         auto pa = openPayloadArchive ();
         return pa.readData (fname);
     }
 
-    @property override
+    @property override final
     string[] contents ()
     {
         import std.utf;
@@ -221,7 +221,7 @@ public:
         return contentsL;
     }
 
-    override
+    override final
     void close ()
     {
         try {

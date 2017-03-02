@@ -85,7 +85,7 @@ enum GeneratorFeature
     PROCESS_FONTS       = 1 << 6
 }
 
-class Config
+final class Config
 {
     FormatVersion formatVersion;
     string projectName;

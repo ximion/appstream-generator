@@ -36,7 +36,7 @@ import asgen.logging;
  * This is useful for finding icons and for re-scanning
  * packages which become interesting later.
  **/
-class ContentsStore
+final class ContentsStore
 {
 
 private:
