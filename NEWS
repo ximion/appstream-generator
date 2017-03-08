@@ -1,3 +1,23 @@
+Version 0.6.3
+~~~~~~~~~~~~~~
+Released: 2017-03-08
+
+Features:
+ * Experiment with scoped classes (Matthias Klumpp)
+ * Drop embedded generator copy (Matthias Klumpp)
+ * Use final classes whenever possible (Matthias Klumpp)
+ * Centralize all export-dir locations in base config class (Matthias Klumpp)
+ * Allow to manually configure data export locations (Matthias Klumpp)
+
+Bugfixes:
+ * Fix some quirks and make the tests work again (Matthias Klumpp)
+ * ci: Don't build with GDC (Matthias Klumpp)
+ * Don't fail if a suite has no base suite (Matthias Klumpp)
+ * engine: Process base suite packages for contents only (Iain Lane)
+ * Update README.md (#39) (Blake Kostner)
+ * debian: Only select the most recent packages for a scan (Matthias Klumpp)
+ * Streamline final component validity check, resolve a crash (Matthias Klumpp)
+
 Version 0.6.2
 ~~~~~~~~~~~~~~
 Released: 2017-01-24
