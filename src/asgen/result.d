@@ -150,9 +150,11 @@ public:
      *      id = The component-id or component itself this tag is assigned to.
      *      tag    = The hint tag.
      *      params = Dictionary of parameters to insert into the issue report.
+     * Returns:
+     *      True if the hint did not cause the removal of the component, False otherwise.
      **/
     @trusted
-    void addHint (T) (T id, string tag, string[string] params)
+    bool addHint (T) (T id, string tag, string[string] params)
         if (is(T == string) || is(T == Component) || is(T == typeof(null)))
     {
         static if (is(T == string)) {
@@ -170,8 +172,12 @@ public:
 
         // we stop dealing with this component when we encounter a fatal
         // error.
-        if (hint.isError ())
+        if (hint.isError) {
             dropComponent (cid);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -180,14 +186,16 @@ public:
      *      id = The component-id or component itself this tag is assigned to.
      *      tag = The hint tag.
      *      msg = An error message to add to the report.
+     * Returns:
+     *      True if the hint did not cause the removal of the component, False otherwise.
      **/
     @safe
-    void addHint (T) (T id, string tag, string msg = null)
+    bool addHint (T) (T id, string tag, string msg = null)
     {
         string[string] vars;
         if (msg !is null)
             vars = ["msg": msg];
-        addHint (id, tag, vars);
+        return addHint (id, tag, vars);
     }
 
     /**
@@ -230,33 +238,43 @@ public:
         // we need to duplicate the associative array, because the addHint() function
         // may remove entries from "cpts", breaking our foreach loop.
         foreach (cpt; cpts.dup.byValue) {
-            auto ckind = cpt.getKind ();
+            auto ckind = cpt.getKind;
+            cpt.setActiveLocale ("C");
+
+            if (ckind == ComponentKind.UNKNOWN)
+                if (!addHint (cpt, "metainfo-unknown-type"))
+                    continue;
+
+            if ((!cpt.hasBundle) && (cpt.getPkgnames.empty))
+                if (!addHint (cpt, "no-install-candidate"))
+                    continue;
+
+            if (cpt.getName.empty)
+                if (!addHint (cpt, "metainfo-no-name"))
+                    continue;
+
+            if (cpt.getSummary.empty)
+                if (!addHint (cpt, "metainfo-no-summary"))
+                    continue;
+
+            // desktop apps get extra treatment (more validation, addition of fallback long-description)
             if (ckind == ComponentKind.DESKTOP_APP) {
                 // checks specific for .desktop and web apps
                 if (cpt.getIcons ().len == 0)
-                    addHint (cpt.getId (), "gui-app-without-icon");
-            }
-            if (ckind == ComponentKind.UNKNOWN)
-                addHint (cpt.getId (), "metainfo-unknown-type");
+                    if (!addHint (cpt, "gui-app-without-icon"))
+                        continue;
 
-            if ((!cpt.hasBundle ()) && (cpt.getPkgnames ().empty))
-                addHint (cpt.getId (), "no-install-candidate");
+                // desktop-application components are required to have a category
+                if (cpt.getCategories ().len <= 0)
+                    if (!addHint (cpt, "no-valid-category"))
+                        continue;
 
-            cpt.setActiveLocale ("C");
-            if (cpt.getName ().empty)
-                addHint (cpt.getId (), "metainfo-no-name");
-            if (cpt.getSummary ().empty)
-                addHint (cpt.getId (), "metainfo-no-summary");
-        }
-
-        foreach (cpt; cpts.byValue) {
-            // inject package descriptions, if needed
-            if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
+                // inject package descriptions, if needed
                 auto flags = cpt.getValueFlags;
                 cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
 
                 cpt.setActiveLocale ("C");
-                if (cpt.getDescription ().empty) {
+                if (cpt.getDescription.empty) {
                     // component doesn't have a long description, add one from
                     // the packaging.
                     auto desc_added = false;
@@ -265,15 +283,12 @@ public:
                             desc_added = true;
                     }
                     if (desc_added)
-                        addHint (cpt, "description-from-package");
+                        if (!addHint (cpt, "description-from-package"))
+                            continue;
                 }
-
-                // desktop-application components are required to have a category
-                if (cpt.getCategories ().len <= 0)
-                    addHint (cpt, "no-valid-category");
             }
 
-            // filter custom tags
+            // finally, filter custom tags
             auto customHashTable = cpt.getCustom ();
             auto noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
             if (customHashTable.size > 0) {
