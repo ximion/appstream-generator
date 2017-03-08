@@ -34,7 +34,7 @@ import asgen.utils : existsAndIsDir, randomString;
 import asgen.logging;
 
 
-public immutable generatorVersion = "0.6.3";
+public immutable generatorVersion = "0.6.4";
 
 /**
  * Describes a suite in a software repository.
