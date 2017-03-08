@@ -276,7 +276,7 @@ public:
             // filter custom tags
             auto customHashTable = cpt.getCustom ();
             auto noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
-            if (customHashTable.size () > 0) {
+            if (customHashTable.size > 0) {
                 import gi.glibtypes;
 
                 if (noCustomKeysAllowed) {
