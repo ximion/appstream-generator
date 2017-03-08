@@ -163,6 +163,24 @@ final class Config
     }
 
     @property
+    const string dataExportDir ()
+    {
+        return buildPath (exportDir, "data");
+    }
+
+    @property
+    const string hintsExportDir ()
+    {
+        return buildPath (exportDir, "hints");
+    }
+
+    @property
+    const string htmlExportDir ()
+    {
+        return buildPath (exportDir, "html");
+    }
+
+    @property
     string templateDir () {
         // find a suitable template directory
         // first check the workspace

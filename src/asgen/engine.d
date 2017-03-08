@@ -59,7 +59,6 @@ private:
 
     DataStore dstore;
     ContentsStore cstore;
-    string exportDir;
 
     bool m_forced;
 
@@ -88,9 +87,6 @@ public:
             default:
                 throw new Exception ("No backend specified, can not continue!");
         }
-
-        // where the final metadata gets stored
-        exportDir = conf.exportDir;
 
         // create cache in cache directory on workspace
         dstore = new DataStore ();
@@ -315,8 +311,8 @@ public:
         mdataFile ~= "\n";
 
         // prepare destination
-        immutable dataExportDir = buildPath (exportDir, "data", suite.name, section);
-        immutable hintsExportDir = buildPath (exportDir, "hints", suite.name, section);
+        immutable dataExportDir = buildPath (conf.dataExportDir, suite.name, section);
+        immutable hintsExportDir = buildPath (conf.hintsExportDir, suite.name, section);
 
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);

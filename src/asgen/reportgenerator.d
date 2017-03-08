@@ -115,7 +115,7 @@ public:
         dstore = db;
 
         exportDir = conf.exportDir;
-        htmlExportDir = buildPath (exportDir, "html");
+        htmlExportDir = conf.htmlExportDir;
         mediaPoolDir = dstore.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
 
