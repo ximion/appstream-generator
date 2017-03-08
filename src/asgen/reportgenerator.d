@@ -51,7 +51,6 @@ private:
     PackageIndex pkgIndex;
     DataStore dstore;
 
-    string exportDir;
     string htmlExportDir;
     string templateDir;
     string defaultTemplateDir;
@@ -114,7 +113,6 @@ public:
         // we need the data store to get hint and metainfo data
         dstore = db;
 
-        exportDir = conf.exportDir;
         htmlExportDir = conf.htmlExportDir;
         mediaPoolDir = dstore.mediaExportPoolDir;
         mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");

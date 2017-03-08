@@ -87,6 +87,23 @@ enum GeneratorFeature
 
 final class Config
 {
+private:
+    private string workspaceDir;
+    private string exportDir;
+
+    private string tmpDir;
+
+    // Thread local
+    private static bool instantiated_;
+
+    // Thread global
+    private __gshared Config instance_;
+
+    private this () {
+        formatVersion = FormatVersion.V0_10;
+    }
+
+public:
     FormatVersion formatVersion;
     string projectName;
     string archiveRoot;
@@ -101,16 +118,12 @@ final class Config
 
     bool[string] allowedCustomKeys; // set of allowed keys in <custom/> tags
 
-    string workspaceDir;
+    string dataExportDir;
+    string hintsExportDir;
+    string mediaExportDir;
+    string htmlExportDir;
 
     string caInfo;
-    private string tmpDir;
-
-    // Thread local
-    private static bool instantiated_;
-
-    // Thread global
-    private __gshared Config instance_;
 
     static Config get ()
     {
@@ -124,10 +137,6 @@ final class Config
         }
 
         return instance_;
-    }
-
-    private this () {
-        formatVersion = FormatVersion.V0_10;
     }
 
     @property
@@ -148,36 +157,6 @@ final class Config
     const string cacheRootDir ()
     {
         return buildPath (workspaceDir, "cache");
-    }
-
-    @property
-    const string exportDir ()
-    {
-        return buildPath (workspaceDir, "export");
-    }
-
-    @property
-    const string mediaExportDir ()
-    {
-        return buildPath (exportDir, "media");
-    }
-
-    @property
-    const string dataExportDir ()
-    {
-        return buildPath (exportDir, "data");
-    }
-
-    @property
-    const string hintsExportDir ()
-    {
-        return buildPath (exportDir, "hints");
-    }
-
-    @property
-    const string htmlExportDir ()
-    {
-        return buildPath (exportDir, "html");
     }
 
     @property
@@ -268,6 +247,35 @@ final class Config
         this.htmlBaseUrl = "";
         if ("HtmlBaseUrl" in root)
             this.htmlBaseUrl = root["HtmlBaseUrl"].str;
+
+        // set the default export directory locations, allow people to override them in the config
+        exportDir      = buildPath (workspaceDir, "export");
+        mediaExportDir = buildPath (exportDir, "media");
+        dataExportDir  = buildPath (exportDir, "data");
+        hintsExportDir = buildPath (exportDir, "hints");
+        htmlExportDir  = buildPath (exportDir, "html");
+
+        if ("ExportDirs" in root) {
+            auto edirs = root["ExportDirs"].object;
+            foreach (dirId; edirs.byKeyValue) {
+                switch (dirId.key) {
+                    case "Media":
+                        mediaExportDir = dirId.value.str;
+                        break;
+                    case "Data":
+                        dataExportDir = dirId.value.str;
+                        break;
+                    case "Hints":
+                        hintsExportDir = dirId.value.str;
+                        break;
+                    case "Html":
+                        htmlExportDir = dirId.value.str;
+                        break;
+                    default:
+                        logWarning ("Unknown export directory specifier in config: %s", dirId.key);
+                }
+            }
+        }
 
         this.metadataType = DataType.XML;
         if ("MetadataType" in root)

@@ -491,7 +491,7 @@ public:
             return;
         }
 
-        auto reportgen = scoped!ReportGenerator (dstore);
+        auto reportgen = new ReportGenerator (dstore);
 
         auto dataChanged = false;
         foreach (ref section; suite.sections) {
