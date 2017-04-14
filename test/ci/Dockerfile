@@ -26,7 +26,9 @@ RUN apt-get install -yq --no-install-recommends \
 RUN apt-get install -yq --no-install-recommends \
     ldc \
     dub \
-    meson \
+    python3-pip \
+    python3-setuptools \
+    ninja-build \
     libmustache-d-dev \
     libcurl4-gnutls-dev \
     liblmdb-dev \
@@ -36,6 +38,9 @@ RUN apt-get install -yq --no-install-recommends \
     libfontconfig1-dev \
     libpango1.0-dev
 
+# Meson
+RUN pip3 install git+https://github.com/ximion/meson.git
+
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
     npm \
@@ -44,6 +49,7 @@ RUN npm install -g bower
 
 # build & install the current Git snapshot of AppStream
 RUN mkdir /build-tmp
+
 RUN cd /build-tmp && \
     git clone --depth=20 https://github.com/ximion/appstream.git
 RUN mkdir /build-tmp/appstream/build
@@ -51,6 +57,16 @@ RUN cd /build-tmp/appstream/build && \
     cmake -DMAINTAINER=ON -DAPT_SUPPORT=ON ..
 RUN cd /build-tmp/appstream/build && \
     make && make install
+
+# build & install GirToD
+RUN cd /build-tmp && \
+    git clone https://github.com/ximion/GIR-D-Generator.git girtod
+RUN mkdir /build-tmp/girtod/build
+RUN cd /build-tmp/girtod/build && \
+    meson ..
+RUN cd /build-tmp/girtod/build && \
+    ninja && ninja install
+
 RUN rm -rf /build-tmp
 
 # finish
