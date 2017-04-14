@@ -1,3 +1,0 @@
-[submodule "src/girepo"]
-	path = src/girepo
-	url = https://github.com/ximion/d-bindings.git
