@@ -1,4 +1,7 @@
-project('AppStream Generator', 'd', meson_version: '>=0.40.0')
+project('AppStream Generator', 'd',
+    meson_version: '>=0.40.0',
+    subproject_dir: 'contrib/subprojects'
+)
 
 source_root = meson.source_root()
 build_root = meson.build_root()
@@ -67,6 +70,24 @@ backend_sources = [
 ]
 
 #
+# Sanitizers & quirk fixes
+#
+
+# Set a few flags to work around compiler bugs
+if meson.get_compiler('d').get_id() == 'gcc'
+    add_global_arguments(['-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', '-no-pie'], language : 'd')
+    add_global_link_arguments('-no-pie', language : 'd')
+endif
+if meson.get_compiler('d').get_id() == 'llvm'
+    # work around: https://github.com/ldc-developers/ldc/issues/1727
+    add_global_arguments('-enable-cross-module-inlining=false', language : 'd')
+endif
+
+# TODO: Make this a real option, not something to manually enable.
+#add_global_arguments(['-sanitize=address'], language : 'd')
+#add_global_link_arguments('-L-l:libasan.so.4.0.0', language : 'd')
+
+#
 # Dependencies
 #
 src_dir = include_directories('src/')
@@ -76,6 +97,7 @@ gobject_dep   = dependency('gobject-2.0')
 gio_dep       = dependency('gio-2.0')
 appstream_dep = dependency('appstream', version : '>= 0.10')
 lmdb_dep      = dependency('lmdb', version : '>= 0.9')
+mustache_dep  = dependency('mustache-d', required: false)
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 cairo_dep     = dependency('cairo', version : '>= 1.12')
 gdkpixbuf_dep = dependency('gdk-pixbuf-2.0')
@@ -84,6 +106,13 @@ curl_dep      = dependency('libcurl')
 freetype_dep  = dependency('freetype2')
 pango_dep     = dependency('pango')
 fontconfig_dep  = dependency('fontconfig')
+
+if not mustache_dep.found()
+    mustache_sp = subproject('mustache-d')
+    mustache_dep = declare_dependency(link_with: mustache_sp.get_variable('mustache_lib'),
+        include_directories: mustache_sp.get_variable('src_dir')
+    )
+endif
 
 #
 # Build interfaces from GIR
@@ -109,33 +138,6 @@ gir_binding_sources = dgir_glob_script.stdout().strip().split('\n')
 # Download JS stuff and additional sources if we couldn't find them
 #
 
-# A couple of hacks to use the right copy of mustache-d
-mustache_d_file = '/usr/include/d/mustache-d/mustache.d'
-mustache_dir = include_directories('/usr/include/d/mustache-d')
-if run_command('[', '-e', mustache_d_file, ']').returncode() != 0
-    mustached_src_dir = build_root + '/3rd-party/mustache-d'
-    if run_command('[', '-d', mustached_src_dir, ']').returncode() != 0
-        message('Fetching Mustache-D from Github...')
-        git_get_mustache = run_command(['git', 'clone', 'https://github.com/repeatedly/mustache-d.git', mustached_src_dir])
-        if git_get_mustache.returncode() != 0
-            error('Unable to fetch Mustache-D:\n' + git_get_mustache.stderr())
-        endif
-    endif
-    mustache_d_file = mustached_src_dir + '/src/mustache.d'
-    mustache_dir = include_directories(mustached_src_dir + '/src')
-endif
-mustache_sources = [mustache_d_file]
-
-# Set a few flags to work around compiler bugs
-if meson.get_compiler('d').get_id() == 'gcc'
-    add_global_arguments(['-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', '-no-pie'], language : 'd')
-    add_global_link_arguments('-no-pie', language : 'd')
-endif
-if meson.get_compiler('d').get_id() == 'llvm'
-    # work around: https://github.com/ldc-developers/ldc/issues/1727
-    add_global_arguments('-enable-cross-module-inlining=false', language : 'd')
-endif
-
 # Download JavaScript assets if requested
 download_js = get_option('download_js')
 if download_js
@@ -149,30 +151,25 @@ if download_js
 endif
 
 #
-# Sanitizers
-#
-# TODO: Make this a real option, not something to manually enable.
-#add_global_arguments(['-sanitize=address'], language : 'd')
-#add_global_link_arguments('-L-l:libasan.so.4.0.0', language : 'd')
-
-#
 # Build and test
 #
-girbind_lib = static_library('girbindings', [gir_binding_sources], include_directories: [gir_bind_dir])
+girbind_lib = static_library('girbindings',
+    [gir_binding_sources],
+    include_directories: [gir_bind_dir]
+)
 
 asgen_exe = executable('appstream-generator',
     [asgen_sources,
-     backend_sources,
-     mustache_sources],
+     backend_sources],
     include_directories: [src_dir,
-                          gir_bind_dir,
-                          mustache_dir],
+                          gir_bind_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
                    appstream_dep,
                    lmdb_dep,
                    archive_dep,
+                   mustache_dep,
                    cairo_dep,
                    gdkpixbuf_dep,
                    rsvg_dep,
@@ -186,17 +183,16 @@ asgen_exe = executable('appstream-generator',
 
 asgen_test_exe = executable('asgen_test',
     [asgen_sources,
-    backend_sources,
-    mustache_sources],
+    backend_sources],
     include_directories: [src_dir,
-                          gir_bind_dir,
-                          mustache_dir],
+                          gir_bind_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
                    appstream_dep,
                    lmdb_dep,
                    archive_dep,
+                   mustache_dep,
                    cairo_dep,
                    gdkpixbuf_dep,
                    rsvg_dep,
