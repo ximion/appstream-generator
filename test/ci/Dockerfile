@@ -39,7 +39,7 @@ RUN apt-get install -yq --no-install-recommends \
     libpango1.0-dev
 
 # Meson
-RUN pip3 install git+https://github.com/ximion/meson.git
+RUN pip3 install git+https://github.com/mesonbuild/meson.git
 
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
