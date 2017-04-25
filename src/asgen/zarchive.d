@@ -572,7 +572,8 @@ unittest
 
     writeln ("TEST: ", "Extracting a tarball");
 
-    import std.file : buildPath, tempDir;
+    import std.file : tempDir;
+    import std.path : buildPath;
     import asgen.utils : getTestSamplesDir;
 
     auto archive = buildPath (getTestSamplesDir (), "test.tar.xz");
