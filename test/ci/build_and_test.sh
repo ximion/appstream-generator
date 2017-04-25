@@ -9,7 +9,6 @@ export LANG=C.UTF-8
 echo "D compiler: $DC"
 set -v
 $DC --version
-dub --version
 meson --version
 
 #
