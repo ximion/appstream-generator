@@ -204,8 +204,6 @@ public:
      */
     string hintsToJson ()
     {
-        import std.stream;
-
         if (hints.length == 0)
             return null;
 
