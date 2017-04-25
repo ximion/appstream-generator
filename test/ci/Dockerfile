@@ -1,13 +1,13 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM debian:stretch
+FROM debian:sid
 
 # prepare
 RUN apt-get update -qq
 
 # install build essentials
-RUN apt-get install -yq git gcc gdc
+RUN apt-get install -yq git gcc gdc ldc
 
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \
@@ -24,11 +24,7 @@ RUN apt-get install -yq --no-install-recommends \
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
-    ldc \
-    dub \
-    python3-pip \
-    python3-setuptools \
-    ninja-build \
+    meson \
     libmustache-d-dev \
     libcurl4-gnutls-dev \
     liblmdb-dev \
@@ -37,9 +33,6 @@ RUN apt-get install -yq --no-install-recommends \
     librsvg2-dev \
     libfontconfig1-dev \
     libpango1.0-dev
-
-# Meson
-RUN pip3 install git+https://github.com/mesonbuild/meson.git
 
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
