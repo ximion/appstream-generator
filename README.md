@@ -22,13 +22,14 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * libarchive (>= 3.2) [4]
  * LMDB [5]
  * mustache-d [6]
+ * GirToD [7]
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
  * FreeType
  * Fontconfig
  * Pango
- * Bower (optional) [7]
+ * Bower (optional) [8]
 
 [1]: https://github.com/ldc-developers/ldc/releases
 [2]: http://mesonbuild.com/
@@ -36,7 +37,8 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 [4]: http://www.libarchive.org/
 [5]: http://symas.com/mdb/
 [6]: https://github.com/repeatedly/mustache-d
-[7]: http://bower.io/
+[7]: https://github.com/gtkd-developers/GIR-D-Generator
+[8]: http://bower.io/
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
@@ -47,13 +49,10 @@ sudo apt install meson ldc libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev 
 
 ### Build instructions
 
-Ensure you have initialized the Git submodules. Run `make update-submodule` to run a fake-target which initializes and updates the submodule.
-
 To build the tool with Meson, create a `build` subdirectory, change into it and run `meson .. && ninja` to build.
 In summary:
 
 ```ShellSession
-$ make update-submodule
 $ mkdir build && cd build
 $ meson -Ddownload_js=true ..
 $ ninja
@@ -62,9 +61,13 @@ $ sudo ninja install
 
 We support several options to be set to influence the build. Change into the build directory and run `mesonconf` to see them all.
 
+You might want to perform an optimized debug build by passing `--buildtype=debugoptimized` to `meson` or just do a release build straight
+away with `--buildtype=release` in case you want to use the resulting binaries productively. By default, the build happens without optimizations
+which slows down the generator.
+
 ## Usage
 
-Take a look at the `docs/` directory in the source tree for information on how to use the generator. Right now, only the YAML output format is tested properly.
+Take a look at the `docs/` directory in the source tree for information on how to use the generator and write configuration files for it.
 
 ## Hacking
 
