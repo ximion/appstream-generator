@@ -342,13 +342,12 @@ Keywords[de_DE]=Goethe;Schiller;Kant;
     assert (cpt.getSummary () == "Summary of TestX");
     assert (cpt.getKeywords () == ["Flubber", "Test", "Meh"]);
 
-    // legacy
-    Config.get ().formatVersion = FormatVersion.V0_8;
-    res = new GeneratorResult (pkg);
-    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
-    assert (cpt !is null);
+    // test launchable
+    import std.string : fromStringz;
 
-    cpt = res.getComponent ("org.example.foobar.desktop");
-    assert (cpt !is null);
-    Config.get ().formatVersion = FormatVersion.V0_10;
+    auto launch = cpt.getLaunchable (LaunchableKind.DESKTOP_ID);
+    assert (launch);
+    auto launchEntries = launch.getEntries;
+    assert (launchEntries.len == 1);
+    assert ((cast(char*) launchEntries.index (0)).fromStringz == "org.example.foobar.desktop");
 }
