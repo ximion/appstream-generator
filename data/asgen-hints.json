@@ -89,8 +89,8 @@
 
 "legacy-metainfo-directory": {
   "text": ["The AppStream metainfo file '{{fname}}' was found in a legacy path.<br/>",
-           "Please install metainfo files into <code>/usr/share/metainfo</code>."],
-  "severity": "info"
+           "Please install metainfo files into <code>/usr/share/metainfo</code>, as the old path will not be read all anymore in future."],
+  "severity": "warning"
 },
 
 "metainfo-screenshot-but-no-image": {
