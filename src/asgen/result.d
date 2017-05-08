@@ -284,6 +284,15 @@ public:
                         if (!addHint (cpt, "description-from-package"))
                             continue;
                 }
+
+                // check if we can add a launchable here
+                if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
+                    import appstream.Launchable;
+                    auto launch = new Launchable;
+                    launch.setKind (LaunchableKind.DESKTOP_ID);
+                    launch.addEntry (cpt.getId ());
+                    cpt.addLaunchable (launch);
+                }
             }
 
             // finally, filter custom tags

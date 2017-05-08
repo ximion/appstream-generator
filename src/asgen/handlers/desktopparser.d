@@ -31,6 +31,7 @@ import glib.KeyFile;
 import appstream.Component;
 import appstream.Provided;
 import appstream.Icon;
+import appstream.Launchable : Launchable, LaunchableKind;
 static import std.regex;
 
 import asgen.result;
@@ -177,17 +178,13 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
 
     if (cpt is null) {
         cpt = new Component ();
-        // strip .desktop suffix if the reverse-domain-name scheme is followed and we build for
-        // a high AppStream version.
-        if (Config.get ().formatVersion >= FormatVersion.V0_10) {
-            immutable parts = fnameBase.split (".");
-            if (isTopLevelDomain (parts[0]))
-                cpt.setId (fnameBase[0..$-8]);
-            else
-                cpt.setId (fnameBase);
-        } else {
+        // strip .desktop suffix if the reverse-domain-name scheme is followed
+        immutable parts = fnameBase.split (".");
+        if (isTopLevelDomain (parts[0]))
+            cpt.setId (fnameBase[0..$-8]);
+        else
             cpt.setId (fnameBase);
-        }
+
         cpt.setKind (ComponentKind.DESKTOP_APP);
         gres.addComponent (cpt);
     }
@@ -276,6 +273,14 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             icon.setName (getValue (df, key));
             cpt.addIcon (icon);
         }
+    }
+
+    // add this .desktop file as launchable entry, if we don't have one set already
+    if (cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) {
+        auto launch = new Launchable;
+        launch.setKind (LaunchableKind.DESKTOP_ID);
+        launch.addEntry (fnameBase);
+        cpt.addLaunchable (launch);
     }
 
     return cpt;
