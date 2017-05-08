@@ -158,6 +158,13 @@
   "severity": "error"
 },
 
+"missing-launchable-desktop-file": {
+  "text": ["The metainfo file references a .desktop file with ID '{{desktop_id}}' in its <code>launchable</code> tag, but the file",
+           "was not found in the same package. In order to be able to launch the software once it was installed, please place the",
+           "metainfo file and its .desktop files in the same package."],
+  "severity": "warning"
+},
+
 "description-from-package": {
   "text": ["This component gets its description from the package it is located in.<br/>",
            "This has several disadvantages, like poor markup, too technical descriptions for users of software centers, different components having the same description, etc.<br/>",

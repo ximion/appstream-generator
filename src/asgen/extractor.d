@@ -112,32 +112,68 @@ public:
             // otherwise, screenshots would only get updated if the actual metadata file was touched.
             gres.updateComponentGCID (cpt, pkg.ver);
 
-            // if we have a desktop-application, find the .desktop file
-            // and merge its metadata with the metainfo file data.
-            // having no .desktop file present is a bug.
-            if (cpt.getKind () == ComponentKind.DESKTOP_APP) {
-                auto dfp = cid in desktopFiles;
-                if (dfp is null)
-                    dfp = (cid ~ ".desktop") in desktopFiles;
-                if (dfp is null) {
-                    if (componentGetStockIcon (cpt).isNull) {
-                        // no .desktop file was found and this component does not
-                        // define an icon - this means that a .desktop file is required
-                        // and can not be omitted, so we stop processing here.
-                        // Otherwise we take the data and see how far we get.
+            // validate the desktop-id launchables and merge the desktop file data
+            // in case we find it.
+            auto launch = cpt.getLaunchable (LaunchableKind.DESKTOP_ID);
+            if (launch !is null) {
+                auto entries = launch.getEntries ();
 
-                        // finalize GCID checksum and continue
-                        gres.updateComponentGCID (cpt, data);
+                for (uint i = 0; i < entries.len; i++) {
+                    import std.string : fromStringz;
+                    import std.conv : to;
+                    auto desktopId = (cast(char*) entries.index (i)).fromStringz;
 
-                        gres.addHint (cpt.getId (), "missing-desktop-file");
-                        // we have a DESKTOP_APP component, but no .desktop file. This is a bug.
-                        continue;
+                    auto dfP = desktopId in desktopFiles;
+                    if (dfP is null) {
+                        gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId.to!string]);
+                    } else if (i == 0) {
+                        // always only try to merge in the first .desktop-ID, because if there are multiple
+                        // launchables defined, the component *must* not depend on the data in one
+                        // single .desktop file anyway.
+
+                        // update component with .desktop file data, ignoring NoDisplay field
+                        auto ddataBytes = pkg.getFileData (*dfP);
+                        auto ddata = cast(string) ddataBytes;
+                        parseDesktopFile (gres, *dfP, ddata, true);
+
+                        // update GCID checksum
+                        gres.updateComponentGCID (cpt, ddata);
+
+                        // drop the .desktop file from the list, it has been handled
+                        desktopFiles.remove (cid);
                     }
+                }
+            }
+
+            // For compatibility, we try other methods than using the "launchable"
+            // tag to merge in .desktop files, but only if we actually need to do that.
+            // At the moment we determine whether a .desktop file is needed by checking
+            // if the metainfo file defines an icon (which is commonly provided by the .desktop
+            // file instead of the metainfo file).
+            // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
+            if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetStockIcon (cpt).isNull)) {
+                auto dfP = cid in desktopFiles;
+
+                if (dfP is null)
+                    dfP = (cid ~ ".desktop") in desktopFiles;
+                if (dfP is null) {
+                    // no .desktop file was found and this component does not
+                    // define an icon - this means that a .desktop file is required
+                    // and can not be omitted, so we stop processing here.
+                    // Otherwise we take the data and see how far we get.
+
+                    // finalize GCID checksum and continue
+                    gres.updateComponentGCID (cpt, data);
+
+                    gres.addHint (cpt, "missing-desktop-file");
+                    // we have a desktop-application component, but no .desktop file.
+                    // This is an error we can not recover from.
+                    continue;
                 } else {
                     // update component with .desktop file data, ignoring NoDisplay field
-                    auto ddataBytes = pkg.getFileData (*dfp);
+                    auto ddataBytes = pkg.getFileData (*dfP);
                     auto ddata = cast(string) ddataBytes;
-                    parseDesktopFile (gres, *dfp, ddata, true);
+                    parseDesktopFile (gres, *dfP, ddata, true);
 
                     // update GCID checksum
                     gres.updateComponentGCID (cpt, ddata);
@@ -200,7 +236,7 @@ public:
                         cdata.parse (existingMData, FormatKind.XML);
                     auto ecpt = cdata.getComponent ();
 
-                    gres.addHint (cpt.getId (), "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);
+                    gres.addHint (cpt, "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);
                 }
 
                 continue;
