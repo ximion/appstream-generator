@@ -44,7 +44,7 @@ On Debian and derivatives of it, all build requirements can be installed using t
 ```ShellSession
 sudo apt install meson ldc libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
     librsvg2-dev liblmdb-dev libglib2.0-dev libcairo2-dev libcurl4-gnutls-dev \
-    libfreetype6-dev libfontconfig1-dev libpango1.0-dev libmustache-d-dev
+    libfreetype6-dev libfontconfig1-dev libpango1.0-dev libmustache-d-dev gir-to-d
 ```
 
 ### Build instructions
