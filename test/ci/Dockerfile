@@ -53,11 +53,11 @@ RUN cd /build-tmp/appstream/build && \
 
 # build & install GirToD
 RUN cd /build-tmp && \
-    git clone https://github.com/ximion/GIR-D-Generator.git girtod
-RUN mkdir /build-tmp/girtod/build
-RUN cd /build-tmp/girtod/build && \
+    git clone https://github.com/gtkd-developers/gir-to-d
+RUN mkdir /build-tmp/gir-to-d/build
+RUN cd /build-tmp/gir-to-d/build && \
     meson ..
-RUN cd /build-tmp/girtod/build && \
+RUN cd /build-tmp/gir-to-d/build && \
     ninja && ninja install
 
 RUN rm -rf /build-tmp
