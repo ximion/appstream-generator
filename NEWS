@@ -1,3 +1,19 @@
+Version 0.6.4
+~~~~~~~~~~~~~~
+Released: 2017-05-25
+
+Features:
+ * Automatically generate GIR D bindings at build-time (Matthias Klumpp)
+ * Remove dub build file (Matthias Klumpp)
+ * Use Meson subproject/wrap to fetch mustache-d in case it is missing (Matthias Klumpp)
+ * Add a launchable tag to output if we can add one (Matthias Klumpp)
+ * Make legacy metainfo dir a warning (Matthias Klumpp)
+ * Validate launchable entries and add heuristics in case they aren't present (Matthias Klumpp)
+
+Bugfixes:
+ * Import buildPath directly from std.path (Antonio Rojas)
+ * Remove spurious std.stream import (Matthias Klumpp)
+
 Version 0.6.3
 ~~~~~~~~~~~~~~
 Released: 2017-03-08
