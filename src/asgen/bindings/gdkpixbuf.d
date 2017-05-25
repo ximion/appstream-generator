@@ -19,8 +19,8 @@
 
 module asgen.bindings.gdkpixbuf;
 
-import gi.glibtypes;
-import gi.giotypes;
+import glib.c.types;
+import gio.c.types;
 import asgen.bindings.cairo;
 
 extern(C):

@@ -19,7 +19,7 @@
 
 module asgen.bindings.rsvg;
 
-import gi.glibtypes;
+import glib.c.types;
 import asgen.bindings.cairo;
 
 extern(C):

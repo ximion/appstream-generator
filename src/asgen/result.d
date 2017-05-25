@@ -299,7 +299,7 @@ public:
             auto customHashTable = cpt.getCustom ();
             auto noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
             if (customHashTable.size > 0) {
-                import gi.glibtypes;
+                import glib.c.types;
 
                 if (noCustomKeysAllowed) {
                     // if we don't allow any custom keys, we can delete them faster

@@ -115,9 +115,7 @@ alias: GLIB_SYSDEF_POLLNVAL =32
 ### predifined: lib
 ###########################################################
 
-inputRoot: invalid
 srcDir: .
-bindDir: gi
 
 lookup: APILookupAppStream.txt
 lookup: APILookupGLib.txt

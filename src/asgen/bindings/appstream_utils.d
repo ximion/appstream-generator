@@ -19,7 +19,7 @@
 
 module asgen.bindings.appstream_utils;
 
-import gi.appstreamtypes;
+import appstream.c.types;
 
 extern(C):
 nothrow:

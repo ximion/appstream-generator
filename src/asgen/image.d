@@ -31,8 +31,8 @@ import asgen.bindings.cairo;
 import asgen.bindings.rsvg;
 import asgen.bindings.gdkpixbuf;
 
-import gi.glibtypes;
-import gi.glib;
+import glib.c.types;
+import glib.c.functions;
 
 import asgen.logging;
 import asgen.config;
@@ -132,7 +132,7 @@ public:
 
     this (ubyte[] imgBytes, ImageFormat ikind)
     {
-        import gi.gio;
+        import gio.c.functions;
         import gio.MemoryInputStream;
 
         auto istream = new MemoryInputStream ();

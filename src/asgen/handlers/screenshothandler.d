@@ -26,7 +26,7 @@ import std.array : empty;
 import std.algorithm : startsWith;
 import std.stdio;
 import gobject.ObjectG;
-import gi.appstream;
+import appstream.c.functions;
 import appstream.Component;
 import appstream.Screenshot;
 import appstream.Image;

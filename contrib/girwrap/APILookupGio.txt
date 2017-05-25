@@ -20,11 +20,11 @@
 
 # must start with wrap
 wrap: gio
-file: /usr/share/gir-1.0/Gio-2.0.gir
+file: Gio-2.0.gir
 
 addAliases: start
-	public import gi.glibtypes;
-	public import gi.gobjecttypes;
+	public import glib.c.types;
+	public import gobject.c.types;
 addAliases: end
 
 struct:

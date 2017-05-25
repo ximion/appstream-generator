@@ -28,7 +28,7 @@ import std.json;
 import std.typecons;
 static import std.file;
 
-public import gi.appstreamtypes : FormatVersion;
+public import appstream.c.types : FormatVersion;
 
 import asgen.utils : existsAndIsDir, randomString;
 import asgen.logging;

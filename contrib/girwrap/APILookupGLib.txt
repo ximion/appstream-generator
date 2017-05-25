@@ -20,8 +20,8 @@
 
 # must start with wrap
 wrap: glib
-file: /usr/share/gir-1.0/GLib-2.0.gir
-file: /usr/share/gir-1.0/GModule-2.0.gir
+file: GLib-2.0.gir
+file: GModule-2.0.gir
 
 addAliases: start
 	public alias uint uid_t;
@@ -117,7 +117,7 @@ addAliases: start
 
 	Type* gMalloc(Type)()
 	{
-		import gi.glib;
+		import glib.c.functions;
 		return cast(Type*)g_malloc0(Type.sizeof);
 	}
 
@@ -1076,7 +1076,7 @@ code: end
 struct: Str
 import: core.stdc.stdio
 import: core.stdc.string
-import: gi.gobjecttypes
+import: gobject.c.types
 code: start
 	/*
 	 * Convert C-style 0 terminated string s to char[] string.
