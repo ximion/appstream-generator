@@ -37,6 +37,7 @@ import appstream.Component;
 import appstream.Icon;
 
 import asgen.logging;
+import asgen.defines;
 
 public immutable DESKTOP_GROUP = "Desktop Entry";
 
@@ -303,16 +304,17 @@ S escapeXml (S) (S s) pure
 string getDataPath (string fname)
 {
     import std.path;
-    auto exeDir = dirName (std.file.thisExePath ());
+    auto resPath = buildPath (DATADIR, fname);
 
-    if (exeDir.startsWith ("/usr"))
-        return buildPath ("/usr/share/appstream", fname);
+    if (std.file.exists (resPath))
+        return resPath;
 
-    auto resPath = buildNormalizedPath (exeDir, "..", "data", fname);
-    if (!std.file.exists (resPath))
-        return buildPath ("/usr/share/appstream", fname);
+    resPath = buildNormalizedPath (dirName(std.file.thisExePath ()), "..", "data", fname);
+    if (std.file.exists (resPath))
+        return resPath;
 
-    return resPath;
+    /* Uh, let's just give up */
+    return buildPath ("/usr", "share", "appstream", fname);
 }
 
 /**

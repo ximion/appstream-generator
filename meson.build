@@ -39,7 +39,8 @@ asgen_sources = ['src/app.d',
     'src/asgen/logging.d',
     'src/asgen/reportgenerator.d',
     'src/asgen/result.d',
-    'src/asgen/utils.d'
+    'src/asgen/utils.d',
+     join_paths(meson.current_build_dir(), 'src', 'asgen', 'defines.d'),
 ]
 
 backend_sources = [
@@ -153,6 +154,9 @@ endif
 #
 # Build and test
 #
+
+subdir('src/asgen')
+
 girbind_lib = static_library('girbindings',
     [gir_binding_sources],
     include_directories: [gir_bind_dir]
@@ -162,7 +166,8 @@ asgen_exe = executable('appstream-generator',
     [asgen_sources,
      backend_sources],
     include_directories: [src_dir,
-                          gir_bind_dir],
+                          gir_bind_dir,
+                          gen_build_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,
