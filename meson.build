@@ -40,7 +40,7 @@ asgen_sources = ['src/app.d',
     'src/asgen/reportgenerator.d',
     'src/asgen/result.d',
     'src/asgen/utils.d',
-     join_paths(meson.current_build_dir(), 'src', 'asgen', 'defines.d'),
+     join_paths(build_root, 'src', 'asgen', 'defines.d'),
 ]
 
 backend_sources = [
@@ -166,8 +166,7 @@ asgen_exe = executable('appstream-generator',
     [asgen_sources,
      backend_sources],
     include_directories: [src_dir,
-                          gir_bind_dir,
-                          gen_build_dir],
+                          gir_bind_dir],
     dependencies: [glib_dep,
                    gobject_dep,
                    gio_dep,

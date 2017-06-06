@@ -32,7 +32,7 @@ public import appstream.c.types : FormatVersion;
 
 import asgen.utils : existsAndIsDir, randomString;
 import asgen.logging;
-import asgen.defines;
+import asgen.defines : DATADIR;
 
 
 public immutable generatorVersion = "0.6.5";
@@ -173,7 +173,7 @@ public:
 
             tdir = getVendorTemplateDir (tdir);
             if (tdir is null) {
-                tdir = getVendorTemplateDir (buildPath(DATADIR, "templates"));
+                tdir = getVendorTemplateDir (buildPath (DATADIR, "templates"));
             }
         }
 

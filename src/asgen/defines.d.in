@@ -18,7 +18,6 @@
  */
 
 module asgen.defines;
-
 @safe:
 
-public immutable DATADIR="@datadir@";
+public enum DATADIR = "@datadir@";

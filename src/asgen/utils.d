@@ -309,11 +309,11 @@ string getDataPath (string fname)
     if (std.file.exists (resPath))
         return resPath;
 
-    resPath = buildNormalizedPath (dirName(std.file.thisExePath ()), "..", "data", fname);
+    resPath = buildNormalizedPath (std.file.thisExePath.dirName, "..", "data", fname);
     if (std.file.exists (resPath))
         return resPath;
 
-    /* Uh, let's just give up */
+    // Uh, let's just give up
     return buildPath ("/usr", "share", "appstream", fname);
 }
 
