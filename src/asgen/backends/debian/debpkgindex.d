@@ -141,6 +141,12 @@ public:
                 if (split.length < 2)
                     continue;
 
+
+                if (lang == "en")
+                    (*pkgP).setSummary (split[0], "C");
+
+                (*pkgP).setSummary (split[0], lang);
+
                 // NOTE: .remove() removes the element, but does not alter the
                 // length of the array. Bug?  (this is why we slice the array
                 // here)
@@ -203,6 +209,9 @@ public:
 
         DebPackage[string] pkgs;
         do {
+            import std.algorithm : map;
+            import std.array : array;
+
             auto name  = tagf.readField ("Package");
             auto ver   = tagf.readField ("Version");
             auto fname = tagf.readField ("Filename");
@@ -212,6 +221,28 @@ public:
             auto pkg = newPackage (name, ver, arch);
             pkg.filename = buildPath (rootDir, fname);
             pkg.maintainer = tagf.readField ("Maintainer");
+
+            immutable decoders = tagf.readField("Gstreamer-Decoders")
+                .split(";")
+                .map!strip.array;
+
+            immutable encoders = tagf.readField("Gstreamer-Encoders")
+                .split(";")
+                .map!strip.array;
+
+            immutable elements = tagf.readField("Gstreamer-Elements")
+                .split(";")
+                .map!strip.array;
+
+            immutable uri_sinks = tagf.readField("Gstreamer-Uri-Sinks")
+                .split(";")
+                .map!strip.array;
+
+            immutable uri_sources = tagf.readField("Gstreamer-Uri-Sources")
+                .split(";")
+                .map!strip.array;
+
+            pkg.gst = new GStreamer(decoders, encoders, elements, uri_sinks, uri_sources);
 
             if (!pkg.isValid ()) {
                 logWarning ("Found invalid package (%s)! Skipping it.", pkg.toString ());

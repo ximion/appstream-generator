@@ -19,6 +19,7 @@
 
 module asgen.extractor;
 
+import std.array : appender;
 import std.stdio;
 import std.string;
 import std.path : baseName;
@@ -198,6 +199,24 @@ public:
             auto cpt = parseDesktopFile (gres, dfname, ddata, false);
             if (cpt !is null)
                 gres.updateComponentGCID (cpt, ddata);
+        }
+
+        if (pkg.gst.isNotEmpty) {
+            auto data = appender!string;
+            auto cpt = new Component ();
+
+            data.reserve(512);
+
+            cpt.setId (pkg.name);
+            cpt.setKind (ComponentKind.CODEC);
+            cpt.setName ("GStreamer Multimedia Codecs", "C");
+            foreach (ref lang, ref desc; pkg.summary) {
+                cpt.setSummary (desc, lang);
+                data ~= desc;
+            }
+
+            gres.addComponent (cpt);
+            gres.updateComponentGCID (cpt, data.data);
         }
 
         auto hasFontComponent = false;

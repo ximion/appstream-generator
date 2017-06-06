@@ -41,6 +41,8 @@ private:
     string pkgarch;
     string pkgmaintainer;
     string[string] desc;
+    string[string] summ;
+    GStreamer gstreamer;
 
     bool contentsRead;
     string[] contentsL;
@@ -56,7 +58,11 @@ public:
     final @property override string ver () const { return pkgver; }
     final @property override string arch () const { return pkgarch; }
 
+    final @property override GStreamer gst () { return gstreamer; }
+    final @property void gst (GStreamer gst) { gstreamer = gst; }
+
     final @property override const(string[string]) description () const { return desc; }
+    final @property override const(string[string]) summary () const { return summ; }
 
     override final
     @property string filename () const {
@@ -97,6 +103,11 @@ public:
     final void setDescription (string text, string locale)
     {
         desc[locale] = text;
+    }
+
+    final void setSummary (string text, string locale)
+    {
+        summ[locale] = text;
     }
 
     private auto openPayloadArchive ()

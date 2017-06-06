@@ -26,6 +26,38 @@ import std.string;
 import std.container;
 public import asgen.datastore;
 
+class GStreamer
+{
+    immutable string[] decoders;
+    immutable string[] encoders;
+    immutable string[] elements;
+    immutable string[] uri_sinks;
+    immutable string[] uri_sources;
+
+    @property @safe pure bool isNotEmpty() {
+        return !(decoders.empty &&
+                 encoders.empty &&
+                 elements.empty &&
+                 uri_sinks.empty &&
+                 uri_sources.empty);
+    }
+
+    this () {
+        decoders = encoders = elements = uri_sinks = uri_sources = [];
+    }
+
+    this (immutable string[] decoders,
+          immutable string[] encoders,
+          immutable string[] elements,
+          immutable string[] uri_sinks,
+          immutable string[] uri_sources) {
+        this.decoders = decoders;
+        this.encoders = encoders;
+        this.elements = elements;
+        this.uri_sinks = uri_sinks;
+        this.uri_sources = uri_sources;
+    }
+}
 
 /**
  * Represents a distribution package in the generator.
@@ -44,6 +76,14 @@ abstract class Package
      * E.g.: ["en": "A description.", "de": "Eine Beschreibung"]
      */
     @property const(string[string]) description () const;
+
+    /**
+     * A associative array containing package summaries.
+     * Key is the language (or locale), value the summary.
+     *
+     * E.g.: ["en": "foo the bar"]
+     */
+    @property const(string[string]) summary () const { return (string[string]).init; };
 
     /**
      * Filename of the package. This string is only used for
@@ -67,6 +107,8 @@ abstract class Package
      * no longer request any file data from this package.
      */
     abstract void close () {};
+
+    @property GStreamer gst () { return new GStreamer(); }
 
     /**
      * Retrieve backend-specific translations.
