@@ -26,6 +26,7 @@ import core.stdc.stdlib;
 import asgen.logging;
 import asgen.config;
 import asgen.engine;
+import asgen.defines : ASGEN_VERSION;
 
 
 private immutable helpText =
@@ -77,7 +78,7 @@ void main(string[] args)
     }
 
     if (showVersion) {
-        writeln ("Generator version: ", asgen.config.generatorVersion);
+        writeln ("Generator version: ", ASGEN_VERSION);
         return;
     }
 

@@ -33,6 +33,7 @@ static import std.file;
 import mustache;
 import appstream.Metadata;
 
+import asgen.defines : ASGEN_VERSION;
 import asgen.utils;
 import asgen.config;
 import asgen.logging;
@@ -176,7 +177,7 @@ public:
         auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
-        context["generator_version"] = asgen.config.generatorVersion;
+        context["generator_version"] = ASGEN_VERSION;
         context["project_name"] = conf.projectName;
         context["root_url"] = conf.htmlBaseUrl;
     }

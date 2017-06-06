@@ -35,8 +35,6 @@ import asgen.logging;
 import asgen.defines : DATADIR;
 
 
-public immutable generatorVersion = "0.6.5";
-
 /**
  * Describes a suite in a software repository.
  **/

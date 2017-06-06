@@ -23,7 +23,7 @@ git tag -s -f -m "Release 0.6.5" v0.6.5 <gpg password>
 git push --tags
 git push
 
-3. Do post release version bump in src/asgen/config.d, RELEASE
+3. Do post release version bump in meson.build, RELEASE
 
 4. Commit trivial changes:
 

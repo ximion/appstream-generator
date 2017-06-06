@@ -20,4 +20,8 @@
 module asgen.defines;
 @safe:
 
+// location of arch-indep data for asgen
 public enum DATADIR = "@datadir@";
+
+// current version of the tool
+public enum ASGEN_VERSION = "@asgen_version@";

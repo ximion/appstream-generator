@@ -1,7 +1,11 @@
 project('AppStream Generator', 'd',
-    meson_version: '>=0.40.0',
-    subproject_dir: 'contrib/subprojects'
+    meson_version : '>=0.40.0',
+    subproject_dir : 'contrib/subprojects',
+    license : 'LGPL-3.0+',
+    version : '0.6.5'
 )
+
+asgen_version = meson.project_version()
 
 source_root = meson.source_root()
 build_root = meson.build_root()
