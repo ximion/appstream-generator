@@ -83,3 +83,4 @@ optimizePNGSize | Use `optipng` to reduce the size of PNG images. Optipng needs 
 metadataTimestamps | Write timestamps into generated metadata files. *Default: `ON`*
 immutableSuites | Allow suites to be marked as immutable. This is useful for distributions with fixed releases, but not for rolling release distributions or continuously updated repositories. *Default: `ON`*
 processFonts | Include font metadata and render fonts. *Default: `ON`*
+processGStreamer | Synthesise `type=codec` metadata from available GStreamer packages. Requires support in the backend, currently only implemented for Debian. *Default: `ON`*

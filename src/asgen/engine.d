@@ -155,8 +155,9 @@ public:
      **/
     private bool seedContentsData (Suite suite, string section, string arch)
     {
-        bool packageInteresting (const string[] contents)
+        bool packageInteresting (Package pkg)
         {
+            auto contents = pkg.contents;
             foreach (ref c; contents) {
                 if (c.startsWith ("/usr/share/applications/"))
                     return true;
@@ -166,7 +167,7 @@ public:
                     return true;
             }
 
-            return false;
+            return pkg.gst.isNotEmpty;
         }
 
         // check if the index has changed data, skip the update if there's nothing new
@@ -223,7 +224,7 @@ public:
             }
 
             // check if we can already mark this package as ignored, and print some log messages
-            if (!packageInteresting (contents)) {
+            if (!packageInteresting (pkg)) {
                 dstore.setPackageIgnore (pkid);
                 logInfo ("Scanned %s, no interesting files found.", pkid);
                 // we won't use this anymore
