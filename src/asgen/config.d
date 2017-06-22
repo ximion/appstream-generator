@@ -81,7 +81,8 @@ enum GeneratorFeature
     OPTIPNG             = 1 << 4,
     METADATA_TIMESTAMPS = 1 << 5,
     IMMUTABLE_SUITES    = 1 << 6,
-    PROCESS_FONTS       = 1 << 6
+    PROCESS_FONTS       = 1 << 7,
+    PROCESS_GSTREAMER   = 1 << 8,
 }
 
 final class Config
@@ -377,6 +378,7 @@ public:
         setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
         setFeature (GeneratorFeature.IMMUTABLE_SUITES, true);
         setFeature (GeneratorFeature.PROCESS_FONTS, true);
+        setFeature (GeneratorFeature.PROCESS_GSTREAMER, true);
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -406,6 +408,9 @@ public:
                             break;
                     case "processFonts":
                             setFeature (GeneratorFeature.PROCESS_FONTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "processGStreamer":
+                            setFeature (GeneratorFeature.PROCESS_GSTREAMER, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     default:
                         break;
