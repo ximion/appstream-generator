@@ -127,7 +127,7 @@ public:
     {
         string cid = cpt.getId ();
         if (cid.empty)
-            throw new Exception ("Can not add component without ID to results set.");
+            throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
 
         cpt.setPkgnames ([this.pkgname]);
         cpts[cid] = cpt;
