@@ -1,3 +1,20 @@
+Version 0.6.5
+~~~~~~~~~~~~~~
+Released: 2017-07-02
+
+Features:
+ * Generate type=codec metadata for gstreamer packages (Iain Lane)
+ * Add a feature flag for GStreamer processing (Iain Lane)
+ * ci: Switch to using upstream GirToD (Matthias Klumpp)
+ * Set asgen version in defines.d by Meson as well (Matthias Klumpp)
+ * Format graphs a bit nicer (Matthias Klumpp)
+
+Bugfixes:
+ * Find files in DATADIR - not relative to the executable (Iain Lane)
+ * Fix typo in metadata-path hint (Matthias Klumpp)
+ * Try to be more informative when a component has no ID (Matthias Klumpp)
+ * Ensure the rDNS scheme is really followed before editing an ID (Matthias Klumpp)
+
 Version 0.6.4
 ~~~~~~~~~~~~~~
 Released: 2017-05-25
