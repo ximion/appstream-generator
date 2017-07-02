@@ -180,7 +180,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         cpt = new Component ();
         // strip .desktop suffix if the reverse-domain-name scheme is followed
         immutable parts = fnameBase.split (".");
-        if (isTopLevelDomain (parts[0]))
+        if (parts.length > 2 && isTopLevelDomain (parts[0]))
             cpt.setId (fnameBase[0..$-8]);
         else
             cpt.setId (fnameBase);
