@@ -47,33 +47,53 @@ struct ImageSize
 {
     uint width;
     uint height;
+    uint scale;
+
+    this (uint w, uint h, uint s)
+    {
+        width = w;
+        height = h;
+        scale = s;
+    }
 
     this (uint w, uint h)
     {
         width = w;
         height = h;
+        scale = 1;
     }
 
     this (uint s)
     {
         width = s;
         height = s;
+        scale = 1;
     }
 
     string toString () const
     {
-        return format ("%sx%s", width, height);
+        if (scale == 1)
+            return format ("%ux%u", width, height);
+        else
+            return format ("%ux%u@%u", width, height, scale);
     }
 
     uint toInt () const
     {
         if (width > height)
-            return width;
-        return height;
+            return width * scale;
+        return height * scale;
     }
 
     int opCmp (const ImageSize s) const
     {
+        if (this.scale != s.scale) {
+            if (this.scale > s.scale)
+                return 1;
+            else
+                return -1;
+        }
+
         // only compares width, should be enough for now
         if (this.width > s.width)
             return 1;

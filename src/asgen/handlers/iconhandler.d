@@ -51,7 +51,7 @@ private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", "
 // the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg", ".xpm"];
 
-public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128)];
+public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128), ImageSize (64, 64, 2), ImageSize (128, 128, 2)];
 
 /**
  * Describes an icon theme as specified in the XDG theme spec.
@@ -77,6 +77,7 @@ public:
         foreach (section; index.getGroups (dummy)) {
             string type;
             string context;
+            int scale;
             int threshold;
             int size;
             int minSize;
@@ -106,6 +107,11 @@ public:
             } catch (Throwable) {
                 maxSize = size;
             }
+            try {
+                scale = index.getInteger (section, "Scale");
+            } catch {
+                scale = 1;
+            }
 
             if (size == 0)
                 continue;
@@ -115,7 +121,8 @@ public:
                 "size": Algebraic!(int, string) (size),
                 "minsize": Algebraic!(int, string) (minSize),
                 "maxsize": Algebraic!(int, string) (maxSize),
-                "threshold": Algebraic!(int, string) (threshold)
+                "threshold": Algebraic!(int, string) (threshold),
+                "scale": Algebraic!(int, string) (scale)
             ];
             directories ~= themedir;
         }
@@ -129,6 +136,9 @@ public:
 
     private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size)
     {
+        int scale = themedir["scale"].get!(int);
+        if (scale != size.scale)
+            return false;
         string type = themedir["type"].get!(string);
         if (type == "Fixed")
             return size.toInt () == themedir["size"].get!(int);
@@ -450,6 +460,7 @@ public:
             icon.setKind (IconKind.CACHED);
             icon.setWidth (size.width);
             icon.setHeight (size.height);
+            icon.setScale (size.scale);
             icon.setName (iconName);
             cpt.addIcon (icon);
             return true;
@@ -470,12 +481,14 @@ public:
             return false;
         }
 
+        auto scaled_width = size.width * size.scale;
+        auto scaled_height = size.height * size.scale;
         if ((iformat == ImageFormat.SVG) || (iformat == ImageFormat.SVGZ)) {
             // create target directory
             mkdirRecurse (path);
 
             try {
-                auto cv = new Canvas (size.width, size.height);
+                auto cv = new Canvas (scaled_width, scaled_height);
                 cv.renderSvg (iconData);
                 cv.savePng (iconStoreLocation);
                 delete cv;
@@ -494,7 +507,7 @@ public:
 
             if (iformat == ImageFormat.XPM) {
                 // we use XPM images only if they are large enough
-                if ((img.width < size.width) || (img.height < size.height))
+                if ((img.width < scaled_width) || (img.height < scaled_height))
                     return false;
             }
 
@@ -502,7 +515,7 @@ public:
             mkdirRecurse (path);
 
             try {
-                img.scale (size.width, size.height);
+                img.scale (scaled_width, scaled_height);
                 img.savePng (iconStoreLocation);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
@@ -516,6 +529,7 @@ public:
         icon.setKind (IconKind.CACHED);
         icon.setWidth (size.width);
         icon.setHeight (size.height);
+        icon.setScale (size.scale);
         icon.setName (iconName);
         cpt.addIcon (icon);
 
