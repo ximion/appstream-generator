@@ -87,19 +87,18 @@ struct ImageSize
 
     int opCmp (const ImageSize s) const
     {
-        if (this.scale != s.scale) {
-            if (this.scale > s.scale)
-                return 1;
-            else
-                return -1;
-        }
-
         // only compares width, should be enough for now
         if (this.width > s.width)
             return 1;
-        if (this.width == s.width)
-            return 0;
-        return -1;
+        else if (this.width < s.width)
+            return -1;
+
+        if (this.scale > s.scale)
+            return 1;
+        else if (this.scale < s.scale)
+            return -1;
+
+        return 0;
     }
 }
 
