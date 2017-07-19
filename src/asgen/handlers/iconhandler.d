@@ -84,26 +84,26 @@ public:
             try {
                 size = index.getInteger (section, "Size");
                 context = index.getString (section, "Context");
-            } catch { continue; }
+            } catch (Throwable) { continue; }
 
             try {
                 threshold = index.getInteger (section, "Threshold");
-            } catch {
+            } catch (Throwable) {
                 threshold = 2;
             }
             try {
                 type = index.getString (section, "Type");
-            } catch {
+            } catch (Throwable) {
                 type = "Threshold";
             }
             try {
                 minSize = index.getInteger (section, "MinSize");
-            } catch {
+            } catch (Throwable) {
                 minSize = size;
             }
             try {
                 maxSize = index.getInteger (section, "MaxSize");
-            } catch {
+            } catch (Throwable) {
                 maxSize = size;
             }
 
