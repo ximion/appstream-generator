@@ -28,6 +28,7 @@ static import std.file;
 
 import asgen.logging;
 import asgen.zarchive;
+import asgen.utils : escapeXml;
 import asgen.backends.interfaces;
 import asgen.backends.archlinux.alpkg;
 import asgen.backends.archlinux.listfile;
@@ -59,7 +60,7 @@ public:
         if (pkgDesc is null)
             return;
 
-        auto desc = "<p>%s</p>".format (pkgDesc);
+        auto desc = "<p>%s</p>".format (pkgDesc.escapeXml);
         pkg.setDescription (desc, "C");
     }
 
