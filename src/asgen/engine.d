@@ -511,9 +511,9 @@ public:
 
                 // process new packages
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = scoped!IconHandler (dstore.mediaExportPoolDir,
-                                              getIconCandidatePackages (suite, section, arch),
-                                              suite.iconTheme);
+                auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+                                                 getIconCandidatePackages (suite, section, arch),
+                                                 suite.iconTheme);
                 processPackages (pkgs, iconh);
 
                 // export package data
