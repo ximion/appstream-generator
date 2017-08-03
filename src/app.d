@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -40,6 +40,7 @@ Subcommands:
   cleanup            - Cleanup old metadata and media files.
   remove-found SUITE - Drop all valid processed metadata and hints.
   forget PKID        - Drop all information we have about this (partial) package-id.
+  info PKID          - Show information associated with this (full) package-id.
 
 Help Options:
   -h, --help       Show help options
@@ -134,6 +135,13 @@ void main(string[] args)
                 exit (1);
             }
             engine.forgetPackage (args[2]);
+            break;
+        case "info":
+            if (args.length != 3) {
+                writeln ("Invalid number of parameters: You need to specify a package-id.");
+                exit (1);
+            }
+            engine.printPackageInfo (args[2]);
             break;
         default:
             writeln (format ("The command '%s' is unknown.", command));

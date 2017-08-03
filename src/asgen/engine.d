@@ -676,7 +676,7 @@ public:
 
     void forgetPackage (string identifier)
     {
-        if (identifier.count ("/") == 3) {
+        if (identifier.count ("/") == 2) {
             // we have a package-id, so we can do a targeted remove
             immutable pkid = identifier;
             logDebug ("Considering %s to be a package-id.", pkid);
@@ -699,4 +699,54 @@ public:
         // remove orphaned data and media
         dstore.cleanupCruft ();
     }
-}
+
+    /**
+     * Print all information we have on a package to stdout.
+     */
+    bool printPackageInfo (string identifier)
+    {
+        if (identifier.count ("/") != 2) {
+            writeln ("Please enter a package-id in the format <name>/<version>/<arch>");
+            return false;
+        }
+        immutable pkid = identifier;
+
+        writeln ("== ", pkid, " ==");
+        writeln ("Contents:");
+        if (cstore.packageExists (pkid)) {
+            foreach (ref s; cstore.getContents (pkid))
+                writeln (" ", s);
+        } else {
+            writeln ("~ No contents found.");
+        }
+        writeln ();
+
+        if (dstore.isIgnored (pkid)) {
+            writeln ("Ignored: yes");
+            writeln ();
+        } else {
+            writeln ("Global Component IDs:");
+            foreach (ref s; dstore.getGCIDsForPackage (pkid))
+                writeln ("- ", s);
+            writeln ();
+
+            writeln ("Generated Data:");
+            foreach (ref s; dstore.getMetadataForPackage (conf.metadataType, pkid))
+                writeln (s);
+            writeln ();
+        }
+
+
+        if (dstore.hasHints (pkid)) {
+            writeln ("Hints:");
+            writeln (dstore.getHints (pkid));
+        } else {
+            writeln ("Hints: None");
+        }
+
+        writeln ();
+
+        return true;
+    }
+
+} // End of Engine class
