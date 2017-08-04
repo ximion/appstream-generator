@@ -202,8 +202,8 @@ public:
         themeNames = ["hicolor"];
         if (iconTheme !is null)
             themeNames ~= iconTheme;
-        themeNames ~= "Adwaita";
-        themeNames ~= "breeze";
+        themeNames ~= "Adwaita";  // GNOME
+        themeNames ~= "breeze";   // KDE
 
         Package getPackage (string pkid)
         {
@@ -538,6 +538,7 @@ public:
             return false;
         }
 
+        logDebug ("Looking for icon '%s' for '%s::%s'", iconName, gres.pkid, cpt.getId);
         auto cptMediaPath = buildPath (mediaExportPath, gcid);
 
         if (iconName.startsWith ("/")) {
