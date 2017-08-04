@@ -168,6 +168,8 @@ public:
     }
 }
 
+// terrible hack
+private __gshared g_iconhandler_written = false;
 
 /**
  * Finds icons in a software archive and stores them in the
@@ -249,6 +251,18 @@ public:
                 } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {
                     synchronized (this) iconFiles[fname] = pkg;
                 }
+            }
+        }
+
+        {
+            import std.conv : to;
+
+            if (!g_iconhandler_written) {
+                // Terrible debug hack
+                auto sf = File ("/tmp/asgen-iconhandler_internal-map.txt", "w");
+                sf.writeln (iconFiles.to!string);
+                sf.flush ();
+                sf.close ();
             }
         }
 
@@ -363,7 +377,7 @@ public:
      * Looks up 'icon' with 'size' in popular icon themes according to the XDG
      * icon theme spec.
      **/
-    auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
+    auto findIcons (GeneratorResult gres, string iconName, const ImageSize[] sizes, Package pkg = null)
     {
         IconFindResult[ImageSize] sizeMap = null;
 
@@ -386,6 +400,9 @@ public:
                 }
             }
         }
+
+        import std.conv : to;
+        logInfo ("Package: %s - Icon search for '%s', sizes '%s' in package '%s' yielded result: %s", gres.pkid, iconName, sizes.to!string, pkg.to!string, sizeMap.to!string);
 
         return sizeMap;
     }
@@ -558,7 +575,7 @@ public:
             /// last icon name that has been handled.
             bool findAndStoreXdgIcon (Package epkg = null)
             {
-                auto iconRes = findIcons (iconName, wantedIconSizes, epkg);
+                auto iconRes = findIcons (gres, iconName, wantedIconSizes, epkg);
                 if (iconRes is null)
                     return false;
 
