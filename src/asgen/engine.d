@@ -235,6 +235,11 @@ public:
             }
         }
 
+        // ensure the contents store is in a consistent state on disk,
+        // since it might be accessed from other threads after this function
+        // is run.
+        cstore.sync ();
+
         return interestingFound;
     }
 

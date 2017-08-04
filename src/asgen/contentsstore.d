@@ -345,4 +345,9 @@ public:
         }
     }
 
+    void sync ()
+    {
+        dbEnv.mdb_env_sync (1);
+    }
+
 }
