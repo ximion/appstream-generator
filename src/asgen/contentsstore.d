@@ -204,7 +204,8 @@ public:
 
     void addContents (string pkid, string[] contents)
     {
-        MDB_val key, value;
+        MDB_val key;
+        MDB_val contentsVal, iconsVal;
 
         // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index)
         auto iconInfo = appender!(string[]);
@@ -217,21 +218,21 @@ public:
 
         immutable contentsStr = contents.join ("\n");
         key = makeDbValue (pkid);
-        value = makeDbValue (contentsStr);
+        contentsVal = makeDbValue (contentsStr);
 
         auto txn = newTransaction ();
         scope (success) commitTransaction (txn);
         scope (failure) quitTransaction (txn);
 
-        auto res = txn.mdb_put (dbContents, &key, &value, 0);
+        auto res = txn.mdb_put (dbContents, &key, &contentsVal, 0);
         checkError (res, "mdb_put");
 
         if (!iconInfo.data.empty) {
             // we have icon information, store it too
             immutable iconsStr = iconInfo.data.join ("\n");
-            value = makeDbValue (iconsStr);
+            iconsVal = makeDbValue (iconsStr);
 
-            res = txn.mdb_put (dbIcons, &key, &value, 0);
+            res = txn.mdb_put (dbIcons, &key, &iconsVal, 0);
             checkError (res, "mdb_put (icons)");
         }
     }
@@ -248,12 +249,9 @@ public:
         checkError (res, "mdb_cursor_open");
 
         string[string] pkgCMap;
-
-        MDB_val pkey;
-        MDB_val cval;
-
         foreach (ref pkid; pkids) {
-            pkey = makeDbValue (pkid);
+            MDB_val pkey = makeDbValue (pkid);
+            MDB_val cval;
 
             res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
             if (res == MDB_NOTFOUND)
