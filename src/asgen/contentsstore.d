@@ -281,7 +281,7 @@ public:
         return getFilesMap (pkids, dbIcons);
     }
 
-    string[] getContents (string pkid)
+    private string[] getContentsList (string pkid, MDB_dbi dbi)
     {
         MDB_val pkey, cval;
         MDB_cursorp cur;
@@ -291,7 +291,7 @@ public:
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbContents, &cur);
+        auto res = txn.mdb_cursor_open (dbi, &cur);
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
@@ -304,6 +304,16 @@ public:
         auto contentsStr = to!string (data);
 
         return contentsStr.split ("\n");
+    }
+
+    string[] getContents (string pkid)
+    {
+        return getContentsList (pkid, dbContents);
+    }
+
+    string[] getIcons (string pkid)
+    {
+        return getContentsList (pkid, dbIcons);
     }
 
     void removePackagesNotInSet (bool[string] pkgSet)

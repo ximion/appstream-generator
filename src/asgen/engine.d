@@ -713,11 +713,22 @@ public:
 
         writeln ("== ", pkid, " ==");
         writeln ("Contents:");
-        if (cstore.packageExists (pkid)) {
-            foreach (ref s; cstore.getContents (pkid))
-                writeln (" ", s);
-        } else {
+        auto pkgContents = cstore.getContents (pkid);
+        if (pkgContents.empty) {
             writeln ("~ No contents found.");
+        } else {
+            foreach (ref s; pkgContents)
+                writeln (" ", s);
+        }
+        writeln ();
+
+        writeln ("Icons:");
+        auto pkgIcons = cstore.getIcons (pkid);
+        if (pkgIcons.empty) {
+            writeln ("~ No icons found.");
+        } else {
+            foreach (ref s; pkgIcons)
+                writeln (" ", s);
         }
         writeln ();
 
