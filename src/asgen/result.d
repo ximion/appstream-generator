@@ -125,7 +125,7 @@ public:
     @trusted
     void addComponent (Component cpt, string data = "")
     {
-        string cid = cpt.getId ();
+        string cid = cpt.getId;
         if (cid.empty)
             throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
 

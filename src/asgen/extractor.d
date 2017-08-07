@@ -93,16 +93,12 @@ public:
             auto data = cast(string) dataBytes;
 
             mdata.clearComponents ();
-            auto cpt = parseMetaInfoFile (mdata, gres, data);
+            auto cpt = parseMetaInfoFile (mdata, gres, data, mfname);
             if (cpt is null)
                 continue;
 
-            // check if we need to extend this component's data with data from its .desktop file
-            auto cid = cpt.getId ();
-            if (cid.empty) {
-                gres.addHint (null, "metainfo-no-id", ["fname": mfname]);
-                continue;
-            }
+            // get component ID (it must exist and not be empty, as validated by the metainfo parser)
+            auto cid = cpt.getId;
 
             // check for legacy path
             if (mfname.startsWith ("/usr/share/appdata/")) {

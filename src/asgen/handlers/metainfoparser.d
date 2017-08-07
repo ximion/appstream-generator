@@ -22,6 +22,7 @@ module asgen.handlers.metainfoparser;
 import std.path : baseName;
 import std.uni : toLower;
 import std.string : format;
+import std.array : empty;
 import std.stdio;
 import appstream.Metadata;
 import appstream.Component;
@@ -37,40 +38,46 @@ private bool isMetainfoLicense (string license) pure
     return as_license_is_metadata_license (license.toStringz);
 }
 
-Component parseMetaInfoFile (Metadata mdata, GeneratorResult res, const string data)
+Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string data, const string mfname)
 {
     try {
         mdata.parse (data, FormatKind.XML);
     } catch (Exception e) {
-        res.addHint ("general", "metainfo-parsing-error", e.msg);
+        gres.addHint ("general", "metainfo-parsing-error", e.msg);
         return null;
     }
 
     auto cpt = mdata.getComponent ();
     if (cpt is null)
         return null;
-    res.addComponent (cpt);
+
+    // check if we have a component-id, a component without ID is invalid
+    if (cpt.getId.empty) {
+        gres.addHint (null, "metainfo-no-id", ["fname": mfname]);
+        return null;
+    }
+    gres.addComponent (cpt);
 
     // check if we can actually legally use this metadata
     if (!isMetainfoLicense (cpt.getMetadataLicense())) {
-        res.addHint (cpt, "metainfo-license-invalid", ["license": cpt.getMetadataLicense()]);
+        gres.addHint (cpt, "metainfo-license-invalid", ["license": cpt.getMetadataLicense()]);
         return null;
     }
 
     // quit immediately if we have an unknown component type
     if (cpt.getKind () == ComponentKind.UNKNOWN) {
-        res.addHint (cpt, "metainfo-unknown-type");
+        gres.addHint (cpt, "metainfo-unknown-type");
         return null;
     }
 
     return cpt;
 }
 
-Component parseMetaInfoFile (GeneratorResult res, const string data)
+Component parseMetaInfoFile (GeneratorResult gres, const string data, const string mfname)
 {
     auto mdata = new Metadata ();
     mdata.setLocale ("ALL");
     mdata.setFormatStyle (FormatStyle.METAINFO);
 
-    return parseMetaInfoFile (mdata, res, data);
+    return parseMetaInfoFile (mdata, gres, data, mfname);
 }
