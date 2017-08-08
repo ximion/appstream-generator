@@ -56,11 +56,11 @@ final class UbuntuPackage : DebPackage
         try {
             langpackdomain = desktopFile.getString (DESKTOP_GROUP,
                                                     "X-Ubuntu-Gettext-Domain");
-        } catch {
+        } catch (Throwable) {
             try {
                 langpackdomain = desktopFile.getString (DESKTOP_GROUP,
                                                         "X-GNOME-Gettext-Domain");
-            } catch {
+            } catch (Throwable) {
                 return null;
             }
         }

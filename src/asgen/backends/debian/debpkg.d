@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -240,6 +240,8 @@ public:
                 rmdirRecurse (tmpDir);
             dataArchive = null;
             controlArchive = null;
-        } catch {}
+        } catch (Throwable) {
+            // we ignore any error
+        }
     }
 }
