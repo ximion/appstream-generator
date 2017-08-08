@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -426,6 +426,8 @@ public:
  */
 void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
 {
+    import std.file : isFile, remove, rename;
+
     auto ar = archive_write_new ();
     scope (exit) archive_write_free (ar);
 
@@ -437,9 +439,13 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
         archive_write_add_filter_xz (ar);
     }
 
-    auto ret = archive_write_open_filename (ar, fname.toStringz);
+    // don't write to the new file directly, we create a temporary file and
+    // rename it when we successfully saved the data.
+    auto tmpFname = fname ~ ".new";
+
+    auto ret = archive_write_open_filename (ar, tmpFname.toStringz);
     if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open file '%s': %s", fname, getArchiveErrorMessage (ar)));
+        throw new Exception (format ("Unable to open file '%s': %s", tmpFname, getArchiveErrorMessage (ar)));
 
     archive_entry *entry;
     entry = archive_entry_new ();
@@ -451,6 +457,12 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
 
     archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
     archive_write_close (ar);
+
+    // delete old file if it exists
+    if (fname.isFile)
+        fname.remove ();
+    // rename temporary file to actual file
+    std.file.rename (tmpFname, fname); // we need to use std.file explicitly, because otherwise core.stdc gets used
 }
 
 final class ArchiveCompressor
