@@ -37,7 +37,7 @@ RUN apt-get install -yq --no-install-recommends \
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
     npm \
-    nodejs-legacy
+    nodejs
 RUN npm install -g bower
 
 # build & install the current Git snapshot of AppStream
