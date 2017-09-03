@@ -1,7 +1,7 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM debian:sid
+FROM debian:buster
 
 # prepare
 RUN apt-get update -qq
@@ -11,20 +11,18 @@ RUN apt-get install -yq git gcc gdc ldc
 
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \
-    cmake \
+    meson \
     gettext \
-    itstool \
-    libglib2.0-dev \
-    libxml2-dev \
+    gobject-introspection \
+    gtk-doc-tools \
     libgirepository1.0-dev \
-    libyaml-dev \
+    libglib2.0-dev \
     libstemmer-dev \
-    xmlto \
-    gobject-introspection
+    libxml2-dev \
+    libyaml-dev
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
-    meson \
     libmustache-d-dev \
     libcurl4-gnutls-dev \
     liblmdb-dev \
@@ -36,8 +34,10 @@ RUN apt-get install -yq --no-install-recommends \
 
 # JavaScript stuff
 RUN apt-get install -yq --no-install-recommends \
-    npm \
-    nodejs
+    nodejs nodejs-legacy
+RUN git clone --depth=1 https://github.com/npm/npm.git
+RUN cd npm && make install
+RUN rm -rf npm
 RUN npm install -g bower
 
 # build & install the current Git snapshot of AppStream
@@ -47,9 +47,9 @@ RUN cd /build-tmp && \
     git clone --depth=20 https://github.com/ximion/appstream.git
 RUN mkdir /build-tmp/appstream/build
 RUN cd /build-tmp/appstream/build && \
-    cmake -DMAINTAINER=ON -DAPT_SUPPORT=ON ..
+    meson --prefix=/usr -Denable-maintainer=true -Denable-apt-support=true ..
 RUN cd /build-tmp/appstream/build && \
-    make && make install
+    ninja && ninja install
 
 # build & install GirToD
 RUN cd /build-tmp && \
