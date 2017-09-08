@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -71,7 +71,7 @@ private string getValue (KeyFile kf, string key)
     string val;
     try {
         val = kf.getString (DESKTOP_GROUP, key);
-    } catch {
+    } catch (Throwable) {
         val = null;
     }
 
@@ -137,7 +137,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             // ignore this file, it isn't describing an application
             return null;
         }
-    } catch {}
+    } catch (Throwable) {}
 
     try {
         auto nodisplay = df.getString (DESKTOP_GROUP, "NoDisplay");
@@ -145,7 +145,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
                 // we ignore this .desktop file, shouldn't be displayed
                 return null;
         }
-    } catch {}
+    } catch (Throwable) {}
 
     try {
         auto asignore = df.getString (DESKTOP_GROUP, "X-AppStream-Ignore");
@@ -153,7 +153,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
             // this .desktop file should be excluded from AppStream metadata
             return null;
         }
-    } catch {
+    } catch (Throwable) {
         // we don't care if non-essential tags are missing.
         // if they are not there, the file should be processed.
     }
@@ -292,14 +292,12 @@ unittest
     import asgen.backends.dummy.dummypkg;
     writeln ("TEST: ", ".desktop file parser");
 
-    auto data = """
-[Desktop Entry]
-Name=FooBar
-Name[de_DE]=FööBär
-Comment=A foo-ish bar.
-Keywords=Flubber;Test;Meh;
-Keywords[de_DE]=Goethe;Schiller;Kant;
-""";
+    auto data = "[Desktop Entry]\n" ~
+                "Name=FooBar\n" ~
+                "Name[de_DE]=FööBär\n" ~
+                "Comment=A foo-ish bar.\n" ~
+                "Keywords=Flubber;Test;Meh;\n" ~
+                "Keywords[de_DE]=Goethe;Schiller;Kant;\n";
 
     auto pkg = new DummyPackage ("pkg", "1.0", "amd64");
     auto res = new GeneratorResult (pkg);

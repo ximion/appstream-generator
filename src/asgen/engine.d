@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -278,11 +278,11 @@ public:
             head ~= ">";
         } else {
             head = "---\n";
-            head ~= format ("File: DEP-11\n"
-                           "Version: '%s'\n"
-                           "Origin: %s",
-                           conf.formatVersionStr,
-                           origin);
+            head ~= format ("File: DEP-11\n" ~
+                            "Version: '%s'\n" ~
+                            "Origin: %s",
+                            conf.formatVersionStr,
+                            origin);
             if (!conf.mediaBaseUrl.empty ())
                 head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);
             if (suite.dataPriority != 0)

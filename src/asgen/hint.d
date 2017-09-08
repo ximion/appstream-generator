@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -208,7 +208,7 @@ unittest
     hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
     auto root = hint.toJsonNode ();
 
-    writeln (toJSON (&root, true));
+    writeln (root.toJSON (true));
 
     HintsStorage.get ();
 }

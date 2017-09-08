@@ -78,7 +78,7 @@ unittest
 {
     writeln ("TEST: ", "Backend::Archlinux - ListFile");
 
-    string data = """%FILENAME%
+    string data = "%FILENAME%
 a2ps-4.14-6-x86_64.pkg.tar.xz
 
 %NAME%
@@ -99,7 +99,7 @@ BLUBB2
 EtcEtcEtc3
 
 %SHA256SUM%
-a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5""";
+a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5";
 
     auto lf = new ListFile ();
     lf.loadData (cast(ubyte[]) data);

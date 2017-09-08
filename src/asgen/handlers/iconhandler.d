@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -85,7 +85,9 @@ public:
             try {
                 size = index.getInteger (section, "Size");
                 context = index.getString (section, "Context");
-            } catch (Throwable) { continue; }
+            } catch (Throwable) {
+                continue;
+            }
 
             try {
                 threshold = index.getInteger (section, "Threshold");
@@ -109,7 +111,7 @@ public:
             }
             try {
                 scale = index.getInteger (section, "Scale");
-            } catch {
+            } catch (Throwable) {
                 scale = 1;
             }
 
@@ -136,21 +138,21 @@ public:
 
     private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size)
     {
-        int scale = themedir["scale"].get!(int);
+        int scale = themedir["scale"].get!int;
         if (scale != size.scale)
             return false;
-        string type = themedir["type"].get!(string);
+        string type = themedir["type"].get!string;
         if (type == "Fixed")
-            return size.toInt () == themedir["size"].get!(int);
+            return size.toInt () == themedir["size"].get!int;
         if (type == "Scalable") {
-            if ((themedir["minsize"].get!(int) <= size.toInt ()) && (size.toInt () <= themedir["maxsize"].get!(int)))
+            if ((themedir["minsize"].get!int <= size.toInt) && (size.toInt <= themedir["maxsize"].get!int))
                 return true;
             return false;
         }
         if (type == "Threshold") {
-            auto themeSize = themedir["size"].get!(int);
-            auto th = themedir["threshold"].get!(int);
-            if (((themeSize - th) <= size.toInt ()) && (size.toInt () <= (themeSize + th)))
+            auto themeSize = themedir["size"].get!int;
+            auto th = themedir["threshold"].get!int;
+            if (((themeSize - th) <= size.toInt) && (size.toInt <= (themeSize + th)))
                 return true;
             return false;
         }
@@ -169,7 +171,7 @@ public:
                 if (directoryMatchesSize (themedir, size)) {
                     // best filetype needs to come first to be preferred, only types allowed by the spec are handled at all
                     foreach (extension; ["png", "svgz", "svg", "xpm"])
-                        yield (format ("/usr/share/icons/%s/%s/%s.%s", this.name, themedir["path"].get!(string), iname, extension));
+                        yield ("/usr/share/icons/%s/%s/%s.%s".format (this.name, themedir["path"].get!(string), iname, extension));
                 }
             }
         });
@@ -254,9 +256,9 @@ public:
                 continue;
 
             foreach (name; themeNames) {
-                if (fname == format ("/usr/share/icons/%s/index.theme", name)) {
+                if (fname == "/usr/share/icons/%s/index.theme".format (name)) {
                     synchronized (this) tmpThemes[name] = new Theme (name, pkg);
-                } else if (fname.startsWith (format ("/usr/share/icons/%s", name))) {
+                } else if (fname.startsWith ("/usr/share/icons/%s".format (name))) {
                     synchronized (this) iconFiles[fname] = pkg;
                 }
             }
@@ -348,7 +350,7 @@ public:
 
             // check pixmaps for icons
             foreach (extension; possibleIconExts)
-                yield (format ("/usr/share/pixmaps/%s%s", iconName, extension));
+                yield ("/usr/share/pixmaps/%s%s".format (iconName, extension));
         });
 
         return gen;
@@ -443,7 +445,7 @@ public:
         }
 
         auto path = buildPath (cptExportPath, "icons", size.toString ());
-        auto iconName = format ("%s_%s", gres.pkgname,  baseName (iconPath));
+        auto iconName = "%s_%s".format (gres.pkgname,  baseName (iconPath));
 
         if (iconName.endsWith (".svgz"))
             iconName = iconName.replace (".svgz", ".png");

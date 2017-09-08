@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -213,7 +213,7 @@ public:
         }
 
         logInfo ("Rendering HTML for %s/%s", suiteName, section);
-        auto maintRE = std.regex.ctRegex!(r"""[àáèéëêòöøîìùñ~/\\(\\)\" ']""", "g");
+        auto maintRE = std.regex.ctRegex!(`[àáèéëêòöøîìùñ~/\\(\\)" ']`, "g");
 
         // write issue hint pages
         foreach (ref pkgname; dsum.hintEntries.byKey ()) {
@@ -720,7 +720,7 @@ public:
         mkdirRecurse (dirName (fname));
 
         auto sf = File (fname, "w");
-        sf.writeln (toJSON (&smap, false));
+        sf.writeln (smap.toJSON (false));
         sf.flush ();
         sf.close ();
     }

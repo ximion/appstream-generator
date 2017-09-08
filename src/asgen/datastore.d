@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -673,7 +673,7 @@ public:
             }
 
             // build new database value and add it to the db, overriding the old one
-            statsJsonStr = toJSON (&newJson);
+            statsJsonStr = newJson.toJSON ();
             dbvalue = makeDbValue (statsJsonStr);
 
             res = txn.mdb_put (dbStats, &dbkey, &dbvalue, 0);
@@ -696,7 +696,7 @@ public:
     void setRepoInfo (string suite, string section, string arch, JSONValue repoInfo)
     {
         auto repoid = "%s-%s-%s".format (suite, section, arch);
-        auto jsonData = toJSON (&repoInfo);
+        auto jsonData = repoInfo.toJSON ();
 
         putKeyValue (dbRepoInfo, repoid, jsonData);
     }
