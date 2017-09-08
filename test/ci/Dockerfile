@@ -47,7 +47,7 @@ RUN cd /build-tmp && \
     git clone --depth=20 https://github.com/ximion/appstream.git
 RUN mkdir /build-tmp/appstream/build
 RUN cd /build-tmp/appstream/build && \
-    meson --prefix=/usr -Denable-maintainer=true -Denable-apt-support=true ..
+    meson --prefix=/usr -Dmaintainer=true -Dapt-support=true ..
 RUN cd /build-tmp/appstream/build && \
     ninja && ninja install
 
