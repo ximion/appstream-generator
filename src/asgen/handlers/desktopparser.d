@@ -142,7 +142,7 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
     try {
         auto nodisplay = df.getString (DESKTOP_GROUP, "NoDisplay");
         if ((!ignore_nodisplay) && (nodisplay.toLower () == "true")) {
-                // we ignore this .desktop file, shouldn't be displayed
+                // we ignore this .desktop file, it's application should not be included
                 return null;
         }
     } catch (Throwable) {}
@@ -157,6 +157,15 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         // we don't care if non-essential tags are missing.
         // if they are not there, the file should be processed.
     }
+
+    try {
+        auto hidden = df.getString (DESKTOP_GROUP, "NoDisplay");
+        if (hidden.toLower () == "true") {
+            gres.addHint (fnameBase, "desktop-file-hidden-set");
+            if (!ignore_nodisplay)
+                return null; // we ignore this .desktop file
+        }
+    } catch (Throwable) {}
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {

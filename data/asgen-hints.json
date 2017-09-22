@@ -17,6 +17,13 @@
   "severity": "error"
 },
 
+"desktop-file-hidden-set": {
+  "text": ["This .desktop file has the 'Hidden' property set. This is wrong for vendor-installed .desktop files, and",
+           "nullifies all effects this .desktop file has, which most certainly not what was intended.",
+           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">the specification</a> for details."],
+  "severity": "warning"
+},
+
 "metainfo-parsing-error": {
   "text": "Unable to parse AppStream metainfo file, the data is likely malformed.<br/>Error: {{msg}}",
   "severity": "error"
