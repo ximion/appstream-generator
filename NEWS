@@ -1,3 +1,19 @@
+Version 0.6.6
+~~~~~~~~~~~~~~
+Released: 2017-09-22
+
+Features:
+ * Add basic HiDPI support (Corentin Noël)
+ * Generate the HiDPI tarball (Corentin Noël)
+ * Add an 'info' command to dump package information (Matthias Klumpp)
+ * Handle the "Hidden" property in .desktop files and complain about it (Matthias Klumpp)
+
+Bugfixes:
+ * arch: XML-escape package descriptions (Matthias Klumpp)
+ * Check for availability of a component-id at the right time (Matthias Klumpp)
+ * Make writing compressed results a bit more robust (Matthias Klumpp)
+ * Resolve all deprecation warnings and slightly improve code (Matthias Klumpp)
+
 Version 0.6.5
 ~~~~~~~~~~~~~~
 Released: 2017-07-02
