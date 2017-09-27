@@ -78,7 +78,7 @@ public:
         logDebug ("Opened: %s", listsTarFname);
 
         ArchPackage[string] pkgsMap;
-        foreach (ref entry; ad.read ()) {
+        foreach (entry; ad.read ()) {
 
             auto archPkid = dirName (entry.fname);
             ArchPackage pkg;
