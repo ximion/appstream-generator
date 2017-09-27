@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+
+  <!-- Please adjust the date whenever revising the manpage. -->
+  <!ENTITY date        "<date>18 April,2016</date>">
+  <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
+       allowed: see man(7), man(1). -->
+  <!ENTITY package     "appstream-generator">
+  <!ENTITY gnu         "<acronym>GNU</acronym>">
+  <!ENTITY gpl         "&gnu; <acronym>GPL</acronym>">
+]>
+
+<refentry>
+	<refentryinfo>
+	<title>appstream-cli</title>
+	<copyright>
+		<year>2016-2017</year>
+		<holder>Matthias Klumpp</holder>
+	</copyright>
+	<productname>AppStream Generator</productname>
+	&date;
+	</refentryinfo>
+
+	<refmeta>
+		<refentrytitle>appstream-generator</refentrytitle>
+		<manvolnum>1</manvolnum>
+	</refmeta>
+	<refnamediv>
+		<refname>&package;</refname>
+		<refpurpose>Generate AppStream metadata from distribution repositories</refpurpose>
+	</refnamediv>
+
+       <refsynopsisdiv>
+	       <cmdsynopsis>
+		       <command>&package;</command>
+		       <group>
+			       <option>COMMAND</option>
+		       </group>
+		</cmdsynopsis>
+	</refsynopsisdiv>
+
+	<refsect1>
+		<title>Description</title>
+		<para>
+			This manual page documents briefly the <command>&package;</command> command.
+		</para>
+		<para>
+			<command>&package;</command> generates AppStream metadata from the repositories of a software distribution.
+			It currently supports the following repository formats / distributions: Debian, Ubuntu, Arch Linux, RPM-MD (Fedora,
+			Mageia).
+		</para>
+		<para>
+			The generator will produce AppStream collection metadata files in the AppStream YAML or XML format to be shipped
+			to users, as well as a detailed HTML report about found components and HTML and JSON reports on issues detected
+			with the scanned metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
+			screenshots etc. to produce high-quality metadata for AppStream based software centers to consume.
+			Usually, <command>&package;</command> is integrated with the existing software build &amp; delivery workflow of
+			a distribution.
+		</para>
+		<para>
+			The <command>&package;</command> tool is based on the <literal>libappstream</literal> library for metadata conversion and analysis.
+			If you just want to embed AppStream metadata processing into another tool, using <literal>libappstream</literal> is likely a
+			better choice. The generator tool does some heavy lifting like rendering fonts and scaling images, which might not be necessary
+			for simple cases.
+		</para>
+		<para>
+			To use <command>&package;</command>, a <filename>asgen-config.json</filename> file is required. Its format is described in detail
+			in <ulink url="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config.json documentation</ulink>.
+		</para>
+		<para>
+			For more information about the AppStream project and the other components which are part of it, take a look at
+			the AppStream pages at <ulink url="http://www.freedesktop.org/wiki/Distributions/AppStream/">Freedesktop.org</ulink>.
+		</para>
+	</refsect1>
+
+	<refsect1>
+		<title>Options</title>
+		<variablelist>
+
+			<varlistentry>
+				<term><option>process <replaceable>SUITE</replaceable></option></term>
+				<listitem>
+					<para>
+						Process new metadata for the given distribution suite.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>cleanup</option></term>
+				<listitem>
+					<para>
+						Cleanup old/expired metadata and media files from the cache and directories.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>remove-found <replaceable>SUITE</replaceable></option></term>
+				<listitem>
+					<para>
+						Drop all valid processed metadata and hints from the selected suite.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>forget <replaceable>PKID</replaceable></option></term>
+				<listitem>
+					<para>
+						Drop all information we have about this (partial) package-id.
+					</para>
+					<para>
+						A package-id consists of a <literal>name/version/arch</literal> triplet.
+						For this command, the version and architecture can be omitted.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>info <replaceable>PKID</replaceable></option></term>
+				<listitem>
+					<para>
+						Show information associated with this (full) package-id.
+					</para>
+					<para>
+						A package-id consists of a <literal>name/version/arch</literal> triplet.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>-w|--workspace</option></term>
+				<listitem>
+					<para>Define the workspace location.</para>
+					<para>
+						If this flag is omitted, the current directory is assumed as the workspace
+						location.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>--force</option></term>
+				<listitem>
+					<para>Enforce the command.</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>--verbose</option></term>
+				<listitem>
+					<para>Show extra debugging information.</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>--version</option></term>
+				<listitem>
+					<para>Display the version number of &package;.</para>
+				</listitem>
+			</varlistentry>
+
+		</variablelist>
+	</refsect1>
+
+	<refsect1>
+		<title>See Also</title>
+		<para>appstreamcli (1).</para>
+	</refsect1>
+<refsect1>
+<title>AUTHOR</title>
+<para>
+	This manual page was written by Matthias Klumpp <email>matthias@tenstral.net</email>.
+</para>
+</refsect1>
+</refentry>
