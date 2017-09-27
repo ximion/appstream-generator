@@ -51,6 +51,10 @@ Application Options:
   --force          Force action.
   -w|--workspace   Define the workspace location.";
 
+version (unittest) {
+void main () {}
+} else {
+
 void main(string[] args)
 {
     string command;
@@ -148,4 +152,6 @@ void main(string[] args)
             exit (1);
             break;
     }
+}
+
 }
