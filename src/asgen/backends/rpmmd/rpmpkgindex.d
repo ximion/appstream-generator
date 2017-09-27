@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -19,10 +19,13 @@
 
 module asgen.backends.rpmmd.rpmpkgindex;
 
-import std.stdio;
-import std.path;
-import std.string;
-import std.algorithm : canFind;
+import std.stdio : writeln;
+import std.path : buildPath;
+import std.array : appender, empty;
+import std.string : format;
+import std.algorithm : canFind, endsWith;
+import std.conv : to;
+import std.xml;
 static import std.file;
 
 import asgen.logging;
@@ -60,14 +63,120 @@ public:
         pkg.setDescription (desc, "C");
     }
 
-    private Package[] loadPackages (string suite, string section, string arch)
+    private RPMPackage[] loadPackages (string suite, string section, string arch)
     {
-        auto metadataRoot = buildPath (rootDir, "distrib", suite, arch, "media", section, "release", "repodata");
+        auto repoRoot = buildPath (rootDir, suite, section, arch, "os");
 
-        // read repomd.xml
+        auto primaryIndexFiles = appender!(string[]);
+        auto filelistFiles     = appender!(string[]);
+        auto repoMdIndexContent = cast(string) std.file.read (buildPath (repoRoot, "repodata", "repomd.xml"));
+        auto indexXml = new DocumentParser (repoMdIndexContent);
+        indexXml.onStartTag["data"] = (ElementParser xml) {
+            immutable dataType = xml.tag.attr["type"];
+            if (dataType == "primary") {
+                xml.onStartTag["location"] = (ElementParser x) {
+                    primaryIndexFiles ~= x.tag.attr["href"];
+                };
+                xml.parse ();
+            } else if (dataType == "filelists") {
+                xml.onStartTag["location"] = (ElementParser x) {
+                    filelistFiles ~= x.tag.attr["href"];
+                };
+                xml.parse ();
+            }
+        };
+        indexXml.parse();
 
-        Package[] pkgs;
-        return pkgs;
+        // package-id -> RPMPackage
+        RPMPackage[string] pkgMap;
+
+        // parse the primary metadata
+        foreach (ref primaryFile; primaryIndexFiles.data) {
+            immutable metaFname = buildPath (repoRoot, primaryFile);
+            string data;
+            if (primaryFile.endsWith (".xml")) {
+                data = cast(string) std.file.read (metaFname);
+            } else {
+                import asgen.zarchive : decompressFile;
+                data = decompressFile (metaFname);
+            }
+
+            auto pkgXml = new DocumentParser (data);
+            pkgXml.onStartTag["package"] = (ElementParser xml) {
+                // make sure we only check RPM packages
+                if (xml.tag.attr["type"] != "rpm")
+                    return;
+
+                auto pkg = new RPMPackage;
+                pkg.maintainer = "None";
+                xml.onEndTag["name"] = (in Element e) { pkg.name = e.text; };
+                xml.onEndTag["arch"] = (in Element e) { pkg.arch = e.text; };
+                xml.onEndTag["summary"] = (in Element e) { pkg.setSummary (e.text, "C"); };
+                xml.onEndTag["description"] = (in Element e) { pkg.setDescription (e.text, "C"); };
+                xml.onEndTag["packager"] = (in Element e) { pkg.maintainer = e.text; };
+
+                xml.onStartTag["version"] = (ElementParser x) {
+                    immutable epoch = x.tag.attr["epoch"];
+                    immutable upstream_ver = x.tag.attr["ver"];
+                    immutable rel = x.tag.attr["rel"];
+
+                    if ((epoch == "0") || (epoch.empty))
+                        pkg.ver = "%s-%s".format (upstream_ver, rel);
+                    else
+                        pkg.ver = "%s:%s-%s".format (epoch, upstream_ver, rel);
+                };
+
+                xml.onStartTag["location"] = (ElementParser x) { pkg.filename = buildPath (repoRoot, x.tag.attr["href"]); };
+
+                string pkgidCS;
+                xml.onEndTag["checksum"] = (in Element e) {
+                    // we are only interested in the package-id here
+                    if (e.tag.attr["pkgid"] != "YES")
+                        return;
+                    pkgidCS = e.text;
+                };
+                xml.parse ();
+
+                if (pkgidCS.empty) {
+                    logWarning ("Found package '%s' in '%s' without suitable pkgid. Ignoring it.", pkg.name, primaryFile);
+                    return;
+                }
+
+                pkgMap[pkgidCS] = pkg;
+            };
+            pkgXml.parse();
+        }
+        pkgMap.rehash;
+
+        // read the filelists
+        foreach (ref filelistFile; filelistFiles.data) {
+            immutable flistFname = buildPath (repoRoot, filelistFile);
+            string data;
+            if (filelistFile.endsWith (".xml")) {
+                data = cast(string) std.file.read (flistFname);
+            } else {
+                import asgen.zarchive : decompressFile;
+                data = decompressFile (flistFname);
+            }
+
+            auto flXml = new DocumentParser (data);
+            flXml.onStartTag["package"] = (ElementParser xml) {
+                immutable pkgid = xml.tag.attr["pkgid"];
+                auto pkgP = pkgid in pkgMap;
+                if (pkgP is null)
+                    return;
+                auto pkg = *pkgP;
+
+                auto contents = appender!(string[]);
+                xml.onEndTag["file"] = (in Element e) { contents ~= e.text; };
+                xml.parse ();
+
+                pkg.contents = contents.data;
+            };
+            flXml.parse();
+        }
+
+        return pkgMap.values;
     }
 
     Package[] packagesFor (string suite, string section, string arch)
@@ -75,7 +184,7 @@ public:
         immutable id = "%s-%s-%s".format (suite, section, arch);
         if (id !in pkgCache) {
             auto pkgs = loadPackages (suite, section, arch);
-            synchronized (this) pkgCache[id] = pkgs;
+            synchronized (this) pkgCache[id] = to!(Package[]) (pkgs);
         }
 
         return pkgCache[id];
@@ -85,4 +194,16 @@ public:
     {
         return true;
     }
+}
+
+unittest {
+    import std.algorithm.sorting : sort;
+    import asgen.utils : getTestSamplesDir;
+
+    writeln ("TEST: ", "RpmMDPackageIndex");
+
+    auto pi = new RPMPackageIndex (buildPath (getTestSamplesDir (), "rpmmd"));
+    auto pkgs = pi.loadPackages ("26", "Workstation", "x86_64");
+
+    assert (pkgs.length == 4);
 }

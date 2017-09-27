@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -36,6 +36,7 @@ private:
     string pkgarch;
     string pkgmaintainer;
     string[string] desc;
+    string[string] summ;
     string pkgFname;
 
     string[] contentsL;
@@ -69,6 +70,11 @@ public:
     void setDescription (string text, string locale)
     {
         desc[locale] = text;
+    }
+
+    void setSummary (string text, string locale)
+    {
+        summ[locale] = text;
     }
 
     override
