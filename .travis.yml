@@ -7,8 +7,12 @@ services:
   - docker
 
 d:
-  #- gdc -- DISABLED, see https://bugzilla.gdcproject.org/show_bug.cgi?id=251 for details
+  - gdc
   - ldc
+
+matrix:
+  allow_failures:
+    - d: gdc
 
 before_script:
   - docker build -t asgen -f test/ci/Dockerfile .
