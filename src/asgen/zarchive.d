@@ -459,7 +459,7 @@ void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
     archive_write_close (ar);
 
     // delete old file if it exists
-    if (fname.isFile)
+    if (std.file.exists (fname))
         fname.remove ();
     // rename temporary file to actual file
     std.file.rename (tmpFname, fname); // we need to use std.file explicitly, because otherwise core.stdc gets used
