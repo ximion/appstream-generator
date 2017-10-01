@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -73,9 +73,9 @@ struct ImageSize
     string toString () const
     {
         if (scale == 1)
-            return format ("%ux%u", width, height);
+            return "%ux%u".format (width, height);
         else
-            return format ("%ux%u@%u", width, height, scale);
+            return "%ux%u@%u".format (width, height, scale);
     }
 
     uint toInt () const

@@ -51,6 +51,7 @@ private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", "
 // the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg", ".xpm"];
 
+/// The icon sizes that we are returning to clients
 public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128), ImageSize (64, 64, 2), ImageSize (128, 128, 2)];
 
 /**

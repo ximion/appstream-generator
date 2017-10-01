@@ -300,6 +300,7 @@ public:
     private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
     {
         import asgen.zarchive;
+        import asgen.handlers.iconhandler : wantedIconSizes;
         auto mdataFile = appender!string;
         auto hintsFile = appender!string;
 
@@ -324,14 +325,10 @@ public:
         mkdirRecurse (hintsExportDir);
 
         // prepare icon-tarball array
-        immutable iconTarSizes = ["64", "128"];
-        immutable iconTarScales = ["1", "2"];
         Appender!(immutable(string)[])[string] iconTarFiles;
         if (withIconTar) {
-            foreach (size; iconTarSizes) {
-                foreach (scale; iconTarScales) {
-                    iconTarFiles["%s%s".format (size, scale)] = appender!(immutable(string)[]);
-                }
+            foreach (ref size; wantedIconSizes) {
+                iconTarFiles[size.toString] = appender!(immutable(string)[]);
             }
         }
 
@@ -374,15 +371,12 @@ public:
 
                     // compile list of icon-tarball files
                     if (withIconTar) {
-                        foreach (ref size; iconTarSizes) {
-                            foreach (ref scale; iconTarScales) {
-                                string size_dir = scale == "1" ? "%sx%s".format (size, size) : "%sx%s@%s".format (size, size, scale);
-                                immutable iconDir = buildPath (mediaExportDir, gcid, "icons", size_dir);
-                                if (!std.file.exists (iconDir))
-                                    continue;
-                                foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
-                                    iconTarFiles["%s%s".format (size, scale)] ~= path.idup;
-                                }
+                        foreach (ref size; wantedIconSizes) {
+                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", size.toString);
+                            if (!std.file.exists (iconDir))
+                                continue;
+                            foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
+                                iconTarFiles[size.toString] ~= path.idup;
                             }
                         }
                     }
@@ -406,18 +400,15 @@ public:
         // create the icon tarballs
         if (withIconTar) {
             logInfo ("Creating icon tarball.");
-            foreach (size; iconTarSizes) {
-                foreach (scale; iconTarScales) {
-                    import std.conv : to;
+            foreach (ref size; wantedIconSizes) {
+                import std.conv : to;
 
-                    auto iconTar = scoped!ArchiveCompressor (ArchiveType.GZIP);
-                    string size_dir = scale == "1" ? "%sx%s".format (size, size) : "%sx%s@%s".format (size, size, scale);
-                    iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (size_dir)));
-                    auto iconFiles = iconTarFiles["%s%s".format (size, scale)].data;
-                    sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
-                    foreach (fname; iconFiles) {
-                        iconTar.addFile (fname);
-                    }
+                auto iconTar = scoped!ArchiveCompressor (ArchiveType.GZIP);
+                iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (size.toString)));
+                auto iconFiles = iconTarFiles[size.toString].data;
+                sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
+                foreach (fname; iconFiles) {
+                    iconTar.addFile (fname);
                 }
             }
             logInfo ("Icon tarball(s) built.");
