@@ -336,7 +336,6 @@ public:
         }
         if (FT_Get_Char_Index (fface, getFirstUnichar (sampleIconText_)) == 0) {
             import std.uni;
-            import std.utf : toUTF8;
 
             sampleText_ = "";
             sampleIconText_ = "";
