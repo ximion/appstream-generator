@@ -1,3 +1,21 @@
+Version 0.6.7
+~~~~~~~~~~~~~~
+Released: 2017-10-02
+
+Features:
+ * ci: Enable gdc again for testing (Matthias Klumpp)
+ * Make rpmmd backend work (Matthias Klumpp)
+ * Make an empty main function for embedded unittests (Matthias Klumpp)
+ * Add a metainfo file (Matthias Klumpp)
+ * Add a manual page (Matthias Klumpp)
+ * Sort suite names on the index page (Matthias Klumpp)
+
+Bugfixes:
+ * use file.exists to check file existence (Antonio Rojas)
+ * arch: Don't ref generator results (Matthias Klumpp)
+ * Improve the icon tarball generation code (Matthias Klumpp)
+ * Resolve deprecation warning (Matthias Klumpp)
+
 Version 0.6.6
 ~~~~~~~~~~~~~~
 Released: 2017-09-22
