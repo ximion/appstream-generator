@@ -742,10 +742,12 @@ public:
 
     void updateIndexPages ()
     {
+        import std.algorithm : sort;
+
         logInfo ("Updating HTML index pages and static data.");
         // render main overview
         auto context = new Mustache.Context;
-        foreach (suite; conf.suites) {
+        foreach (suite; conf.suites.sort!("a.name < b.name")) {
             auto sub = context.addSubContext("suites");
             sub["suite"] = suite.name;
 
@@ -758,7 +760,7 @@ public:
             renderPage ("sections_index", format ("%s/index", suite.name), secCtx);
         }
 
-        foreach (suite; conf.oldsuites) {
+        foreach (suite; conf.oldsuites.sort!("a < b")) {
             auto sub = context.addSubContext("oldsuites");
             sub["suite"] = suite;
         }

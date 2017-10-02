@@ -17,12 +17,13 @@
     </p>
 
     <h1>Select a suite</h1>
-    {{#oldsuites}}
-      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
-    {{/oldsuites}}
     {{#suites}}
       <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
     {{/suites}}
+    <br/>
+    {{#oldsuites}}
+      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
+    {{/oldsuites}}
 
     <br/><hr/>
     <img src="{{root_url}}/static/img/asgen.png" alt="AppStream Generator Logo" style="margin: 4px; float: right;" />
