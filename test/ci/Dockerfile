@@ -23,6 +23,7 @@ RUN apt-get install -yq --no-install-recommends \
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
+    gir-to-d \
     libmustache-d-dev \
     libcurl4-gnutls-dev \
     liblmdb-dev \
@@ -49,15 +50,6 @@ RUN mkdir /build-tmp/appstream/build
 RUN cd /build-tmp/appstream/build && \
     meson --prefix=/usr -Dmaintainer=true -Dapt-support=true ..
 RUN cd /build-tmp/appstream/build && \
-    ninja && ninja install
-
-# build & install GirToD
-RUN cd /build-tmp && \
-    git clone https://github.com/gtkd-developers/gir-to-d
-RUN mkdir /build-tmp/gir-to-d/build
-RUN cd /build-tmp/gir-to-d/build && \
-    meson ..
-RUN cd /build-tmp/gir-to-d/build && \
     ninja && ninja install
 
 RUN rm -rf /build-tmp
