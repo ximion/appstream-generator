@@ -246,19 +246,13 @@ public:
     private string getMetadataHead (Suite suite, string section)
     {
         import std.datetime : Clock;
-        version (GNU)
-            import core.time : FracSec;
-        else
-            import core.time : Duration;
+        import core.time : Duration;
 
         string head;
         immutable origin = "%s-%s-%s".format (conf.projectName.toLower, suite.name.toLower, section.toLower);
 
         auto time = Clock.currTime ();
-        version (GNU)
-            time.fracSec = FracSec.zero; // we don't want fractional seconds.
-        else
-            time.fracSecs = Duration.zero; // for newer Phobos
+        time.fracSecs = Duration.zero; // we don't want fractional seconds
         immutable timeStr = time.toISOString ();
 
         string mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
