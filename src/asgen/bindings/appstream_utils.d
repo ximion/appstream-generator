@@ -33,3 +33,5 @@ const(char) *as_format_version_to_string (FormatVersion ver) pure;
 FormatVersion as_format_version_from_string (const char *version_str) pure;
 
 bool as_license_is_metadata_license (const char *license) pure;
+
+const(char) *as_get_appstream_version () pure;

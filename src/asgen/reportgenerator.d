@@ -59,6 +59,8 @@ private:
     string mediaPoolDir;
     string mediaPoolUrl;
 
+    string versionInfo;
+
     Mustache mustache;
 
     struct HintTag
@@ -124,6 +126,11 @@ public:
 
         mustache.path = templateDir;
         mustache.ext = "html";
+
+        // create version information to display on every page
+        import asgen.bindings.appstream_utils : as_get_appstream_version;
+        import std.string : fromStringz;
+        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, as_get_appstream_version.fromStringz);
     }
 
     private string[] splitBlockData (string str, string blockType)
@@ -177,7 +184,7 @@ public:
         auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
 
         context["time"] = timeStr;
-        context["generator_version"] = ASGEN_VERSION;
+        context["generator_version"] = versionInfo;
         context["project_name"] = conf.projectName;
         context["root_url"] = conf.htmlBaseUrl;
     }
