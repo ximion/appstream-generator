@@ -441,7 +441,7 @@ public:
         secIndexCtx["info_count"] = dsum.totalInfos;
 
 
-        renderPage ("section_overview", secIndexExportName, secIndexCtx);
+        renderPage ("section_page", secIndexExportName, secIndexCtx);
     }
 
     private DataSummary preprocessInformation (string suiteName, string section, Package[] pkgs)
