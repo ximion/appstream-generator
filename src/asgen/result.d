@@ -129,7 +129,9 @@ public:
         if (cid.empty)
             throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
 
-        cpt.setPkgnames ([this.pkgname]);
+        // web applications don't have a package name set
+        if (cpt.getKind != ComponentKind.WEB_APP)
+            cpt.setPkgnames ([this.pkgname]);
         cpts[cid] = cpt;
         updateComponentGCID (cpt, data);
     }
