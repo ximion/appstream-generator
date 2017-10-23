@@ -38,6 +38,7 @@ import asgen.utils;
 void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
 {
     auto validator = scoped!Validator ();
+    validator.setCheckUrls (false); // don't check web URLs for validity
 
     try {
         validator.validateData (data);
