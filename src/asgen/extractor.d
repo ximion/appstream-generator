@@ -235,7 +235,7 @@ public:
                         samePkg = true;
                 }
 
-                if (!samePkg) {
+                if ((!samePkg) && (cpt.getKind != ComponentKind.WEB_APP)) {
                     // The exact same metadata exists in a different package already, we emit an error hint.
                     // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
                     // but with the *same ID* exists.
