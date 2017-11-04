@@ -245,7 +245,7 @@ public:
                 if (!addHint (cpt, "metainfo-unknown-type"))
                     continue;
 
-            if ((!cpt.hasBundle) && (cpt.getPkgnames.empty))
+            if ((!cpt.hasBundle) && (cpt.getPkgnames.empty) && (ckind != ComponentKind.WEB_APP))
                 if (!addHint (cpt, "no-install-candidate"))
                     continue;
 
