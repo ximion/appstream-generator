@@ -83,10 +83,6 @@ if meson.get_compiler('d').get_id() == 'gcc'
     add_global_arguments(['-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', '-no-pie'], language : 'd')
     add_global_link_arguments('-no-pie', language : 'd')
 endif
-if meson.get_compiler('d').get_id() == 'llvm'
-    # work around: https://github.com/ldc-developers/ldc/issues/1727
-    add_global_arguments('-enable-cross-module-inlining=false', language : 'd')
-endif
 
 # TODO: Make this a real option, not something to manually enable.
 #add_global_arguments(['-sanitize=address'], language : 'd')
