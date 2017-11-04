@@ -251,7 +251,11 @@ public:
                         cdata.parse (existingMData, FormatKind.XML);
                     auto ecpt = cdata.getComponent ();
 
-                    gres.addHint (cpt, "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": ecpt.getPkgnames ()[0]]);
+                    const pkgNames = ecpt.getPkgnames;
+                    string pkgName = "(none)";
+                    if (!pkgNames.empty)
+                        pkgName = pkgNames[0];
+                    gres.addHint (cpt, "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": pkgName]);
                 }
 
                 continue;
