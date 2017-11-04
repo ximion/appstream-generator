@@ -83,6 +83,11 @@ public:
             int size;
             int minSize;
             int maxSize;
+
+            // we ignore symbolic icons
+            if (section.startsWith("symbolic/"))
+                continue;
+
             try {
                 size = index.getInteger (section, "Size");
                 context = index.getString (section, "Context");
@@ -703,5 +708,17 @@ unittest
             assert (!valid);
         else
             assert (valid);
+    }
+
+    foreach (fname; theme.matchingIconFilenames ("accessories-text-editor", ImageSize (192))) {
+        if (fname.startsWith ("/usr/share/icons/hicolor/192x192/"))
+            continue;
+        if (fname.startsWith ("/usr/share/icons/hicolor/256x256/"))
+            continue;
+        if (fname.startsWith ("/usr/share/icons/hicolor/512x512/"))
+            continue;
+        if (fname.startsWith ("/usr/share/icons/hicolor/scalable/"))
+            continue;
+        assert (0);
     }
 }
