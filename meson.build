@@ -132,7 +132,10 @@ endif
 gir_bind_dir = include_directories('girepo')
 
 # Enlist D GIR interface sources
-dgir_glob_script = run_command(source_root + '/contrib/girwrap/find-d-intf-files.sh')
+dgir_glob_script = run_command(source_root + '/contrib/girwrap/find-d-intf-files.py')
+if dgir_glob_script.returncode() != 0
+    error('Unable to find D GIR interface source code:\n' + dgir_glob_script.stdout() + dgir_glob_script.stderr())
+endif
 gir_binding_sources = dgir_glob_script.stdout().strip().split('\n')
 
 #
