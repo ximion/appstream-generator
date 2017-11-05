@@ -116,8 +116,9 @@ public:
     private void gcCollect ()
     {
         static import core.memory;
-        logDebug ("GC collection cycle triggered explicitly.");
+        logDebug ("Minimize GC collection cycle triggered explicitly.");
         core.memory.GC.collect ();
+        core.memory.GC.minimize ();
     }
 
     /**
@@ -391,6 +392,7 @@ public:
         }
 
         // create the icon tarballs
+        gcCollect ();
         if (withIconTar) {
             logInfo ("Creating icon tarball.");
             foreach (ref size; wantedIconSizes) {
@@ -504,6 +506,9 @@ public:
 
             // log progress
             logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
+
+            // explicit GC collection and minimization run
+            gcCollect ();
         }
 
         // write reports & statistics and render HTML, if that option is selected
