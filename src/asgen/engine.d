@@ -19,14 +19,13 @@
 
 module asgen.engine;
 
-import std.stdio;
-import std.parallelism;
+import std.parallelism : parallel;
 import std.string : format, count, toLower, startsWith;
 import std.array : Appender, appender, empty;
 import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
-import std.typecons : scoped;
+import std.typecons : scoped, Nullable, Tuple;
 static import std.file;
 import appstream.Component;
 
@@ -466,85 +465,156 @@ public:
         return pkgMap;
     }
 
-    void run (string suite_name)
+    /**
+     * Scan and export data and hints for a specific section in a suite.
+     */
+    private bool processSuiteSection (Suite suite, const string section, ref ReportGenerator rgen)
     {
-        Suite suite;
-        foreach (ref s; conf.suites)
-            if (s.name == suite_name)
-                suite = s;
+        ReportGenerator reportgen = rgen;
+        if (reportgen is null)
+            reportgen = new ReportGenerator (dstore);
 
-        if (suite.isImmutable) {
-            // we also can't process anything if there are no architectures defined
-            logError ("Suite '%s' is marked as immutable. No changes are allowed.", suite.name);
-            return;
+        auto sectionPkgs = appender!(Package[]);
+        auto iconTarBuilt = false;
+        auto suiteDataChanged = false;
+        foreach (ref arch; suite.architectures) {
+            // update package contents information and flag boring packages as ignored
+            immutable foundInteresting = seedContentsData (suite, section, arch);
+
+            // check if the suite/section/arch has actually changed
+            if (!foundInteresting) {
+                logInfo ("Skipping %s/%s [%s], no interesting new packages since last update.", suite.name, section, arch);
+                continue;
+            }
+
+            // process new packages
+            auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+            auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+                                             getIconCandidatePackages (suite, section, arch),
+                                             suite.iconTheme);
+            processPackages (pkgs, iconh);
+
+            // export package data
+            exportData (suite, section, arch, pkgs, !iconTarBuilt);
+            iconTarBuilt = true;
+            suiteDataChanged = true;
+
+            // we store the package info over all architectures to generate reports later
+            sectionPkgs ~= pkgs;
+
+            // log progress
+            logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
         }
 
-        if (suite.sections.empty) {
+        // write reports & statistics and render HTML, if that option is selected
+        if (suiteDataChanged)
+            reportgen.processFor (suite.name, section, sectionPkgs.data);
+
+        // do garbage collection run now.
+        // we might have allocated very big chunks of memory during this iteration,
+        // that we can (mostly) free now - on some machines, the GC runs too late,
+        // making the system run out of memory, which ultimately gets us OOM-killed.
+        // we don't like that, and give the GC a hint to do the right thing.
+        pkgIndex.release ();
+        gcCollect ();
+
+        return suiteDataChanged;
+    }
+
+    /**
+     * Fetch a suite definition from a suite name and test whether we can process it.
+     */
+    private auto checkSuiteUsable (string suiteName)
+    {
+        Tuple!(Suite, "suite", bool, "suiteUsable") res;
+        res.suiteUsable = false;
+
+        bool suiteFound = false;
+        foreach (ref s; conf.suites) {
+            if (s.name == suiteName) {
+                res.suite = s;
+                suiteFound = true;
+                break;
+            }
+        }
+        if (!suiteFound)
+            return res;
+
+        if (res.suite.isImmutable) {
+            // we also can't process anything if there are no architectures defined
+            logError ("Suite '%s' is marked as immutable. No changes are allowed.", res.suite.name);
+            return res;
+        }
+
+        if (res.suite.sections.empty) {
             // if we have no sections, we can't do anything but exit...
-            logError ("Suite '%s' has no sections. Can not continue.", suite_name);
-            return;
+            logError ("Suite '%s' has no sections. Can not continue.", res.suite.name);
+            return res;
         }
 
-        if (suite.architectures.empty) {
+        if (res.suite.architectures.empty) {
             // we also can't process anything if there are no architectures defined
-            logError ("Suite '%s' has no architectures defined. Can not continue.", suite.name);
-            return;
+            logError ("Suite '%s' has no architectures defined. Can not continue.", res.suite.name);
+            return res;
         }
+
+        // if we are here, we can process this suite
+        res.suiteUsable = true;
+        return res;
+    }
+
+    /**
+     * Run the metadata extractor on a suite and all of its sections.
+     */
+    void run (string suiteName)
+    {
+        // fetch suite an exit in case we can't write to it.
+        // the `checkSuiteUsable` method will print an error
+        // message in case the suite isn't usable.
+        auto suiteTuple = checkSuiteUsable (suiteName);
+        if (!suiteTuple.suiteUsable)
+            return;
+        auto suite = suiteTuple.suite;
 
         auto reportgen = new ReportGenerator (dstore);
 
         auto dataChanged = false;
         foreach (ref section; suite.sections) {
-            auto sectionPkgs = appender!(Package[]);
-            auto iconTarBuilt = false;
-            auto suiteDataChanged = false;
-            foreach (ref arch; suite.architectures) {
-                // update package contents information and flag boring packages as ignored
-                immutable foundInteresting = seedContentsData (suite, section, arch);
-
-                // check if the suite/section/arch has actually changed
-                if (!foundInteresting) {
-                    logInfo ("Skipping %s/%s [%s], no interesting new packages since last update.", suite.name, section, arch);
-                    continue;
-                }
-
-                // process new packages
-                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-                auto iconh = new IconHandler (dstore.mediaExportPoolDir,
-                                                 getIconCandidatePackages (suite, section, arch),
-                                                 suite.iconTheme);
-                processPackages (pkgs, iconh);
-
-                // export package data
-                exportData (suite, section, arch, pkgs, !iconTarBuilt);
-                iconTarBuilt = true;
-                suiteDataChanged = true;
-
-                // we store the package info over all architectures to generate reports later
-                sectionPkgs ~= pkgs;
-
-                // log progress
-                logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
-            }
-
-            // write reports & statistics and render HTML, if that option is selected
-            if (suiteDataChanged) {
-                reportgen.processFor (suite.name, section, sectionPkgs.data);
+            immutable ret = processSuiteSection (suite, section, reportgen);
+            if (ret)
                 dataChanged = true;
-            }
-
-            // do garbage collection run now.
-            // we might have allocated very big chunks of memory during this iteration,
-            // that we can (mostly) free now - on some machines, the GC runs too late,
-            // making the system run out of memory, which ultimately gets us OOM-killed.
-            // we don't like that, and give the GC a hint to do the right thing.
-            pkgIndex.release ();
-            gcCollect ();
         }
 
-        // free some memory
-        pkgIndex.release ();
-        gcCollect ();
+        // render index pages & statistics
+        reportgen.updateIndexPages ();
+        if (dataChanged)
+            reportgen.exportStatistics ();
+    }
+
+    /**
+     * Run the metadata extractor on a single section of a suite.
+     */
+    void run (string suiteName, string sectionName)
+    {
+        // fetch suite an exit in case we can't write to it.
+        // the `checkSuiteUsable` method will print an error
+        // message in case the suite isn't usable.
+        auto suiteTuple = checkSuiteUsable (suiteName);
+        if (!suiteTuple.suiteUsable)
+            return;
+        auto suite = suiteTuple.suite;
+
+        bool sectionValid = false;
+        foreach (ref section; suite.sections)
+            if (section == sectionName)
+                sectionValid = true;
+        if (!sectionValid) {
+            logError ("Section '%s' does not exist in suite '%s'. Can not continue.".format (sectionName, suite.name));
+            return;
+        }
+
+        auto reportgen = new ReportGenerator (dstore);
+        auto dataChanged = processSuiteSection (suite, sectionName, reportgen);
 
         // render index pages & statistics
         reportgen.updateIndexPages ();
@@ -704,6 +774,8 @@ public:
      */
     bool printPackageInfo (string identifier)
     {
+        import std.stdio : writeln;
+
         if (identifier.count ("/") != 2) {
             writeln ("Please enter a package-id in the format <name>/<version>/<arch>");
             return false;

@@ -36,11 +36,11 @@ private immutable helpText =
 AppStream Metadata Generator
 
 Subcommands:
-  process SUITE      - Process new metadata for the given distribution suite.
-  cleanup            - Cleanup old metadata and media files.
-  remove-found SUITE - Drop all valid processed metadata and hints.
-  forget PKID        - Drop all information we have about this (partial) package-id.
-  info PKID          - Show information associated with this (full) package-id.
+  process SUITE [SECTION] - Process new metadata for the given distribution suite.
+  cleanup                 - Cleanup old metadata and media files.
+  remove-found SUITE      - Drop all valid processed metadata and hints.
+  forget PKID             - Drop all information we have about this (partial) package-id.
+  info PKID               - Show information associated with this (full) package-id.
 
 Help Options:
   -h, --help       Show help options
@@ -117,11 +117,18 @@ void main(string[] args)
     switch (command) {
         case "run":
         case "process":
-            if (args.length != 3) {
-                writeln ("Invalid number of parameters: You need to specify a suite name.");
+            if (args.length < 3) {
+                writeln ("Invalid number of parameters: You need to specify at least a suite name.");
                 exit (1);
             }
-            engine.run (args[2]);
+            if (args.length > 4) {
+                writeln ("Invalid number of parameters: You need to specify a suite name and (optionally) a section name.");
+                exit (1);
+            }
+            if (args.length == 3)
+                engine.run (args[2]);
+            else
+                engine.run (args[2], args[3]);
             break;
         case "cleanup":
             engine.runCleanup ();
