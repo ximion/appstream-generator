@@ -134,6 +134,10 @@ public:
             ];
             directories ~= themedir;
         }
+
+        // sort our directory list, so the smallest size is at the top
+        import std.algorithm : sort;
+        directories.sort!("a[\"size\"].get!int < b[\"size\"].get!int");
     }
 
     this (string name, Package pkg)
@@ -142,7 +146,13 @@ public:
         this (name, indexData);
     }
 
-    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size)
+    /**
+     * Check if a directory is suitable for the selected size.
+     * If @assumeThresholdScalable is set to true, we will allow
+     * downscaling of any higher-than-requested icon size, even if the
+     * section is of "Threshold" type and would usually prohibit the scaling.
+     */
+    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size, bool assumeThresholdScalable = false)
     {
         int scale = themedir["scale"].get!int;
         if (scale != size.scale)
@@ -158,8 +168,18 @@ public:
         if (type == "Threshold") {
             auto themeSize = themedir["size"].get!int;
             auto th = themedir["threshold"].get!int;
-            if (((themeSize - th) <= size.toInt) && (size.toInt <= (themeSize + th)))
-                return true;
+
+            if (assumeThresholdScalable) {
+                // we treat this "Threshold" as if we were allowed to downscale its icons if they
+                // have a higher size.
+                // This can lead to "wrong" scaling, but allows us to retrieve more icons.
+                return themeSize >= size.toInt;
+            } else {
+                // follow the proper algorithm as defined by the XDG spec
+                if (((themeSize - th) <= size.toInt) && (size.toInt <= (themeSize + th)))
+                    return true;
+            }
+
             return false;
         }
 
@@ -167,14 +187,16 @@ public:
     }
 
     /**
-     * Returns an iteratable of possible icon filenames that match 'name' and 'size'.
+     * Returns an iteratable of possible icon filenames that match @iname and @size.
+     * If @relaxedScalingRules is set to true, we scale down any bigger icon seize, even
+     * if the theme definition would usually prohibit that.
      **/
-    auto matchingIconFilenames (string iname, ImageSize size)
+    auto matchingIconFilenames (string iname, ImageSize size, bool relaxedScalingRules = false)
     {
         auto gen = new Generator!string (
         {
             foreach (themedir; this.directories) {
-                if (directoryMatchesSize (themedir, size)) {
+                if (directoryMatchesSize (themedir, size, relaxedScalingRules)) {
                     // best filetype needs to come first to be preferred, only types allowed by the spec are handled at all
                     foreach (extension; ["png", "svgz", "svg", "xpm"])
                         yield ("/usr/share/icons/%s/%s/%s.%s".format (this.name, themedir["path"].get!(string), iname, extension));
@@ -345,12 +367,12 @@ public:
      * Generates potential filenames of the icon that is searched for in the
      * given size.
      **/
-    private auto possibleIconFilenames (string iconName, ImageSize size)
+    private auto possibleIconFilenames (string iconName, ImageSize size, bool relaxedScalingRules = false)
     {
         auto gen = new Generator!string (
         {
             foreach (theme; this.themes) {
-                foreach (fname; theme.matchingIconFilenames (iconName, size))
+                foreach (fname; theme.matchingIconFilenames (iconName, size, relaxedScalingRules))
                     yield (fname);
             }
 
@@ -386,7 +408,8 @@ public:
         IconFindResult[ImageSize] sizeMap = null;
 
         foreach (size; sizes) {
-            foreach (fname; possibleIconFilenames (iconName, size)) {
+            // search for possible icon filenames, using relaxed scaling rules by default
+            foreach (fname; possibleIconFilenames (iconName, size, true)) {
                 if (pkg !is null) {
                     // we are supposed to search in one particular package
                     if (pkg.contents.canFind (fname)) {
