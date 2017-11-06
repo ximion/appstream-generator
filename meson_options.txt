@@ -2,7 +2,7 @@
 # Options for AppStream Generator
 #
 
-option('download_js',
+option('download-js',
        type: 'boolean',
        value: true,
        description: 'Whether we should download JavaScript with Bower automatically.'

@@ -143,8 +143,7 @@ gir_binding_sources = dgir_glob_script.stdout().strip().split('\n')
 #
 
 # Download JavaScript assets if requested
-download_js = get_option('download_js')
-if download_js
+if get_option('download-js')
     message('Downloading JavaScript libraries...')
     if run_command('[', '-d', 'data/templates/default/static/js', ']').returncode() != 0
         getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh'])

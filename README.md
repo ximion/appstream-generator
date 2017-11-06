@@ -54,7 +54,7 @@ In summary:
 
 ```ShellSession
 $ mkdir build && cd build
-$ meson -Ddownload_js=true ..
+$ meson -Ddownload-js=true ..
 $ ninja
 $ sudo ninja install
 ```

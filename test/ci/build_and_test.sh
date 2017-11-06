@@ -15,7 +15,7 @@ meson --version
 # Build & Test
 #
 mkdir -p build && cd build
-meson -Ddownload_js=true ..
+meson -Ddownload-js=true ..
 ninja
 
 # Run tests
