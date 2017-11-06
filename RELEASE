@@ -2,10 +2,10 @@ AppStream Generator Release Notes
 
 1. Write NEWS entries for AppStream Generator in the same format as usual.
 
-git shortlog v0.6.7.. | grep -i -v trivial | grep -v Merge > NEWS.new
+git shortlog v0.6.8.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
 --------------------------------------------------------------------------------
-Version 0.6.8
+Version 0.7.0
 ~~~~~~~~~~~~~~
 Released: 2017-xx-xx
 
@@ -18,8 +18,8 @@ Bugfixes:
 
 2. Commit changes in Git:
 
-git commit -a -m "Release version 0.6.8"
-git tag -s -f -m "Release 0.6.8" v0.6.8 <gpg password>
+git commit -a -m "Release version 0.7.0"
+git tag -s -f -m "Release 0.7.0" v0.7.0 <gpg password>
 git push --tags
 git push
 
@@ -33,6 +33,6 @@ git push
 5. Send an email to appstream@lists.freedesktop.org
 
 =================================================
-AppStream Generator 0.6.8 released!
+AppStream Generator 0.7.0 released!
 
 =================================================
