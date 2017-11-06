@@ -1,3 +1,28 @@
+Version 0.6.8
+~~~~~~~~~~~~~~
+Released: 2017-11-06
+
+Notes:
+ * The -Ddownload_js build flag is now -Ddownload-js to follow the naming
+   of other Meson flags more closely.
+
+Features:
+ * Encode AppStream library version in version info string on reports
+ * Don't require an install candidate for a webapp
+ * Update hicolor theme fallback definition
+ * Try to filter out symbolic icons for apps
+ * Allow processing only one section in a suite
+ * Relax icon scaling rules
+
+Bugfixes:
+ * Move time graph legend to the top left
+ * ci: Use the packaged gir-to-d
+ * Drop an unused gdc conditional
+ * Ensure the validator never tests web URLs for validity
+ * Drop LLVM DC bug workaround and allow cross-module inlining
+ * Make D GIR interface build work again with recent Meson versions
+ * Don't fail if we have a dupe ID with no pkgname, can happen now with webapps
+
 Version 0.6.7
 ~~~~~~~~~~~~~~
 Released: 2017-10-02
