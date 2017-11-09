@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 #############################################
 ### Definitions for wrapping Gtk+ ###########
@@ -42,11 +43,6 @@ addAliases: start
 		alias int glong;
 		alias uint gulong;
 	}
-
-	version( Windows )
-		enum _utfPostfix = "_utf8";
-	else
-		enum _utfPostfix = "";
 
 	version (Windows)
 	{
@@ -136,6 +132,20 @@ addEnums: start
 	}
 
 addEnums: end
+
+noConstant: DIR_SEPARATOR
+noConstant: DIR_SEPARATOR_S
+noConstant: E
+noConstant: LN10
+noConstant: LN2
+noConstant: LOG_2_BASE_10
+noConstant: PI
+noConstant: PI_2
+noConstant: PI_4
+noConstant: SEARCHPATH_SEPARATOR
+noConstant: SEARCHPATH_SEPARATOR_S
+noConstant: SQRT2
+noConstant: VERSION_MIN_REQUIRED
 
 struct: Array
 class: ArrayG
@@ -409,6 +419,7 @@ struct: Hmac
 noCode: get_digest
 move: compute_hmac_for_data Hmac
 move: compute_hmac_for_string Hmac
+move: compute_hmac_for_bytes Hmac
 array: compute_hmac_for_data data length
 array: compute_hmac_for_string str length
 code: start
@@ -579,6 +590,7 @@ array: write_chars buf count
 struct: List
 class: ListG
 import: gobject.ObjectG
+import: glib.Str
 code: start
   	/** */
 	@property void* data()
@@ -618,7 +630,8 @@ code: start
 	 * Turn the list into a D array of the desiered type.
 	 * Type T wraps should match the type of the data.
 	 */
-	public T[] toArray(T, TC = typeof(T.tupleof[0]))()
+	public T[] toArray(T, TC = getCType!T)()
+		if ( is(T == class) )
 	{
 		T[] arr = new T[length()];
 		ListG list = this;
@@ -634,6 +647,32 @@ code: start
 		return arr;
 	}
 
+	/** Ditto */
+	public T[] toArray(T)()
+		if ( is ( T == string ) )
+	{
+		T[] arr = new T[length()];
+		ListG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = Str.toString(cast(char*)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	private template getCType(T)
+	{
+		static if ( is(T == class) )
+			alias getCType = typeof(T.tupleof[0]);
+		else
+			alias getCType = void*;
+	}
+
 	unittest
 	{
 		import gobject.Value;
@@ -645,6 +684,12 @@ code: start
 
 		assert(arr[0].getInt() == 0);
 		assert(arr[1].getInt() == 1);
+
+		list = new ListG(null);
+		list = list.append(cast(void*)"test\0".ptr);
+		list = list.append(cast(void*)"test2\0".ptr);
+
+		assert(["test", "test2"] == list.toArray!string());
 	}
 code: end
 
@@ -657,22 +702,22 @@ class: SimpleXML
 
 struct: MemorySlice
 code: start
-	T* mewSlice(T)()
+	public static T* mewSlice(T)()
 	{
 		return cast(T*)g_slice_alloc(T.sizeof);
 	}
 
-	T* mewSlice0(T)()
+	public static T* mewSlice0(T)()
 	{
 		return cast(T*)g_slice_alloc0(T.sizeof);
 	}
 
-	T* dup(T)(T* memBlock)
+	public static T* dup(T)(T* memBlock)
 	{
 		return cast(T*)g_slice_copy(T.sizeof, memBlock);
 	}
 
-	void free(T)(T* memBlock)
+	public static void free(T)(T* memBlock)
 	{
 		 g_slice_free1(T.sizeof, memBlock);
 	}
@@ -722,6 +767,7 @@ class: ScannerG
 struct: SList
 class: ListSG
 import: gobject.ObjectG
+import: glib.Str
 code: start
   	/** */
 	@property void* data()
@@ -747,7 +793,8 @@ code: start
 	 * Turn the list into a D array of the desiered type.
 	 * Type T wraps should match the type of the data.
 	 */
-	public T[] toArray(T, TC = typeof(T.tupleof[0]))()
+	public T[] toArray(T, TC = getCType!T)()
+		if ( is(T == class) )
 	{
 		T[] arr = new T[length()];
 		ListSG list = this;
@@ -763,6 +810,32 @@ code: start
 		return arr;
 	}
 
+	/** Ditto */
+	public T[] toArray(T)()
+		if ( is ( T == string ) )
+	{
+		T[] arr = new T[length()];
+		ListSG list = this;
+		size_t count;
+
+		while(list !is null && count < arr.length)
+		{
+			arr[count] = Str.toString(cast(char*)list.data);
+			list = list.next();
+			count++;
+		}
+
+		return arr;
+	}
+
+	private template getCType(T)
+	{
+		static if ( is(T == class) )
+			alias getCType = typeof(T.tupleof[0]);
+		else
+			alias getCType = void*;
+	}
+
 	unittest
 	{
 		import gobject.Value;
@@ -774,6 +847,12 @@ code: start
 
 		assert(arr[0].getInt() == 0);
 		assert(arr[1].getInt() == 1);
+
+		list = new ListSG(null);
+		list = list.append(cast(void*)"test\0".ptr);
+		list = list.append(cast(void*)"test2\0".ptr);
+
+		assert(["test", "test2"] == list.toArray!string());
 	}
 code: end
 
@@ -784,6 +863,7 @@ import: core.thread
 import: core.stdc.string
 import: core.stdc.stdio
 import: std.string
+import: std.traits
 #noCode: spawn_async_with_pipes
 code: start
 	//we need fdopen.
@@ -791,7 +871,7 @@ code: start
 	{
 		private import core.sys.posix.stdio;
 	}
-	//fdopen for Windows is defined in gi.glibtypes.
+	//fdopen for Windows is defined in glib.c.types.
 
 	string workingDirectory = ".";
 	string[] argv;
@@ -864,10 +944,21 @@ code: start
 			fclose(standardError);
 			stdErr = 0;
 		}
-		if ( childPid != 0 )
+		static if ( isPointer!(GPid) )
 		{
-			closePid(childPid);
-			childPid = 0;
+			if ( childPid !is null )
+			{
+				closePid(childPid);
+				childPid = null;
+			}
+		}
+		else
+		{
+			if ( childPid != 0 )
+			{
+				closePid(childPid);
+				childPid = 0;
+			}
 		}
 	}
 
@@ -1833,7 +1924,6 @@ move: ascii_strup Str
 move: ascii_tolower Str
 move: ascii_toupper Str
 move: ascii_xdigit_value Str
-move: fprintf Str
 move: printf Str
 move: printf_string_upper_bound Str
 move: snprintf Str
@@ -1881,10 +1971,19 @@ move: strv_get_type Str
 move: strv_length Str
 move: strv_contains Str
 move: vasprintf Str
-move: vfprintf Str
 move: vprintf Str
 move: vsnprintf Str
 move: vsprintf Str
+
+version !OSX: start
+	move: fprintf Str
+	move: vfprintf Str
+version: end
+
+version 2.54: start
+	move: ascii_string_to_signed Str
+	move: ascii_string_to_unsigned Str
+version: end
 
 move: string_new String
 move: string_new_len String
@@ -1974,16 +2073,19 @@ move: utf8_to_ucs4 Unicode
 move: utf8_to_ucs4_fast Unicode
 move: utf8_to_utf16 Unicode
 move: utf8_validate Unicode
+version 2.52: move: utf8_make_valid Unicode
 
-move: unix_error_quark UnixUtils error_quark
-move: unix_fd_add UnixUtils fd_add
-move: unix_fd_add_full UnixUtils fd_add_full
-move: unix_fd_source_new UnixUtils fd_source_new
-move: unix_open_pipe UnixUtils open_pipe
-move: unix_set_fd_nonblocking UnixUtils set_fd_nonblocking
-move: unix_signal_add UnixUtils signal_add
-move: unix_signal_add_full UnixUtils signal_add_full
-move: unix_signal_source_new UnixUtils signal_source_new
+version !Windows: start
+	move: unix_error_quark UnixUtils error_quark
+	move: unix_fd_add UnixUtils fd_add
+	move: unix_fd_add_full UnixUtils fd_add_full
+	move: unix_fd_source_new UnixUtils fd_source_new
+	move: unix_open_pipe UnixUtils open_pipe
+	move: unix_set_fd_nonblocking UnixUtils set_fd_nonblocking
+	move: unix_signal_add UnixUtils signal_add
+	move: unix_signal_add_full UnixUtils signal_add_full
+	move: unix_signal_source_new UnixUtils signal_source_new
+version: end
 
 move: filename_from_uri URI
 move: filename_to_uri URI
@@ -1992,6 +2094,11 @@ move: uri_list_extract_uris URI
 move: uri_parse_scheme URI
 move: uri_unescape_segment URI
 move: uri_unescape_string URI
+
+version 2.52: start
+	move: uuid_string_is_valid Uuid string_is_valid
+	move: uuid_string_random Uuid string_random
+version: end
 
 move: atexit Util
 move: basename Util

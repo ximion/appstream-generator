@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
-
+#
 
 #############################################
 ### Definitions for wrapping Gtk+ ###########
@@ -22,10 +22,6 @@
 # must start with wrap
 wrap: gobject
 file: GObject-2.0.gir
-
-addAliases: start
-	public import glib.c.types;
-addAliases: end
 
 noAlias: Type
 addEnums: start
@@ -131,9 +127,10 @@ code: start
 code: end
 
 struct: Object
-class: ObjectG
 import: core.memory
 import: gobject.Signals
+import: std.algorithm
+import: std.traits
 merge: InitiallyUnowned
 noSignal: notify
 move: clear_object Object
@@ -174,7 +171,7 @@ code: start
 			}
 
 			//When constructed via GtkBuilder set the structs.
-			if ( getStruct() is null)
+			if ( getStruct() is null )
 			{
 				setStruct(gObject);
 			}
@@ -190,6 +187,9 @@ code: start
 				GC.removeRoot(cast(void*)obj);
 				obj.isGcRoot = false;
 			}
+
+			if ( obj.gObject.refCount > 0 )
+				obj.removeToggleRef(cast(GToggleNotify)&toggleNotify, cast(void*)obj);
 
 			obj.gObject = null;
 		}
@@ -211,7 +211,12 @@ code: start
 
 	~this()
 	{
-		if ( gObject !is null )
+		static if ( isPointer!(typeof(g_object_steal_data)) )
+			bool libLoaded = Linker.isLoaded(LIBRARY_GOBJECT);
+		else
+			enum libLoaded = true;
+
+		if ( libLoaded && gObject !is null )
 		{
 			// Remove the GDestroyNotify callback,
 			// for when the D object is destroyed before the C one.
@@ -223,7 +228,7 @@ code: start
 				isGcRoot = false;
 			}
 
-			unref();
+			g_object_remove_toggle_ref(gObject, cast(GToggleNotify)&toggleNotify, cast(void*)this);
 		}
 	}
 
@@ -240,30 +245,62 @@ code: start
 			return null;
 		}
 
-		static if ( is(T : ObjectG) )
+		static if ( is(T : ObjectG) && !is(RT == interface) )
 		{
 			auto p = g_object_get_data(cast(GObject*)obj, Str.toStringz("GObject"));
 
 			if ( p !is null )
-			{
-				static if ( is(RT == interface ) )
-				{
-					return cast(RT)cast(ObjectG)p;
-				}
-				else
-				{
-					return cast(RT)p;
-				}
-			}
+				return cast(RT)p;
 			else
-			{
 				return new T(obj, ownedRef);
-			}
+		}
+		else static if ( is(RT == interface) && hasMember!(RT, "getType") && is(ReturnType!(RT.getType) == GType) )
+		{
+			auto p = g_object_get_data(cast(GObject*)obj, Str.toStringz("GObject"));
+
+			if ( p !is null )
+				return cast(RT)cast(ObjectG)p;
+			else
+				return getInterfaceInstance!RT(cast(GObject*)obj);
 		}
 		else
 		{
-			return new T(obj);
+			return new T(obj, ownedRef);
 		}
+	}
+
+	private static I getInterfaceInstance(I)(GObject* instance)
+	{
+		static class Impl: ObjectG, I
+		{
+			public this (GObject* gObject, bool ownedRef = false)
+			{
+				super(gObject, ownedRef);
+			}
+
+			/** the main Gtk struct as a void* */
+			protected override void* getStruct()
+			{
+				return cast(void*)gObject;
+			}
+
+			// add the interface capabilities
+			mixin("import "~ moduleName!I[0..$-2] ~"T;import "~ moduleName!I ~"; mixin "~ __traits(identifier, I)[0..$-2] ~"T!("~__traits(identifier, Impl)~");");
+		}
+
+		ClassInfo ci = Impl.classinfo;
+		Impl iface;
+		void* p;
+
+		//Skip all the setup for the memory management,
+		//and only add an extra reference for the instance returned.
+		p = GC.malloc(ci.initializer.length, GC.BlkAttr.FINALIZE, ci);
+		p[0..ci.initializer.length] = ci.initializer;
+		iface = cast(Impl)p;
+		iface.gObject = instance;
+		iface.doref();
+
+		return iface;
 	}
 
 	protected void setStruct(GObject* obj)
@@ -272,28 +309,9 @@ code: start
 	}
 
 	/** */
-	public void setProperty(string propertyName, int value)
+	public void setProperty(T)(string propertyName, T value)
 	{
 		setProperty(propertyName, new Value(value));
-	}
-
-	/** */
-	public void setProperty(string propertyName, string value)
-	{
-		setProperty(propertyName, new Value(value));
-	}
-
-	/** */
-	public void setProperty(string propertyName, long value)
-	{
-		//We use g_object_set instead of g_object_set_property, because Value doesn't like longs and ulongs for some reason.
-		g_object_set( gObject, Str.toStringz(propertyName), value, null);
-	}
-
-	/** */
-	public void setProperty(string propertyName, ulong value)
-	{
-		g_object_set( gObject, Str.toStringz(propertyName), value, null);
 	}
 
 	deprecated("Use the member function")
@@ -308,9 +326,32 @@ code: start
 		return obj.doref();
 	}
 
-	int[string] connectedSignals;
+	protected class OnNotifyDelegateWrapper
+	{
+		void delegate(ParamSpec, ObjectG) dlg;
+		gulong handlerId;
 
-	void delegate(ParamSpec, ObjectG)[] onNotifyListeners;
+		this(void delegate(ParamSpec, ObjectG) dlg)
+		{
+			this.dlg = dlg;
+			onNotifyListeners ~= this;
+		}
+
+		void remove(OnNotifyDelegateWrapper source)
+		{
+			foreach(index, wrapper; onNotifyListeners)
+			{
+				if (wrapper.handlerId == source.handlerId)
+				{
+					onNotifyListeners[index] = null;
+					onNotifyListeners = std.algorithm.remove(onNotifyListeners, index);
+					break;
+				}
+			}
+		}
+	}
+	OnNotifyDelegateWrapper[] onNotifyListeners;
+
 	/**
 	 * The notify signal is emitted on an object when one of its
 	 * properties has been changed. Note that getting this signal
@@ -329,7 +370,7 @@ code: start
 	 *     property     = Set this if you only want to receive the signal for a specific property.
 	 *     connectFlags = The behavior of the signal's connection.
 	 */
-	void addOnNotify(void delegate(ParamSpec, ObjectG) dlg, string property = "", ConnectFlags connectFlags=cast(ConnectFlags)0)
+	gulong addOnNotify(void delegate(ParamSpec, ObjectG) dlg, string property = "", ConnectFlags connectFlags=cast(ConnectFlags)0)
 	{
 		string signalName;
 
@@ -338,25 +379,25 @@ code: start
 		else
 			signalName = "notify::"~ property;
 
-		if ( !(signalName in connectedSignals) )
-		{
-			Signals.connectData(
+		auto wrapper = new OnNotifyDelegateWrapper(dlg);
+		wrapper.handlerId = Signals.connectData(
 			this,
 			signalName,
 			cast(GCallback)&callBackNotify,
-			cast(void*)this,
-			null,
+			cast(void*)wrapper,
+			cast(GClosureNotify)&callBackNotifyDestroy,
 			connectFlags);
-			connectedSignals[signalName] = 1;
-		}
-		onNotifyListeners ~= dlg;
+		return wrapper.handlerId;
 	}
-	extern(C) static void callBackNotify(GObject* gobjectStruct, GParamSpec* pspec, ObjectG _objectG)
+
+	extern(C) static void callBackNotify(GObject* objectgStruct, GParamSpec* pspec,OnNotifyDelegateWrapper wrapper)
 	{
-		foreach ( void delegate(ParamSpec, ObjectG) dlg ; _objectG.onNotifyListeners )
-		{
-			dlg(ObjectG.getDObject!(ParamSpec)(pspec), _objectG);
-		}
+		wrapper.dlg(ObjectG.getDObject!(ParamSpec)(pspec), wrapper.outer);
+	}
+
+	extern(C) static void callBackNotifyDestroy(OnNotifyDelegateWrapper wrapper, GClosure* closure)
+	{
+		wrapper.remove(wrapper);
 	}
 code: end
 
@@ -439,6 +480,27 @@ code: start
 	{
 		return g_signal_connect_data(instanc, Str.toStringz(detailedSignal), cHandler, cast(void*)data, destroyData, connectFlags);
 	}
+
+	/**
+	 * Connects a GCallback function to a signal for a particular object.
+	 *
+	 * The handler will be called before the default handler of the signal.
+	 *
+	 * See [memory management of signal handlers][signal-memory-management] for
+	 * details on how to handle the return value and memory management of @data.
+	 *
+	 * Params:
+	 *     instance       = the instance to connect to.
+	 *     detailedSignal = a string of the form "signal-name::detail".
+	 *     cHandler       = the GCallback to connect.
+	 *     data           = data to pass to cHandler calls.
+	 *
+	 * Returns: the handler ID, of type gulong (always greater than 0 for successful connections)
+	 */
+	public static gulong connect(ObjectG instanc, string detailedSignal, GCallback cHandler, void* data)
+	{
+		return g_signal_connect_data((instanc is null) ? null : instanc.getObjectGStruct(), Str.toStringz(detailedSignal), cHandler, data, null, cast(ConnectFlags)0);
+	}
 code: end
 
 struct: Type
@@ -461,18 +523,24 @@ code: start
 	}
 code: end
 
-struct:
-class: TypePlugin
-extend: Object
-implements: TypePlugin
-
 struct: Value
+import: std.traits
 code: start
 	/** */
 	public this()
 	{
 		this(new GValue);
 	}
+
+	/** */
+	this(GOBJECT)(GOBJECT obj)
+		if ( is(GOBJECT : ObjectG) )
+	{
+		this();
+		init(GOBJECT.getType());
+		setObject(obj);
+	}
+
 
 	/** */
 	this(string value)
@@ -483,27 +551,63 @@ code: start
 	}
 
 	/** */
-	this(int value)
+	this(BOOL)(BOOL value)
+		if( isBoolean!BOOL )
 	{
 		this();
-		init(GType.INT);
-		setInt(value);
+		init(GType.BOOLEAN);
+		setBoolean(value);
 	}
 
 	/** */
-	this(float value)
+	this(INT)(INT value)
+		if ( isIntegral!INT )
 	{
 		this();
-		init(GType.FLOAT);
-		setFloat(value);
+
+		static if ( is(OriginalType!INT == int) )
+		{
+			init(GType.INT);
+			setInt(value);
+		}
+		else static if ( is(OriginalType!INT == uint) )
+		{
+			init(GType.UINT);
+			setUint(value);
+		}
+		else static if ( is(OriginalType!INT == long) )
+		{
+			init(GType.INT64);
+			setInt64(value);
+		}
+		else static if ( is(OriginalType!INT == ulong) )
+		{
+			init(GType.UINT64);
+			setUint64(value);
+		}
+		else
+		{
+			init(GType.INT);
+			setInt(value);
+		}
 	}
 
 	/** */
-	this(double value)
+	this(FLOAT)(FLOAT value)
+		if ( isFloatingPoint!FLOAT )
 	{
 		this();
-		init(GType.DOUBLE);
-		setDouble(value);
+
+		static if ( is( FLOAT == float ) )
+		{
+			init(GType.FLOAT);
+			setFloat(value);
+		}
+		else
+		{
+			init(GType.DOUBLE);
+			setDouble(value);
+		}
 	}
 code: end
 
@@ -520,6 +624,8 @@ code: end
 # Move functions defined as global into there respective classes
 #
 
+struct:
+
 move: boxed_copy Boxed copy
 move: boxed_free Boxed free
 move: boxed_type_register_static Boxed type_register_static
@@ -530,6 +636,11 @@ move: enum_get_value Enums get_value
 move: enum_get_value_by_name Enums get_value_by_name
 move: enum_get_value_by_nick Enums get_value_by_nick
 move: enum_register_static Enums register_static
+
+version 2.54: start
+	move: enum_to_string Enums
+	move: flags_to_string Enums
+version: end
 
 move: flags_complete_type_info Flags complete_type_info
 move: flags_get_first_value Flags get_first_value
@@ -663,4 +774,5 @@ move: type_remove_class_cache_func Type remove_class_cache_func
 move: type_remove_interface_check Type remove_interface_check
 move: type_set_qdata Type set_qdata
 move: type_test_flags Type test_flags
+move: type_get_instance_count Type get_instance_count
 #move: type_value_table_peek Type value_table_peek

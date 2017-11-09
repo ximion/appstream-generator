@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 #############################################
 ### Definitions for wrapping Gtk+ ###########
@@ -22,53 +23,33 @@
 wrap: gio
 file: Gio-2.0.gir
 
-addAliases: start
-	public import glib.c.types;
-	public import gobject.c.types;
-addAliases: end
-
-struct:
-class: Action
-extend: GObject.Object
-implements: Action
-
-struct:
-class: ActionGroup
-extend: GObject.Object
-implements: ActionGroup
-
-struct:
-class: AppInfo
-extend: GObject.Object
-implements: AppInfo
-
 struct: Application
 code: start
 	protected class ScopedOnCommandLineDelegateWrapper
 	{
-		static ScopedOnCommandLineDelegateWrapper[] listeners;
 		int delegate(Scoped!ApplicationCommandLine, Application) dlg;
 		gulong handlerId;
 
 		this(int delegate(Scoped!ApplicationCommandLine, Application) dlg)
 		{
 			this.dlg = dlg;
-			this.listeners ~= this;
+			scopedOnCommandLineListeners ~= this;
 		}
 
 		void remove(ScopedOnCommandLineDelegateWrapper source)
 		{
-			foreach(index, wrapper; listeners)
+			foreach(index, wrapper; scopedOnCommandLineListeners)
 			{
 				if (wrapper.handlerId == source.handlerId)
 				{
-					listeners[index] = null;
-					listeners = std.algorithm.remove(listeners, index);
+					scopedOnCommandLineListeners[index] = null;
+					scopedOnCommandLineListeners = std.algorithm.remove(scopedOnCommandLineListeners, index);
 					break;
 				}
 			}
 		}
 	}
+	ScopedOnCommandLineDelegateWrapper[] scopedOnCommandLineListeners;
 
 	/**
 	 * The ::command-line signal is emitted on the primary instance when
@@ -128,11 +109,6 @@ code: start
 		return (cast(ubyte*)p)[0 .. count];
 	}
 code: end
-
-struct:
-class: Converter
-extend: GObject.Object
-implements: Converter
 
 struct: DataInputStream
 noCode: read_byte
@@ -249,11 +225,6 @@ code: start
 	}
 code: end
 
-struct:
-class: DBusObject
-extend: GObject.Object
-implements: DBusObject
-
 struct: DBusObjectManagerClient
 alias: new newObjectManagerClient
 noCode: new_finish
@@ -297,11 +268,6 @@ code: start
 		this(cast(GDBusObjectManagerClient*) p, true);
 	}
 code: end
-
-struct:
-class: DBusInterface
-extend: GObject.Object
-implements: DBusInterface
 
 struct: DBusProxy
 alias: new newProxy
@@ -348,46 +314,36 @@ code: start
 	}
 code: end
 
-struct: DesktopAppInfo
-noCode: new_from_filename
-code: start
-	/**
-	 * Creates a new #GDesktopAppInfo.
-	 *
-	 * Params:
-	 *     filename = the path of a desktop file, in the GLib filename encoding
-	 *
-	 * Return: a new #GDesktopAppInfo or %NULL on error.
-	 *
-	 * Throws: ConstructionException GTK+ fails to create the object.
-	 */
-	public static DesktopAppInfo createFromFilename(string filename)
-	{
-		auto p = g_desktop_app_info_new_from_filename(Str.toStringz(filename));
-
-		if(p is null)
+version !Windows: start
+	struct: DesktopAppInfo
+	noCode: new_from_filename
+	code: start
+		/**
+		* Creates a new #GDesktopAppInfo.
+		*
+		* Params:
+		*     filename = the path of a desktop file, in the GLib filename encoding
+		*
+		* Return: a new #GDesktopAppInfo or %NULL on error.
+		*
+		* Throws: ConstructionException GTK+ fails to create the object.
+		*/
+		public static DesktopAppInfo createFromFilename(string filename)
 		{
-			throw new ConstructionException("null returned by g_desktop_app_info_new_from_filename");
+			auto p = g_desktop_app_info_new_from_filename(Str.toStringz(filename));
+
+			if(p is null)
+			{
+				throw new ConstructionException("null returned by g_desktop_app_info_new_from_filename");
+			}
+
+			return new DesktopAppInfo(p, true);
 		}
+	code: end
+version: end
 
-		return new DesktopAppInfo(p, true);
-	}
-code: end
-
-struct:
-class: Drive
-extend: GObject.Object
-implements: Drive
-
-struct:
-class: File
-extend: GObject.Object
-implements: File
-
-struct:
-class: Icon
-extend: GObject.Object
-implements: Icon
+struct: FileAttributeInfoList
+array: infos n_infos
 
 struct: InetAddress
 noCode: new_any
@@ -435,21 +391,9 @@ move: load NoExternal
 move: unload NoExternal
 move: query NoExternal
 
-struct: IOModuleScope
-
 struct: MenuItem
 noCode: new_section
 noCode: new_submenu
-
-struct:
-class: Mount
-extend: GObject.Object
-implements: Mount
-
-struct:
-class: NetworkMonitor
-extend: GObject.Object
-implements: NetworkMonitor
 
 struct: OutputStream
 out: vprintf error
@@ -457,23 +401,9 @@ out: vprintf error
 struct: PollableUtils
 namespace:
 
-struct:
-class: Proxy
-extend: GObject.Object
-implements: Proxy
-
-struct:
-class: ProxyResolver
-extend: GObject.Object
-implements: ProxyResolver
-
 struct: Resource
 alias: _register register
 alias: _unregister unregister
-
-struct: SettingsSchema
-
-struct: SettingsSchemaSource
 
 struct: SimpleAsyncResult
 noCode: new_take_error
@@ -488,21 +418,11 @@ ref: receive_from buffer
 out: receive_message messages
 out: receive_message num_messages
 
-struct:
-class: SocketConnectable
-extend: GObject.Object
-implements: SocketConnectable
-
 struct: SubprocessLauncher
 array: set_environ env
 
 struct: ThemedIcon
 noCode: new
-
-struct:
-class: TlsBackend
-extend: GObject.Object
-implements: TlsBackend
 
 struct: TlsPassword
 out: get_value length
@@ -510,13 +430,13 @@ array: get_value Return length
 array: set_value value length
 array: set_value_full value length
 
-struct: UnixSocketAddress
-noCode: new_abstract
+version !Windows: start
+	struct: UnixMountEntry
+	class: UnixMountEntry
 
-struct:
-class: Volume
-extend: GObject.Object
-implements: Volume
+	struct: UnixSocketAddress
+	noCode: new_abstract
+version: end
 
 struct: VolumeMonitor
 import: glib.ConstructionException
@@ -571,6 +491,7 @@ move: content_type_guess_for_tree ContentType guess_for_tree
 move: content_type_is_a ContentType is_a
 move: content_type_is_unknown ContentType is_unknown
 move: content_types_get_registered ContentType
+version 2.52: move: content_type_is_mime_type ContentType is_mime_type
 
 move: dbus_error_encode_gerror DBusError encode_gerror
 move: dbus_error_get_remote_error DBusError get_remote_error
@@ -626,25 +547,36 @@ move: resources_open_stream Resource
 move: resources_register Resource _register
 move: resources_unregister Resource _unregister
 
+move: keyfile_settings_backend_new SettingsBackend
+move: memory_settings_backend_new SettingsBackend
+move: null_settings_backend_new SettingsBackend
+
 move: simple_async_report_error_in_idle SimpleAsyncResult
 move: simple_async_report_gerror_in_idle SimpleAsyncResult
 move: simple_async_report_take_gerror_in_idle SimpleAsyncResult
 
-move: unix_is_mount_path_system_internal UnixMountEntry is_mount_path_system_internal
-move: unix_mount_at UnixMountEntry at
-move: unix_mount_compare UnixMountEntry compare
-move: unix_mount_free UnixMountEntry free
-move: unix_mount_get_device_path UnixMountEntry get_device_path
-move: unix_mount_get_fs_type UnixMountEntry get_fs_type
-move: unix_mount_get_mount_path UnixMountEntry get_mount_path
-move: unix_mount_guess_can_eject UnixMountEntry guess_can_eject
-move: unix_mount_guess_icon UnixMountEntry guess_icon
-move: unix_mount_guess_name UnixMountEntry guess_name
-move: unix_mount_guess_should_display UnixMountEntry guess_should_display
-move: unix_mount_guess_symbolic_icon UnixMountEntry guess_symbolic_icon
-move: unix_mount_is_readonly UnixMountEntry is_readonly
-move: unix_mount_is_system_internal UnixMountEntry is_system_internal
-move: unix_mount_points_changed_since UnixMountEntry points_changed_since
-move: unix_mount_points_get UnixMountEntry mount_points_get
-move: unix_mounts_changed_since UnixMountEntry mounts_changed_since
-move: unix_mounts_get UnixMountEntry mounts_get
+version !Windows: start
+	move: unix_is_mount_path_system_internal UnixMountEntry is_mount_path_system_internal
+	move: unix_mount_at UnixMountEntry at
+	move: unix_mount_compare UnixMountEntry compare
+	move: unix_mount_free UnixMountEntry free
+	move: unix_mount_get_device_path UnixMountEntry get_device_path
+	move: unix_mount_get_fs_type UnixMountEntry get_fs_type
+	move: unix_mount_get_mount_path UnixMountEntry get_mount_path
+	move: unix_mount_guess_can_eject UnixMountEntry guess_can_eject
+	move: unix_mount_guess_icon UnixMountEntry guess_icon
+	move: unix_mount_guess_name UnixMountEntry guess_name
+	move: unix_mount_guess_should_display UnixMountEntry guess_should_display
+	move: unix_mount_guess_symbolic_icon UnixMountEntry guess_symbolic_icon
+	move: unix_mount_is_readonly UnixMountEntry is_readonly
+	move: unix_mount_is_system_internal UnixMountEntry is_system_internal
+	move: unix_mount_points_changed_since UnixMountEntry points_changed_since
+	move: unix_mount_points_get UnixMountEntry mount_points_get
+	move: unix_mounts_changed_since UnixMountEntry mounts_changed_since
+	move: unix_mounts_get UnixMountEntry mounts_get
+
+	version 2.54: start
+		move: unix_mount_copy UnixMountEntry copy
+		move: unix_mount_for UnixMountEntry mount_for
+	version: end
+version: end
