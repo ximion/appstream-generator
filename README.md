@@ -71,4 +71,4 @@ Take a look at the `docs/` directory in the source tree for information on how t
 
 ## Hacking
 
-Pull-requests and patches are very welcome! If you are new to D, it is highly recommended to take a few minutes to look at the D tour to get a feeling of what the language can do: http://tour.dlang.org/
+Pull-requests and patches are very welcome! If you are new to D, it is highly recommended to take a few minutes to look at the D tour to get a feeling of what the language can do: https://tour.dlang.org/
