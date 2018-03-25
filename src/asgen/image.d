@@ -130,7 +130,7 @@ public:
         throwGError (error, format ("Unable to open image '%s'", baseName (fname)));
     }
 
-    this (ubyte[] imgBytes, ImageFormat ikind)
+    this (ref ubyte[] imgBytes, ImageFormat ikind)
     {
         import gio.c.functions;
         import gio.MemoryInputStream;
@@ -269,7 +269,7 @@ public:
         //! return srf.cairo_image_surface_get_height ();
     }
 
-    void renderSvg (ubyte[] svgBytes)
+    void renderSvg (ref ubyte[] svgBytes)
     {
         // NOTE: unfortunately, Cairo/RSvg uses Fontconfig internally, so
         // we need to lock this down since a parallel-processed font

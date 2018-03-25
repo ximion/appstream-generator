@@ -103,7 +103,7 @@ string decompressFile (string fname)
     return readArchiveData (ar, fname);
 }
 
-string decompressData (ubyte[] data)
+string decompressData (ref ubyte[] data)
 {
     int ret;
 
@@ -424,7 +424,7 @@ public:
  *      fname = The filename the data should be saved to.
  *      atype = The archive type (GZ or XZ).
  */
-void compressAndSave (ubyte[] data, const string fname, ArchiveType atype)
+void compressAndSave (ref ubyte[] data, const string fname, ArchiveType atype)
 {
     import std.file : isFile, remove, rename;
 
