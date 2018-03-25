@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -26,6 +26,7 @@ import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
 import std.typecons : scoped, Nullable, Tuple;
+import containers : HashSet;
 static import std.file;
 import appstream.Component;
 
@@ -125,7 +126,7 @@ public:
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
      */
-    private void processPackages (Package[] pkgs, IconHandler iconh)
+    private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
         auto mde = scoped!DataExtractor (dstore, iconh);
         foreach (ref pkg; parallel (pkgs)) {
@@ -291,7 +292,7 @@ public:
     /**
      * Export metadata and issue hints from the database and store them as files.
      */
-    private void exportData (Suite suite, string section, string arch, Package[] pkgs, bool withIconTar = false)
+    private void exportData (Suite suite, string section, string arch, ref Package[] pkgs, bool withIconTar = false)
     {
         import asgen.zarchive;
         import asgen.handlers.iconhandler : wantedIconSizes;
@@ -470,7 +471,7 @@ public:
     /**
      * Scan and export data and hints for a specific section in a suite.
      */
-    private bool processSuiteSection (Suite suite, const string section, ref ReportGenerator rgen)
+    private bool processSuiteSection (Suite suite, const string section, ReportGenerator rgen)
     {
         ReportGenerator reportgen = rgen;
         if (reportgen is null)
@@ -665,7 +666,7 @@ public:
 
     void runCleanup ()
     {
-        bool[string] pkgSet;
+        auto pkgSet = HashSet!string(512);
 
         logInfo ("Cleaning up left over temporary data.");
         immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");
@@ -682,7 +683,7 @@ public:
                         pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
-                            pkgSet[pkg.id] = true;
+                            pkgSet.put (pkg.id);
                         }
                     }
                 }
@@ -699,7 +700,6 @@ public:
         logInfo ("Cleaning up superseded data.");
 
         // remove packages from the caches which are no longer in the archive
-        pkgSet.rehash;
         cstore.removePackagesNotInSet (pkgSet);
         dstore.removePackagesNotInSet (pkgSet);
 

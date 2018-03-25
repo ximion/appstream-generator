@@ -93,19 +93,20 @@ endif
 #
 src_dir = include_directories('src/')
 
-glib_dep      = dependency('glib-2.0')
-gobject_dep   = dependency('gobject-2.0')
-gio_dep       = dependency('gio-2.0')
-appstream_dep = dependency('appstream', version : '>= 0.11.7')
-lmdb_dep      = dependency('lmdb', version : '>= 0.9')
-mustache_dep  = dependency('mustache-d', required: false)
-archive_dep   = dependency('libarchive', version : '>= 3.2')
-cairo_dep     = dependency('cairo', version : '>= 1.12')
-gdkpixbuf_dep = dependency('gdk-pixbuf-2.0')
-rsvg_dep      = dependency('librsvg-2.0')
-curl_dep      = dependency('libcurl')
-freetype_dep  = dependency('freetype2')
-pango_dep     = dependency('pango')
+dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
+glib_dep        = dependency('glib-2.0')
+gobject_dep     = dependency('gobject-2.0')
+gio_dep         = dependency('gio-2.0')
+appstream_dep   = dependency('appstream', version : '>= 0.11.7')
+lmdb_dep        = dependency('lmdb', version : '>= 0.9')
+mustache_dep    = dependency('mustache-d', required: false)
+archive_dep     = dependency('libarchive', version : '>= 3.2')
+cairo_dep       = dependency('cairo', version : '>= 1.12')
+gdkpixbuf_dep   = dependency('gdk-pixbuf-2.0')
+rsvg_dep        = dependency('librsvg-2.0')
+curl_dep        = dependency('libcurl')
+freetype_dep    = dependency('freetype2')
+pango_dep       = dependency('pango')
 fontconfig_dep  = dependency('fontconfig')
 
 if not mustache_dep.found()
@@ -169,7 +170,8 @@ asgen_exe = executable('appstream-generator',
      backend_sources],
     include_directories: [src_dir,
                           gir_bind_dir],
-    dependencies: [glib_dep,
+    dependencies: [dcontainers_dep,
+                   glib_dep,
                    gobject_dep,
                    gio_dep,
                    appstream_dep,
@@ -192,7 +194,8 @@ asgen_test_exe = executable('asgen_test',
     backend_sources],
     include_directories: [src_dir,
                           gir_bind_dir],
-    dependencies: [glib_dep,
+    dependencies: [dcontainers_dep,
+                   glib_dep,
                    gobject_dep,
                    gio_dep,
                    appstream_dep,

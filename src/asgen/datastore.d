@@ -27,7 +27,7 @@ import std.path : buildPath, buildNormalizedPath, pathSplitter;
 import std.array : appender;
 import std.typecons : Tuple, scoped;
 import std.json;
-static import std.math;
+import containers : HashSet;
 
 import asgen.bindings.lmdb;
 import appstream.Metadata;
@@ -109,6 +109,8 @@ public:
 
     void open (string dir, string mediaBaseDir)
     {
+        static import std.math;
+
         int rc;
         assert (opened == false);
 
@@ -573,7 +575,7 @@ public:
 
     }
 
-    void removePackagesNotInSet (bool[string] pkgSet)
+    void removePackagesNotInSet (ref HashSet!string pkgSet)
     {
         MDB_cursorp cur;
 

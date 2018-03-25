@@ -24,7 +24,7 @@ import std.string;
 import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.array : appender, join, split, empty;
-static import std.math;
+import containers : HashSet;
 
 import asgen.bindings.lmdb;
 import asgen.config;
@@ -69,6 +69,8 @@ public:
 
     void open (string dir)
     {
+        static import std.math;
+
         int rc;
         assert (!opened);
 
@@ -314,7 +316,7 @@ public:
         return getContentsList (pkid, dbIcons);
     }
 
-    void removePackagesNotInSet (bool[string] pkgSet)
+    void removePackagesNotInSet (ref HashSet!(string) pkgSet)
     {
         MDB_cursorp cur;
 
@@ -329,7 +331,7 @@ public:
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
             immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
-            if (pkid in pkgSet)
+            if (pkgSet.contains (pkid))
                 continue;
 
             // if we got here, the package is not in the set of valid packages,
