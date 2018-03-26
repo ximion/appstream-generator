@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -251,11 +251,7 @@ public:
         {
             if (pkid is null)
                 return null;
-            auto pkgP = (pkid in pkgMap);
-            if (pkgP is null)
-                return null;
-            else
-                return *pkgP;
+            return pkgMap.get (pkid, null);
         }
 
         // open package contents cache
@@ -265,7 +261,7 @@ public:
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
-        Theme[string] tmpThemes;
+        auto tmpThemes = HashMap!(string, Theme) (16);
         auto filesPkids = ccache.getIconFilesMap (pkgMap.keys);
         foreach (fname; parallel (filesPkids.byKey, 100)) {
             if (fname.startsWith ("/usr/share/pixmaps/")) {
@@ -405,9 +401,9 @@ public:
      * Looks up 'icon' with 'size' in popular icon themes according to the XDG
      * icon theme spec.
      **/
-    auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
+    private auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
     {
-        IconFindResult[ImageSize] sizeMap = null;
+        auto sizeMap = HashMap!(ImageSize, IconFindResult) (16);
 
         foreach (size; sizes) {
             // search for possible icon filenames, using relaxed scaling rules by default
@@ -420,11 +416,11 @@ public:
                     }
                 } else {
                     // global search in all packages
-                    auto pkgP = (fname in iconFiles);
+                    auto pkg = iconFiles.get (fname, null);
                     // continue if filename is not in map
-                    if (pkgP is null)
+                    if (pkg is null)
                         continue;
-                    sizeMap[size] = IconFindResult (*pkgP, fname);
+                    sizeMap[size] = IconFindResult (pkg, fname);
                     break;
                 }
             }
@@ -606,10 +602,10 @@ public:
             bool findAndStoreXdgIcon (Package epkg = null)
             {
                 auto iconRes = findIcons (iconName, wantedIconSizes, epkg);
-                if (iconRes is null)
+                if (iconRes.empty)
                     return false;
 
-                IconFindResult[ImageSize] iconsStored;
+                auto iconsStored = HashMap!(ImageSize, IconFindResult) (16);
                 foreach (size; wantedIconSizes) {
                     auto infoP = (size in iconRes);
 

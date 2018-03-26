@@ -24,7 +24,7 @@ import std.string;
 import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.array : appender, join, split, empty;
-import containers : HashSet;
+import containers : HashSet, HashMap;
 
 import asgen.bindings.lmdb;
 import asgen.config;
@@ -239,7 +239,7 @@ public:
         }
     }
 
-    private string[string] getFilesMap (string[] pkids, MDB_dbi dbi)
+    private HashMap!(string, string) getFilesMap (string[] pkids, MDB_dbi dbi)
     {
         MDB_cursorp cur;
 
@@ -250,7 +250,7 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
-        string[string] pkgCMap;
+        auto pkgCMap = HashMap!(string, string) (32);
         foreach (ref pkid; pkids) {
             MDB_val pkey = makeDbValue (pkid);
             MDB_val cval;
@@ -271,12 +271,12 @@ public:
         return pkgCMap;
     }
 
-    string[string] getContentsMap (string[] pkids)
+    auto getContentsMap (string[] pkids)
     {
         return getFilesMap (pkids, dbContents);
     }
 
-    string[string] getIconFilesMap (string[] pkids)
+    auto getIconFilesMap (string[] pkids)
     {
         return getFilesMap (pkids, dbIcons);
     }
