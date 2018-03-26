@@ -21,7 +21,8 @@ import std.stdio;
 import std.path : getcwd, buildPath;
 import std.getopt;
 import std.string : format;
-import core.stdc.stdlib;
+import std.array : empty;
+import core.stdc.stdlib : exit;
 
 import asgen.logging;
 import asgen.config;
@@ -49,7 +50,8 @@ Application Options:
   --version        Show the program version.
   --verbose        Show extra debugging information.
   --force          Force action.
-  -w|--workspace   Define the workspace location.";
+  -w|--workspace   Define the workspace location.
+  -c|--config      Use the given configuration file.";
 
 version (unittest) {
 void main () {}
@@ -62,7 +64,8 @@ void main(string[] args)
     bool showHelp;
     bool showVersion;
     bool forceAction;
-    string wdir = getcwd ();
+    string wdir;
+    string configFname;
 
     // parse command-line options
     try {
@@ -71,7 +74,8 @@ void main(string[] args)
             "verbose", &verbose,
             "version", &showVersion,
             "force", &forceAction,
-            "workspace|w", &wdir);
+            "workspace|w", &wdir,
+            "config|c", &configFname);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
@@ -93,15 +97,24 @@ void main(string[] args)
     }
 
     auto conf = Config.get ();
+    if (configFname.empty) {
+        // if we don't have an explicit config file set, and also no
+        // workspace, take the current directory
+        if (wdir.empty)
+            wdir = getcwd ();
+        configFname = buildPath (wdir, "asgen-config.json");
+    }
+
     try {
-        conf.loadFromFile (buildPath (wdir, "asgen-config.json"));
+        conf.loadFromFile (configFname, wdir);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
     }
     scope (exit) {
-        import std.file;
-        if (exists (conf.getTmpDir ()))
+        // ensure we clean up when the generator is done
+        import std.file : rmdirRecurse, exists;
+        if (conf.getTmpDir.exists)
             rmdirRecurse (conf.getTmpDir ());
     }
 

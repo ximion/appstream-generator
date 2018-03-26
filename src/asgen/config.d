@@ -219,7 +219,7 @@ public:
         return (enabledFeatures & feature) > 0;
     }
 
-    void loadFromFile (string fname)
+    void loadFromFile (string fname, string enforcedWorkspaceDir = null)
     {
         // read the configuration JSON file
         auto f = File (fname, "r");
@@ -230,9 +230,17 @@ public:
 
         JSONValue root = parseJSON (jsonData);
 
-        workspaceDir = dirName (fname);
-        if (workspaceDir.empty)
-            workspaceDir = getcwd ();
+        if ("WorkspaceDir" in root) {
+            workspaceDir = root["WorkspaceDir"].str;
+        } else {
+            workspaceDir = dirName (fname);
+            if (workspaceDir.empty)
+                workspaceDir = getcwd ();
+        }
+
+        // allow overriding the workspace location
+        if (!enforcedWorkspaceDir.empty)
+            workspaceDir = enforcedWorkspaceDir;
 
         this.projectName = "Unknown";
         if ("ProjectName" in root)
