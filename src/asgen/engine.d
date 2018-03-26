@@ -117,9 +117,8 @@ public:
     private void gcCollect ()
     {
         static import core.memory;
-        logDebug ("Minimize GC collection cycle triggered explicitly.");
+        logDebug ("GC collection cycle triggered explicitly.");
         core.memory.GC.collect ();
-        core.memory.GC.minimize ();
     }
 
     /**
@@ -186,7 +185,7 @@ public:
         if (!suite.baseSuite.empty) {
             logInfo ("Scanning new packages for base suite %s/%s [%s]", suite.baseSuite, section, arch);
             auto baseSuitePkgs = pkgIndex.packagesFor (suite.baseSuite, section, arch);
-            foreach (ref pkg; parallel (baseSuitePkgs, 8)) {
+            foreach (ref pkg; parallel (baseSuitePkgs, 4)) {
                 immutable pkid = pkg.id;
 
                 if (!cstore.packageExists (pkid)) {
@@ -199,7 +198,7 @@ public:
         // And then scan the suite itself - here packages can be 'interesting'
         // in that they might end up in the output.
         auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-        foreach (ref pkg; parallel (pkgs, 8)) {
+        foreach (ref pkg; parallel (pkgs, 4)) {
             immutable pkid = pkg.id;
 
             string[] contents;
@@ -338,7 +337,7 @@ public:
         // collect metadata, icons and hints for the given packages
         bool firstHintEntry = true;
         logDebug ("Building final metadata and hints files.");
-        foreach (ref pkg; parallel (pkgs, 100)) {
+        foreach (ref pkg; parallel (pkgs, 10)) {
             immutable pkid = pkg.id;
             auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids !is null) {
