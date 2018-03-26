@@ -30,6 +30,7 @@ import std.variant;
 import std.parallelism;
 import std.typecons : scoped;
 import std.concurrency : Generator, yield;
+import containers : HashMap;
 import glib.KeyFile;
 import appstream.Component;
 import appstream.Icon;
@@ -220,15 +221,16 @@ private:
     string mediaExportPath;
 
     Theme[] themes;
-    Package[string] iconFiles;
+    HashMap!(string, Package) iconFiles;
     string[] themeNames;
 
 public:
 
-    this (string mediaPath, Package[string] pkgMap, string iconTheme = null)
+    this (string mediaPath, HashMap!(string, Package) pkgMap, string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
 
+        iconFiles = HashMap!(string, Package) (32);
         mediaExportPath = mediaPath;
 
         // Preseeded theme names.

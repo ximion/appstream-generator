@@ -26,7 +26,7 @@ import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
 import std.typecons : scoped, Nullable, Tuple;
-import containers : HashSet;
+import containers : HashSet, HashMap;
 static import std.file;
 import appstream.Component;
 
@@ -441,7 +441,7 @@ public:
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".xz", ArchiveType.XZ);
     }
 
-    private Package[string] getIconCandidatePackages (Suite suite, string section, string arch)
+    private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)
     {
         // always load the "main" and "universe" components, which contain most of the icon data
         // on Debian and Ubuntu.
@@ -459,7 +459,7 @@ public:
             pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
         pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
 
-        Package[string] pkgMap;
+        auto pkgMap = HashMap!(string, Package) (32);
         foreach (ref pkg; pkgs.data) {
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
@@ -666,7 +666,7 @@ public:
 
     void runCleanup ()
     {
-        auto pkgSet = HashSet!string(512);
+        auto pkgSet = HashSet!string(64);
 
         logInfo ("Cleaning up left over temporary data.");
         immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");

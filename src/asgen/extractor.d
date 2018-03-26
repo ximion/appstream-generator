@@ -25,6 +25,7 @@ import std.string;
 import std.path : baseName;
 import std.algorithm : canFind;
 import std.typecons : scoped;
+import containers : HashMap, DynamicArray;
 import appstream.Component;
 import appstream.Metadata;
 
@@ -65,8 +66,8 @@ public:
         auto gres = new GeneratorResult (pkg);
 
         // prepare a list of metadata files which interest us
-        string[string] desktopFiles;
-        string[] metadataFiles;
+        auto desktopFiles = HashMap!(string, string) (8);
+        DynamicArray!string metadataFiles;
         foreach (ref fname; pkg.contents) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
                 desktopFiles[baseName (fname)] = fname;
@@ -118,20 +119,20 @@ public:
                 for (uint i = 0; i < entries.len; i++) {
                     import std.string : fromStringz;
                     import std.conv : to;
-                    auto desktopId = (cast(char*) entries.index (i)).fromStringz;
+                    immutable desktopId = to!string ((cast(char*) entries.index (i)).fromStringz);
 
-                    auto dfP = desktopId in desktopFiles;
-                    if (dfP is null) {
-                        gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId.to!string]);
+                    immutable string df = desktopFiles.get (desktopId, null);
+                    if (df.empty) {
+                        gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId]);
                     } else if (i == 0) {
                         // always only try to merge in the first .desktop-ID, because if there are multiple
                         // launchables defined, the component *must* not depend on the data in one
                         // single .desktop file anyway.
 
                         // update component with .desktop file data, ignoring NoDisplay field
-                        auto ddataBytes = pkg.getFileData (*dfP);
+                        auto ddataBytes = pkg.getFileData (df);
                         auto ddata = cast(string) ddataBytes;
-                        parseDesktopFile (gres, *dfP, ddata, true);
+                        parseDesktopFile (gres, df, ddata, true);
 
                         // update GCID checksum
                         gres.updateComponentGCID (cpt, ddata);
