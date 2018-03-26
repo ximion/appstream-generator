@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -23,8 +23,9 @@ import std.stdio;
 import std.path;
 import std.string;
 import std.algorithm : remove;
-import std.array : appender;
+import std.array : appender, array;
 import std.conv : to;
+import containers : HashMap, HashSet;
 static import std.file;
 
 import asgen.logging;
@@ -41,7 +42,7 @@ class DebianPackageIndex : PackageIndex
 
 private:
     string rootDir;
-    Package[][string] pkgCache;
+    HashMap!(string, Package[]) pkgCache;
     bool[string] indexChanged;
 
 protected:
@@ -51,6 +52,7 @@ public:
 
     this (string dir)
     {
+        pkgCache = HashMap!(string, Package[]) (128);
         this.rootDir = dir;
         if (!dir.isRemote && !std.file.exists (dir))
             throw new Exception ("Directory '%s' does not exist.".format (dir));
@@ -61,7 +63,7 @@ public:
 
     final void release ()
     {
-        pkgCache = null;
+        pkgCache = HashMap!(string, Package[]) (16);
         indexChanged = null;
     }
 
@@ -71,7 +73,7 @@ public:
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
         auto translationregex = r"%s/i18n/Translation-(\w+)$".format (section).regex;
-        bool[string] ret;
+        auto ret = HashSet!string (32);
 
         try {
             synchronized (this) {
@@ -83,7 +85,7 @@ public:
                     if (match.empty)
                         continue;
 
-                    ret[match[1]] = true;
+                    ret.put (match[1]);
                 }
             }
         } catch (Exception ex) {
@@ -91,10 +93,10 @@ public:
             return ["en"];
         }
 
-        return cast(immutable) ret.keys;
+        return cast(immutable) array (ret[]);
     }
 
-    private final void loadPackageLongDescs (DebPackage[string] pkgs, string suite, string section)
+    private final void loadPackageLongDescs (ref HashMap!(string, DebPackage) pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
 
@@ -133,8 +135,8 @@ public:
                 if (!rawDesc)
                     continue;
 
-                auto pkgP = (pkgname in pkgs);
-                if (pkgP is null)
+                auto pkg = pkgs.get (pkgname, null);
+                if (pkg is null)
                     continue;
 
                 auto split = rawDesc.split ("\n");
@@ -143,9 +145,9 @@ public:
 
 
                 if (lang == "en")
-                    (*pkgP).setSummary (split[0], "C");
+                    pkg.setSummary (split[0], "C");
 
-                (*pkgP).setSummary (split[0], lang);
+                pkg.setSummary (split[0], lang);
 
                 // NOTE: .remove() removes the element, but does not alter the
                 // length of the array. Bug?  (this is why we slice the array
@@ -174,9 +176,9 @@ public:
                 description ~= "</p>";
 
                 if (lang == "en")
-                    (*pkgP).setDescription (description.data, "C");
+                    pkg.setDescription (description.data, "C");
 
-                (*pkgP).setDescription (description.data, lang);
+                pkg.setDescription (description.data, lang);
             } while (tagf.nextSection ());
         }
     }
@@ -207,7 +209,7 @@ public:
         tagf.open (indexFname);
         logDebug ("Opened: %s", indexFname);
 
-        DebPackage[string] pkgs;
+        auto pkgs = HashMap!(string, DebPackage) (128);
         do {
             import std.algorithm : map;
             import std.array : array;
@@ -250,9 +252,8 @@ public:
             }
 
             // filter out the most recent package version in the packages list
-            auto epkgP = name in pkgs;
-            if (epkgP !is null) {
-                auto epkg = *epkgP;
+            auto epkg = pkgs.get (name, null);
+            if (epkg !is null) {
                 if (compareVersions (epkg.ver, pkg.ver) > 0)
                     continue;
             }
