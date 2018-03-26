@@ -48,8 +48,8 @@ private:
     string[] contentsL;
 
     string tmpDir;
-    string dataArchive;
-    string controlArchive;
+    ArchiveDecompressor controlArchive;
+    ArchiveDecompressor dataArchive;
 
     string debFname;
 
@@ -112,26 +112,23 @@ public:
 
     private auto openPayloadArchive ()
     {
-        auto pa = new ArchiveDecompressor ();
-        if (!dataArchive) {
-            import std.regex;
+        import std.regex;
 
-            // extract the payload to a temporary location first
-            pa.open (this.filename);
-            mkdirRecurse (tmpDir);
+        if (dataArchive.isOpen)
+            return dataArchive;
 
-            string[] files;
-            try {
-                files = pa.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
-            } catch (Exception e) { throw e; }
+        ArchiveDecompressor ad;
+        // extract the payload to a temporary location first
+        ad.open (this.filename);
+        mkdirRecurse (tmpDir);
 
-            if (files.length == 0)
-                return null;
-            dataArchive = files[0];
-        }
+        auto files = ad.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
+        if (files.length == 0)
+            throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.filename));
+        immutable dataArchiveFname = files[0];
 
-        pa.open (dataArchive);
-        return pa;
+        dataArchive.open (dataArchiveFname);
+        return dataArchive;
     }
 
     protected final void extractPackage (const string dest = buildPath (tmpDir, name))
@@ -148,26 +145,23 @@ public:
 
     private final auto openControlArchive ()
     {
-        auto ca = new ArchiveDecompressor ();
-        if (!controlArchive) {
-            import std.regex;
+        import std.regex;
 
-            // extract the payload to a temporary location first
-            ca.open (this.filename);
-            mkdirRecurse (tmpDir);
+        if (controlArchive.isOpen)
+            return controlArchive;
 
-            string[] files;
-            try {
-                files = ca.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
-            } catch (Exception e) { throw e; }
+        ArchiveDecompressor ad;
+        // extract the payload to a temporary location first
+        ad.open (this.filename);
+        mkdirRecurse (tmpDir);
 
-            if (files.empty)
-                return null;
-            controlArchive = files[0];
-        }
+        auto files = ad.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
+        if (files.empty)
+            throw new Exception ("Unable to find control data in Debian package: %s".format (this.filename));
+        immutable controlArchiveFname = files[0];
 
-        ca.open (controlArchive);
-        return ca;
+        controlArchive.open (controlArchiveFname);
+        return controlArchive;
     }
 
     override final
@@ -235,11 +229,12 @@ public:
     override final
     void close ()
     {
+        controlArchive.close ();
+        dataArchive.close ();
+
         try {
             if (std.file.exists (tmpDir))
                 rmdirRecurse (tmpDir);
-            dataArchive = null;
-            controlArchive = null;
         } catch (Throwable) {
             // we ignore any error
         }

@@ -217,6 +217,11 @@ public:
         return archive_fname !is null;
     }
 
+    void close ()
+    {
+        archive_fname = null;
+    }
+
     bool extractFileTo (string fname, string fdest)
     {
         archive_entry *en;
@@ -590,7 +595,7 @@ unittest
 
     auto archive = buildPath (getTestSamplesDir (), "test.tar.xz");
     assert (std.file.exists (archive));
-    auto ar = new ArchiveDecompressor ();
+    ArchiveDecompressor ar;
 
     auto tmpdir = buildPath (tempDir, "asgenXXXXXX");
     auto ctmpdir = new char[](tmpdir.length + 1);

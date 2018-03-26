@@ -73,7 +73,7 @@ public:
             return [];
         }
 
-        auto ad = new ArchiveDecompressor ();
+        ArchiveDecompressor ad;
         ad.open (listsTarFname);
         logDebug ("Opened: %s", listsTarFname);
 

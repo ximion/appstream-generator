@@ -141,7 +141,7 @@ public:
                 logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
             }
 
-            // we don't need this package anymore
+            // we don't need content data from this package anymore
             pkg.close ();
         }
     }
