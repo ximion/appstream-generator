@@ -174,6 +174,17 @@ interface PackageIndex
                            string arch);
 
     /**
+     * Get an abstract package representation for a physical package
+     * file. A suite name and section name is obviously given.
+     * This function is used in case only processing of one particular
+     * package is requested.
+     * Backends should return null if the feature is not implemented.
+     **/
+    Package packageForFile (string fname,
+                            string suite = null,
+                            string section = null);
+
+    /**
      * Check if the index for the given suite/section/arch triplet has changed since
      * the last generator run. The index can use the (get/set)RepoInfo methods on DataCache
      * to store mtime or checksum data for the given suite.

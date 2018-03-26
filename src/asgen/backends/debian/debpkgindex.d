@@ -279,6 +279,11 @@ public:
         return pkgCache[id];
     }
 
+    Package packageForFile (string fname, string suite = null, string section = null)
+    {
+        return null; // FIXME: not implemented
+    }
+
     final bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         import std.json;

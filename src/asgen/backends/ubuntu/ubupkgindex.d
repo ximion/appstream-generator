@@ -71,4 +71,10 @@ public:
 
         return pkgs;
     }
+
+    override
+    Package packageForFile (string fname, string suite = null, string section = null)
+    {
+        return null; // FIXME: not implemented
+    }
 }

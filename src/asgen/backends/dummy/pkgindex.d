@@ -51,6 +51,11 @@ public:
         return [new DummyPackage ("test", "1.0", "amd64")];
     }
 
+    Package packageForFile (string fname, string suite = null, string section = null)
+    {
+        return null; // FIXME: not implemented
+    }
+
     bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         return true;
