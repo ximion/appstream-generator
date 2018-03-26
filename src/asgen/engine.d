@@ -576,7 +576,7 @@ public:
      */
     void run (string suiteName)
     {
-        // fetch suite an exit in case we can't write to it.
+        // fetch suite and exit in case we can't write to it.
         // the `checkSuiteUsable` method will print an error
         // message in case the suite isn't usable.
         auto suiteTuple = checkSuiteUsable (suiteName);
@@ -604,7 +604,7 @@ public:
      */
     void run (string suiteName, string sectionName)
     {
-        // fetch suite an exit in case we can't write to it.
+        // fetch suite and exit in case we can't write to it.
         // the `checkSuiteUsable` method will print an error
         // message in case the suite isn't usable.
         auto suiteTuple = checkSuiteUsable (suiteName);
@@ -628,6 +628,93 @@ public:
         reportgen.updateIndexPages ();
         if (dataChanged)
             reportgen.exportStatistics ();
+    }
+
+    /**
+     * Export data and hints for a specific section in a suite.
+     */
+    private void publishMetadataForSuiteSection (Suite suite, const string section, ReportGenerator rgen)
+    {
+        ReportGenerator reportgen = rgen;
+        if (reportgen is null)
+            reportgen = new ReportGenerator (dstore);
+
+        auto sectionPkgs = appender!(Package[]);
+        auto iconTarBuilt = false;
+        foreach (ref arch; suite.architectures) {
+            // process new packages
+            auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+
+            // export package data
+            exportData (suite, section, arch, pkgs, !iconTarBuilt);
+            iconTarBuilt = true;
+
+            // we store the package info over all architectures to generate reports later
+            sectionPkgs.reserve (sectionPkgs.capacity + pkgs.length);
+            sectionPkgs ~= pkgs;
+
+            // log progress
+            logInfo ("Completed publishing of data for %s/%s [%s]", suite.name, section, arch);
+        }
+
+        // write reports & statistics and render HTML, if that option is selected
+        reportgen.processFor (suite.name, section, sectionPkgs.data);
+
+        // do garbage collection run now.
+        // we might have allocated very big chunks of memory during this iteration,
+        // that we can (mostly) free now - on some machines, the GC runs too late,
+        // making the system run out of memory, which ultimately gets us OOM-killed.
+        // we don't like that, and give the GC a hint to do the right thing.
+        pkgIndex.release ();
+        gcCollect ();
+    }
+
+    /**
+     * Run the metadata publishing step only, for a suite and all of its sections.
+     */
+    void publish (string suiteName)
+    {
+        // fetch suite and exit in case we can't write to it.
+        auto suiteTuple = checkSuiteUsable (suiteName);
+        if (!suiteTuple.suiteUsable)
+            return;
+        auto suite = suiteTuple.suite;
+
+        auto reportgen = new ReportGenerator (dstore);
+        foreach (ref section; suite.sections)
+            publishMetadataForSuiteSection (suite, section, reportgen);
+
+        // render index pages & statistics
+        reportgen.updateIndexPages ();
+        reportgen.exportStatistics ();
+    }
+
+    /**
+     * Run the metadata publishing step only, on a single section of a suite.
+     */
+    void publish (string suiteName, string sectionName)
+    {
+        // fetch suite an exit in case we can't write to it.
+        auto suiteTuple = checkSuiteUsable (suiteName);
+        if (!suiteTuple.suiteUsable)
+            return;
+        auto suite = suiteTuple.suite;
+
+        bool sectionValid = false;
+        foreach (ref section; suite.sections)
+            if (section == sectionName)
+                sectionValid = true;
+        if (!sectionValid) {
+            logError ("Section '%s' does not exist in suite '%s'. Can not continue.".format (sectionName, suite.name));
+            return;
+        }
+
+        auto reportgen = new ReportGenerator (dstore);
+        publishMetadataForSuiteSection (suite, sectionName, reportgen);
+
+        // render index pages & statistics
+        reportgen.updateIndexPages ();
+        reportgen.exportStatistics ();
     }
 
     private void cleanupStatistics ()

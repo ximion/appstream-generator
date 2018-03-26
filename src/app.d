@@ -126,22 +126,34 @@ void main(string[] args)
     auto engine = new Engine ();
     engine.forced = forceAction;
 
+    void ensureSuiteAndOrSectionParameterSet ()
+    {
+        if (args.length < 3) {
+            writeln ("Invalid number of parameters: You need to specify at least a suite name.");
+            exit (1);
+        }
+        if (args.length > 4) {
+            writeln ("Invalid number of parameters: You need to specify a suite name and (optionally) a section name.");
+            exit (1);
+        }
+    }
+
     command = args[1];
     switch (command) {
         case "run":
         case "process":
-            if (args.length < 3) {
-                writeln ("Invalid number of parameters: You need to specify at least a suite name.");
-                exit (1);
-            }
-            if (args.length > 4) {
-                writeln ("Invalid number of parameters: You need to specify a suite name and (optionally) a section name.");
-                exit (1);
-            }
+            ensureSuiteAndOrSectionParameterSet ();
             if (args.length == 3)
                 engine.run (args[2]);
             else
                 engine.run (args[2], args[3]);
+            break;
+        case "publish":
+            ensureSuiteAndOrSectionParameterSet ();
+            if (args.length == 3)
+                engine.publish (args[2]);
+            else
+                engine.publish (args[2], args[3]);
             break;
         case "cleanup":
             engine.runCleanup ();
