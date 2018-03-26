@@ -148,6 +148,13 @@ void main(string[] args)
             else
                 engine.run (args[2], args[3]);
             break;
+        case "process-file":
+            if (args.length < 5) {
+                writeln ("Invalid number of parameters: You need to specify a suite name, a section name and at least one file to process.");
+                exit (1);
+            }
+            engine.processFile (args[2], args[3], args[4..$]);
+            break;
         case "publish":
             ensureSuiteAndOrSectionParameterSet ();
             if (args.length == 3)

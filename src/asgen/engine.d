@@ -26,6 +26,7 @@ import std.path : buildPath, buildNormalizedPath;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
 import std.typecons : scoped, Nullable, Tuple;
+import std.conv : to;
 import containers : HashSet, HashMap;
 static import std.file;
 import appstream.Component;
@@ -153,7 +154,7 @@ public:
      *
      * Returns: True in case we have new interesting packages, false otherwise.
      **/
-    private bool seedContentsData (Suite suite, string section, string arch)
+    private bool seedContentsData (Suite suite, string section, string arch, Package[] pkgs = [])
     {
         bool packageInteresting (Package pkg)
         {
@@ -171,12 +172,15 @@ public:
         }
 
         // check if the index has changed data, skip the update if there's nothing new
-        if ((!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced)) {
+        if ((!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced) && (pkgs.empty)) {
             logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
             return false;
         }
 
         logInfo ("Scanning new packages for %s/%s [%s]", suite.name, section, arch);
+
+        if (pkgs.empty)
+            pkgs = pkgIndex.packagesFor (suite.name, section, arch);
 
         // get contents information for packages and add them to the database
         auto interestingFound = false;
@@ -197,7 +201,6 @@ public:
 
         // And then scan the suite itself - here packages can be 'interesting'
         // in that they might end up in the output.
-        auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
         foreach (ref pkg; parallel (pkgs, 4)) {
             immutable pkid = pkg.id;
 
@@ -545,8 +548,11 @@ public:
                 break;
             }
         }
-        if (!suiteFound)
+
+        if (!suiteFound) {
+            logError ("Suite '%s' was not found.", suiteName);
             return res;
+        }
 
         if (res.suite.isImmutable) {
             // we also can't process anything if there are no architectures defined
@@ -569,6 +575,61 @@ public:
         // if we are here, we can process this suite
         res.suiteUsable = true;
         return res;
+    }
+
+    bool processFile (string suiteName, string sectionName, string[] files)
+    {
+        // fetch suite and exit in case we can't write to it.
+        auto suiteTuple = checkSuiteUsable (suiteName);
+        if (!suiteTuple.suiteUsable)
+            return false;
+        auto suite = suiteTuple.suite;
+
+        bool sectionValid = false;
+        foreach (ref section; suite.sections)
+            if (section == sectionName)
+                sectionValid = true;
+        if (!sectionValid) {
+            logError ("Section '%s' does not exist in suite '%s'. Can not continue.".format (sectionName, suite.name));
+            return false;
+        }
+
+        auto pkgByArch = HashMap!(string, Appender!(Package[])) (16);
+        foreach (fname; files) {
+            auto pkg = pkgIndex.packageForFile (fname, suiteName, sectionName);
+            if (pkg is null) {
+                logError ("Could not get package representation for file '%s' from backend '%s': The backend might not support this feature.", fname, conf.backend.to!string);
+                return false;
+            }
+            auto pkgsP = pkg.arch in pkgByArch;
+            if (pkgsP is null) {
+                pkgByArch[pkg.arch] = appender!(Package[]);
+                pkgsP = pkg.arch in pkgByArch;
+            }
+            (*pkgsP) ~= pkg;
+        }
+
+        foreach (arch; pkgByArch.keys) {
+            auto pkgs = pkgByArch[arch];
+
+            // update package contents information and flag boring packages as ignored
+            immutable foundInteresting = seedContentsData (suite, sectionName, arch, pkgs.data);
+
+            // check if the suite/section/arch has actually changed
+            if (!foundInteresting) {
+                logInfo ("Skipping %s/%s [%s], no interesting new packages.", suite.name, sectionName, arch);
+                continue;
+            }
+
+            // process new packages
+            auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+                                             getIconCandidatePackages (suite, sectionName, arch),
+                                             suite.iconTheme);
+            auto pkgsList = pkgs.data;
+            processPackages (pkgsList, iconh);
+        }
+
+        return true;
     }
 
     /**
