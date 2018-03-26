@@ -54,6 +54,7 @@ private string readArchiveData (archive *ar, string name = null)
     size_t size;
     char[GENERIC_BUFFER_SIZE] buff;
     auto data = appender!string;
+    data.reserve (GENERIC_BUFFER_SIZE / 4);
 
     ret = archive_read_next_header (ar, &ae);
 
@@ -134,6 +135,7 @@ private:
         size_t size = 0UL;
         long offset = 0;
         auto res = appender!(ubyte[]);
+        res.reserve (GENERIC_BUFFER_SIZE / 4);
 
         while (archive_read_data_block (ar, &buff, &size, &offset) == ARCHIVE_OK) {
             res ~= cast(ubyte[]) buff[0..size];
@@ -351,6 +353,7 @@ public:
         scope (exit) archive_read_free (ar);
 
         auto contents = appender!(string[]);
+        contents.reserve (20);
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
 

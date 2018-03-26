@@ -200,10 +200,9 @@ public:
 
         if (conf.featureEnabled (GeneratorFeature.PROCESS_GSTREAMER) && pkg.gst.isNotEmpty) {
             auto data = appender!string;
-            auto cpt = new Component ();
-
             data.reserve(512);
 
+            auto cpt = new Component ();
             cpt.setId (pkg.name);
             cpt.setKind (ComponentKind.CODEC);
             cpt.setName ("GStreamer Multimedia Codecs", "C");

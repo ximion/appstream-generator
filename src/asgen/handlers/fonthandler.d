@@ -92,6 +92,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     auto provided = cpt.getProvidedForKind (ProvidedKind.FONT);
     if (provided !is null) {
         auto fontHintsArr = provided.getItems ();
+        fontHints.reserve (fontHintsArr.len);
 
         for (uint i = 0; i < fontHintsArr.len; i++) {
             auto fontFullName = (cast(char*) fontHintsArr.index (i)).fromStringz;
@@ -107,12 +108,14 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     // we found n this package.
     auto selectedFonts = appender!(Font[]);
     if (fontHints.data.length == 0) {
+        selectedFonts.reserve (allFonts.length);
         foreach (ref font; allFonts.byValue)
             selectedFonts ~= font;
     } else {
         // find fonts based on the hints we have
         // the hint as well as the dictionary keys are all lowercased, so we
         // can do case-insensitive matching here.
+        selectedFonts.reserve (fontHints.data.length);
         foreach (ref fontHint; fontHints.data) {
             auto fontP = fontHint in allFonts;
             if (fontP is null)

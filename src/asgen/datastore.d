@@ -405,6 +405,7 @@ public:
             return null;
 
         auto res = appender!(string[]);
+        res.reserve (gcids.length);
         foreach (cid; gcids) {
             auto data = getMetadata (dtype, cid);
             if (!data.empty)
@@ -614,6 +615,7 @@ public:
         checkError (res, "mdb_cursor_open (stats)");
 
         auto stats = appender!(StatisticsEntry[]);
+        stats.reserve (128);
         while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
             auto jsonData = to!string (fromStringz (cast(char*) dval.mv_data));
             auto timestamp = *(cast(size_t*) dkey.mv_data);

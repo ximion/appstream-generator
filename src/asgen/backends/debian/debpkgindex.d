@@ -157,6 +157,7 @@ public:
                 // TODO: We actually need a Markdown-ish parser here if we want
                 // to support listings in package descriptions properly.
                 auto description = appender!string;
+                description.reserve (80);
                 description ~= "<p>";
                 bool first = true;
                 foreach (l; split) {

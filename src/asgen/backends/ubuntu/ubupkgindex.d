@@ -60,6 +60,7 @@ public:
 
         auto pkgs = super.packagesFor (suite, section, arch);
         auto pkgslangpacks = appender!(Package[]);
+        pkgslangpacks.reserve (32);
 
         foreach (ref pkg; pkgs) {
                 if (pkg.name.startsWith ("language-pack-"))

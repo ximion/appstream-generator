@@ -123,6 +123,8 @@ public:
 
         // perform a sanity check, so we will never emit invalid packages
         auto pkgs = appender!(Package[]);
+        if (pkgsMap.length > 20)
+            pkgs.reserve (pkgsMap.length - 10);
         foreach (ref pkg; pkgsMap.byValue ()) {
             if (pkg.isValid)
                 pkgs ~= pkg;

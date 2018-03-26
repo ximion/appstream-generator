@@ -300,7 +300,7 @@ public:
 
         // reserve some space for our data
         mdataFile.reserve (pkgs.length / 2);
-        hintsFile.reserve (240);
+        hintsFile.reserve (512);
 
         // prepare hints file
         hintsFile ~= "[";
@@ -319,10 +319,12 @@ public:
         mkdirRecurse (hintsExportDir);
 
         // prepare icon-tarball array
-        Appender!(immutable(string)[])[string] iconTarFiles;
+        HashMap!(string, Appender!(immutable(string)[])) iconTarFiles;
         if (withIconTar) {
             foreach (ref size; wantedIconSizes) {
-                iconTarFiles[size.toString] = appender!(immutable(string)[]);
+                auto ia = appender!(immutable(string)[]);
+                ia.reserve (8);
+                iconTarFiles[size.toString] = ia;
             }
         }
 
@@ -502,6 +504,7 @@ public:
             suiteDataChanged = true;
 
             // we store the package info over all architectures to generate reports later
+            sectionPkgs.reserve (sectionPkgs.capacity + pkgs.length);
             sectionPkgs ~= pkgs;
 
             // log progress

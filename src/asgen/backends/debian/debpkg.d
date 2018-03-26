@@ -213,6 +213,7 @@ public:
         }
 
         auto contentsAppender = appender!(string[]);
+        contentsAppender.reserve (20);
         foreach (line; md5sums.splitLines ()) {
             auto parts = line.split ("  ");
             if (parts.length <= 0)
