@@ -838,10 +838,11 @@ public:
                 continue; // data from immutable suites is ignored
 
             foreach (ref section; suite.sections) {
-                foreach (ref arch; parallel (suite.architectures)) {
+                foreach (ref arch; suite.architectures) {
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
                     if (!suite.baseSuite.empty)
                         pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
+
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
                             pkgSet.put (pkg.id);
@@ -849,9 +850,11 @@ public:
 
                         // free some memory
                         pkgIndex.release ();
-                        gcCollect ();
                     }
                 }
+
+                // trigger a GC collection cycle, to ensure we free memory
+                gcCollect ();
             }
 
         }
