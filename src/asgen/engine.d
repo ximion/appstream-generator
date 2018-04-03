@@ -846,13 +846,14 @@ public:
                         foreach (ref pkg; pkgs) {
                             pkgSet.put (pkg.id);
                         }
+
+                        // free some memory
+                        pkgIndex.release ();
+                        gcCollect ();
                     }
                 }
-
-                // free some memory
-                pkgIndex.release ();
-                gcCollect ();
             }
+
         }
 
         // release index resources
