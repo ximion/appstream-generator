@@ -34,8 +34,7 @@ RUN apt-get install -yq --no-install-recommends \
     libpango1.0-dev
 
 # JavaScript stuff
-RUN apt-get install -yq --no-install-recommends \
-    nodejs nodejs-legacy
+RUN apt-get install -yq --no-install-recommends nodejs
 RUN git clone --depth=1 https://github.com/npm/npm.git
 RUN cd npm && make install
 RUN rm -rf npm
