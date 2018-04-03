@@ -834,6 +834,9 @@ public:
         logInfo ("Collecting information.");
         // build a set of all valid packages
         foreach (ref suite; conf.suites) {
+            if (suite.isImmutable)
+                continue; // data from immutable suites is ignored
+
             foreach (ref section; suite.sections) {
                 foreach (ref arch; parallel (suite.architectures)) {
                     auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
