@@ -24,6 +24,7 @@ import std.string;
 import std.array : empty;
 import std.conv : to;
 import std.json;
+import containers : HashMap;
 import appstream.Component;
 
 import asgen.hint;
@@ -54,8 +55,8 @@ final class GeneratorResult
 private:
     Component[string] cpts;
     string[Component] cptGCID;
-    string[string] mdataHashes;
-    HintList[string] hints;
+    HashMap!(string, string) mdataHashes;
+    HashMap!(string, HintList) hints;
 
 public:
     immutable string pkid;
@@ -69,6 +70,9 @@ public:
         this.pkid = pkg.id;
         this.pkgname = pkg.name;
         this.pkg = pkg;
+
+        mdataHashes = HashMap!(string, string) (2);
+        hints = HashMap!(string, HintList) (2);
     }
 
     @safe
