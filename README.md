@@ -29,7 +29,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * FreeType
  * Fontconfig
  * Pango
- * Bower (optional) [8]
+ * Yarn (optional) [8]
 
 [1]: https://github.com/ldc-developers/ldc/releases
 [2]: http://mesonbuild.com/
@@ -38,7 +38,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 [5]: http://symas.com/mdb/
 [6]: https://github.com/repeatedly/mustache-d
 [7]: https://github.com/gtkd-developers/GIR-D-Generator
-[8]: http://bower.io/
+[8]: https://yarnpkg.com/
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession

@@ -77,11 +77,12 @@ girbind_lib = static_library('girbindings',
 # Download JS stuff and additional sources if we couldn't find them
 #
 if get_option('download-js')
+    find_program('yarn') # check for the yarn executable
     message('Downloading JavaScript libraries...')
     if run_command('[', '-d', 'data/templates/default/static/js', ']').returncode() != 0
         getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh'])
         if getjs_cmd.returncode() != 0
-            error('Unable to download JavaScript files with Bower:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+            error('Unable to download JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
         endif
     endif
 endif

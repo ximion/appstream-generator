@@ -34,11 +34,10 @@ RUN apt-get install -yq --no-install-recommends \
     libpango1.0-dev
 
 # JavaScript stuff
-RUN apt-get install -yq --no-install-recommends nodejs
-RUN git clone --depth=1 https://github.com/npm/npm.git
-RUN cd npm && make install
-RUN rm -rf npm
-RUN npm install -g bower
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+RUN apt-get update -qq
+RUN apt-get install -yq --no-install-recommends nodejs yarn
 
 # build & install the current Git snapshot of AppStream
 RUN mkdir /build-tmp
