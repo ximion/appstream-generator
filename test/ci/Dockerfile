@@ -1,7 +1,7 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM debian:buster
+FROM debian:unstable
 
 # prepare
 RUN apt-get update -qq
