@@ -16,10 +16,10 @@ meson --version
 #
 mkdir -p build && cd build
 meson -Ddownload-js=true ..
-ninja
+ninja -j8
 
 # Run tests
-./asgen_test
+ninja test -v
 
 # Test install
 DESTDIR=/tmp/install-ninja ninja install
