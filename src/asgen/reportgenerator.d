@@ -440,7 +440,6 @@ public:
         secIndexCtx["warning_count"] = dsum.totalWarnings;
         secIndexCtx["info_count"] = dsum.totalInfos;
 
-
         renderPage ("section_page", secIndexExportName, secIndexCtx);
     }
 
@@ -513,6 +512,7 @@ public:
 
                     if (cpt !is null) {
                         auto iconsArr = cpt.getIcons ();
+                        assert (iconsArr !is null);
                         for (uint i = 0; i < iconsArr.len; i++) {
                             import appstream.Icon;
                             auto icon = scoped!Icon (cast (AsIcon*) iconsArr.index (i));
