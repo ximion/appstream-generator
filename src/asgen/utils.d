@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -68,6 +68,29 @@ struct ImageSize
         width = s;
         height = s;
         scale = 1;
+    }
+
+    this (string str)
+    {
+        width = -1;
+        height = -1;
+        scale = -1;
+
+        immutable sep = str.indexOf ("x");
+        if (sep <= 0)
+            return;
+
+        immutable scaleSep = str.indexOf ("@");
+        width = str[0..sep].to!uint;
+        if (scaleSep <= 0) {
+            scale = 1;
+            height = str[sep+1..$].to!uint;
+        } else {
+            if (scaleSep == str.length)
+                throw new Exception ("Image size string must not end with '@'.");
+            height = str[sep+1..scaleSep].to!uint;
+            scale = str[scaleSep+1..$].to!uint;
+        }
     }
 
     string toString () const
@@ -536,6 +559,7 @@ Nullable!Icon componentGetStockIcon (ref Component cpt)
 
 unittest
 {
+    import std.exception : assertThrown;
     writeln ("TEST: ", "GCID");
 
     assert (buildCptGlobalID ("foobar.desktop", "DEADBEEF") == "f/fo/foobar.desktop/DEADBEEF");
@@ -552,6 +576,12 @@ unittest
     assert (ImageSize (1024, 420).toInt () == 1024);
     assert (ImageSize (1024, 800) > ImageSize (64, 32));
     assert (ImageSize (48) < ImageSize (64));
+
+    assert (ImageSize ("64x64") == ImageSize (64));
+    assert (ImageSize ("64x64@2") == ImageSize (64, 64, 2));
+    assert (ImageSize ("128x128@2") == ImageSize (128, 128, 2));
+    assertThrown!Exception(ImageSize ("48x48@"));
+    assert (ImageSize ("x23@2").height == -1);
 
     assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
 

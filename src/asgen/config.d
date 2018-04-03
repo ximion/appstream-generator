@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -30,7 +30,7 @@ static import std.file;
 
 public import appstream.c.types : FormatVersion;
 
-import asgen.utils : existsAndIsDir, randomString;
+import asgen.utils : existsAndIsDir, randomString, ImageSize;
 import asgen.logging;
 import asgen.defines : DATADIR;
 
@@ -71,6 +71,9 @@ enum Backend
     RpmMd
 }
 
+/**
+ * Generator features that can be toggled by the user.
+ */
 enum GeneratorFeature
 {
     NONE = 0,
@@ -85,6 +88,31 @@ enum GeneratorFeature
     PROCESS_GSTREAMER   = 1 << 8,
 }
 
+/// A list of valid icon sizes that we recognize in AppStream
+public immutable allowedIconSizes  = [ImageSize (48),  ImageSize (48, 48, 2),
+                                      ImageSize (64),  ImageSize (64, 64, 2),
+                                      ImageSize (128), ImageSize (128, 128, 2)];
+
+/**
+ * Policy on a single icon size.
+ */
+struct IconPolicy
+{
+    ImageSize iconSize; /// Size of the icon this policy is about
+    bool storeCached;   /// True if the icon should be stored in an icon tarball and be cached locally.
+    bool storeRemote;   /// True if this icon should be stored remotely and fetched on demand
+
+    this (ImageSize size, bool cached, bool remote)
+    {
+        iconSize = size;
+        storeCached = cached;
+        storeRemote = remote;
+    }
+}
+
+/**
+ * The global configuration for the metadata generator.
+ */
 final class Config
 {
 private:
@@ -122,6 +150,8 @@ public:
     string hintsExportDir;
     string mediaExportDir;
     string htmlExportDir;
+
+    IconPolicy[] iconSettings;
 
     string caInfo;
 
@@ -372,6 +402,66 @@ public:
             import std.algorithm.iteration : map;
 
             oldsuites = map!"a.str"(root["Oldsuites"].array).array;
+        }
+
+        // icon policy
+        if ("Icons" in root.object) {
+            import std.algorithm : canFind;
+
+            iconSettings.reserve (4);
+            auto iconsObj = root["Icons"].object;
+            foreach (iconString; iconsObj.byKey) {
+                auto iconObj = iconsObj[iconString];
+
+                IconPolicy ipolicy;
+                ipolicy.iconSize = ImageSize (iconString);
+                if (!allowedIconSizes.canFind (ipolicy.iconSize)) {
+                    logError ("Invalid icon size '%s' selected in configuration, icon policy has been ignored.", iconString);
+                    continue;
+                }
+                if (ipolicy.iconSize.width < 0) {
+                    logError ("Malformed icon size '%s' found in configuration, icon policy has been ignored.", iconString);
+                    continue;
+                }
+
+                if ("remote" in iconObj)
+                    ipolicy.storeRemote = iconObj["remote"].type == JSON_TYPE.TRUE;
+                if ("cached" in iconObj)
+                    ipolicy.storeCached = iconObj["cached"].type == JSON_TYPE.TRUE;
+
+                iconSettings ~= ipolicy;
+            }
+
+            // Sanity check
+            bool defaultSizeFound = false;
+            foreach (ref ipolicy; iconSettings) {
+                if (ipolicy.iconSize == ImageSize (64)) {
+                    defaultSizeFound = true;
+                    if (!ipolicy.storeCached) {
+                        logError ("The icon size 64x64 must always be present and be allowed to be cached. Configuration has been adjusted.");
+                        ipolicy.storeCached = true;
+                        break;
+                    }
+                }
+            }
+            if (!defaultSizeFound) {
+                logError ("The icon size 64x64 must always be present and be allowed to be cached. Configuration has been adjusted.");
+                IconPolicy ipolicy;
+                ipolicy.iconSize = ImageSize (64);
+                ipolicy.storeCached = true;
+                iconSettings ~= ipolicy;
+            }
+
+        } else {
+            // no explicit icon policy was given, so we use a default policy
+
+            iconSettings.reserve (6);
+            iconSettings ~= IconPolicy (ImageSize (48), true, false);
+            iconSettings ~= IconPolicy (ImageSize (48, 48, 2), true, false);
+            iconSettings ~= IconPolicy (ImageSize (64), true, false);
+            iconSettings ~= IconPolicy (ImageSize (64, 64, 2), true, false);
+            iconSettings ~= IconPolicy (ImageSize (128), true, true);
+            iconSettings ~= IconPolicy (ImageSize (128, 128, 2), true, true);
         }
 
         if ("AllowedCustomKeys" in root.object)
