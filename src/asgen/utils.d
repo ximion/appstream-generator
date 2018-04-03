@@ -345,9 +345,14 @@ S escapeXml (S) (S s) pure
 @safe
 string getDataPath (string fname)
 {
-    import std.path;
-    auto resPath = buildPath (DATADIR, fname);
+    import std.path : buildNormalizedPath, dirName;
 
+    // useful for testing
+    auto resPath = buildNormalizedPath (std.file.thisExePath.dirName, "..", "..", "..", "data", fname);
+    if (std.file.exists (resPath))
+        return resPath;
+
+    resPath = buildPath (DATADIR, fname);
     if (std.file.exists (resPath))
         return resPath;
 

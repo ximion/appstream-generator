@@ -26,7 +26,6 @@ import std.json;
 import asgen.logging;
 import asgen.utils;
 
-alias HintList = GeneratorHint[];
 
 /**
  * Severity assigned with an issue hint.
@@ -59,7 +58,11 @@ private HintSeverity severityFromString (string str) pure
     }
 }
 
-final class GeneratorHint
+/**
+ * Information about issues that occurred during the
+ * metadata generation process.
+ */
+struct GeneratorHint
 {
 
 private:
@@ -78,7 +81,7 @@ public:
         this.tag = tag;
         this.cid = cid;
 
-        severity = HintsStorage.get ().getSeverity (tag);
+        severity = HintsStorage.get.getSeverity (tag);
         if (severity == HintSeverity.UNKNOWN)
             logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
     }
@@ -204,7 +207,7 @@ unittest
 {
     writeln ("TEST: ", "Issue Hints");
 
-    auto hint = new GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
+    auto hint = GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
     hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
     auto root = hint.toJsonNode ();
 

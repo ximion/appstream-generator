@@ -56,7 +56,7 @@ private:
     Component[string] cpts;
     string[Component] cptGCID;
     HashMap!(string, string) mdataHashes;
-    HashMap!(string, HintList) hints;
+    HashMap!(string, GeneratorHint[]) hints;
 
 public:
     immutable string pkid;
@@ -72,7 +72,7 @@ public:
         this.pkg = pkg;
 
         mdataHashes = HashMap!(string, string) (2);
-        hints = HashMap!(string, HintList) (2);
+        hints = HashMap!(string, GeneratorHint[]) (2);
     }
 
     @safe
@@ -172,9 +172,12 @@ public:
                 immutable cid = id.getId ();
         }
 
-        auto hint = new GeneratorHint (tag, cid);
+        auto hint = GeneratorHint (tag, cid);
         hint.setVars (params);
-        hints[cid] ~= hint;
+        if (cid in hints)
+            hints[cid] ~= hint;
+        else
+            hints[cid] = [hint];
 
         // we stop dealing with this component when we encounter a fatal
         // error.
@@ -217,11 +220,11 @@ public:
         auto map = JSONValue (["null": 0]);
         map.object.remove ("null");
 
-        foreach (cid; hints.byKey ()) {
+        foreach (cid; hints.byKey) {
             auto cptHints = hints[cid];
             auto hintNodes = JSONValue ([0, 0]);
             hintNodes.array = [];
-            foreach (GeneratorHint hint; cptHints) {
+            foreach (ref hint; cptHints) {
                 hintNodes.array ~= hint.toJsonNode ();
             }
 
