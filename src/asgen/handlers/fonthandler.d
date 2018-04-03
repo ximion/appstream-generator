@@ -201,11 +201,18 @@ private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font
             cpt.addIcon (icon);
         }
         if (policy.storeRemote) {
+            immutable gcid = gres.gcidForComponent (cpt);
+            if (gcid is null) {
+                gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote font icon.");
+                return true;
+            }
+            immutable remoteIconUrl = buildPath (gcid, "icons", size.toString, iconName);
+
             auto icon = new Icon ();
             icon.setKind (IconKind.REMOTE);
             icon.setWidth (size.width);
             icon.setHeight (size.height);
-            icon.setUrl ("FIXME"); // TODO: Add icon URL
+            icon.setUrl (remoteIconUrl);
             cpt.addIcon (icon);
         }
     }

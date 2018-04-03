@@ -485,7 +485,7 @@ public:
             return false;
         }
 
-        auto path = buildPath (cptExportPath, "icons", size.toString ());
+        auto path = buildPath (cptExportPath, "icons", size.toString);
         auto iconName = "%s_%s".format (gres.pkgname,  baseName (iconPath));
 
         if (iconName.endsWith (".svgz"))
@@ -510,12 +510,19 @@ public:
                 cpt.addIcon (icon);
             }
             if (policy.storeRemote) {
+                immutable gcid = gres.gcidForComponent (cpt);
+                if (gcid is null) {
+                    gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
+                    return true;
+                }
+                immutable remoteIconUrl = buildPath (gcid, "icons", size.toString, iconName);
+
                 auto icon = new Icon ();
                 icon.setKind (IconKind.REMOTE);
                 icon.setWidth (size.width);
                 icon.setHeight (size.height);
                 icon.setScale (size.scale);
-                icon.setUrl ("FIXME"); // TODO: Add icon URL
+                icon.setUrl (remoteIconUrl);
                 cpt.addIcon (icon);
             }
 
@@ -591,12 +598,19 @@ public:
             cpt.addIcon (icon);
         }
         if (policy.storeRemote) {
+            immutable gcid = gres.gcidForComponent (cpt);
+            if (gcid is null) {
+                gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
+                return true;
+            }
+            immutable remoteIconUrl = buildPath (gcid, "icons", size.toString, iconName);
+
             auto icon = new Icon ();
             icon.setKind (IconKind.REMOTE);
             icon.setWidth (size.width);
             icon.setHeight (size.height);
             icon.setScale (size.scale);
-            icon.setUrl ("FIXME"); // TODO: Set URL
+            icon.setUrl (remoteIconUrl);
             cpt.addIcon (icon);
         }
 
