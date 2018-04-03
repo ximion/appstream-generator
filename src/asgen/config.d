@@ -85,7 +85,8 @@ enum GeneratorFeature
     METADATA_TIMESTAMPS = 1 << 5,
     IMMUTABLE_SUITES    = 1 << 6,
     PROCESS_FONTS       = 1 << 7,
-    PROCESS_GSTREAMER   = 1 << 8,
+    ALLOW_ICON_UPSCALE  = 1 << 8,
+    PROCESS_GSTREAMER   = 1 << 9,
 }
 
 /// A list of valid icon sizes that we recognize in AppStream
@@ -482,6 +483,7 @@ public:
         setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
         setFeature (GeneratorFeature.IMMUTABLE_SUITES, true);
         setFeature (GeneratorFeature.PROCESS_FONTS, true);
+        setFeature (GeneratorFeature.ALLOW_ICON_UPSCALE, true);
         setFeature (GeneratorFeature.PROCESS_GSTREAMER, true);
 
         // apply vendor feature settings
@@ -512,6 +514,9 @@ public:
                             break;
                     case "processFonts":
                             setFeature (GeneratorFeature.PROCESS_FONTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            break;
+                    case "allowIconUpscaling":
+                            setFeature (GeneratorFeature.ALLOW_ICON_UPSCALE, featuresObj[featureId].type == JSON_TYPE.TRUE);
                             break;
                     case "processGStreamer":
                             setFeature (GeneratorFeature.PROCESS_GSTREAMER, featuresObj[featureId].type == JSON_TYPE.TRUE);

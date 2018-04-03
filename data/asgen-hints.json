@@ -55,6 +55,11 @@
   "severity": "error"
 },
 
+"icon-scaled-up": {
+  "text": "Icon file '{{icon_fname}}' was scaled up from {{icon_size}} to {{scale_size}}. Please try to supply a bigger icon.",
+  "severity": "warning"
+},
+
 "pkg-extract-error": {
   "text": "Could not extract file '{{fname}}' from package '{{pkg_fname}}'. Error: {{error}}",
   "severity": "error"

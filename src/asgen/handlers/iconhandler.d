@@ -42,7 +42,7 @@ import asgen.result;
 import asgen.image;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
-import asgen.config : Config, IconPolicy;
+import asgen.config : Config, IconPolicy, GeneratorFeature;
 
 
 // all image extensions that we recognize as possible for icons.
@@ -224,6 +224,8 @@ private:
     IconPolicy[] iconPolicy;
     IconPolicy defaultIconPolicy;
 
+    bool allowIconUpscaling;
+
 public:
 
     this (string mediaPath, IconPolicy[] iconPolicy, HashMap!(string, Package) pkgMap, string iconTheme = null)
@@ -245,6 +247,9 @@ public:
         if (defaultIconPolicy.iconSize != ImageSize (64))
             throw new Exception ("Could not find default icon site '64x64' in icon policy list. This is a bug in the generator or configuration file.");
         assert (defaultIconPolicy.storeCached == true);
+
+        auto conf = Config.get;
+        allowIconUpscaling = conf.featureEnabled (GeneratorFeature.ALLOW_ICON_UPSCALE);
 
         // Preseeded theme names.
         // * prioritize hicolor, because that's where apps often install their upstream icon
@@ -269,7 +274,7 @@ public:
 
         // open package contents cache
         auto ccache = scoped!ContentsStore ();
-        ccache.open (Config.get);
+        ccache.open (conf);
 
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
@@ -551,10 +556,9 @@ public:
             mkdirRecurse (path);
 
             try {
-                auto cv = new Canvas (scaled_width, scaled_height);
+                auto cv = scoped!Canvas (scaled_width, scaled_height);
                 cv.renderSvg (iconData);
                 cv.savePng (iconStoreLocation);
-                delete cv;
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
                 return false;
@@ -570,8 +574,17 @@ public:
 
             if (iformat == ImageFormat.XPM) {
                 // we use XPM images only if they are large enough
-                if ((img.width < scaled_width) || (img.height < scaled_height))
-                    return false;
+                if (allowIconUpscaling) {
+                    // we only try upscaling for the default 64x64px size and only if
+                    // the icon is not too small
+                    if (size != ImageSize (64))
+                        return false;
+                    if ((img.width < 48) || (img.height < 48))
+                        return false;
+                } else {
+                    if ((img.width < scaled_width) || (img.height < scaled_height))
+                        return false;
+                }
             }
 
             // create target directory
@@ -581,11 +594,18 @@ public:
                 img.scale (scaled_width, scaled_height);
                 img.savePng (iconStoreLocation);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint (cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
+                                                                  "pkg_fname": baseName (sourcePkg.filename),
+                                                                  "error": e.msg]);
                 return false;
             }
 
-            delete img;
+            // warn about icon upscaling, it looks ugly
+            if (img.width < scaled_width) {
+                gres.addHint (cpt, "icon-scaled-up", ["icon_name": iconName,
+                                                      "icon_size": "%ux%u".format (img.width, img.height),
+                                                      "scale_size": size.toString]);
+            }
         }
 
         if (policy.storeCached) {
@@ -657,7 +677,7 @@ public:
                 if (iconRes.empty)
                     return false;
 
-                auto iconsStored = HashMap!(ImageSize, IconFindResult) (16);
+                auto iconsStored = HashMap!(ImageSize, IconFindResult) (8);
                 foreach (ref policy; iconPolicy) {
                     immutable size = policy.iconSize;
                     auto infoP = (size in iconRes);
@@ -669,13 +689,28 @@ public:
 
                     if (info.pkg is null) {
                         // the size we want wasn't found, can we downscale a larger one?
-                        foreach (asize; iconRes.byKey ()) {
+                        foreach (ref asize; iconRes.byKey) {
                             auto data = iconRes[asize];
                             if (asize < size)
                                 continue;
                             info = data;
                             break;
                         }
+
+                        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
+                            // no icon was found to downscale, but we allow upscaling, so try one last time
+                            // to find a suitable icon for at least the default AppStream icon size.
+
+                            foreach (ref asize; iconRes.byKey) {
+                                auto data = iconRes[asize];
+                                // we never allow icons smaller than 48x48px
+                                if (asize.width < 48)
+                                    continue;
+                                info = data;
+                                break;
+                            }
+                        }
+
                     }
 
                     // give up if we still haven't found an icon
@@ -688,12 +723,26 @@ public:
                             iconsStored[size] = info;
                     } else {
                         // the found icon is not suitable, but maybe a larger one is available that we can downscale?
-                        foreach (asize; iconRes.byKey ()) {
+                        foreach (asize; iconRes.byKey) {
                             auto data = iconRes[asize];
                             if (asize < size)
                                 continue;
                             info = data;
                             break;
+                        }
+
+                        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
+                            // no icon was found to downscale, but we allow upscaling, so try one last time
+                            // to find a suitable icon for at least the default AppStream icon size.
+
+                            foreach (ref asize; iconRes.byKey) {
+                                auto data = iconRes[asize];
+                                // we never allow icons smaller than 48x48px
+                                if (asize.width < 48)
+                                    continue;
+                                info = data;
+                                break;
+                            }
                         }
 
                         if (iconAllowed (info.fname)) {
