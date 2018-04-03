@@ -56,7 +56,7 @@
 },
 
 "icon-scaled-up": {
-  "text": "Icon file '{{icon_fname}}' was scaled up from {{icon_size}} to {{scale_size}}. Please try to supply a bigger icon.",
+  "text": "Icon file '{{icon_name}}' was scaled up from {{icon_size}}px to {{scale_size}}px. Please try to supply a bigger icon.",
   "severity": "warning"
 },
 

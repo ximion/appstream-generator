@@ -587,6 +587,13 @@ public:
                 }
             }
 
+            // warn about icon upscaling, it looks ugly
+            if (scaled_width > img.width) {
+                gres.addHint (cpt, "icon-scaled-up", ["icon_name": iconName,
+                                                      "icon_size": "%ux%u".format (img.width, img.height),
+                                                      "scale_size": size.toString]);
+            }
+
             // create target directory
             mkdirRecurse (path);
 
@@ -594,17 +601,10 @@ public:
                 img.scale (scaled_width, scaled_height);
                 img.savePng (iconStoreLocation);
             } catch (Exception e) {
-                gres.addHint (cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
-                                                                  "pkg_fname": baseName (sourcePkg.filename),
-                                                                  "error": e.msg]);
+                gres.addHint (cpt, "image-write-error", ["fname": baseName (iconPath),
+                                                         "pkg_fname": baseName (sourcePkg.filename),
+                                                         "error": e.msg]);
                 return false;
-            }
-
-            // warn about icon upscaling, it looks ugly
-            if (img.width < scaled_width) {
-                gres.addHint (cpt, "icon-scaled-up", ["icon_name": iconName,
-                                                      "icon_size": "%ux%u".format (img.width, img.height),
-                                                      "scale_size": size.toString]);
             }
         }
 
