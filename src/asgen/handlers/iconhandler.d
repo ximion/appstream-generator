@@ -19,16 +19,16 @@
 
 module asgen.handlers.iconhandler;
 
-import std.stdio;
-import std.string;
-import std.array : replace;
+import std.stdio : File, writeln;
+import std.string : endsWith, startsWith, format;
+import std.array : replace, array, empty;
 import std.path : baseName, buildPath;
 import std.uni : toLower;
 import std.file : mkdirRecurse;
-import std.algorithm : canFind;
-import std.variant;
-import std.parallelism;
+import std.algorithm : canFind, map;
+import std.variant : Algebraic;
 import std.typecons : scoped;
+import std.parallelism : parallel;
 import std.concurrency : Generator, yield;
 import containers : HashMap;
 import glib.KeyFile;
@@ -42,7 +42,7 @@ import asgen.result;
 import asgen.image;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
-static import asgen.config;
+import asgen.config : Config, IconPolicy;
 
 
 // all image extensions that we recognize as possible for icons.
@@ -51,9 +51,6 @@ private immutable possibleIconExts = [".png", ".jpg", ".svgz", ".svg", ".gif", "
 
 // the image extensions that we will actually allow software to have.
 private immutable allowedIconExts  = [".png", ".jpg", ".svgz", ".svg", ".xpm"];
-
-/// The icon sizes that we are returning to clients
-public immutable wantedIconSizes  = [ImageSize (64), ImageSize (128), ImageSize (64, 64, 2), ImageSize (128, 128, 2)];
 
 /**
  * Describes an icon theme as specified in the XDG theme spec.
@@ -224,14 +221,30 @@ private:
     HashMap!(string, Package) iconFiles;
     string[] themeNames;
 
+    IconPolicy[] iconPolicy;
+    IconPolicy defaultIconPolicy;
+
 public:
 
-    this (string mediaPath, HashMap!(string, Package) pkgMap, string iconTheme = null)
+    this (string mediaPath, IconPolicy[] iconPolicy, HashMap!(string, Package) pkgMap, string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
 
         iconFiles = HashMap!(string, Package) (32);
         mediaExportPath = mediaPath;
+        this.iconPolicy = iconPolicy;
+
+        foreach (ref policy; iconPolicy) {
+            if (policy.iconSize == ImageSize (64)) {
+                defaultIconPolicy = policy;
+                break;
+            }
+        }
+
+        // Sanity checks
+        if (defaultIconPolicy.iconSize != ImageSize (64))
+            throw new Exception ("Could not find default icon site '64x64' in icon policy list. This is a bug in the generator or configuration file.");
+        assert (defaultIconPolicy.storeCached == true);
 
         // Preseeded theme names.
         // * prioritize hicolor, because that's where apps often install their upstream icon
@@ -256,7 +269,7 @@ public:
 
         // open package contents cache
         auto ccache = scoped!ContentsStore ();
-        ccache.open (asgen.config.Config.get ());
+        ccache.open (Config.get);
 
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
@@ -463,8 +476,9 @@ public:
                             string cptExportPath,
                             Package sourcePkg,
                             string iconPath,
-                            ImageSize size)
+                            IconPolicy policy)
     {
+        immutable size = policy.iconSize;
         auto iformat = imageKindFromFile (iconPath);
         if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
@@ -485,13 +499,26 @@ public:
         if (std.file.exists (iconStoreLocation)) {
             // we already extracted that icon, skip the extraction step
             // and just add the new icon.
-            auto icon = new Icon ();
-            icon.setKind (IconKind.CACHED);
-            icon.setWidth (size.width);
-            icon.setHeight (size.height);
-            icon.setScale (size.scale);
-            icon.setName (iconName);
-            cpt.addIcon (icon);
+
+            if (policy.storeCached) {
+                auto icon = new Icon ();
+                icon.setKind (IconKind.CACHED);
+                icon.setWidth (size.width);
+                icon.setHeight (size.height);
+                icon.setScale (size.scale);
+                icon.setName (iconName);
+                cpt.addIcon (icon);
+            }
+            if (policy.storeRemote) {
+                auto icon = new Icon ();
+                icon.setKind (IconKind.REMOTE);
+                icon.setWidth (size.width);
+                icon.setHeight (size.height);
+                icon.setScale (size.scale);
+                icon.setUrl ("FIXME"); // TODO: Add icon URL
+                cpt.addIcon (icon);
+            }
+
             return true;
         }
 
@@ -554,13 +581,24 @@ public:
             delete img;
         }
 
-        auto icon = new Icon ();
-        icon.setKind (IconKind.CACHED);
-        icon.setWidth (size.width);
-        icon.setHeight (size.height);
-        icon.setScale (size.scale);
-        icon.setName (iconName);
-        cpt.addIcon (icon);
+        if (policy.storeCached) {
+            auto icon = new Icon ();
+            icon.setKind (IconKind.CACHED);
+            icon.setWidth (size.width);
+            icon.setHeight (size.height);
+            icon.setScale (size.scale);
+            icon.setName (iconName);
+            cpt.addIcon (icon);
+        }
+        if (policy.storeRemote) {
+            auto icon = new Icon ();
+            icon.setKind (IconKind.REMOTE);
+            icon.setWidth (size.width);
+            icon.setHeight (size.height);
+            icon.setScale (size.scale);
+            icon.setUrl ("FIXME"); // TODO: Set URL
+            cpt.addIcon (icon);
+        }
 
         return true;
     }
@@ -586,7 +624,7 @@ public:
 
         if (iconName.startsWith ("/")) {
             if (gres.pkg.contents.canFind (iconName))
-                return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, ImageSize (64, 64));
+                return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, defaultIconPolicy);
         } else {
             iconName  = baseName (iconName);
 
@@ -601,12 +639,13 @@ public:
             /// last icon name that has been handled.
             bool findAndStoreXdgIcon (Package epkg = null)
             {
-                auto iconRes = findIcons (iconName, wantedIconSizes, epkg);
+                auto iconRes = findIcons (iconName, array(iconPolicy.map!(a => a.iconSize)), epkg);
                 if (iconRes.empty)
                     return false;
 
                 auto iconsStored = HashMap!(ImageSize, IconFindResult) (16);
-                foreach (size; wantedIconSizes) {
+                foreach (ref policy; iconPolicy) {
+                    immutable size = policy.iconSize;
                     auto infoP = (size in iconRes);
 
                     IconFindResult info;
@@ -631,7 +670,7 @@ public:
 
                     lastIconName = info.fname;
                     if (iconAllowed (lastIconName)) {
-                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size))
+                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
                             iconsStored[size] = info;
                     } else {
                         // the found icon is not suitable, but maybe a larger one is available that we can downscale?
@@ -644,7 +683,7 @@ public:
                         }
 
                         if (iconAllowed (info.fname)) {
-                            if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size))
+                            if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
                                 iconsStored[size] = info;
                             lastIconName = info.fname;
                         }
@@ -655,14 +694,14 @@ public:
                 // by the AppStream spec by downscaling a larger icon that we
                 // might have found.
                 if (ImageSize(64) !in iconsStored) {
-                    foreach (size; wantedIconSizes) {
+                    foreach (size; iconPolicy.map!(a => a.iconSize)) {
                         if (size !in iconsStored)
                             continue;
                         if (size < ImageSize(64))
                             continue;
                         auto info = iconsStored[size];
                         lastIconName = info.fname;
-                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, ImageSize(64)))
+                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, defaultIconPolicy))
                             return true;
                     }
                 } else {

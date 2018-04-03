@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -22,6 +22,7 @@ module asgen.handlers.fonthandler;
 import std.path : baseName, buildPath;
 import std.array : appender, replace, empty;
 import std.string : format, fromStringz, startsWith, endsWith, strip, toLower;
+import std.algorithm : map;
 import std.conv : to;
 import appstream.Component;
 import appstream.Icon;
@@ -34,7 +35,7 @@ import asgen.logging;
 import asgen.result;
 import asgen.image : Canvas;
 import asgen.font : Font;
-import asgen.handlers.iconhandler : wantedIconSizes;
+import asgen.config : Config, IconPolicy;
 
 
 private immutable fontScreenshotSizes = [ImageSize (1024, 78), ImageSize (640, 48)];
@@ -87,6 +88,8 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         gres.addHint (cpt, "internal-error", "No global ID could be found for the component.");
         return;
     }
+
+    auto iconPolicy = Config.get.iconSettings;
 
     auto fontHints = appender!(string[]);
     auto provided = cpt.getProvidedForKind (ProvidedKind.FONT);
@@ -146,6 +149,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         // render an icon for our font
         if (!hasIcon)
             hasIcon = renderFontIcon (gres,
+                                      iconPolicy,
                                       font,
                                       cptIconsPath,
                                       cpt);
@@ -163,9 +167,12 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
  * (Since we have no better way to do this, we just pick the first font
  * at time)
  **/
-private bool renderFontIcon (GeneratorResult gres, Font font, immutable string cptIconsPath, Component cpt)
+private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font font, immutable string cptIconsPath, Component cpt)
 {
-    foreach (ref size; wantedIconSizes) {
+    foreach (ref policy; iconPolicy) {
+        if (!policy.storeIcon)
+            continue;
+        immutable size = policy.iconSize;
         immutable path = buildPath (cptIconsPath, size.toString);
         std.file.mkdirRecurse (path);
 
@@ -185,12 +192,22 @@ private bool renderFontIcon (GeneratorResult gres, Font font, immutable string c
             cv.savePng (iconStoreLocation);
         }
 
-        auto icon = new Icon ();
-        icon.setKind (IconKind.CACHED);
-        icon.setWidth (size.width);
-        icon.setHeight (size.height);
-        icon.setName (iconName);
-        cpt.addIcon (icon);
+        if (policy.storeCached) {
+            auto icon = new Icon ();
+            icon.setKind (IconKind.CACHED);
+            icon.setWidth (size.width);
+            icon.setHeight (size.height);
+            icon.setName (iconName);
+            cpt.addIcon (icon);
+        }
+        if (policy.storeRemote) {
+            auto icon = new Icon ();
+            icon.setKind (IconKind.REMOTE);
+            icon.setWidth (size.width);
+            icon.setHeight (size.height);
+            icon.setUrl ("FIXME"); // TODO: Add icon URL
+            cpt.addIcon (icon);
+        }
     }
 
     return true;

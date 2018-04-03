@@ -297,7 +297,6 @@ public:
     private void exportData (Suite suite, string section, string arch, ref Package[] pkgs, bool withIconTar = false)
     {
         import asgen.zarchive;
-        import asgen.handlers.iconhandler : wantedIconSizes;
         auto mdataFile = appender!string;
         auto hintsFile = appender!string;
 
@@ -324,10 +323,12 @@ public:
         // prepare icon-tarball array
         HashMap!(string, Appender!(immutable(string)[])) iconTarFiles;
         if (withIconTar) {
-            foreach (ref size; wantedIconSizes) {
+            foreach (ref ipolicy; conf.iconSettings) {
+                if (!ipolicy.storeCached)
+                    continue; // we only want to create tarballs for cached icons
                 auto ia = appender!(immutable(string)[]);
                 ia.reserve (8);
-                iconTarFiles[size.toString] = ia;
+                iconTarFiles[ipolicy.iconSize.toString] = ia;
             }
         }
 
@@ -370,12 +371,14 @@ public:
 
                     // compile list of icon-tarball files
                     if (withIconTar) {
-                        foreach (ref size; wantedIconSizes) {
-                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", size.toString);
+                        foreach (ref ipolicy; conf.iconSettings) {
+                            if (!ipolicy.storeCached)
+                                continue; // only add icon to cache tarball if we want a cache for the particular size
+                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", ipolicy.iconSize.toString);
                             if (!std.file.exists (iconDir))
                                 continue;
                             foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
-                                iconTarFiles[size.toString] ~= path.idup;
+                                iconTarFiles[ipolicy.iconSize.toString] ~= path.idup;
                             }
                         }
                     }
@@ -400,12 +403,15 @@ public:
         gcCollect ();
         if (withIconTar) {
             logInfo ("Creating icon tarball.");
-            foreach (ref size; wantedIconSizes) {
+            foreach (ref ipolicy; conf.iconSettings) {
                 import std.conv : to;
 
+                if (!ipolicy.storeCached)
+                    continue;
+
                 auto iconTar = scoped!ArchiveCompressor (ArchiveType.GZIP);
-                iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (size.toString)));
-                auto iconFiles = iconTarFiles[size.toString].data;
+                iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (ipolicy.iconSize.toString)));
+                auto iconFiles = iconTarFiles[ipolicy.iconSize.toString].data;
                 sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
@@ -497,8 +503,9 @@ public:
             // process new packages
             auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
             auto iconh = new IconHandler (dstore.mediaExportPoolDir,
-                                             getIconCandidatePackages (suite, section, arch),
-                                             suite.iconTheme);
+                                          conf.iconSettings,
+                                          getIconCandidatePackages (suite, section, arch),
+                                          suite.iconTheme);
             processPackages (pkgs, iconh);
 
             // export package data
@@ -623,8 +630,9 @@ public:
 
             // process new packages
             auto iconh = new IconHandler (dstore.mediaExportPoolDir,
-                                             getIconCandidatePackages (suite, sectionName, arch),
-                                             suite.iconTheme);
+                                          conf.iconSettings,
+                                          getIconCandidatePackages (suite, sectionName, arch),
+                                          suite.iconTheme);
             auto pkgsList = pkgs.data;
             processPackages (pkgsList, iconh);
         }

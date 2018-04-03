@@ -102,6 +102,11 @@ struct IconPolicy
     bool storeCached;   /// True if the icon should be stored in an icon tarball and be cached locally.
     bool storeRemote;   /// True if this icon should be stored remotely and fetched on demand
 
+    bool storeIcon () @property const
+    {
+        return storeCached || storeRemote;
+    }
+
     this (ImageSize size, bool cached, bool remote)
     {
         iconSize = size;
@@ -429,7 +434,8 @@ public:
                 if ("cached" in iconObj)
                     ipolicy.storeCached = iconObj["cached"].type == JSON_TYPE.TRUE;
 
-                iconSettings ~= ipolicy;
+                if (ipolicy.storeIcon)
+                    iconSettings ~= ipolicy;
             }
 
             // Sanity check
