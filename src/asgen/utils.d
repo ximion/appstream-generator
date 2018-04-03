@@ -346,9 +346,10 @@ S escapeXml (S) (S s) pure
 string getDataPath (string fname)
 {
     import std.path : buildNormalizedPath, dirName;
+    immutable exeDirName = std.file.thisExePath.dirName;
 
     // useful for testing
-    auto resPath = buildNormalizedPath (std.file.thisExePath.dirName, "..", "..", "..", "data", fname);
+    auto resPath = buildNormalizedPath (exeDirName, "..", "..", "..", "data", fname);
     if (std.file.exists (resPath))
         return resPath;
 
@@ -356,7 +357,7 @@ string getDataPath (string fname)
     if (std.file.exists (resPath))
         return resPath;
 
-    resPath = buildNormalizedPath (std.file.thisExePath.dirName, "..", "data", fname);
+    resPath = buildNormalizedPath (exeDirName, "..", "data", fname);
     if (std.file.exists (resPath))
         return resPath;
 

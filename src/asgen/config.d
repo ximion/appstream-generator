@@ -204,11 +204,16 @@ public:
 
         if (tdir is null) {
             immutable exeDir = dirName (std.file.thisExePath ());
-            tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
-
+            tdir = buildNormalizedPath (exeDir, "..", "..", "..", "data", "templates");
             tdir = getVendorTemplateDir (tdir);
+
             if (tdir is null) {
                 tdir = getVendorTemplateDir (buildPath (DATADIR, "templates"));
+
+                if (tdir is null) {
+                    tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
+                    tdir = getVendorTemplateDir (tdir);
+                }
             }
         }
 
