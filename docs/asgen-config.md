@@ -30,7 +30,7 @@ An example `asgen-config.json` file may look like this:
           "sections": ["main", "contrib"],
           "architectures": ["amd64", "i386"]
         }
-  }
+  },
  "Icons":
   {
     "64x64":   {"cached": true, "remote": false},
