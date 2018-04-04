@@ -218,10 +218,15 @@ public:
             auto name  = tagf.readField ("Package");
             auto ver   = tagf.readField ("Version");
             auto fname = tagf.readField ("Filename");
+            auto pkgArch = tagf.readField ("Architecture");
             if (!name)
                 continue;
 
-            auto pkg = newPackage (name, ver, arch);
+            // sanity check: We only allow arch:all mixed in with packages from other architectures
+            if (pkgArch != "all")
+                pkgArch = arch;
+
+            auto pkg = newPackage (name, ver, pkgArch);
             pkg.filename = buildPath (rootDir, fname);
             pkg.maintainer = tagf.readField ("Maintainer");
 

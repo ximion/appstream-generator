@@ -343,7 +343,7 @@ public:
         // collect metadata, icons and hints for the given packages
         bool firstHintEntry = true;
         logDebug ("Building final metadata and hints files.");
-        foreach (ref pkg; parallel (pkgs, 10)) {
+        foreach (ref pkg; parallel (pkgs, 40)) {
             immutable pkid = pkg.id;
             auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids !is null) {
