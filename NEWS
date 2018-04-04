@@ -1,3 +1,39 @@
+Version 0.7.0
+~~~~~~~~~~~~~~
+Released: 2018-04-04
+
+Notes:
+ * Processing single packages and calling publication and processing
+   separately is not a fully supported feature yet!
+   This release lays the groundwork for it, but its final implementation
+   will happen later. Do not use this in production!
+
+Features:
+ * stdx.allocator-backed containers library
+ * Use stdx.allocator-backed HashMap in more places
+ * Trigger GC less aggressively, use smaller parallel work unit sizes
+ * Allow setting a workspace in config and calling asgen on a config file
+ * Add backend interface for processing a single package
+ * Allow calling only the metadata publication step
+ * Add framework for extracting data directly from package files
+ * Allow setting icon policy in configuration
+ * Add support for more icon types and customizable icon policy
+ * Allow icon upscaling in certain cases, but complain about it
+ * Modernize Meson definitions
+ * Document how to modify icon policies in configuration
+ * Use AppStream 0.12.0 and format 0.12 by default
+
+Bugfixes:
+ * Update wrap files to be compatible with gir-to-d >= 0.13
+ * Improve ArchiveDecompressor usage
+ * For each array appender, try to guess capacity to reserve better
+ * Properly add remote icon URLs
+ * Fetch JavaScript bits with Yarn instead of Bower
+ * Ensure we can run asgen again from its build directory
+ * Ignore data from immutable suites on cleanup
+ * Don't parallelize cleanup data collection routine
+ * Release memory chunks faster during cleanup operations
+
 Version 0.6.8
 ~~~~~~~~~~~~~~
 Released: 2017-11-06
