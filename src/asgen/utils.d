@@ -533,10 +533,10 @@ getTestSamplesDir () @trusted
 {
     import std.path : getcwd;
 
-    auto path = buildPath (getcwd (), "test", "samples");
+    auto path = buildPath (getcwd (), "tests", "samples");
     if (std.file.exists (path))
         return path;
-    path = buildNormalizedPath (getcwd (), "..", "test", "samples");
+    path = buildNormalizedPath (getcwd (), "..", "tests", "samples");
 
     return path;
 }

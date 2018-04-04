@@ -15,8 +15,8 @@ matrix:
     - d: gdc
 
 before_script:
-  - docker build -t asgen -f test/ci/Dockerfile .
+  - docker build -t asgen -f tests/ci/Dockerfile .
 
 script:
   - docker run -t -e DC=$DC -v `pwd`:/build asgen
-    ./test/ci/build_and_test.sh
+    ./tests/ci/build_and_test.sh
