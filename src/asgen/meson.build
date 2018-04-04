@@ -119,6 +119,6 @@ asgen_test_exe = executable('asgen_test',
                    fontconfig_dep,
                    pango_dep],
     link_with: [girbind_lib],
-    d_args: meson.get_compiler('d').unittest_args()
+    d_unittest: true
 )
 test('asgen_tests', asgen_test_exe)
