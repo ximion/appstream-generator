@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -19,48 +19,124 @@
 
 module asgen.backends.debian.tagfile;
 
-import std.stdio;
-import std.string;
+import std.stdio : File;
+import std.string : startsWith, indexOf, chompPrefix, strip, split, splitLines;
+import std.typecons : Flag, Yes;
+import std.array : appender, empty;
+import std.conv : to;
+import std.path : buildPath;
+
+import containers : HashMap;
+
 import asgen.zarchive;
 import asgen.logging;
 
 
+/**
+ * Parser for Debian's RFC2822-style metadata.
+ */
 final class TagFile
 {
 
 private:
     string[] content;
     uint pos;
+    HashMap!(string, string) currentBlock;
+
+    string _fname;
 
 public:
 
-    this ()
+    this () @trusted
     {
+        currentBlock = HashMap!(string, string) (16);
     }
 
-    void open (string fname)
+    void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
     {
-        content = null;
-        string data;
+        _fname = fname;
 
-        try {
-            data = decompressFile (fname);
-        } catch (Exception e) {
-            throw e;
+        if (compressed) {
+            auto data = decompressFile (fname);
+            load (data);
+        } else {
+            import std.stdio;
+
+            auto f = File (fname, "r");
+            auto data = appender!string;
+            string line;
+            while ((line = f.readln ()) !is null)
+                data ~= line;
+            load (data.data);
         }
+    }
 
-        content = splitLines (data);
+    @property
+    const string fname () { return _fname; }
+
+    void load (string data)
+    {
+        content = data.splitLines ();
         pos = 0;
+        readCurrentBlockData ();
     }
 
     void first () {
         pos = 0;
     }
 
-    bool nextSection ()
+    private void readCurrentBlockData () @trusted
+    {
+        currentBlock.clear ();
+        immutable clen = content.length;
+
+        for (auto i = pos; i < clen; i++) {
+            if (content[i] == "")
+                break;
+
+            // check whether we are in a multiline value field, and just skip forward in that case
+            if (startsWith (content[i], " "))
+                continue;
+
+            immutable separatorIndex = indexOf (content[i], ':');
+            if (separatorIndex <= 0)
+                continue; // this is no field
+
+            auto fieldName = content[i][0..separatorIndex];
+            auto fdata = content[i][separatorIndex+1..$];
+
+            if ((i+1 >= clen)
+                || (!startsWith (content[i+1], " "))) {
+                    // we have a single-line field
+                    currentBlock[fieldName] = fdata.strip ();
+            } else {
+                // we have a multi-line field
+                auto fdata_ml = appender!string ();
+                fdata_ml ~= fdata.strip ();
+                for (auto j = i+1; j < clen; j++) {
+                    auto slice = chompPrefix (content[j], " ");
+                    if (slice == content[j])
+                        break;
+
+                    if (fdata_ml.data == "") {
+                        fdata_ml = appender!string ();
+                        fdata_ml ~= slice;
+                    } else {
+                        fdata_ml ~= "\n";
+                        fdata_ml ~= slice;
+                    }
+                }
+
+                currentBlock[fieldName] = fdata_ml.data;
+            }
+        }
+    }
+
+    bool nextSection () @trusted
     {
         bool breakNext = false;
-        auto clen = content.length;
+        immutable clen = content.length;
+        currentBlock.clear ();
 
         if (pos >= clen)
             return false;
@@ -82,44 +158,16 @@ public:
         if (pos >= clen)
             return false;
 
+        readCurrentBlockData ();
         return true;
     }
 
-    string readField (string name)
+    string readField (string name, string defaultValue = null) pure @trusted
     {
-        auto clen = content.length;
-
-        for (auto i = pos; i < clen; i++) {
-            if (content[i] == "")
-                break;
-
-            auto fdata = chompPrefix (content[i], name ~ ":");
-            if (fdata == content[i])
-                continue;
-
-            if ((i+1 >= clen)
-                || (!startsWith (content[i+1], " "))) {
-                    // we have a single-line field
-                    return strip (fdata);
-            } else {
-                // we have a multi-line field
-                auto fdata_ml = strip (fdata);
-                for (auto j = i+1; j < clen; j++) {
-                    auto slice = chompPrefix (content[j], " ");
-                    if (slice == content[j])
-                        break;
-
-                    if (fdata_ml == "")
-                        fdata_ml = slice;
-                    else
-                        fdata_ml ~= "\n" ~ slice;
-                }
-
-                return fdata_ml;
-            }
-        }
-
-        // we found nothing
-        return null;
+        auto dataP = name in currentBlock;
+        if (dataP is null)
+            return defaultValue; // we found nothing
+        else
+            return *dataP;
     }
 }
