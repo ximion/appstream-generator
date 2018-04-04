@@ -31,6 +31,11 @@ An example `asgen-config.json` file may look like this:
           "architectures": ["amd64", "i386"]
         }
   }
+ "Icons":
+  {
+    "64x64":   {"cached": true, "remote": false},
+    "128x128": {"cached": false, "remote": true}
+  }
 }
 ```
 
@@ -52,6 +57,7 @@ Features | Disable or enable selected generator features. For a detailed descrip
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.
 AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the collection metadata output. This key takes a list of custom-key strings as value.
 ExportDirs | Set where to export data. The dictionary requires full paths set for the "Media", "Data", "Hints" or "Html" key. In case a value is missing, the default locations are used.
+Icons | Customize the icon policy. See below for more details.
 
 
 ### Suite fields
@@ -85,3 +91,33 @@ immutableSuites | Allow suites to be marked as immutable. This is useful for dis
 processFonts | Include font metadata and render fonts. *Default: `ON`*
 allowIconUpscaling | Allows upscaling of small 48x48px icons to 64x64px to make applications show up. Icons are only upscaled as a last resort. *Default: `ON`*
 processGStreamer | Synthesise `type=codec` metadata from available GStreamer packages. Requires support in the backend, currently only implemented for Debian. *Default: `ON`*
+
+### Configure icon policies
+
+The `Icons` field allows to customize the icon policy used for a generator run. It decides which icon sizes are extracted, and whether they are stored as cached icon, remote icons or both.
+The field contains a dictionary with icon sizes as keys. Valid icon sizes are `48x48`, `64x64` and `128x128` and their HiDPI variants (e.g. `64x64@2`).
+The values for the icon-size keys are dictionaries with two boolean keys, `cached` and `remote`, to select the storage method for the icon size.
+Cached means an icon tarball is generated for the icon size that can be made available locally, while remote means the icon can be downloaded on-demand by the software center and no local cache of all icons exists. Icon sizes not mentioned, or with both `cached` and `remote` set to `false` will not be extracted.
+The `64x64` icon size must always be present and be cached. If this is not the case, appstream-generator will adjust the configuration internally and emit a warning.
+If no `Icons` field is present, appstream-generator will use a default policy for icons (creating cache tarballs for all sizes, and remote links for sizes >= 129x128px).
+
+## Minimal configuration file
+
+A minimal configuration file can look like this:
+```JSON
+{
+"ProjectName": "Tanglu",
+"ArchiveRoot": "/srv/archive.tanglu.org/tanglu/",
+"MediaBaseUrl": "http://metadata.tanglu.org/appstream/media",
+"HtmlBaseUrl": "http://metadata.tanglu.org/appstream/",
+"Backend": "debian",
+"Suites":
+  {
+    "chromodoris":
+      {
+        "sections": ["main", "contrib"],
+        "architectures": ["amd64", "i386"]
+      }
+  }
+}
+```
