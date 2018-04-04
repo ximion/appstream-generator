@@ -392,9 +392,14 @@ public:
                     yield (fname);
             }
 
-            // check pixmaps for icons
-            foreach (extension; possibleIconExts)
-                yield ("/usr/share/pixmaps/%s%s".format (iconName, extension));
+            // check pixmaps directory for icons
+            // we only ever use the pixmap directory contents to satisfy the minimum 64x64px icon
+            // requirement. Otherwise we get weird upscaling to higher sizes or HiDPI sizes happening,
+            // as later code tries to downscale "bigger" sizes.
+            if (size.scale == 1 && size.width == 64) {
+                foreach (extension; possibleIconExts)
+                    yield ("/usr/share/pixmaps/%s%s".format (iconName, extension));
+            }
         });
 
         return gen;
@@ -637,6 +642,51 @@ public:
         return true;
     }
 
+    /**
+     * Helper function to try to find an icon that we can up- or downscale to the desired size.
+     */
+    private auto findIconScalableToSize (ref HashMap!(ImageSize, IconFindResult) possibleIcons, const ref ImageSize size)
+    {
+        IconFindResult info;
+        info.pkg = null;
+
+        // on principle, never attempt to up- or downscale an icon to something below
+        // AppStream's default icon size.
+        // The clients can do that just as well, without us wasting disk space
+        // and network bandwidth.
+        if (size.scale == 1 && size.width < 64)
+            return info;
+
+        // the size we want wasn't found, can we downscale a larger one?
+        foreach (ref asize; possibleIcons.byKey) {
+            auto data = possibleIcons[asize];
+            if (asize.scale != size.scale)
+                continue;
+            if (asize < size)
+                continue;
+            info = data;
+            break;
+        }
+
+        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
+            // no icon was found to downscale, but we allow upscaling, so try one last time
+            // to find a suitable icon for at least the default AppStream icon size.
+
+            foreach (ref asize; possibleIcons.byKey) {
+                auto data = possibleIcons[asize];
+                // we never allow icons smaller than 48x48px
+                if (asize.width < 48)
+                    continue;
+                if (asize.scale != size.scale)
+                    continue;
+                info = data;
+                break;
+            }
+        }
+
+        return info;
+    }
+
     bool process (GeneratorResult gres, Component cpt)
     {
         auto iconName = getIconNameAndClear (cpt);
@@ -662,7 +712,6 @@ public:
         } else {
             iconName  = baseName (iconName);
 
-
             // Small hack: Strip .png and other extensions from icon files to make the XDG and Pixmap finder
             // work properly, which add their own icon extensions and find the most suitable icon.
             iconName = stripIconExt (iconName);
@@ -687,31 +736,9 @@ public:
                     if (infoP !is null)
                         info = *infoP;
 
-                    if (info.pkg is null) {
-                        // the size we want wasn't found, can we downscale a larger one?
-                        foreach (ref asize; iconRes.byKey) {
-                            auto data = iconRes[asize];
-                            if (asize < size)
-                                continue;
-                            info = data;
-                            break;
-                        }
-
-                        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
-                            // no icon was found to downscale, but we allow upscaling, so try one last time
-                            // to find a suitable icon for at least the default AppStream icon size.
-
-                            foreach (ref asize; iconRes.byKey) {
-                                auto data = iconRes[asize];
-                                // we never allow icons smaller than 48x48px
-                                if (asize.width < 48)
-                                    continue;
-                                info = data;
-                                break;
-                            }
-                        }
-
-                    }
+                    // check if we can scale another size to the desired one
+                    if (info.pkg is null)
+                        info = findIconScalableToSize (iconRes, size);
 
                     // give up if we still haven't found an icon
                     if (info.pkg is null)
@@ -722,28 +749,10 @@ public:
                         if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
                             iconsStored[size] = info;
                     } else {
-                        // the found icon is not suitable, but maybe a larger one is available that we can downscale?
-                        foreach (asize; iconRes.byKey) {
-                            auto data = iconRes[asize];
-                            if (asize < size)
-                                continue;
-                            info = data;
-                            break;
-                        }
-
-                        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
-                            // no icon was found to downscale, but we allow upscaling, so try one last time
-                            // to find a suitable icon for at least the default AppStream icon size.
-
-                            foreach (ref asize; iconRes.byKey) {
-                                auto data = iconRes[asize];
-                                // we never allow icons smaller than 48x48px
-                                if (asize.width < 48)
-                                    continue;
-                                info = data;
-                                break;
-                            }
-                        }
+                        // the found icon is not suitable, but maybe we can scale a differently sized icon to the right one?
+                        info = findIconScalableToSize (iconRes, size);
+                        if (info.pkg is null)
+                            continue;
 
                         if (iconAllowed (info.fname)) {
                             if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
