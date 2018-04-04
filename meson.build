@@ -25,7 +25,7 @@ dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dco
 glib_dep        = dependency('glib-2.0')
 gobject_dep     = dependency('gobject-2.0')
 gio_dep         = dependency('gio-2.0')
-appstream_dep   = dependency('appstream', version : '>= 0.11.7')
+appstream_dep   = dependency('appstream', version : '>= 0.12.0')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
 mustache_dep    = dependency('mustache-d', required: false)
 archive_dep     = dependency('libarchive', version : '>= 3.2')

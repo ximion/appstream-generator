@@ -134,7 +134,7 @@ private:
     private __gshared Config instance_;
 
     private this () {
-        formatVersion = FormatVersion.V0_10;
+        formatVersion = FormatVersion.V0_12;
     }
 
 public:
@@ -337,12 +337,27 @@ public:
         // allow specifying the AppStream format version we build data for.
         if ("FormatVersion" in root) {
             immutable versionStr = root["FormatVersion"].str;
-            if (versionStr == "0.8")
+
+            switch (versionStr) {
+            case "0.8":
                 formatVersion = FormatVersion.V0_8;
-            else if (versionStr == "0.9")
+                break;
+            case "0.9":
                 formatVersion = FormatVersion.V0_9;
-            else if (versionStr == "0.10")
+                break;
+            case "0.10":
                 formatVersion = FormatVersion.V0_10;
+                break;
+            case "0.11":
+                formatVersion = FormatVersion.V0_11;
+                break;
+            case "0.12":
+                formatVersion = FormatVersion.V0_12;
+                break;
+            default:
+                logWarning ("Configuration tried to set unknown AppStream format version '%s'. Falling back to default version.", versionStr);
+                break;
+            }
         }
 
         // we default to the Debian backend for now
