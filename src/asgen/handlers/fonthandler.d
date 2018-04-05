@@ -197,6 +197,7 @@ private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font
             icon.setKind (IconKind.CACHED);
             icon.setWidth (size.width);
             icon.setHeight (size.height);
+            icon.setScale (size.scale);
             icon.setName (iconName);
             cpt.addIcon (icon);
         }
@@ -212,6 +213,7 @@ private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font
             icon.setKind (IconKind.REMOTE);
             icon.setWidth (size.width);
             icon.setHeight (size.height);
+            icon.setScale (size.scale);
             icon.setUrl (remoteIconUrl);
             cpt.addIcon (icon);
         }
