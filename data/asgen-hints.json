@@ -60,6 +60,13 @@
   "severity": "warning"
 },
 
+"icon-too-small": {
+  "text": [ "Only a very small icon ('{{icon_name}}', {{icon_size}}px) could be located.",
+            "Please try to supply a bigger icon (at least 64x64px) in the Freedesktop icon path (<code>/usr/share/icons/hicolor/%size%/apps/</code>)."
+          ],
+  "severity": "error"
+},
+
 "pkg-extract-error": {
   "text": "Could not extract file '{{fname}}' from package '{{pkg_fname}}'. Error: {{error}}",
   "severity": "error"

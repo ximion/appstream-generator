@@ -592,6 +592,16 @@ public:
                 }
             }
 
+            // ensure that we don't try to make an application visible that has a really tiny icon
+            // by upscaling it to a blurry mess
+            if (size.scale == 1 && size.width == 64) {
+                if ((img.width < 48) || (img.height < 48)) {
+                    gres.addHint (cpt, "icon-too-small", ["icon_name": iconName,
+                                                          "icon_size": "%ux%u".format (img.width, img.height)]);
+                    return false;
+                }
+            }
+
             // warn about icon upscaling, it looks ugly
             if (scaled_width > img.width) {
                 gres.addHint (cpt, "icon-scaled-up", ["icon_name": iconName,
