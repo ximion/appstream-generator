@@ -96,6 +96,37 @@ public:
         return cast(immutable) array (ret[]);
     }
 
+    /**
+     * Convert a Debian package description to a description
+     * that looks nice-ish in AppStream clients.
+     */
+    private string packageDescToAppStreamDesc (string[] lines)
+    {
+        // TODO: We actually need a Markdown-ish parser here if we want
+        // to support listings in package descriptions properly.
+        auto description = appender!string;
+        description.reserve (80);
+        description ~= "<p>";
+        bool first = true;
+        foreach (l; lines) {
+            if (l.strip () == ".") {
+                description ~= "</p>\n<p>";
+                first = true;
+                continue;
+            }
+
+            if (first)
+                first = false;
+            else
+                description ~= " ";
+
+            description ~= escapeXml (l);
+        }
+        description ~= "</p>";
+
+        return description.data;
+    }
+
     private final void loadPackageLongDescs (ref HashMap!(string, DebPackage) pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
@@ -153,33 +184,12 @@ public:
                 // length of the array. Bug?  (this is why we slice the array
                 // here)
                 split = split[1..$];
-
-                // TODO: We actually need a Markdown-ish parser here if we want
-                // to support listings in package descriptions properly.
-                auto description = appender!string;
-                description.reserve (80);
-                description ~= "<p>";
-                bool first = true;
-                foreach (l; split) {
-                    if (l.strip () == ".") {
-                        description ~= "</p>\n<p>";
-                        first = true;
-                        continue;
-                    }
-
-                    if (first)
-                        first = false;
-                    else
-                        description ~= " ";
-
-                    description ~= escapeXml (l);
-                }
-                description ~= "</p>";
+                immutable description = packageDescToAppStreamDesc (split);
 
                 if (lang == "en")
-                    pkg.setDescription (description.data, "C");
+                    pkg.setDescription (description, "C");
 
-                pkg.setDescription (description.data, lang);
+                pkg.setDescription (description, lang);
             } while (tagf.nextSection ());
         }
     }
@@ -250,7 +260,7 @@ public:
                 .split(";")
                 .map!strip.array;
 
-            pkg.gst = new GStreamer(decoders, encoders, elements, uri_sinks, uri_sources);
+            pkg.gst = new GStreamer (decoders, encoders, elements, uri_sinks, uri_sources);
 
             if (!pkg.isValid ()) {
                 logWarning ("Found invalid package (%s)! Skipping it.", pkg.toString ());
@@ -286,7 +296,36 @@ public:
 
     Package packageForFile (string fname, string suite = null, string section = null)
     {
-        return null; // FIXME: not implemented
+        auto pkg = newPackage ("", "", "");
+        pkg.filename = fname;
+
+        auto tf = pkg.readControlInformation ();
+        if (tf is null)
+            throw new Exception ("Unable to read control information for package %s".format (fname));
+
+        pkg.name = tf.readField ("Package");
+        pkg.ver  = tf.readField ("Version");
+        pkg.arch = tf.readField ("Architecture");
+
+        if (pkg.name is null || pkg.ver is null || pkg.arch is null)
+            throw new Exception ("Unable to get control data for package %s".format (fname));
+
+        immutable rawDesc = tf.readField ("Description");
+        auto dSplit = rawDesc.split ("\n");
+        if (dSplit.length >= 2) {
+            pkg.setSummary (dSplit[0], "C");
+
+            dSplit = dSplit[1..$];
+            immutable description = packageDescToAppStreamDesc (dSplit);
+            pkg.setDescription (description, "C");
+        }
+
+        pkg.gst = new GStreamer;
+
+        // ensure we have a meaningful temporary directory name
+        pkg.updateTmpDirPath ();
+
+        return pkg.to!Package;
     }
 
     final bool hasChanges (DataStore dstore, string suite, string section, string arch)

@@ -198,7 +198,7 @@ public:
                 gres.updateComponentGCID (cpt, ddata);
         }
 
-        if (conf.featureEnabled (GeneratorFeature.PROCESS_GSTREAMER) && pkg.gst.isNotEmpty) {
+        if (conf.featureEnabled (GeneratorFeature.PROCESS_GSTREAMER) && pkg.gst !is null && pkg.gst.isNotEmpty) {
             auto data = appender!string;
             data.reserve(512);
 

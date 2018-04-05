@@ -168,11 +168,13 @@ public:
                     return true;
             }
 
+            if (pkg.gst is null)
+                return false;
             return pkg.gst.isNotEmpty;
         }
 
         // check if the index has changed data, skip the update if there's nothing new
-        if ((!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced) && (pkgs.empty)) {
+        if ((pkgs.empty) && (!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced)) {
             logDebug ("Skipping contents cache update for %s/%s [%s], index has not changed.", suite.name, section, arch);
             return false;
         }
@@ -622,7 +624,7 @@ public:
             // update package contents information and flag boring packages as ignored
             immutable foundInteresting = seedContentsData (suite, sectionName, arch, pkgs.data);
 
-            // check if the suite/section/arch has actually changed
+            // skip if the new package files have no interesting data
             if (!foundInteresting) {
                 logInfo ("Skipping %s/%s [%s], no interesting new packages.", suite.name, sectionName, arch);
                 continue;

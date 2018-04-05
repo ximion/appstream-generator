@@ -108,7 +108,7 @@ abstract class Package
      */
     abstract void close () {};
 
-    @property GStreamer gst () { return new GStreamer(); }
+    @property GStreamer gst () { return null; }
 
     /**
      * Retrieve backend-specific translations.

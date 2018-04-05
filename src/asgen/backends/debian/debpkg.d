@@ -58,6 +58,10 @@ public:
     final @property override string ver () const { return pkgver; }
     final @property override string arch () const { return pkgarch; }
 
+    final @property void name (string s) { pkgname = s; }
+    final @property void ver (string s) { pkgver = s; }
+    final @property void arch (string s) { pkgarch = s; }
+
     final @property override GStreamer gst () { return gstreamer; }
     final @property void gst (GStreamer gst) { gstreamer = gst; }
 
@@ -89,8 +93,7 @@ public:
 
         contentsRead = false;
 
-        auto conf = Config.get ();
-        tmpDir = buildPath (conf.getTmpDir (), format ("%s-%s_%s", name, ver, arch));
+        updateTmpDirPath ();
     }
 
     ~this ()
@@ -98,6 +101,12 @@ public:
         // FIXME: We can't properly clean up because we can't GC-allocate in a destructor (leads to crashes),
         // see if this is fixed in a future version of D, or simply don't use the GC in close ().
         // close ();
+    }
+
+    final void updateTmpDirPath ()
+    {
+        auto conf = Config.get ();
+        tmpDir = buildPath (conf.getTmpDir (), format ("%s-%s_%s", name, ver, arch));
     }
 
     final void setDescription (string text, string locale)
@@ -225,6 +234,39 @@ public:
 
         contentsRead = true;
         return contentsL;
+    }
+
+    /**
+     * Get the "control" file information from the control archive
+     * in the Debian package.
+     * This is useful to get information from a package directly, e.g.
+     * for processing a single package.
+     */
+    final auto readControlInformation ()
+    {
+        import std.utf : toUTF8;
+        import asgen.backends.debian.tagfile : TagFile;
+
+        auto ca = openControlArchive ();
+        const(ubyte)[] controlData;
+        try {
+            controlData = ca.readData ("./control");
+        } catch (Exception e) {
+            logError ("Could not read control file for package %s: %s", this.id, e.msg);
+            return null;
+        }
+
+        auto controlStr = cast(string) controlData;
+        try {
+            controlStr = controlStr.toUTF8;
+        } catch (Exception e) {
+            logError ("Could not decode control file for package %s: %s", this.id, e.msg);
+            return null;
+        }
+
+        auto tf = new TagFile ();
+        tf.load (controlStr);
+        return tf;
     }
 
     override final
