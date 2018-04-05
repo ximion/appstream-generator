@@ -1,4 +1,6 @@
 ﻿#
+# Copyright (C) Mike Wey
+#
 # Licensed under the GNU Lesser General Public License Version 3
 #
 # This library is free software: you can redistribute it and/or modify
@@ -14,10 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 #
-
-#############################################
-### Definitions for wrapping Gtk+ ###########
-#############################################
+#
 
 # must start with wrap
 wrap: gobject
@@ -228,8 +227,59 @@ code: start
 				isGcRoot = false;
 			}
 
-			g_object_remove_toggle_ref(gObject, cast(GToggleNotify)&toggleNotify, cast(void*)this);
+			unref();
 		}
+	}
+
+	/** */
+	T opCast(T)()
+	{
+		static if ( is(T : ObjectG)
+			&& !is(T == interface)
+			&& is(typeof(new T(cast(typeof(T.tupleof[0]))gObject, false))) )
+		{
+			//If a regular cast works, return the result.
+			if ( auto r = cast(T)super )
+				return r;
+
+			//Prints a warning if the cast is invalid.
+			//g_type_check_instance_cast(cast(GTypeInstance*)gObject, T.getType());
+
+			//Can we cast this type to T.
+			if ( !g_type_is_a(gObject.gTypeInstance.gClass.gType, T.getType()) )
+				return null;
+
+			//Remove the GDestroyNotify callback for the original d object.
+			g_object_steal_data(gObject, "GObject");
+			//Remove the original object as a GC root if needed.
+			if ( isGcRoot )
+			{
+				GC.removeRoot(cast(void*)this);
+				isGcRoot = false;
+			}
+			//Add a reference for the original D object before we remove the toggle reference.
+			g_object_ref(gObject);
+			g_object_remove_toggle_ref(gObject, cast(GToggleNotify)&toggleNotify, cast(void*)this);
+
+			//The new object handles the memory management.
+			return new T(cast(typeof(T.tupleof[0]))gObject, false);
+		}
+		else static if ( is(T == interface)
+			&& hasStaticMember!(T, "getType")
+			&& is(ReturnType!(T.getType) == GType) )
+		{
+			//If a regular cast works, return the result.
+			if ( auto r = cast(T)super )
+				return r;
+
+			//Do we implement interface T.
+			if ( !g_type_is_a(gObject.gTypeInstance.gClass.gType, T.getType()) )
+				return null;
+
+			return getInterfaceInstance!T(gObject);
+		}
+		else
+			return cast(T)super;
 	}
 
 	/**
@@ -254,14 +304,9 @@ code: start
 			else
 				return new T(obj, ownedRef);
 		}
-		else static if ( is(RT == interface) && hasMember!(RT, "getType") && is(ReturnType!(RT.getType) == GType) )
+		else static if ( is(RT == interface) && hasStaticMember!(RT, "getType") && is(ReturnType!(RT.getType) == GType) )
 		{
-			auto p = g_object_get_data(cast(GObject*)obj, Str.toStringz("GObject"));
-
-			if ( p !is null )
-				return cast(RT)cast(ObjectG)p;
-			else
-				return getInterfaceInstance!RT(cast(GObject*)obj);
+			return getInterfaceInstance!RT(cast(GObject*)obj);
 		}
 		else
 		{
@@ -309,9 +354,28 @@ code: start
 	}
 
 	/** */
-	public void setProperty(T)(string propertyName, T value)
+	public void setProperty(string propertyName, int value)
 	{
 		setProperty(propertyName, new Value(value));
+	}
+
+	/** */
+	public void setProperty(string propertyName, string value)
+	{
+		setProperty(propertyName, new Value(value));
+	}
+
+	/** */
+	public void setProperty(string propertyName, long value)
+	{
+		//We use g_object_set instead of g_object_set_property, because Value doesn't like longs and ulongs for some reason.
+		g_object_set( gObject, Str.toStringz(propertyName), value, null);
+	}
+
+	/** */
+	public void setProperty(string propertyName, ulong value)
+	{
+		g_object_set( gObject, Str.toStringz(propertyName), value, null);
 	}
 
 	deprecated("Use the member function")
@@ -522,6 +586,11 @@ code: start
 		return name(type);
 	}
 code: end
+
+struct:
+class: TypePlugin
+extend: Object
+implements: TypePlugin
 
 struct: Value
 import: std.traits

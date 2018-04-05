@@ -1,4 +1,6 @@
 ﻿#
+# Copyright (C) Mike Wey
+#
 # Licensed under the GNU Lesser General Public License Version 3
 #
 # This library is free software: you can redistribute it and/or modify
@@ -14,10 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 #
-
-#############################################
-### Definitions for wrapping Gtk+ ###########
-#############################################
 
 # must start with wrap
 wrap: glib
@@ -54,44 +52,27 @@ addAliases: start
 		}
 	}
 
-	static if ( __VERSION__ >= 2063 )
+	struct Scoped(T)
 	{
-		public import std.typecons : scoped;
+		T payload;
 
-		template Scoped(T)
+		alias payload this;
+
+		@disable this();
+		@disable this(this);
+
+		~this()
 		{
-			alias typeof(scoped!T(cast(typeof(T.tupleof[0]))null)) Scoped;
+			.destroy(payload);
 		}
 	}
-	else
+
+	auto getScopedGobject(T, Args...)(auto ref Args args) if (is(T == class))
 	{
-		// I'm getting the following error on the older dmd versions:
-		// this for Scoped_store needs to be type Scoped not type inout(Scoped!(T)).
-		// Unlike the phobos version this does use GC alocated memory for the object.
-		// Within GtkD this is used to make sure destroy is called on the object
-		// so it releases the resources it holds.
-		struct Scoped(T)
-		{
-			T payload;
+		Scoped!(T) result = void;
+		result.payload = new T(args);
 
-			alias payload this;
-
-			@disable this();
-			@disable this(this);
-
-			~this()
-			{
-				.destroy(payload);
-			}
-		}
-
-		auto scoped(T, Args...)(auto ref Args args) if (is(T == class))
-		{
-			Scoped!(T) result = void;
-			result.payload = new T(args);
-
-			return result;
-		}
+		return result;
 	}
 
 	/**
@@ -701,26 +682,27 @@ struct: MarkupParseContext
 class: SimpleXML
 
 struct: MemorySlice
+namespace:
 code: start
-	public static T* mewSlice(T)()
-	{
-		return cast(T*)g_slice_alloc(T.sizeof);
-	}
-
-	public static T* mewSlice0(T)()
+	public T* sliceNew(T)()
 	{
 		return cast(T*)g_slice_alloc0(T.sizeof);
 	}
 
-	public static T* dup(T)(T* memBlock)
+	public T* sliceAlloc(T)()
+	{
+		return cast(T*)g_slice_alloc0(T.sizeof);
+	}
+
+	public T* sliceDup(T)(T* memBlock)
 	{
 		return cast(T*)g_slice_copy(T.sizeof, memBlock);
 	}
 
-	public static void free(T)(T* memBlock)
-	{
-		 g_slice_free1(T.sizeof, memBlock);
-	}
+	public void sliceFree(T)(T* memBlock)
+ 	{
+ 		 g_slice_free1(T.sizeof, memBlock);
+ 	}
 code: end
 
 struct: Module
