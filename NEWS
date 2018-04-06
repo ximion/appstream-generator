@@ -1,3 +1,23 @@
+Version 0.7.1
+~~~~~~~~~~~~~~
+Released: 2018-04-06
+
+Features:
+ * debian: Use TagFile class from Laniakea
+ * debian: Use the packages real architecture in its identifier
+ * debian: Implement packageForFile backend feature
+ * Do more complex parsing of metainfo license expressions
+ * ci: Enable more static analysis checks
+ * Improve manual page
+
+Bugfixes:
+ * Never upscale icons if we don't need to, use pixmaps directory as last resort
+ * Update wrap files to work with gir-to-d >= 0.14
+ * Don't try to upscale tiny icons from the pixmaps directory
+ * Register HiDPI icons for fonts properly
+ * Fix some minor style issues found by D-Scanner
+ * Document WorkspaceDir config file option
+
 Version 0.7.0
 ~~~~~~~~~~~~~~
 Released: 2018-04-04
