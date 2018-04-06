@@ -57,6 +57,7 @@ Features | Disable or enable selected generator features. For a detailed descrip
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.
 AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the collection metadata output. This key takes a list of custom-key strings as value.
 ExportDirs | Set where to export data. The dictionary requires full paths set for the "Media", "Data", "Hints" or "Html" key. In case a value is missing, the default locations are used.
+WorkspaceDir | Explicitly set the location of a workspace. Only makes sense if the generator is mean to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag.
 Icons | Customize the icon policy. See below for more details.
 
 

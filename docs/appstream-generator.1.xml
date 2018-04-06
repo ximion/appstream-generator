@@ -172,6 +172,10 @@
 						Explicitly set a generator configuration JSON file. If this flag is omitted, the <filename>asgen-config.json</filename> file
 						in the current workspace directory is used.
 					</para>
+					<para>
+						If no workspace directory is defined in the configuration file itself, the directory it is located in is used
+						as workspace. This can be overridden by defining a workspace explicitly with <option>-w</option>.
+					</para>
 				</listitem>
 			</varlistentry>
 
