@@ -24,3 +24,10 @@ ninja test -v
 # Test install
 DESTDIR=/tmp/install-ninja ninja install
 cd ..
+
+#
+# Other checks
+#
+
+# run D-Scanner
+./tests/ci/run-dscanner.sh
