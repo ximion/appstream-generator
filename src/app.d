@@ -37,8 +37,9 @@ private immutable helpText =
 AppStream Metadata Generator
 
 Subcommands:
-  process SUITE [SECTION] - Process new metadata for the given distribution suite.
+  run SUITE [SECTION]     - Process new metadata for the given distribution suite and publish it.
   cleanup                 - Cleanup old metadata and media files.
+  publish SUITE [SECTION] - Export all metadata and publish reports in the export directories.
   remove-found SUITE      - Drop all valid processed metadata and hints.
   forget PKID             - Drop all information we have about this (partial) package-id.
   info PKID               - Show information associated with this (full) package-id.

@@ -13,9 +13,9 @@
 
 <refentry>
 	<refentryinfo>
-	<title>appstream-cli</title>
+	<title>appstream-generator</title>
 	<copyright>
-		<year>2016-2017</year>
+		<year>2016-2018</year>
 		<holder>Matthias Klumpp</holder>
 	</copyright>
 	<productname>AppStream Generator</productname>
@@ -52,21 +52,25 @@
 		</para>
 		<para>
 			The generator will produce AppStream collection metadata files in the AppStream YAML or XML format to be shipped
-			to users, as well as a detailed HTML report about found components and HTML and JSON reports on issues detected
-			with the scanned metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
-			screenshots etc. to produce high-quality metadata for AppStream based software centers to consume.
+			to users, as well as detailed HTML reports about found components and HTML and JSON reports on issues found
+			while compiling the metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
+			screenshots etc. to produce high-quality metadata for AppStream based software centers and other tools to consume.
 			Usually, <command>&package;</command> is integrated with the existing software build &amp; delivery workflow of
 			a distribution.
 		</para>
 		<para>
 			The <command>&package;</command> tool is based on the <literal>libappstream</literal> library for metadata conversion and analysis.
-			If you just want to embed AppStream metadata processing into another tool, using <literal>libappstream</literal> is likely a
+			If you just want to embed AppStream metadata processing into another tool, using <literal>libappstream</literal> directly is likely a
 			better choice. The generator tool does some heavy lifting like rendering fonts and scaling images, which might not be necessary
 			for simple cases.
 		</para>
 		<para>
 			To use <command>&package;</command>, a <filename>asgen-config.json</filename> file is required. Its format is described in detail
 			in <ulink url="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config.json documentation</ulink>.
+		</para>
+		<para>
+			The generator supports a wide range of features that can individually configured to fit the needs of different projects and adjust the generated
+			metadata to specific use cases. Refer to the configuration file documentation for information on what options are available.
 		</para>
 		<para>
 			For more information about the AppStream project and the other components which are part of it, take a look at
@@ -79,10 +83,10 @@
 		<variablelist>
 
 			<varlistentry>
-				<term><option>process <replaceable>SUITE</replaceable></option></term>
+				<term><option>run <replaceable>SUITE</replaceable> <replaceable><optional>SECTION</optional></replaceable></option></term>
 				<listitem>
 					<para>
-						Process new metadata for the given distribution suite.
+						Process new metadata for the given distribution suite and publish it.
 					</para>
 				</listitem>
 			</varlistentry>
@@ -92,6 +96,21 @@
 				<listitem>
 					<para>
 						Cleanup old/expired metadata and media files from the cache and directories.
+						It is recommended to run this command every week, or at least every month, depending
+						on how many changes happen in the software repository.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>publish <replaceable>SUITE</replaceable> <replaceable><optional>SECTION</optional></replaceable></option></term>
+				<listitem>
+					<para>
+						Export all metadata and publish reports in the export directories.
+					</para>
+					<para>
+						You usually do not want to run this task explicitly, because it is already automatically
+						performed by the <option>run</option> command.
 					</para>
 				</listitem>
 			</varlistentry>
@@ -113,7 +132,8 @@
 					</para>
 					<para>
 						A package-id consists of a <literal>name/version/arch</literal> triplet.
-						For this command, the version and architecture can be omitted.
+						For this command, the version and architecture can be omitted to forget
+						all packages that match a particular name or name-version combination.
 					</para>
 				</listitem>
 			</varlistentry>
@@ -131,12 +151,26 @@
 			</varlistentry>
 
 			<varlistentry>
-				<term><option>-w|--workspace</option></term>
+				<term><option>-w|--workspace <replaceable>DIR</replaceable></option></term>
 				<listitem>
 					<para>Define the workspace location.</para>
 					<para>
-						If this flag is omitted, the current directory is assumed as the workspace
-						location.
+						If this flag is omitted, and no workspace directory is given in the generator
+						configuration file, the current directory is assumed as the workspace location.
+					</para>
+					<para>
+						This parameter, if given, overrides any workspace location defined elsewhere.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><option>-c|--config <replaceable>FILE</replaceable></option></term>
+				<listitem>
+					<para>Define a configuration file.</para>
+					<para>
+						Explicitly set a generator configuration JSON file. If this flag is omitted, the <filename>asgen-config.json</filename> file
+						in the current workspace directory is used.
 					</para>
 				</listitem>
 			</varlistentry>
