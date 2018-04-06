@@ -24,6 +24,7 @@ import std.path;
 import std.string;
 import std.algorithm : canFind;
 import std.array : appender;
+import std.conv : to;
 static import std.file;
 
 import asgen.logging;
@@ -123,9 +124,8 @@ public:
 
         // perform a sanity check, so we will never emit invalid packages
         auto pkgs = appender!(Package[]);
-        long pkgsMapLength = pkgsMap.length;
-        if (pkgsMapLength > 20)
-            pkgs.reserve (pkgsMapLength - 10);
+        if (pkgsMap.length > 20)
+            pkgs.reserve ((pkgsMap.length.to!long - 10).to!size_t);
         foreach (ref pkg; pkgsMap.byValue ()) {
             if (pkg.isValid)
                 pkgs ~= pkg;

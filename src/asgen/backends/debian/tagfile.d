@@ -161,7 +161,7 @@ public:
         return true;
     }
 
-    string readField (string name, string defaultValue = null) pure @trusted
+    string readField (string name, string defaultValue = null) @trusted
     {
         auto dataP = name in currentBlock;
         if (dataP is null)
