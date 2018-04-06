@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -31,11 +31,53 @@ import asgen.result;
 import asgen.utils;
 
 
-private bool isMetainfoLicense (string license) pure
+private bool isAcceptableMetainfoLicense (string licenseExpression) pure
 {
     import asgen.bindings.appstream_utils;
-    import std.string : toStringz;
-    return as_license_is_metadata_license (license.toStringz);
+
+    bool requiresAllTokens = true;
+    uint licenseGoodCnt = 0;
+    uint licenseBadCnt = 0;
+
+	auto tokens = spdxLicenseTokenize (licenseExpression);
+	if (tokens.length == 0)
+		return false;
+
+	// we don't consider very complex expressions valid
+    foreach (const ref t; tokens) {
+        if (t == "(" || t == ")")
+            return false;
+    }
+
+	// this is a simple expression parser and can be easily tricked
+    foreach (const ref t; tokens) {
+        if (t == "+")
+            continue;
+        if (t == "|") {
+            requiresAllTokens = false;
+            continue;
+        }
+        if (t == "&") {
+            requiresAllTokens = true;
+            continue;
+        }
+
+        if (spdxLicenseIsMetadataLicense (t))
+            licenseGoodCnt++;
+        else
+            licenseBadCnt++;
+    }
+
+	// any valid token makes this valid
+	if (!requiresAllTokens && licenseGoodCnt > 0)
+		return true;
+
+	// all tokens are required to be valid
+	if (requiresAllTokens && licenseBadCnt == 0)
+		return true;
+
+	// this license or license expression was bad
+    return false;
 }
 
 Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string data, const string mfname)
@@ -59,7 +101,7 @@ Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string 
     gres.addComponent (cpt);
 
     // check if we can actually legally use this metadata
-    if (!isMetainfoLicense (cpt.getMetadataLicense())) {
+    if (!isAcceptableMetainfoLicense (cpt.getMetadataLicense())) {
         gres.addHint (cpt, "metainfo-license-invalid", ["license": cpt.getMetadataLicense()]);
         return null;
     }
@@ -80,4 +122,18 @@ Component parseMetaInfoFile (GeneratorResult gres, const string data, const stri
     mdata.setFormatStyle (FormatStyle.METAINFO);
 
     return parseMetaInfoFile (mdata, gres, data, mfname);
+}
+
+unittest {
+    import std.stdio : writeln;
+    writeln ("TEST: ", "Metainfo Parser");
+
+    assert (isAcceptableMetainfoLicense ("FSFAP"));
+    assert (isAcceptableMetainfoLicense ("CC0"));
+    assert (isAcceptableMetainfoLicense ("CC0-1.0"));
+    assert (isAcceptableMetainfoLicense ("0BSD"));
+    assert (isAcceptableMetainfoLicense ("MIT AND FSFAP"));
+    assert (!isAcceptableMetainfoLicense ("GPL-2.0 AND FSFAP"));
+    assert (isAcceptableMetainfoLicense ("GPL-3.0+ or GFDL-1.3-only"));
+    assert (!isAcceptableMetainfoLicense ("GPL-3.0+ and GFDL-1.3-only"));
 }
