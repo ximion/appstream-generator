@@ -442,7 +442,6 @@ public:
     {
         MDB_val dkey, dval;
         MDB_cursorp cur;
-        string[long] stats;
 
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);
@@ -726,7 +725,6 @@ public:
     {
         MDB_val dkey;
         MDB_cursorp cur;
-        string[long] stats;
 
         auto txn = newTransaction (MDB_RDONLY);
         scope (exit) quitTransaction (txn);

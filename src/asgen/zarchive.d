@@ -34,7 +34,7 @@ import asgen.utils : GENERIC_BUFFER_SIZE;
 
 import asgen.bindings.libarchive;
 
-private immutable DEFAULT_BLOCK_SIZE = 65536;
+private immutable DEFAULT_BLOCK_SIZE = 65_536;
 
 enum ArchiveType
 {

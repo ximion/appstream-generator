@@ -80,7 +80,7 @@ private:
     string[] langpackLocales;
     Array!Package langpacks;
 
-    private void extractLangpacks ()
+    void extractLangpacks ()
     {
         import std.algorithm : filter, map;
         import std.array : appender, array, split;

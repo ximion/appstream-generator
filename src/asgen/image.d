@@ -403,9 +403,12 @@ public:
 			    break;
 	    }
 
+        // possibly-unsigned to signed
+        long linesLength = lines.length;
+
         // center text and draw it
         auto xPos = (this.width / 2) - te.width / 2 - te.x_bearing;
-        auto teHeight = te.height * lines.length + linePadding * (lines.length-1);
+        auto teHeight = te.height * lines.length + linePadding * (linesLength-1);
         auto yPos = (teHeight / 2) - teHeight / 2 - te.y_bearing + borderWidth;
         cairo_move_to (cr, xPos, yPos);
         cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);

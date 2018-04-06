@@ -42,7 +42,7 @@ import asgen.backends.interfaces;
 import asgen.datastore;
 
 
-private alias MustacheEngine!(string) Mustache;
+private alias Mustache = MustacheEngine!(string);
 
 final class ReportGenerator
 {
@@ -398,7 +398,7 @@ public:
                 intCtx["maintainer_anchor"] = std.regex.replaceAll (maintainer, maintRE, "_");
 
                 intCtx["packages"] = (string content) {
-                    string res;
+                    string pRes;
                     foreach (summary; summaries) {
                         if (summary.cpts.length == 0)
                             continue;
@@ -410,10 +410,10 @@ public:
                             cptsSub["cid"] = cid;
                         }
 
-                        res ~= mustache.renderString (content, subCtx);
+                        pRes ~= mustache.renderString (content, subCtx);
                     }
 
-                    return res;
+                    return pRes;
                 };
 
                 res ~= mustache.renderString (content, intCtx);

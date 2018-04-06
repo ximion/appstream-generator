@@ -71,8 +71,7 @@ public:
         }
     }
 
-    @property
-    const string fname () { return _fname; }
+    @property string fname () const { return _fname; }
 
     void load (string data)
     {

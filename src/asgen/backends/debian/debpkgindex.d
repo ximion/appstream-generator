@@ -67,7 +67,7 @@ public:
         indexChanged = null;
     }
 
-    private final immutable(string[]) findTranslations (const string suite, const string section)
+    private immutable(string[]) findTranslations (const string suite, const string section)
     {
         import std.regex : matchFirst, regex;
 
@@ -127,7 +127,7 @@ public:
         return description.data;
     }
 
-    private final void loadPackageLongDescs (ref HashMap!(string, DebPackage) pkgs, string suite, string section)
+    private void loadPackageLongDescs (ref HashMap!(string, DebPackage) pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
 
@@ -194,7 +194,7 @@ public:
         }
     }
 
-    private final string getIndexFile (string suite, string section, string arch)
+    private string getIndexFile (string suite, string section, string arch)
     {
         immutable path = buildPath ("dists", suite, section, "binary-%s".format (arch));
 
@@ -208,7 +208,7 @@ public:
         return new DebPackage (name, ver, arch);
     }
 
-    private final DebPackage[] loadPackages (string suite, string section, string arch)
+    private DebPackage[] loadPackages (string suite, string section, string arch)
     {
         auto indexFname = getIndexFile (suite, section, arch);
         if (!std.file.exists (indexFname)) {

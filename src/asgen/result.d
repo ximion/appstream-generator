@@ -63,7 +63,6 @@ public:
     immutable string pkgname;
     Package pkg;
 
-public:
 
     this (Package pkg)
     {

@@ -122,18 +122,18 @@ struct IconPolicy
 final class Config
 {
 private:
-    private string workspaceDir;
-    private string exportDir;
+    string workspaceDir;
+    string exportDir;
 
-    private string tmpDir;
+    string tmpDir;
 
     // Thread local
-    private static bool instantiated_;
+    static bool instantiated_;
 
     // Thread global
-    private __gshared Config instance_;
+    __gshared Config instance_;
 
-    private this () {
+    this () {
         formatVersion = FormatVersion.V0_12;
     }
 
@@ -184,13 +184,13 @@ public:
     }
 
     @property
-    const string databaseDir ()
+    string databaseDir () const
     {
         return buildPath (workspaceDir, "db");
     }
 
     @property
-    const string cacheRootDir ()
+    string cacheRootDir () const
     {
         return buildPath (workspaceDir, "cache");
     }
