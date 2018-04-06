@@ -75,8 +75,7 @@ private:
 
 public:
 
-    @trusted
-    this (string tag, string cid = null)
+    this (string tag, string cid = null) @trusted
     {
         this.tag = tag;
         this.cid = cid;
@@ -143,8 +142,7 @@ final class HintsStorage
 
     private HintDefinition[string] hintDefs;
 
-    @trusted
-    private this ()
+    private this () @trusted
     {
         import std.path;
         static import std.file;

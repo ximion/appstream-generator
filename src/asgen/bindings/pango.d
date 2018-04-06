@@ -23,7 +23,7 @@ extern(C):
 nothrow:
 @nogc:
 
-struct PangoLanguage {};
+struct PangoLanguage;
 
 PangoLanguage *pango_language_from_string (const(char) *language);
 const(char) *pango_language_get_sample_string (PangoLanguage *language);

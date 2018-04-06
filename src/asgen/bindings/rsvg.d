@@ -26,7 +26,7 @@ extern(C):
 nothrow:
 @nogc:
 
-struct _RsvgHandle {}
+struct _RsvgHandle;
 alias RsvgHandle = _RsvgHandle*;
 
 struct RsvgDimensionData {
@@ -34,7 +34,7 @@ struct RsvgDimensionData {
     int height;
     double em;
     double ex;
-};
+}
 
 RsvgHandle rsvg_handle_new ();
 void g_object_unref (void* object);

@@ -32,7 +32,7 @@ enum GdkInterpType {
 	TILES,
 	BILINEAR,
 	HYPER
-};
+}
 
 struct _GdkPixbuf {}
 alias GdkPixbuf = _GdkPixbuf*;

@@ -24,13 +24,13 @@ nothrow:
 @nogc:
 static if (!is(typeof(usize))) private alias usize = size_t;
 
-struct _cairo {}
+struct _cairo;
 alias cairo_p = _cairo*;
 
-struct _cairo_surface {}
+struct _cairo_surface;
 alias cairo_surface_p = _cairo_surface*;
 
-struct _cairo_font_face {}
+struct _cairo_font_face;
 alias cairo_font_face_p = _cairo_font_face*;
 
 struct cairo_text_extents_t {
@@ -40,7 +40,7 @@ struct cairo_text_extents_t {
     double height;
     double x_advance;
     double y_advance;
-};
+}
 
 enum cairo_status_t {
     STATUS_SUCCESS = 0,
@@ -85,7 +85,7 @@ enum cairo_status_t {
     STATUS_JBIG2_GLOBAL_MISSING,
 
     STATUS_LAST_STATUS
-};
+}
 
 enum cairo_format_t {
     FORMAT_INVALID   = -1,
@@ -95,7 +95,7 @@ enum cairo_format_t {
     FORMAT_A1        = 3,
     FORMAT_RGB16_565 = 4,
     FORMAT_RGB30     = 5
-};
+}
 
 // Context
 cairo_p cairo_create (cairo_surface_p target);

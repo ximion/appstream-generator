@@ -26,18 +26,18 @@ nothrow:
 alias FcChar8 = char;
 alias FcBool = int;
 
-struct FcPattern {};
-struct FcConfig {};
+struct FcPattern;
+struct FcConfig;
 
-struct FcMatrix {};
-struct FcCharSet {};
-struct FcLangSet {};
-struct FcRange {}
+struct FcMatrix;
+struct FcCharSet;
+struct FcLangSet;
+struct FcRange;
 
-struct FcStrList {};
-struct FcStrSet {};
+struct FcStrList;
+struct FcStrSet;
 
-struct FcBlanks {};
+struct FcBlanks;
 
 immutable char *FC_LANG = "lang"; // String RFC 3066 langs
 immutable char *FC_STYLE = "style"; // String
@@ -47,7 +47,7 @@ struct FcFontSet {
     int nfont;
     int sfont;
     FcPattern **fonts;
-};
+}
 
 enum FcType {
     Unknown = -1,
@@ -60,7 +60,7 @@ enum FcType {
     CharSet,
     FTFace,
     LangSet
-};
+}
 
 struct FcValue
 {
@@ -75,14 +75,14 @@ struct FcValue
         void *f;
         const FcLangSet *l;
         const FcRange *r;
-    };
-};
+    }
+}
 
 enum FcSetName
 {
     System = 0,
     Application = 1
-};
+}
 
 enum FcResult {
     Match,
@@ -90,7 +90,7 @@ enum FcResult {
     TypeMismatch,
     NoId,
     OutOfMemory
-};
+}
 
 FcBool FcInit ();
 

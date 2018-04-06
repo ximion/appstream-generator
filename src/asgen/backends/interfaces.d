@@ -83,7 +83,7 @@ abstract class Package
      *
      * E.g.: ["en": "foo the bar"]
      */
-    @property const(string[string]) summary () const { return (string[string]).init; };
+    @property const(string[string]) summary () const { return (string[string]).init; }
 
     /**
      * Filename of the package. This string is only used for
@@ -106,7 +106,7 @@ abstract class Package
      * Close the package. This function is called when we will
      * no longer request any file data from this package.
      */
-    abstract void close () {};
+    abstract void close () {}
 
     @property GStreamer gst () { return null; }
 
