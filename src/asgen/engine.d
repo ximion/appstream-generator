@@ -883,8 +883,12 @@ public:
                  pkidsData.length, pkidsContents.length);
 
         // remove packages from the caches which are no longer in the archive
-        cstore.removePackages (pkidsContents);
-        dstore.removePackages (pkidsData);
+        foreach (i; parallel ([1, 2])) {
+            if (i == 1)
+                cstore.removePackages (pkidsContents);
+            else if (i == 2)
+                dstore.removePackages (pkidsData);
+        }
 
         // enforce another GC cycle to free memory
         gcCollect ();
