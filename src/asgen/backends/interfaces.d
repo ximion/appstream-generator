@@ -19,11 +19,14 @@
 
 module asgen.backends.interfaces;
 
-import appstream.Component;
-import glib.KeyFile;
+import std.typecons : Nullable;
+import std.string : format;
+import std.array : empty;
 
-import std.string;
-import std.container;
+import appstream.Component;
+import glib.KeyFile : KeyFile;
+
+
 public import asgen.datastore;
 
 class GStreamer
@@ -34,7 +37,7 @@ class GStreamer
     immutable string[] uri_sinks;
     immutable string[] uri_sources;
 
-    @property @safe pure bool isNotEmpty() {
+    @property @safe pure bool isNotEmpty () const {
         return !(decoders.empty &&
                  encoders.empty &&
                  elements.empty &&
@@ -108,7 +111,7 @@ abstract class Package
      */
     abstract void close () {}
 
-    @property GStreamer gst () { return null; }
+    @property Nullable!GStreamer gst () { return Nullable!GStreamer (); }
 
     /**
      * Retrieve backend-specific translations.

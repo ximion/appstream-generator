@@ -168,7 +168,7 @@ public:
                     return true;
             }
 
-            if (pkg.gst is null)
+            if (pkg.gst.isNull)
                 return false;
             return pkg.gst.isNotEmpty;
         }

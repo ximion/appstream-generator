@@ -24,6 +24,7 @@ import std.string;
 import std.path;
 import std.array : empty, appender;
 import std.file : rmdirRecurse, mkdirRecurse;
+import std.typecons : Nullable;
 static import std.file;
 
 import asgen.config;
@@ -42,7 +43,7 @@ private:
     string pkgmaintainer;
     string[string] desc;
     string[string] summ;
-    GStreamer gstreamer;
+    Nullable!GStreamer gstreamer;
 
     bool contentsRead;
     string[] contentsL;
@@ -62,7 +63,7 @@ public:
     final @property void ver (string s) { pkgver = s; }
     final @property void arch (string s) { pkgarch = s; }
 
-    final @property override GStreamer gst () { return gstreamer; }
+    final @property override Nullable!GStreamer gst () { return gstreamer; }
     final @property void gst (GStreamer gst) { gstreamer = gst; }
 
     final @property override const(string[string]) description () const { return desc; }

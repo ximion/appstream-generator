@@ -52,7 +52,7 @@ immutable (string) downloadIfNecessary (const string prefix,
     import std.net.curl;
     import std.path;
 
-    immutable exts = ["xz", "bz2", "gz"];
+    immutable exts = ["xz", "gz", "bz2"];
     foreach (ref ext; exts) {
         immutable fileName = format (buildPath (prefix, suffix), ext);
         immutable destFileName = format (buildPath (destPrefix, suffix), ext);
@@ -73,8 +73,7 @@ immutable (string) downloadIfNecessary (const string prefix,
     }
 
     /* all extensions failed, so we failed */
-    throw new Exception (format ("Could not obtain any file matching %s",
-                         buildPath (prefix, suffix)));
+    throw new Exception ("Could not obtain any file matching %s".format (buildPath (prefix, suffix)));
 }
 
 /**

@@ -52,7 +52,7 @@ public:
 
     this (string dir)
     {
-        pkgCache = HashMap!(string, Package[]) (128);
+        pkgCache = HashMap!(string, Package[]) (4);
         this.rootDir = dir;
         if (!dir.isRemote && !std.file.exists (dir))
             throw new Exception ("Directory '%s' does not exist.".format (dir));
@@ -260,7 +260,9 @@ public:
                 .split(";")
                 .map!strip.array;
 
-            pkg.gst = new GStreamer (decoders, encoders, elements, uri_sinks, uri_sources);
+            auto gst = new GStreamer (decoders, encoders, elements, uri_sinks, uri_sources);
+            if (gst.isNotEmpty)
+                pkg.gst = gst;
 
             if (!pkg.isValid ()) {
                 logWarning ("Found invalid package (%s)! Skipping it.", pkg.toString ());
@@ -319,8 +321,6 @@ public:
             immutable description = packageDescToAppStreamDesc (dSplit);
             pkg.setDescription (description, "C");
         }
-
-        pkg.gst = new GStreamer;
 
         // ensure we have a meaningful temporary directory name
         pkg.updateTmpDirPath ();
