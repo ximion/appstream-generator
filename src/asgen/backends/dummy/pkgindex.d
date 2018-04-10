@@ -46,7 +46,7 @@ public:
         pkgCache = null;
     }
 
-    Package[] packagesFor (string suite, string section, string arch)
+    Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         return [new DummyPackage ("test", "1.0", "amd64")];
     }

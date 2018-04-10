@@ -54,11 +54,11 @@ public:
     }
 
     override
-    Package[] packagesFor (string suite, string section, string arch)
+    Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         import std.string : startsWith;
 
-        auto pkgs = super.packagesFor (suite, section, arch);
+        auto pkgs = super.packagesFor (suite, section, arch, withLongDescs);
         auto pkgslangpacks = appender!(Package[]);
         pkgslangpacks.reserve (32);
 

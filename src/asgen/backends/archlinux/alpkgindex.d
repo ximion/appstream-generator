@@ -136,7 +136,7 @@ public:
         return pkgs.data;
     }
 
-    Package[] packagesFor (string suite, string section, string arch)
+    Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         if ((suite == "arch") || (suite == "archlinux"))
             suite = "";

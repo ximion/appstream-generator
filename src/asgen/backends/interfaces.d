@@ -174,7 +174,8 @@ interface PackageIndex
      **/
     Package[] packagesFor (string suite,
                            string section,
-                           string arch);
+                           string arch,
+                           bool withLongDescs = true);
 
     /**
      * Get an abstract package representation for a physical package

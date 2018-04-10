@@ -575,28 +575,44 @@ public:
 
     }
 
-    void removePackagesNotInSet (ref HashSet!string pkgSet)
+    HashSet!(immutable string) getPackageIdSet ()
     {
         MDB_cursorp cur;
 
         auto txn = newTransaction ();
-        scope (success) commitTransaction (txn);
-        scope (failure) quitTransaction (txn);
+        scope (exit) quitTransaction (txn);
+
+        auto pkgSet = HashSet!(immutable string) (128);
 
         auto res = txn.mdb_cursor_open (dbPackages, &cur);
         scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open (pkgcruft)");
+        checkError (res, "mdb_cursor_open (getPackageIdSet)");
 
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
             immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
-            if (pkid in pkgSet)
-                continue;
+            pkgSet.put (pkid);
+        }
 
-            // if we got here, the package is not in the set of valid packages,
-            // and we can remove it.
-            res = cur.mdb_cursor_del (0);
-            checkError (res, "mdb_del");
+        return pkgSet;
+    }
+
+    void removePackages (ref const HashSet!(immutable string) pkidSet)
+    {
+        auto txn = newTransaction ();
+        scope (success) commitTransaction (txn);
+        scope (failure) quitTransaction (txn);
+
+        foreach (ref pkid; pkidSet) {
+            auto dbkey = makeDbValue (pkid);
+            auto res = txn.mdb_del (dbPackages, &dbkey, null);
+            if (res != MDB_NOTFOUND)
+                checkError (res, "mdb_del (metadata)");
+
+            res = txn.mdb_del (dbHints, &dbkey, null);
+            if (res != MDB_NOTFOUND)
+                checkError (res, "mdb_del (hints)");
+
             logInfo ("Dropped package %s", pkid);
         }
     }

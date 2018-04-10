@@ -179,7 +179,7 @@ public:
         return pkgMap.values;
     }
 
-    Package[] packagesFor (string suite, string section, string arch)
+    Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         immutable id = "%s-%s-%s".format (suite, section, arch);
         if (id !in pkgCache) {

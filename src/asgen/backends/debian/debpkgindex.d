@@ -25,6 +25,7 @@ import std.string;
 import std.algorithm : remove;
 import std.array : appender, array;
 import std.conv : to;
+import std.typecons : scoped;
 import containers : HashMap, HashSet;
 static import std.file;
 
@@ -63,7 +64,7 @@ public:
 
     final void release ()
     {
-        pkgCache = HashMap!(string, Package[]) (16);
+        pkgCache.clear ();
         indexChanged = null;
     }
 
@@ -155,7 +156,7 @@ public:
                 continue;
             }
 
-            auto tagf = new TagFile ();
+            auto tagf = scoped!TagFile ();
             tagf.open (fname);
 
             do {
@@ -208,7 +209,7 @@ public:
         return new DebPackage (name, ver, arch);
     }
 
-    private DebPackage[] loadPackages (string suite, string section, string arch)
+    private DebPackage[] loadPackages (string suite, string section, string arch, bool withLongDescs = true)
     {
         auto indexFname = getIndexFile (suite, section, arch);
         if (!std.file.exists (indexFname)) {
@@ -216,7 +217,7 @@ public:
             return [];
         }
 
-        auto tagf = new TagFile ();
+        auto tagf = scoped!TagFile ();
         tagf.open (indexFname);
         logDebug ("Opened: %s", indexFname);
 
@@ -280,16 +281,17 @@ public:
         } while (tagf.nextSection ());
 
         // load long descriptions
-        loadPackageLongDescs (pkgs, suite, section);
+        if (withLongDescs)
+            loadPackageLongDescs (pkgs, suite, section);
 
         return pkgs.values;
     }
 
-    Package[] packagesFor (string suite, string section, string arch)
+    Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         immutable id = "%s/%s/%s".format (suite, section, arch);
         if (id !in pkgCache) {
-            auto pkgs = loadPackages (suite, section, arch);
+            auto pkgs = loadPackages (suite, section, arch, withLongDescs);
             synchronized (this) pkgCache[id] = to!(Package[]) (pkgs);
         }
 

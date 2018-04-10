@@ -826,14 +826,26 @@ public:
 
     void runCleanup ()
     {
-        auto pkgSet = HashSet!string(64);
-
         logInfo ("Cleaning up left over temporary data.");
         immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");
         if (std.file.exists (tmpDir))
             rmdirRecurse (tmpDir);
 
         logInfo ("Collecting information.");
+
+        // get sets of all packages registered in the database
+        HashSet!(immutable string) pkidsContents;
+        HashSet!(immutable string) pkidsData;
+        foreach (i; parallel ([1, 2])) {
+            if (i == 1)
+                pkidsContents = cstore.getPackageIdSet ();
+            else if (i == 2)
+                pkidsData     = dstore.getPackageIdSet ();
+        }
+
+        logInfo ("We have data on a total of %s packages (content lists on %s)",
+                 pkidsData.length, pkidsContents.length);
+
         // build a set of all valid packages
         foreach (ref suite; conf.suites) {
             if (suite.isImmutable)
@@ -841,13 +853,16 @@ public:
 
             foreach (ref section; suite.sections) {
                 foreach (ref arch; suite.architectures) {
-                    auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                    // fetch current packages without long descriptions, we really only are interested in the pkgid
+                    auto pkgs = pkgIndex.packagesFor (suite.name, section, arch, false);
                     if (!suite.baseSuite.empty)
-                        pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
+                        pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch, false);
 
                     synchronized (this) {
                         foreach (ref pkg; pkgs) {
-                            pkgSet.put (pkg.id);
+                            // remove packages from the sets that are still active
+                            pkidsContents.remove (pkg.id);
+                            pkidsData.remove (pkg.id);
                         }
 
                         // free some memory
@@ -864,11 +879,12 @@ public:
         // release index resources
         pkgIndex.release ();
 
-        logInfo ("Cleaning up superseded data.");
+        logInfo ("Cleaning up superseded data (%s hints/data, %s content lists).",
+                 pkidsData.length, pkidsContents.length);
 
         // remove packages from the caches which are no longer in the archive
-        cstore.removePackagesNotInSet (pkgSet);
-        dstore.removePackagesNotInSet (pkgSet);
+        cstore.removePackages (pkidsContents);
+        dstore.removePackages (pkidsData);
 
         // enforce another GC cycle to free memory
         gcCollect ();
