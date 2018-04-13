@@ -44,6 +44,7 @@ class DebianPackageIndex : PackageIndex
 private:
     string rootDir;
     HashMap!(string, Package[]) pkgCache;
+    HashMap!(string, DebPackageLocaleTexts) l10nTextIndex;
     bool[string] indexChanged;
 
 protected:
@@ -60,11 +61,15 @@ public:
 
         auto conf = Config.get ();
         tmpDir = buildPath (conf.getTmpDir, dir.baseName);
+
+        // index of localized text for a specific package name
+        l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
     }
 
     final void release ()
     {
         pkgCache.clear ();
+        l10nTextIndex.clear ();
         indexChanged = null;
     }
 
@@ -160,8 +165,8 @@ public:
             tagf.open (fname);
 
             do {
-                auto pkgname = tagf.readField ("Package");
-                auto rawDesc  = tagf.readField ("Description-%s".format (lang));
+                immutable pkgname = tagf.readField ("Package");
+                immutable rawDesc = tagf.readField ("Description-%s".format (lang));
                 if (!pkgname)
                     continue;
                 if (!rawDesc)
@@ -171,15 +176,25 @@ public:
                 if (pkg is null)
                     continue;
 
+                immutable textPkgId = "%s/%s".format (pkg.name, pkg.ver);
+                auto l10nTexts = l10nTextIndex.get (textPkgId, null);
+                if (l10nTexts !is null) {
+                    // we already fetched this information
+                    pkg.setLocalizedTexts (l10nTexts);
+                }
+
+                // read new localizations
+                l10nTexts = pkg.localizedTexts;
+                l10nTextIndex[textPkgId] = l10nTexts;
+
                 auto split = rawDesc.split ("\n");
                 if (split.length < 2)
                     continue;
 
 
                 if (lang == "en")
-                    pkg.setSummary (split[0], "C");
-
-                pkg.setSummary (split[0], lang);
+                    l10nTexts.setSummary (split[0], "C");
+                l10nTexts.setSummary (split[0], lang);
 
                 // NOTE: .remove() removes the element, but does not alter the
                 // length of the array. Bug?  (this is why we slice the array
@@ -188,9 +203,10 @@ public:
                 immutable description = packageDescToAppStreamDesc (split);
 
                 if (lang == "en")
-                    pkg.setDescription (description, "C");
+                    l10nTexts.setDescription (description, "C");
+                l10nTexts.setDescription (description, lang);
 
-                pkg.setDescription (description, lang);
+                pkg.setLocalizedTexts (l10nTexts);
             } while (tagf.nextSection ());
         }
     }

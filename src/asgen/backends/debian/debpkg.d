@@ -34,6 +34,30 @@ import asgen.logging;
 import asgen.utils : isRemote, downloadFile;
 
 
+/**
+ * Helper class for simple deduplication of package descriptions
+ * between packages of different architectures in memory.
+ */
+final class DebPackageLocaleTexts
+{
+    string[string] summary;     /// map of localized package short summaries
+    string[string] description; /// map of localized package descriptions
+
+    void setDescription (string text, string locale)
+    {
+        description[locale] = text;
+    }
+
+    void setSummary (string text, string locale)
+    {
+        summary[locale] = text;
+    }
+}
+
+
+/**
+ * Representation of a Debian binary package
+ */
 class DebPackage : Package
 {
 private:
@@ -41,8 +65,7 @@ private:
     string pkgver;
     string pkgarch;
     string pkgmaintainer;
-    string[string] desc;
-    string[string] summ;
+    DebPackageLocaleTexts descTexts;
     Nullable!GStreamer gstreamer;
 
     bool contentsRead;
@@ -66,8 +89,8 @@ public:
     final @property override Nullable!GStreamer gst () { return gstreamer; }
     final @property void gst (GStreamer gst) { gstreamer = gst; }
 
-    final @property override const(string[string]) description () const { return desc; }
-    final @property override const(string[string]) summary () const { return summ; }
+    final @property override const(string[string]) description () const { return descTexts.description; }
+    final @property override const(string[string]) summary () const { return descTexts.summary; }
 
     override final
     @property string filename () const {
@@ -86,11 +109,15 @@ public:
     final @property string maintainer () const { return pkgmaintainer; }
     final @property void   maintainer (string maint) { pkgmaintainer = maint; }
 
-    this (string pname, string pver, string parch)
+    this (string pname, string pver, string parch, DebPackageLocaleTexts l10nTexts = null)
     {
         pkgname = pname;
         pkgver = pver;
         pkgarch = parch;
+
+        descTexts = l10nTexts;
+        if (descTexts is null)
+            descTexts = new DebPackageLocaleTexts;
 
         contentsRead = false;
 
@@ -112,17 +139,29 @@ public:
 
     final void setDescription (string text, string locale)
     {
-        desc[locale] = text;
+        descTexts.setDescription (text, locale);
     }
 
     final void setSummary (string text, string locale)
     {
-        summ[locale] = text;
+        descTexts.setSummary (text, locale);
+    }
+
+    final setLocalizedTexts (DebPackageLocaleTexts l10nTexts)
+    {
+        assert (l10nTexts !is null);
+        descTexts = l10nTexts;
+    }
+
+    @property
+    final DebPackageLocaleTexts localizedTexts ()
+    {
+        return descTexts;
     }
 
     private auto openPayloadArchive ()
     {
-        import std.regex;
+        import std.regex : ctRegex;
 
         if (dataArchive.isOpen)
             return dataArchive;
