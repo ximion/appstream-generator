@@ -154,7 +154,7 @@ private:
         import core.stdc.string : strdup;
 
         import std.c.stdlib : getenv, setenv, unsetenv;
-        import std.string : fromStringz, toStringz;
+        import std.string : toStringz;
 
         char *[char *] env;
 

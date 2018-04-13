@@ -284,7 +284,7 @@ public:
             auto pathname = fromStringz (archive_entry_pathname (en));
 
             if (pathMatches (fname, to!string (pathname))) {
-                auto filetype = archive_entry_filetype (en);
+                immutable filetype = archive_entry_filetype (en);
 
                 if (filetype == S_IFDIR) {
                     /* we don't extract directories explicitly */

@@ -452,7 +452,7 @@ public:
 
         bool[string] gcids;
         while (cur.mdb_cursor_get (&dkey, &dval, MDB_NEXT) == 0) {
-            auto pkval = to!string (fromStringz (cast(char*) dval.mv_data));
+            immutable pkval = to!string (fromStringz (cast(char*) dval.mv_data));
             if ((pkval == "ignore") || (pkval == "seen"))
                 continue;
 
