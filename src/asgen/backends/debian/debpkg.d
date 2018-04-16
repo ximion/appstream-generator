@@ -45,12 +45,14 @@ final class DebPackageLocaleTexts
 
     void setDescription (string text, string locale)
     {
-        description[locale] = text;
+        synchronized (this)
+            description[locale] = text;
     }
 
     void setSummary (string text, string locale)
     {
-        summary[locale] = text;
+        synchronized (this)
+            summary[locale] = text;
     }
 }
 

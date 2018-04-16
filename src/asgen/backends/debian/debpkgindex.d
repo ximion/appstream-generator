@@ -68,8 +68,8 @@ public:
 
     final void release ()
     {
-        pkgCache.clear ();
-        l10nTextIndex.clear ();
+        pkgCache = HashMap!(string, Package[]) (4);
+        l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
         indexChanged = null;
     }
 
@@ -177,7 +177,10 @@ public:
                     continue;
 
                 immutable textPkgId = "%s/%s".format (pkg.name, pkg.ver);
-                auto l10nTexts = l10nTextIndex.get (textPkgId, null);
+
+                DebPackageLocaleTexts l10nTexts;
+                synchronized (this)
+                    l10nTexts = l10nTextIndex.get (textPkgId, null);
                 if (l10nTexts !is null) {
                     // we already fetched this information
                     pkg.setLocalizedTexts (l10nTexts);
@@ -185,7 +188,8 @@ public:
 
                 // read new localizations
                 l10nTexts = pkg.localizedTexts;
-                l10nTextIndex[textPkgId] = l10nTexts;
+                synchronized (this)
+                    l10nTextIndex[textPkgId] = l10nTexts;
 
                 auto split = rawDesc.split ("\n");
                 if (split.length < 2)
