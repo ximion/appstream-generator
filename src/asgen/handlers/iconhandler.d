@@ -152,10 +152,10 @@ public:
      */
     private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size, bool assumeThresholdScalable = false)
     {
-        int scale = themedir["scale"].get!int;
+        immutable scale = themedir["scale"].get!int;
         if (scale != size.scale)
             return false;
-        string type = themedir["type"].get!string;
+        immutable type = themedir["type"].get!string;
         if (type == "Fixed")
             return size.toInt () == themedir["size"].get!int;
         if (type == "Scalable") {
@@ -164,8 +164,8 @@ public:
             return false;
         }
         if (type == "Threshold") {
-            auto themeSize = themedir["size"].get!int;
-            auto th = themedir["threshold"].get!int;
+            immutable themeSize = themedir["size"].get!int;
+            immutable th = themedir["threshold"].get!int;
 
             if (assumeThresholdScalable) {
                 // we treat this "Threshold" as if we were allowed to downscale its icons if they

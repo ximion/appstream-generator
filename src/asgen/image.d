@@ -181,8 +181,6 @@ public:
      */
     void scaleToWidth (uint newWidth)
     {
-        import std.math;
-
         float scaleFactor = cast(float) newWidth / cast (float) width;
         uint newHeight = to!uint (floor (height * scaleFactor));
 
@@ -195,10 +193,8 @@ public:
      */
     void scaleToHeight (uint newHeight)
     {
-        import std.math;
-
         float scaleFactor = cast(float) newHeight / cast(float) height;
-        uint newWidth = to!uint (floor (width * scaleFactor));
+        immutable newWidth = to!uint (floor (width * scaleFactor));
 
         scale (newWidth, newHeight);
     }
