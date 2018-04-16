@@ -1,3 +1,20 @@
+Version 0.7.2
+~~~~~~~~~~~~~~
+Released: 2018-04-16
+
+Features:
+ * Dramatically reduce memory usage of cruft cleanup operation
+ * Parallelize database cleanup a bit more
+ * debian: Add basic in-memory deduplication of translated texts for packages
+
+Bugfixes:
+ * Fix build on 32bit architectures
+ * Make GStreamer entry entirely optional for packages
+ * Ensure we properly merge in desktop-entry data from launchable tags
+ * Never process desktop files twice
+ * Don't append desktop data to mime/category lists
+ * Update wrap files to work with gir-to-d >= 0.15
+
 Version 0.7.1
 ~~~~~~~~~~~~~~
 Released: 2018-04-06
