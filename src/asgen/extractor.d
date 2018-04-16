@@ -132,7 +132,7 @@ public:
                         // update component with .desktop file data, ignoring NoDisplay field
                         auto ddataBytes = pkg.getFileData (df);
                         auto ddata = cast(string) ddataBytes;
-                        parseDesktopFile (gres, df, ddata, true);
+                        parseDesktopFile (gres, cpt, df, ddata, true);
 
                         // update GCID checksum
                         gres.updateComponentGCID (cpt, ddata);
@@ -171,7 +171,7 @@ public:
                     // update component with .desktop file data, ignoring NoDisplay field
                     auto ddataBytes = pkg.getFileData (*dfP);
                     auto ddata = cast(string) ddataBytes;
-                    parseDesktopFile (gres, *dfP, ddata, true);
+                    parseDesktopFile (gres, cpt, *dfP, ddata, true);
 
                     // update GCID checksum
                     gres.updateComponentGCID (cpt, ddata);
@@ -190,10 +190,10 @@ public:
         }
 
         // process the remaining .desktop files
-        foreach (ref dfname; desktopFiles.byValue ()) {
+        foreach (ref dfname; desktopFiles.byValue) {
             auto ddataBytes = pkg.getFileData (dfname);
             auto ddata = cast(string) ddataBytes;
-            auto cpt = parseDesktopFile (gres, dfname, ddata, false);
+            auto cpt = parseDesktopFile (gres, null, dfname, ddata, false);
             if (cpt !is null)
                 gres.updateComponentGCID (cpt, ddata);
         }

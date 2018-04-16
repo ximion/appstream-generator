@@ -91,7 +91,7 @@ private string getValue (KeyFile kf, string key)
  */
 private string[] filterCategories (Component cpt, GeneratorResult gres, const(string[]) cats)
 {
-    import asgen.bindings.appstream_utils;
+    import asgen.bindings.appstream_utils : as_utils_is_category_name;
 
     string[] rescats;
     foreach (string cat; cats) {
@@ -117,7 +117,7 @@ private string[] filterCategories (Component cpt, GeneratorResult gres, const(st
     return rescats;
 }
 
-Component parseDesktopFile (GeneratorResult gres, string fname, string data, bool ignore_nodisplay = false)
+Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, string data, bool ignore_nodisplay = false)
 {
     auto fnameBase = baseName (fname);
 
@@ -175,27 +175,29 @@ Component parseDesktopFile (GeneratorResult gres, string fname, string data, boo
         return null;
 	}
 
-    // make sure we have a valid component to work on
-    auto cpt = gres.getComponent (fnameBase);
+    // make sure we have a valid component to work with
     if (cpt is null) {
-        // try with the shortname as well
-        if (fnameBase.endsWith (".desktop")) {
-            auto fnameBaseNoext = fnameBase[0..$-8];
-            cpt = gres.getComponent (fnameBaseNoext);
+        cpt = gres.getComponent (fnameBase);
+        if (cpt is null) {
+            // try with the shortname as well
+            if (fnameBase.endsWith (".desktop")) {
+                auto fnameBaseNoext = fnameBase[0..$-8];
+                cpt = gres.getComponent (fnameBaseNoext);
+            }
         }
-    }
 
-    if (cpt is null) {
-        cpt = new Component ();
-        // strip .desktop suffix if the reverse-domain-name scheme is followed
-        immutable parts = fnameBase.split (".");
-        if (parts.length > 2 && isTopLevelDomain (parts[0]))
-            cpt.setId (fnameBase[0..$-8]);
-        else
-            cpt.setId (fnameBase);
+        if (cpt is null) {
+            cpt = new Component ();
+            // strip .desktop suffix if the reverse-domain-name scheme is followed
+            immutable parts = fnameBase.split (".");
+            if (parts.length > 2 && isTopLevelDomain (parts[0]))
+                cpt.setId (fnameBase[0..$-8]);
+            else
+                cpt.setId (fnameBase);
 
-        cpt.setKind (ComponentKind.DESKTOP_APP);
-        gres.addComponent (cpt);
+            cpt.setKind (ComponentKind.DESKTOP_APP);
+            gres.addComponent (cpt);
+        }
     }
 
     void checkDesktopString (string fieldId, string str)
@@ -310,7 +312,7 @@ unittest
 
     auto pkg = new DummyPackage ("pkg", "1.0", "amd64");
     auto res = new GeneratorResult (pkg);
-    auto cpt = parseDesktopFile (res, "foobar.desktop", data, false);
+    auto cpt = parseDesktopFile (res, null, "foobar.desktop", data, false);
     assert (cpt !is null);
 
     cpt = res.getComponent ("foobar.desktop");
@@ -325,7 +327,7 @@ unittest
 
     // test component-id trimming
     res = new GeneratorResult (pkg);
-    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
+    cpt = parseDesktopFile (res, null, "org.example.foobar.desktop", data, false);
     assert (cpt !is null);
 
     cpt = res.getComponent ("org.example.foobar");
@@ -340,7 +342,7 @@ unittest
     ecpt.setSummary ("Summary of TestX", "C");
     res.addComponent (ecpt);
 
-    cpt = parseDesktopFile (res, "org.example.foobar.desktop", data, false);
+    cpt = parseDesktopFile (res, null, "org.example.foobar.desktop", data, false);
     assert (cpt !is null);
     cpt = res.getComponent ("org.example.foobar");
     assert (cpt !is null);
