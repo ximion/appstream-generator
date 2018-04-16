@@ -208,8 +208,10 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             }
     }
 
-    immutable hadExistingCptName = !cpt.getName ().empty;
-    immutable hadExistingCptSummary = !cpt.getSummary ().empty;
+    immutable hasExistingName = !cpt.getName ().empty;
+    immutable hasExistingSummary = !cpt.getSummary ().empty;
+    immutable hasExistingCategories = cpt.getCategories ().len > 0;
+    immutable hasExistingMimetypes = cpt.getProvidedForKind (ProvidedKind.MIMETYPE) !is null;
 
     size_t dummy;
     auto keys = df.getKeys (DESKTOP_GROUP, dummy);
@@ -220,7 +222,7 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             continue;
 
         if (key.startsWith ("Name")) {
-            if (hadExistingCptName)
+            if (hasExistingName)
                 continue;
 
             immutable val = getValue (df, key);
@@ -231,7 +233,7 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             foreach (key, value; translations)
                 cpt.setName (value, key);
         } else if (key.startsWith ("Comment")) {
-            if (hadExistingCptSummary)
+            if (hasExistingSummary)
                 continue;
 
             immutable val = getValue (df, key);
@@ -242,6 +244,9 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             foreach (ref key, ref value; translations)
                 cpt.setSummary (value, key);
         } else if (key == "Categories") {
+            if (hasExistingCategories)
+                continue; // we already have categories set (likely from a metainfo file) - we don't append to that
+
             auto value = getValue (df, key);
             auto cats = value.split (";");
             cats = filterCategories (cpt, gres, cats);
@@ -262,14 +267,16 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
                 cpt.setKeywords (kws, key);
             }
         } else if (key == "MimeType") {
+            if (hasExistingMimetypes)
+                continue;
             auto value = getValue (df, key);
             immutable mts = value.split (";");
             if (mts.empty)
                 continue;
 
-            Provided prov = cpt.getProvidedForKind (ProvidedKind.MIMETYPE);
+            auto prov = cpt.getProvidedForKind (ProvidedKind.MIMETYPE);
             if (prov is null) {
-                prov = new Provided ();
+                prov = new Provided;
                 prov.setKind (ProvidedKind.MIMETYPE);
             }
 
@@ -279,6 +286,8 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             }
             cpt.addProvided (prov);
         } else if (key == "Icon") {
+            // this might not be a stock icon, but for simplicity we set the stock icon type here
+            // this will be sorted out by the icon handler module in a later step
             auto icon = new Icon ();
             icon.setKind (IconKind.STOCK);
             icon.setName (getValue (df, key));

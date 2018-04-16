@@ -121,8 +121,8 @@ public:
                     import std.conv : to;
                     immutable desktopId = to!string ((cast(char*) entries.index (i)).fromStringz);
 
-                    immutable df = desktopFiles.get (desktopId, null);
-                    if (df.empty) {
+                    immutable dfname = desktopFiles.get (desktopId, null);
+                    if (dfname.empty) {
                         gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId]);
                     } else if (i == 0) {
                         // always only try to merge in the first .desktop-ID, because if there are multiple
@@ -130,9 +130,9 @@ public:
                         // single .desktop file anyway.
 
                         // update component with .desktop file data, ignoring NoDisplay field
-                        auto ddataBytes = pkg.getFileData (df);
+                        const ddataBytes = pkg.getFileData (dfname);
                         auto ddata = cast(string) ddataBytes;
-                        parseDesktopFile (gres, cpt, df, ddata, true);
+                        parseDesktopFile (gres, cpt, dfname, ddata, true);
 
                         // update GCID checksum
                         gres.updateComponentGCID (cpt, ddata);
@@ -150,11 +150,11 @@ public:
             // file instead of the metainfo file).
             // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
             if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetStockIcon (cpt).isNull)) {
-                auto df = desktopFiles.get (cid, null);
+                auto dfname = desktopFiles.get (cid, null);
 
-                if (df.empty)
-                    df = desktopFiles.get (cid ~ ".desktop", null);
-                if (df.empty) {
+                if (dfname.empty)
+                    dfname = desktopFiles.get (cid ~ ".desktop", null);
+                if (dfname.empty) {
                     // no .desktop file was found and this component does not
                     // define an icon - this means that a .desktop file is required
                     // and can not be omitted, so we stop processing here.
@@ -169,9 +169,9 @@ public:
                     continue;
                 } else {
                     // update component with .desktop file data, ignoring NoDisplay field
-                    auto ddataBytes = pkg.getFileData (df);
+                    const ddataBytes = pkg.getFileData (dfname);
                     auto ddata = cast(string) ddataBytes;
-                    parseDesktopFile (gres, cpt, df, ddata, true);
+                    parseDesktopFile (gres, cpt, dfname, ddata, true);
 
                     // update GCID checksum
                     gres.updateComponentGCID (cpt, ddata);
