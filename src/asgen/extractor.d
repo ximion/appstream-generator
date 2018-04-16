@@ -138,7 +138,7 @@ public:
                         gres.updateComponentGCID (cpt, ddata);
 
                         // drop the .desktop file from the list, it has been handled
-                        desktopFiles.remove (df);
+                        desktopFiles.remove (desktopId);
                     }
                 }
             }
@@ -177,7 +177,7 @@ public:
                     gres.updateComponentGCID (cpt, ddata);
 
                     // drop the .desktop file from the list, it has been handled
-                    desktopFiles.remove (df);
+                    desktopFiles.remove (cid);
                 }
             }
 
