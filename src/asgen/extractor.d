@@ -121,7 +121,7 @@ public:
                     import std.conv : to;
                     immutable desktopId = to!string ((cast(char*) entries.index (i)).fromStringz);
 
-                    immutable string df = desktopFiles.get (desktopId, null);
+                    immutable df = desktopFiles.get (desktopId, null);
                     if (df.empty) {
                         gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId]);
                     } else if (i == 0) {
@@ -138,7 +138,7 @@ public:
                         gres.updateComponentGCID (cpt, ddata);
 
                         // drop the .desktop file from the list, it has been handled
-                        desktopFiles.remove (cid);
+                        desktopFiles.remove (df);
                     }
                 }
             }
@@ -150,11 +150,11 @@ public:
             // file instead of the metainfo file).
             // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
             if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetStockIcon (cpt).isNull)) {
-                auto dfP = cid in desktopFiles;
+                auto df = desktopFiles.get (cid, null);
 
-                if (dfP is null)
-                    dfP = (cid ~ ".desktop") in desktopFiles;
-                if (dfP is null) {
+                if (df.empty)
+                    df = desktopFiles.get (cid ~ ".desktop", null);
+                if (df.empty) {
                     // no .desktop file was found and this component does not
                     // define an icon - this means that a .desktop file is required
                     // and can not be omitted, so we stop processing here.
@@ -169,15 +169,15 @@ public:
                     continue;
                 } else {
                     // update component with .desktop file data, ignoring NoDisplay field
-                    auto ddataBytes = pkg.getFileData (*dfP);
+                    auto ddataBytes = pkg.getFileData (df);
                     auto ddata = cast(string) ddataBytes;
-                    parseDesktopFile (gres, cpt, *dfP, ddata, true);
+                    parseDesktopFile (gres, cpt, df, ddata, true);
 
                     // update GCID checksum
                     gres.updateComponentGCID (cpt, ddata);
 
                     // drop the .desktop file from the list, it has been handled
-                    desktopFiles.remove (cid);
+                    desktopFiles.remove (df);
                 }
             }
 
