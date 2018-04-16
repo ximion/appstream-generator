@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 #
-#
 
 # must start with wrap
 wrap: gobject
@@ -125,6 +124,246 @@ code: start
 	}
 code: end
 
+struct: DClosure
+namespace:
+import: glib.Str
+import: glib.Variant
+import: gobject.c.functions
+import: gobject.c.types
+import: gobject.Closure
+import: gobject.ObjectG
+import: gobject.ParamSpec
+import: core.memory
+import: std.algorithm
+import: std.conv
+import: std.traits
+import: std.typecons
+code: start
+	struct DGClosure(T)
+	{
+		GClosure closure;
+
+		static if ( isDelegate!T )
+		{
+			DGClosureWrapDelegate!(T)* wrap;
+			alias wrap this;
+		}
+		else
+		{
+			T callback;
+		}
+	}
+
+	struct DGClosureWrapDelegate(T)
+	{
+		T callback;
+	}
+
+	/**
+	* DClosure is a wrapper around the gobject library's GClosure with special handling for marshalling D delegates and function pointers as callbacks.
+	*
+	* Closures are central to the concept of asynchronous signal delivery which is widely used throughout GTK+ and GNOME applications.
+	* A closure is an abstraction, a generic representation of a callback.
+	*/
+	class DClosure : Closure
+	{
+		/** Get the main Gtk struct */
+		public GClosure* getDClosureStruct(bool transferOwnership = false)
+		{
+			if (transferOwnership)
+				ownedRef = false;
+			return gClosure;
+		}
+
+		/**
+		* Sets our main struct and passes it to the parent class.
+		*/
+		public this (GClosure* gClosure, bool ownedRef = false)
+		{
+			super(gClosure, ownedRef);
+		}
+
+		/**
+		* Create a new Closure that will call `callback` when it's invoked.
+		*
+		* Params:
+		*     callback = a delegate or function to call when the DClosure is invoked.
+		*     swap     = Should the first and last parameter passed to the callback be swapped.
+		*                This is usefull when using the closure for a Signal, where the instance is
+		*                 the first parameter, but when using delegates it usually isn't used.
+		*/
+		this(T)(T callback, bool swap = false)
+			if ( isCallable!T )
+		{
+			GClosure* gClosure = g_closure_new_simple(DGClosure!(T).sizeof, null);
+			g_closure_ref(gClosure);
+			g_closure_sink(gClosure);
+			g_closure_set_marshal(gClosure, &d_closure_marshal!T);
+			if ( swap ) gClosure.derivativeFlag = true;
+
+			auto dClosure = cast(DGClosure!(T)*)gClosure;
+
+			static if ( isDelegate!T )
+			{
+				dClosure.wrap = new DGClosureWrapDelegate!T;
+				GC.addRoot(dClosure.wrap);
+				g_closure_add_finalize_notifier(gClosure, null, &d_finalize_nofify);
+			}
+
+			dClosure.callback = callback;
+			super(gClosure, true);
+		}
+
+		extern(C) static void d_finalize_nofify(void* data, GClosure* dClosure)
+		{
+			GC.removeRoot((cast(DGClosure!(void delegate())*)dClosure).wrap);
+		}
+
+		extern(C) static void d_closure_marshal(T)(GClosure* closure, GValue* return_value, uint n_param_values, /*const*/ GValue* param_values, void* invocation_hint, void* marshal_data)
+		{
+			DGClosure!(T)* cl = cast(DGClosure!(T)*)closure;
+
+			if ( Parameters!(T).length > n_param_values )
+				assert(false, "DClosure doesn't have enough parameters.");
+
+			if ( closure.derivativeFlag )
+			{
+				GValue[] swapped = new GValue[n_param_values];
+				swapped[0..n_param_values-1] = param_values[1..n_param_values];
+				swapped[n_param_values-1] = param_values[0];
+				param_values = swapped.ptr;
+			}
+
+			mixin(getCallbackCall!T());
+		}
+
+		private static string getCallbackCall(T)()
+		{
+			if (!__ctfe) assert(false);
+
+			string call;
+
+			alias Params = Parameters!T;
+			foreach ( param; Params )
+			{
+				static if ( __traits(compiles, TemplateOf!param) && __traits(isSame, TemplateOf!param, glib.c.types.Scoped) )
+					call ~= "import "~moduleName!(TemplateArgsOf!(param)[0])~";\n";
+				else static if ( is(param == class) || is(param == interface) || is(param == struct) || is(param == enum) )
+					call ~= "import "~moduleName!param~";\n";
+				else static if ( isPointer!param && ( is(PointerTarget!param == struct) || is(PointerTarget!param == enum)) )
+					//The moduleName template gives an forward reference error here.
+				call ~= "import "~fullyQualifiedName!param.findSplitAfter(".c.types")[0]~";\n";
+			}
+			alias Ret = ReturnType!T;
+			static if ( is(Ret == class) || is(Ret == interface) || is(Ret == struct) || is(Ret == enum) )
+				call ~= "import "~moduleName!Ret~";\n";
+			else static if ( isPointer!Ret && ( is(PointerTarget!Ret == struct) || is(PointerTarget!Ret == enum)) )
+				call ~= "import "~fullyQualifiedName!Ret.findSplitAfter(".c.types")[0]~";\n";
+
+			static if ( !is(Ret == void) )
+				call ~= "auto ret = ";
+			call ~= "cl.callback(";
+
+			foreach ( i, param; Params )
+			{
+				if ( i > 0 )
+					call ~= ", ";
+				call ~= getValue!param(i);
+			}
+			call ~= ");\n";
+
+			static if ( is(Ret == bool) )
+				call ~= "g_value_set_boolean(return_value, ret);";
+			else static if ( is(Ret == byte) )
+				call ~= "g_value_set_schar(return_value, ret);";
+			else static if ( is(Ret == ubyte) )
+				call ~= "g_value_set_uchar(return_value, ret);";
+			else static if ( is(Ret == int) )
+				call ~= "g_value_set_int(return_value, ret);";
+			else static if ( is(Ret == uint) )
+				call ~= "g_value_set_uint(return_value, ret);";
+			else static if ( is(Ret == long) )
+				call ~= "g_value_set_int64(return_value, ret);";
+			else static if ( is(Ret == ulong) )
+				call ~= "g_value_set_uint64(return_value, ret);";
+			else static if ( is(Ret == float) )
+				call ~= "g_value_set_float(return_value, ret);";
+			else static if ( is(Ret == double) )
+				call ~= "g_value_set_double(return_value, ret);";
+			else static if ( is(Ret == string) )
+				call ~= "g_value_set_string(return_value, Str.toStringz(ret));";
+			else static if ( is(Ret == string[]) )
+				call ~= "g_value_set_pointer(return_value, Str.toStringzArray(ret));";
+			else static if ( is(Ret == enum) )
+				call ~= "g_type_is_a(return_value.gType, GType.ENUM) ? g_value_set_enum(return_value, ret) : g_value_set_flags(return_value, ret);";
+			else static if ( isPointer!Ret )
+				call ~= "g_type_is_a(return_value.gType, GType.POINTER) ? g_value_set_pointer(return_value, ret) : (g_type_is_a(return_value.gType, GType.BOXED) ? g_value_set_boxed(return_value, ret) : g_value_set_object(return_value, ret));";
+			else static if ( is(Ret == interface) )
+				call ~= "g_value_set_object(return_value, (cast(ObjectG)ret).getObjectGStruct());";
+			else static if ( is(Ret == class) )
+			{
+				static if ( is(Ret == Variant) )
+					call ~= "g_value_set_variant(return_value, ret.getVariantStruct());";
+				else static if ( is(Ret == ParamSpec) )
+					call ~= "g_value_set_param(return_value, ret.getParamSpecStruct());";
+				else static if ( is(Ret : ObjectG) )
+					call ~= "g_value_set_object(return_value, ret.getObjectGStruct());";
+				else
+					call ~= "g_type_is_a(return_value.gType, GType.POINTER) ? g_value_set_pointer(return_value, ret.get"~Ret.stringof~"Struct()) : (g_type_is_a(return_value.gType, GType.BOXED) ? g_value_set_boxed(return_value, ret.get"~Ret.stringof~"Struct()) : g_value_set_object(return_value, ret.get"~Ret.stringof~"Struct()));";
+			}
+
+			return call;
+		}
+
+		private static string getValue(Param)(int index)
+		{
+			if (!__ctfe) assert(false);
+
+			static if ( is(Param == bool) )
+				return "g_value_get_boolean(&param_values["~to!string(index)~"]) != 0";
+			else static if ( is(Param == byte) )
+				return "g_value_get_schar(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == ubyte) )
+				return "g_value_get_uchar(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == int) )
+				return "g_value_get_int(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == uint) )
+				return "g_value_get_uint(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == long) )
+				return "g_value_get_int64(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == ulong) )
+				return "g_value_get_uint64(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == float) )
+				return "g_value_get_float(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == double) )
+				return "g_value_get_double(&param_values["~to!string(index)~"])";
+			else static if ( is(Param == string) )
+				return "Str.toString(g_value_get_string(&param_values["~to!string(index)~"]))";
+			else static if ( is(Param == string[]) )
+				return "Str.toStringArray(cast(const(char*)*)g_value_get_pointer(&param_values["~to!string(index)~"]))";
+			else static if ( is(Param == enum) )
+				return "cast("~fullyQualifiedName!Param~")(g_type_is_a(param_values["~to!string(index)~"].gType, GType.ENUM) ? g_value_get_enum(&param_values["~to!string(index)~"]) : g_value_get_flags(&param_values["~to!string(index)~"]))";
+			else static if ( isPointer!Param )
+				return "cast("~fullyQualifiedName!Param~")(g_type_is_a(param_values["~to!string(index)~"].gType, GType.POINTER) ? g_value_get_pointer(&param_values["~to!string(index)~"]) : (g_type_is_a(param_values["~to!string(index)~"].gType, GType.BOXED) ? g_value_get_boxed(&param_values["~to!string(index)~"]) : g_value_get_object(&param_values["~to!string(index)~"])))";
+			else static if ( __traits(compiles, TemplateOf!Param) && __traits(isSame, TemplateOf!Param, glib.c.types.Scoped) )
+				return "getScopedGobject!("~fullyQualifiedName!(TemplateArgsOf!(Param)[0])~")(cast(typeof("~fullyQualifiedName!(TemplateArgsOf!(Param)[0])~".tupleof[0]))(g_type_is_a(param_values["~to!string(index)~"].gType, GType.POINTER) ? g_value_get_pointer(&param_values["~to!string(index)~"]) : (g_type_is_a(param_values["~to!string(index)~"].gType, GType.BOXED) ? g_value_get_boxed(&param_values["~to!string(index)~"]) : g_value_get_object(&param_values["~to!string(index)~"]))))";
+			else static if ( is(Param == interface) )
+				return "ObjectG.getDObject!("~fullyQualifiedName!Param~")(cast(GObject*)g_value_get_object(&param_values["~to!string(index)~"]))";
+			else static if ( is(Param == class) )
+			{
+				static if ( is(Param == Variant) )
+					return "new Variant(g_value_get_variant(&param_values["~to!string(index)~"]))";
+				else static if ( is(Param== ParamSpec) )
+					return "new ParamSpec(g_value_get_param(&param_values["~to!string(index)~"]))";
+				else static if ( is(Param : ObjectG) )
+					return "ObjectG.getDObject!("~fullyQualifiedName!Param~")(cast(typeof("~fullyQualifiedName!Param~".tupleof[0]))g_value_get_object(&param_values["~to!string(index)~"]))";
+				else
+					return "ObjectG.getDObject!("~fullyQualifiedName!Param~")(cast(typeof("~fullyQualifiedName!Param~".tupleof[0]))(g_type_is_a(param_values["~to!string(index)~"].gType, GType.POINTER) ? g_value_get_pointer(&param_values["~to!string(index)~"]) : (g_type_is_a(param_values["~to!string(index)~"].gType, GType.BOXED) ? g_value_get_boxed(&param_values["~to!string(index)~"]) : g_value_get_object(&param_values["~to!string(index)~"]))))";
+			}
+		}
+	}
+code: end
+
 struct: Object
 import: core.memory
 import: gobject.Signals
@@ -167,12 +406,6 @@ code: start
 			else if ( ownedRef )
 			{
 				unref();
-			}
-
-			//When constructed via GtkBuilder set the structs.
-			if ( getStruct() is null )
-			{
-				setStruct(gObject);
 			}
 		}
 	}
@@ -227,7 +460,7 @@ code: start
 				isGcRoot = false;
 			}
 
-			unref();
+			g_object_remove_toggle_ref(gObject, cast(GToggleNotify)&toggleNotify, cast(void*)this);
 		}
 	}
 
@@ -300,13 +533,18 @@ code: start
 			auto p = g_object_get_data(cast(GObject*)obj, Str.toStringz("GObject"));
 
 			if ( p !is null )
-				return cast(RT)p;
+				return cast(RT)cast(ObjectG)p;
 			else
 				return new T(obj, ownedRef);
 		}
-		else static if ( is(RT == interface) && hasStaticMember!(RT, "getType") && is(ReturnType!(RT.getType) == GType) )
+		else static if ( is(RT == interface) && hasMember!(RT, "getType") && is(ReturnType!(RT.getType) == GType) )
 		{
-			return getInterfaceInstance!RT(cast(GObject*)obj);
+			auto p = g_object_get_data(cast(GObject*)obj, Str.toStringz("GObject"));
+
+			if ( p !is null )
+				return cast(RT)cast(ObjectG)p;
+			else
+				return getInterfaceInstance!RT(cast(GObject*)obj);
 		}
 		else
 		{
@@ -343,39 +581,15 @@ code: start
 		p[0..ci.initializer.length] = ci.initializer;
 		iface = cast(Impl)p;
 		iface.gObject = instance;
-		iface.doref();
+		iface.addToggleRef(cast(GToggleNotify)&toggleNotify, cast(void*)iface);
 
 		return iface;
 	}
 
-	protected void setStruct(GObject* obj)
-	{
-		gObject = cast(GObject*)obj;
-	}
-
 	/** */
-	public void setProperty(string propertyName, int value)
+	public void setProperty(T)(string propertyName, T value)
 	{
 		setProperty(propertyName, new Value(value));
-	}
-
-	/** */
-	public void setProperty(string propertyName, string value)
-	{
-		setProperty(propertyName, new Value(value));
-	}
-
-	/** */
-	public void setProperty(string propertyName, long value)
-	{
-		//We use g_object_set instead of g_object_set_property, because Value doesn't like longs and ulongs for some reason.
-		g_object_set( gObject, Str.toStringz(propertyName), value, null);
-	}
-
-	/** */
-	public void setProperty(string propertyName, ulong value)
-	{
-		g_object_set( gObject, Str.toStringz(propertyName), value, null);
 	}
 
 	deprecated("Use the member function")
@@ -389,32 +603,6 @@ code: start
 	{
 		return obj.doref();
 	}
-
-	protected class OnNotifyDelegateWrapper
-	{
-		void delegate(ParamSpec, ObjectG) dlg;
-		gulong handlerId;
-
-		this(void delegate(ParamSpec, ObjectG) dlg)
-		{
-			this.dlg = dlg;
-			onNotifyListeners ~= this;
-		}
-
-		void remove(OnNotifyDelegateWrapper source)
-		{
-			foreach(index, wrapper; onNotifyListeners)
-			{
-				if (wrapper.handlerId == source.handlerId)
-				{
-					onNotifyListeners[index] = null;
-					onNotifyListeners = std.algorithm.remove(onNotifyListeners, index);
-					break;
-				}
-			}
-		}
-	}
-	OnNotifyDelegateWrapper[] onNotifyListeners;
 
 	/**
 	 * The notify signal is emitted on an object when one of its
@@ -443,25 +631,7 @@ code: start
 		else
 			signalName = "notify::"~ property;
 
-		auto wrapper = new OnNotifyDelegateWrapper(dlg);
-		wrapper.handlerId = Signals.connectData(
-			this,
-			signalName,
-			cast(GCallback)&callBackNotify,
-			cast(void*)wrapper,
-			cast(GClosureNotify)&callBackNotifyDestroy,
-			connectFlags);
-		return wrapper.handlerId;
-	}
-
-	extern(C) static void callBackNotify(GObject* objectgStruct, GParamSpec* pspec,OnNotifyDelegateWrapper wrapper)
-	{
-		wrapper.dlg(ObjectG.getDObject!(ParamSpec)(pspec), wrapper.outer);
-	}
-
-	extern(C) static void callBackNotifyDestroy(OnNotifyDelegateWrapper wrapper, GClosure* closure)
-	{
-		wrapper.remove(wrapper);
+		return Signals.connect(this, signalName, dlg, connectFlags ^ ConnectFlags.SWAPPED);
 	}
 code: end
 
@@ -538,9 +708,32 @@ struct: ParamSpecVariant
 noCode: true
 
 struct: Signals
+import: gobject.DClosure
+import: std.traits
 code: start
-	/** */
-	public static gulong connectData(void* instanc, string detailedSignal, GCallback cHandler, Object data, GClosureNotify destroyData, GConnectFlags connectFlags)
+	/**
+	 * Connects a callback to a signal for a particular object.
+	 *
+	 * The handler will be called before the default handler of the signal.
+	 *
+	 * Params:
+	 *     instance       = the instance to connect to.
+	 *     detailedSignal = a string of the form "signal-name::detail".
+	 *     callback       = the callback to connect.
+	 *     connectFlags   = a combination of ConnectFlags.
+	 *
+	 * Returns: the handler ID, of type gulong (always greater than 0 for successful connections)
+	 */
+	public static gulong connect(T)(ObjectG instance, string detailedSignal, T callback, ConnectFlags connectFlags = cast(ConnectFlags)0)
+		if ( isCallable!T && !is(T == GCallback) )
+	{
+		bool after = (connectFlags & ConnectFlags.AFTER) != false;
+		bool swap = (connectFlags & ConnectFlags.SWAPPED) != false;
+
+		return Signals.connectClosure(instance, detailedSignal, new DClosure(callback, swap), after);
+	}
+
+	deprecated public static gulong connectData(void* instanc, string detailedSignal, GCallback cHandler, Object data, GClosureNotify destroyData, GConnectFlags connectFlags)
 	{
 		return g_signal_connect_data(instanc, Str.toStringz(detailedSignal), cHandler, cast(void*)data, destroyData, connectFlags);
 	}
@@ -587,12 +780,8 @@ code: start
 	}
 code: end
 
-struct:
-class: TypePlugin
-extend: Object
-implements: TypePlugin
-
 struct: Value
+import: gobject.Type
 import: std.traits
 code: start
 	/** */
@@ -603,11 +792,22 @@ code: start
 
 	/** */
 	this(GOBJECT)(GOBJECT obj)
-		if ( is(GOBJECT : ObjectG) )
+		if ( is(GOBJECT == class) && hasMember!(GOBJECT, "getType") )
 	{
 		this();
 		init(GOBJECT.getType());
-		setObject(obj);
+
+		static if ( is(GOBJECT : ObjectG) )
+		{
+			setObject(obj);
+		}
+		else
+		{
+			if ( Type.isA(gValue.gType, GType.BOXED) )
+				setBoxed(obj.tupleof[0]);
+			else
+				setPointer(obj.tupleof[0]);
+		}
 	}
 
 
