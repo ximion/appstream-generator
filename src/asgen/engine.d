@@ -917,7 +917,7 @@ public:
 
         foreach (ref section; suite.sections) {
             foreach (ref arch; parallel (suite.architectures)) {
-                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
+                auto pkgs = pkgIndex.packagesFor (suite.name, section, arch, false);
 
                 foreach (ref pkg; pkgs) {
                     auto pkid = pkg.id;
@@ -930,9 +930,12 @@ public:
                     dstore.removePackage (pkid);
                 }
             }
+
+            pkgIndex.release ();
         }
 
         dstore.cleanupCruft ();
+        pkgIndex.release ();
     }
 
     void forgetPackage (string identifier)
