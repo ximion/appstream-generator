@@ -920,7 +920,7 @@ public:
                 auto pkgs = pkgIndex.packagesFor (suite.name, section, arch, false);
 
                 foreach (ref pkg; pkgs) {
-                    auto pkid = pkg.id;
+                    immutable pkid = pkg.id;
 
                     if (!dstore.packageExists (pkid))
                         continue;

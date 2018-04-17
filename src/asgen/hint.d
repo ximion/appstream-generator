@@ -75,7 +75,7 @@ private:
 
 public:
 
-    this (string tag, string cid = null) @trusted
+    this (string tag, string cid) @trusted
     {
         this.tag = tag;
         this.cid = cid;

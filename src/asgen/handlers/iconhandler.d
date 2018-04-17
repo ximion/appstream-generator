@@ -64,7 +64,7 @@ private:
 
 public:
 
-    this (string name, const(ubyte)[] indexData)
+    this (const string name, const(ubyte)[] indexData)
     {
         this.name = name;
 
@@ -138,7 +138,7 @@ public:
         directories.sort!("a[\"size\"].get!int < b[\"size\"].get!int");
     }
 
-    this (string name, Package pkg)
+    this (const string name, Package pkg)
     {
         auto indexData = pkg.getFileData (buildPath ("/usr/share/icons", name, "index.theme"));
         this (name, indexData);
