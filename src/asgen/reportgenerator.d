@@ -21,7 +21,6 @@ module asgen.reportgenerator;
 
 import std.stdio;
 import std.string;
-import std.parallelism;
 import std.path : buildPath, buildNormalizedPath, dirName;
 import std.file : mkdirRecurse, rmdirRecurse;
 import std.array : empty;

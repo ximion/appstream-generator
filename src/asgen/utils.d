@@ -257,7 +257,7 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @t
 {
     import std.file;
     import std.path;
-    import std.parallelism;
+    import std.parallelism : parallel;
     import std.array : appender;
 
     auto deSrc = DirEntry (srcDir);
@@ -296,7 +296,7 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @t
         }
 
         // parallel foreach for regular files
-        foreach (fn; taskPool.parallel (files.data, 100)) {
+        foreach (fn; parallel (files.data, 100)) {
             immutable destFn = destRoot ~ fn[srcLen..$];
 
             if (useHardlinks)

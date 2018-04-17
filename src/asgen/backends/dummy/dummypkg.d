@@ -58,10 +58,6 @@ public:
         pkgarch = parch;
     }
 
-    ~this ()
-    {
-    }
-
     void setDescription (string text, string locale)
     {
         desc[locale] = text;
