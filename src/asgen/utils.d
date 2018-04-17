@@ -41,7 +41,7 @@ import asgen.defines;
 
 public immutable DESKTOP_GROUP = "Desktop Entry";
 
-public immutable GENERIC_BUFFER_SIZE = 2048;
+public immutable GENERIC_BUFFER_SIZE = 8192;
 
 struct ImageSize
 {

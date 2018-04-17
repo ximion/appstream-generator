@@ -51,7 +51,6 @@ private string readArchiveData (archive *ar, string name = null)
 {
     archive_entry *ae;
     int ret;
-    size_t size;
     char[GENERIC_BUFFER_SIZE] buff;
     auto data = appender!string;
     data.reserve (GENERIC_BUFFER_SIZE / 4);
@@ -69,7 +68,7 @@ private string readArchiveData (archive *ar, string name = null)
     }
 
     while (true) {
-        size = archive_read_data (ar, cast(void*) buff, GENERIC_BUFFER_SIZE);
+        immutable size = archive_read_data (ar, buff.ptr, buff.length);
         if (size < 0) {
             if (name is null)
                 throw new Exception (format ("Failed to read compressed data: %s", getArchiveErrorMessage (ar)));
@@ -131,7 +130,7 @@ private:
 
     const(ubyte)[] readEntry (archive *ar)
     {
-        const void *buff = null;
+        const(void)* buff = null;
         size_t size = 0UL;
         long offset = 0;
         auto res = appender!(ubyte[]);
@@ -146,7 +145,7 @@ private:
 
     void extractEntryTo (archive *ar, string fname)
     {
-        const void *buff = null;
+        const(void)* buff = null;
         size_t size = 0UL;
         long offset = 0;
         long output_offset = 0;
@@ -192,8 +191,8 @@ private:
         if (path1 == path2)
             return true;
 
-        auto path1Abs = buildNormalizedPath ("/", path1);
-        auto path2Abs = buildNormalizedPath ("/", path2);
+        immutable path1Abs = buildNormalizedPath ("/", path1);
+        immutable path2Abs = buildNormalizedPath ("/", path2);
 
         if (path1Abs == path2Abs)
             return true;
@@ -281,9 +280,9 @@ public:
 
         auto fnameAbs = absolutePath (fname, "/");
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
-            auto pathname = fromStringz (archive_entry_pathname (en));
+            immutable pathname = to!string (fromStringz (archive_entry_pathname (en)));
 
-            if (pathMatches (fname, to!string (pathname))) {
+            if (pathMatches (fname, pathname)) {
                 immutable filetype = archive_entry_filetype (en);
 
                 if (filetype == S_IFDIR) {

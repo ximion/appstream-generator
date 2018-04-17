@@ -68,7 +68,7 @@ int archive_read_open_filename (archive*, const(char) *filename, usize block_siz
 int archive_read_open_FILE (archive*, FILE *file);
 int archive_read_open_memory (archive*, void *buff, size_t size);
 
-ptrdiff_t archive_read_data (archive*, void*, usize);
+ptrdiff_t archive_read_data (archive*, const(void*), usize);
 int archive_read_next_header (archive*, archive_entry**);
 int archive_read_data_skip (archive*);
 int archive_read_data_block (archive *a, const(void*) *buff, size_t *size, long *offset);
