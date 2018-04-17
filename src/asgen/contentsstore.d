@@ -219,23 +219,26 @@ public:
         }
 
         immutable contentsStr = contents.join ("\n");
-        key = makeDbValue (pkid);
-        contentsVal = makeDbValue (contentsStr);
 
-        auto txn = newTransaction ();
-        scope (success) commitTransaction (txn);
-        scope (failure) quitTransaction (txn);
+        synchronized (this) {
+            key = makeDbValue (pkid);
+            contentsVal = makeDbValue (contentsStr);
 
-        auto res = txn.mdb_put (dbContents, &key, &contentsVal, 0);
-        checkError (res, "mdb_put");
+            auto txn = newTransaction ();
+            scope (success) commitTransaction (txn);
+            scope (failure) quitTransaction (txn);
 
-        if (!iconInfo.data.empty) {
-            // we have icon information, store it too
-            immutable iconsStr = iconInfo.data.join ("\n");
-            iconsVal = makeDbValue (iconsStr);
+            auto res = txn.mdb_put (dbContents, &key, &contentsVal, 0);
+            checkError (res, "mdb_put");
 
-            res = txn.mdb_put (dbIcons, &key, &iconsVal, 0);
-            checkError (res, "mdb_put (icons)");
+            if (!iconInfo.data.empty) {
+                // we have icon information, store it too
+                immutable iconsStr = iconInfo.data.join ("\n");
+                iconsVal = makeDbValue (iconsStr);
+
+                res = txn.mdb_put (dbIcons, &key, &iconsVal, 0);
+                checkError (res, "mdb_put (icons)");
+            }
         }
     }
 
