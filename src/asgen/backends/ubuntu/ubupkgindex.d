@@ -20,8 +20,10 @@
 
 module asgen.backends.ubuntu.ubupkgindex;
 
+import std.string : format;
 import std.array : appender;
 import std.conv : to;
+import containers : HashSet;
 
 import asgen.backends.debian;
 import asgen.backends.interfaces;
@@ -32,6 +34,7 @@ final class UbuntuPackageIndex : DebianPackageIndex
 
 private:
     LanguagePackProvider langpacks;
+    HashSet!string checkedLangPacks;
 
 public:
     this (string dir)
@@ -45,6 +48,17 @@ public:
          * langpacks, but otherwise we need to keep a reference to all packages
          * around, which is very expensive.
          */
+        langpacks = new LanguagePackProvider (tmpDir);
+
+        // holds the IDs of suite/section/arch combinations where we scanned language packs
+        checkedLangPacks = HashSet!string (4);
+    }
+
+    override
+    void release ()
+    {
+        super.release ();
+        checkedLangPacks = HashSet!string (4);
         langpacks = new LanguagePackProvider (tmpDir);
     }
 
@@ -60,15 +74,24 @@ public:
         import std.string : startsWith;
 
         auto pkgs = super.packagesFor (suite, section, arch, withLongDescs);
-        auto pkgslangpacks = appender!(UbuntuPackage[]);
-        pkgslangpacks.reserve (32);
 
-        foreach (ref pkg; pkgs) {
-                if (pkg.name.startsWith ("language-pack-"))
-                    pkgslangpacks ~= pkg.to!UbuntuPackage;
+        immutable ssaId = "%s/%s/%s".format (suite, section, arch);
+        if (checkedLangPacks.contains (ssaId))
+            return pkgs; // no need to scan for language packs, we already did that
+
+        // scan for language packs and add them to the data provider
+        synchronized (this) {
+            auto pkgslangpacks = appender!(UbuntuPackage[]);
+            pkgslangpacks.reserve (32);
+
+            foreach (ref pkg; pkgs) {
+                    if (pkg.name.startsWith ("language-pack-"))
+                        pkgslangpacks ~= pkg.to!UbuntuPackage;
+            }
+
+            langpacks.addLanguagePacks (pkgslangpacks.data);
+            checkedLangPacks.insert (ssaId);
         }
-
-        langpacks.addLanguagePacks (pkgslangpacks.data);
 
         return pkgs;
     }

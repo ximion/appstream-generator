@@ -66,7 +66,7 @@ public:
         l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
     }
 
-    final void release ()
+    void release ()
     {
         pkgCache = HashMap!(string, Package[]) (4);
         l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
