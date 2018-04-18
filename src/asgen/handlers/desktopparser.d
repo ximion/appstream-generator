@@ -27,7 +27,8 @@ import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
 import std.typecons : scoped;
 
-import glib.KeyFile;
+import glib.KeyFile : KeyFile;
+import glib.GException : GException;
 import appstream.Component;
 import appstream.Provided;
 import appstream.Icon;
@@ -71,7 +72,7 @@ private string getValue (KeyFile kf, string key)
     string val;
     try {
         val = kf.getString (DESKTOP_GROUP, key);
-    } catch (Throwable) {
+    } catch (GException) {
         val = null;
     }
 
@@ -117,7 +118,7 @@ private string[] filterCategories (Component cpt, GeneratorResult gres, const(st
     return rescats;
 }
 
-Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, string data, bool ignore_nodisplay = false)
+Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, string data, bool ignoreNoDisplay = false)
 {
     auto fnameBase = baseName (fname);
 
@@ -132,40 +133,41 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
 
     try {
         // check if we should ignore this .desktop file
-        auto dtype = df.getString (DESKTOP_GROUP, "Type");
+        immutable dtype = df.getString (DESKTOP_GROUP, "Type");
         if (dtype.toLower () != "application") {
             // ignore this file, it isn't describing an application
             return null;
         }
-    } catch (Throwable) {}
+    } catch (GException) {}
 
     try {
-        auto nodisplay = df.getString (DESKTOP_GROUP, "NoDisplay");
-        if ((!ignore_nodisplay) && (nodisplay.toLower () == "true")) {
+        immutable nodisplay = df.getString (DESKTOP_GROUP, "NoDisplay");
+        if ((!ignoreNoDisplay) && (nodisplay.toLower () == "true")) {
                 // we ignore this .desktop file, it's application should not be included
                 return null;
         }
-    } catch (Throwable) {}
+    } catch (GException) {}
 
     try {
-        auto asignore = df.getString (DESKTOP_GROUP, "X-AppStream-Ignore");
+        immutable asignore = df.getString (DESKTOP_GROUP, "X-AppStream-Ignore");
         if (asignore.toLower () == "true") {
             // this .desktop file should be excluded from AppStream metadata
             return null;
         }
-    } catch (Throwable) {
+    } catch (GException) {
         // we don't care if non-essential tags are missing.
         // if they are not there, the file should be processed.
     }
 
     try {
-        auto hidden = df.getString (DESKTOP_GROUP, "NoDisplay");
+        immutable hidden = df.getString (DESKTOP_GROUP, "Hidden");
         if (hidden.toLower () == "true") {
             gres.addHint (fnameBase, "desktop-file-hidden-set");
-            if (!ignore_nodisplay)
+            if (!ignoreNoDisplay)
                 return null; // we ignore this .desktop file
         }
-    } catch (Throwable) {}
+    } catch (GException) {}
+
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {
