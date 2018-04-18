@@ -98,7 +98,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
             imgData = get!(HTTP, ubyte) (origImgUrl, http);
         }
     } catch (Exception e) {
-        gres.addHint (cpt.getId (), "screenshot-download-error", ["url": origImgUrl, "error": e.msg]);
+        gres.addHint (cpt, "screenshot-download-error", ["url": origImgUrl, "error": e.msg]);
         return null;
     }
 

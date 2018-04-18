@@ -97,8 +97,8 @@ public:
     override final
     @property string filename () const {
         if (debFname.isRemote) {
-            immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
             synchronized (this) {
+                immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
                 downloadFile (debFname, path);
             }
             return path;
