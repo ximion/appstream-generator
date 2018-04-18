@@ -22,7 +22,7 @@ module asgen.handlers.desktopparser;
 import std.path : baseName;
 import std.uni : toLower;
 import std.string : format, indexOf, chomp, lastIndexOf, toStringz;
-import std.array : split, empty;
+import std.array : split, empty, appender;
 import std.algorithm : startsWith, endsWith, strip, stripRight;
 import std.stdio;
 import std.typecons : scoped;
@@ -90,12 +90,13 @@ private string getValue (KeyFile kf, string key)
  * Filter out some useless categories which we don't want to have in the
  * AppStream metadata.
  */
-private string[] filterCategories (Component cpt, GeneratorResult gres, const(string[]) cats)
+private auto filterCategories (Component cpt, GeneratorResult gres, ref string[] cats)
 {
     import asgen.bindings.appstream_utils : as_utils_is_category_name;
 
-    string[] rescats;
-    foreach (string cat; cats) {
+    auto res = appender!(string[]);
+    res.reserve (cats.length / 2);
+    foreach (const cat; cats) {
         switch (cat) {
             case "GTK":
             case "Qt":
@@ -107,7 +108,7 @@ private string[] filterCategories (Component cpt, GeneratorResult gres, const(st
             default:
                 if (!cat.empty && !cat.toLower.startsWith ("x-")) {
                     if (as_utils_is_category_name (cat.toStringz))
-                        rescats ~= cat;
+                        res ~= cat;
                     else
                         gres.addHint (cpt, "category-name-invalid", ["category": cat]);
                 }
@@ -115,7 +116,7 @@ private string[] filterCategories (Component cpt, GeneratorResult gres, const(st
         }
     }
 
-    return rescats;
+    return res.data;
 }
 
 Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, string data, bool ignoreNoDisplay = false)
