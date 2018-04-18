@@ -502,9 +502,9 @@ string[] getFileContents (const string path, const uint retryCount = 5) @trusted
 void downloadFile (const string url, const string dest, const uint retryCount = 5) @trusted
 in  { assert (url.isRemote); }
 out { assert (std.file.exists (dest)); }
-body
+do
 {
-    import std.file;
+    import std.file : exists, mkdirRecurse, setTimes, remove;
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
