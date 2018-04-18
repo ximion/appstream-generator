@@ -22,11 +22,11 @@ module asgen.config;
 import std.stdio;
 import std.array;
 import std.string : format, toLower;
-import std.path : dirName, getcwd, buildPath, buildNormalizedPath;
+import std.path : dirName, buildPath, buildNormalizedPath;
 import std.conv : to;
 import std.json;
 import std.typecons;
-static import std.file;
+import std.file : getcwd, thisExePath, exists;
 
 public import appstream.c.types : FormatVersion;
 
@@ -205,7 +205,7 @@ public:
         tdir = getVendorTemplateDir (tdir, true);
 
         if (tdir is null) {
-            immutable exeDir = dirName (std.file.thisExePath ());
+            immutable exeDir = dirName (thisExePath ());
             tdir = buildNormalizedPath (exeDir, "..", "..", "..", "data", "templates");
             tdir = getVendorTemplateDir (tdir);
 
@@ -551,7 +551,7 @@ public:
 
         // check if we need to disable features because some prerequisites are not met
         if (featureEnabled (GeneratorFeature.OPTIPNG)) {
-            if (!std.file.exists ("/usr/bin/optipng")) {
+            if (!"/usr/bin/optipng".exists) {
                 setFeature (GeneratorFeature.OPTIPNG, false);
                 logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
             }
