@@ -20,7 +20,6 @@
 
 module asgen.backends.ubuntu.ubupkg;
 
-import std.container : Array;
 import std.path : buildPath;
 import std.file : mkdirRecurse;
 import std.conv : to;
@@ -35,11 +34,11 @@ import asgen.backends.debian.debpkg;
 import asgen.backends.interfaces;
 
 
-extern (C) char *bindtextdomain (const char *domainname, const char *dirName) nothrow @nogc;
+extern (C) char *bindtextdomain (const(char*) domainname, const(char*) dirName) nothrow @nogc;
 
 final class UbuntuPackage : DebPackage
 {
-    this (string pname, string pver, string parch, string globalTmpDir, ref Array!Package langpacks)
+    this (string pname, string pver, string parch, string globalTmpDir, ref Package[] langpacks)
     {
         this.globalTmpDir = globalTmpDir;
         this.langpackDir = buildPath (globalTmpDir, "langpacks");
@@ -78,7 +77,7 @@ private:
     string langpackDir;
     string localeDir;
     string[] langpackLocales;
-    Array!Package langpacks;
+    Package[] langpacks;
 
     void extractLangpacks ()
     {
@@ -109,8 +108,8 @@ private:
                 extracted[pkg.name] = true;
             }
 
-            // get back the memory
-            langpacks.clear;
+            // empty array, get back the memory
+            langpacks = [];
 
             auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
 
@@ -138,7 +137,7 @@ private:
             }
         } else {
             // we don't need it; we've already extracted the langpacks
-            langpacks.clear;
+            langpacks = [];
         }
 
         if (langpackLocales is null)

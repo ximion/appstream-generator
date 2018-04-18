@@ -20,7 +20,6 @@
 
 module asgen.backends.ubuntu.ubupkgindex;
 
-import std.container : Array, make;
 import std.array : appender;
 
 import asgen.backends.debian;
@@ -31,7 +30,7 @@ final class UbuntuPackageIndex : DebianPackageIndex
 {
 
 private:
-    Array!Package langpacks;
+    Package[] langpacks;
 
 public:
     this (string dir)
@@ -43,7 +42,7 @@ public:
          * langpacks, but otherwise we need to keep a reference to all packages
          * around, which is very expensive.
          */
-        langpacks = make!(Array!Package);
+        langpacks = [];
         super (dir);
     }
 
