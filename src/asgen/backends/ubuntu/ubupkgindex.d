@@ -31,11 +31,13 @@ final class UbuntuPackageIndex : DebianPackageIndex
 {
 
 private:
-    UbuntuPackage[] langpacks;
+    LanguagePackProvider langpacks;
 
 public:
     this (string dir)
     {
+        super (dir);
+
         /*
          * UbuntuPackage needs to extract the langpacks, so we give it an array
          * of langpacks. There is a small overhead when computing this array
@@ -43,14 +45,13 @@ public:
          * langpacks, but otherwise we need to keep a reference to all packages
          * around, which is very expensive.
          */
-        langpacks = [];
-        super (dir);
+        langpacks = new LanguagePackProvider (tmpDir);
     }
 
     override protected
     DebPackage newPackage (string name, string ver, string arch)
     {
-        return new UbuntuPackage (name, ver, arch, tmpDir);
+        return new UbuntuPackage (name, ver, arch, langpacks);
     }
 
     override
@@ -67,10 +68,7 @@ public:
                     pkgslangpacks ~= pkg.to!UbuntuPackage;
         }
 
-        langpacks ~= pkgslangpacks.data;
-
-        foreach (ref pkg; pkgs)
-            to!UbuntuPackage (pkg).setLanguagePacks (langpacks);
+        langpacks.addLanguagePacks (pkgslangpacks.data);
 
         return pkgs;
     }

@@ -182,7 +182,7 @@ public:
         return dataArchive;
     }
 
-    protected final void extractPackage (const string dest = buildPath (tmpDir, name))
+    final void extractPackage (const string dest = buildPath (tmpDir, name))
     {
         import std.file : exists;
         import std.regex : ctRegex;

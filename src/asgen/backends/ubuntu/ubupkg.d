@@ -30,61 +30,48 @@ import appstream.Component;
 
 import asgen.logging;
 import asgen.utils : DESKTOP_GROUP;
-import asgen.backends.debian.debpkg;
+import asgen.backends.debian.debpkg : DebPackage;
 import asgen.backends.interfaces;
 
 
 extern (C) char *bindtextdomain (const(char*) domainname, const(char*) dirName) nothrow @nogc;
 
-final class UbuntuPackage : DebPackage
+/**
+ * A helper class that provides functions to work with language packs
+ * used in Ubuntu.
+ */
+final class LanguagePackProvider
 {
-    this (string pname, string pver, string parch, string globalTmpDir)
-    {
-        this.globalTmpDir = globalTmpDir;
-        this.langpackDir = buildPath (globalTmpDir, "langpacks");
-        this.localeDir = buildPath (langpackDir, "locales");
-
-        super (pname, pver, parch);
-    }
-
-    void setLanguagePacks (ref UbuntuPackage[] langpacks)
-    {
-        this.langpacks = langpacks;
-    }
-
-    override
-    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
-    {
-        string langpackdomain;
-
-        try {
-            langpackdomain = desktopFile.getString (DESKTOP_GROUP,
-                                                    "X-Ubuntu-Gettext-Domain");
-        } catch (Exception) {
-            try {
-                langpackdomain = desktopFile.getString (DESKTOP_GROUP,
-                                                        "X-GNOME-Gettext-Domain");
-            } catch (Exception) {
-                return null;
-            }
-        }
-
-        logDebug ("%s has langpack domain %s", name, langpackdomain);
-
-        synchronized {
-            extractLangpacks ();
-            return getTranslations (langpackdomain, text);
-        }
-    }
-
 private:
+    UbuntuPackage[] langpacks;
+
     string globalTmpDir;
     string langpackDir;
     string localeDir;
     string[] langpackLocales;
-    UbuntuPackage[] langpacks;
 
-    void extractLangpacks ()
+public:
+
+    this (string globalTmpDir)
+    {
+        this.globalTmpDir = globalTmpDir;
+        this.langpackDir = buildPath (globalTmpDir, "langpacks");
+        this.localeDir = buildPath (langpackDir, "locales");
+    }
+
+    void addLanguagePacks (UbuntuPackage[] langpacks)
+    {
+        synchronized (this)
+            this.langpacks ~= langpacks;
+    }
+
+    void clear ()
+    {
+        synchronized (this)
+            this.langpacks = [];
+    }
+
+    private void extractLangpacks ()
     {
         import std.algorithm : filter, map;
         import std.array : appender, array, split;
@@ -142,7 +129,7 @@ private:
                 .array;
     }
 
-    string[string] getTranslations (const string domain, const string text)
+    private auto getTranslationsPrivate (const string domain, const string text)
     {
         import core.stdc.locale : setlocale, LC_ALL;
         import core.stdc.string : strdup;
@@ -180,7 +167,7 @@ private:
         foreach (ref locale; langpackLocales) {
             setlocale (LC_ALL, locale.toStringz);
             bindtextdomain (domain.toStringz, dir.toStringz);
-            auto translatedtext = Internationalization.dgettext (domain, text);
+            const translatedtext = Internationalization.dgettext (domain, text);
 
             if (text != translatedtext)
                 ret[locale] = translatedtext;
@@ -188,4 +175,56 @@ private:
 
         return ret;
     }
+
+    string[string] getTranslations (const string domain, const string text)
+    {
+        // this functions do nasty things like changing environment variables and
+        // messing with other global state. We therefore need to ensure that nothing
+        // else is running in parallel.
+        synchronized {
+            extractLangpacks ();
+            return getTranslationsPrivate (domain, text);
+        }
+    }
+}
+
+
+/**
+ * An Ubuntu package.
+ */
+final class UbuntuPackage : DebPackage
+{
+private:
+    LanguagePackProvider lpack;
+
+public:
+    this (string pname, string pver, string parch, LanguagePackProvider lpack)
+    {
+        this.lpack = lpack;
+        super (pname, pver, parch);
+
+        assert (this.lpack !is null);
+    }
+
+    override
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
+    {
+        string langpackdomain;
+
+        try {
+            langpackdomain = desktopFile.getString (DESKTOP_GROUP,
+                                                    "X-Ubuntu-Gettext-Domain");
+        } catch (Exception) {
+            try {
+                langpackdomain = desktopFile.getString (DESKTOP_GROUP,
+                                                        "X-GNOME-Gettext-Domain");
+            } catch (Exception) {
+                return null;
+            }
+        }
+
+        logDebug ("%s has langpack domain %s", name, langpackdomain);
+        return lpack.getTranslations (langpackdomain, text);
+    }
+
 }
