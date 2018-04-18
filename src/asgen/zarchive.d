@@ -115,7 +115,7 @@ string decompressData (ref ubyte[] data)
     archive_read_support_format_raw (ar);
 
     auto dSize = ubyte.sizeof * data.length;
-    ret = archive_read_open_memory (ar, cast(void*) data, dSize);
+    ret = archive_read_open_memory (ar, data.ptr, dSize);
     if (ret != ARCHIVE_OK)
         throw new Exception (format ("Unable to open compressed data: %s", getArchiveErrorMessage (ar)));
 
@@ -462,7 +462,7 @@ void compressAndSave (ref ubyte[] data, const string fname, ArchiveType atype)
     archive_entry_set_size (entry, ubyte.sizeof * data.length);
     archive_write_header (ar, entry);
 
-    archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+    archive_write_data (ar, data.ptr, ubyte.sizeof * data.length);
     archive_write_close (ar);
 
     // delete old file if it exists
@@ -562,7 +562,7 @@ public:
             auto f = File (fname, "r");
             while (!f.eof) {
                 auto data = f.rawRead (buff);
-                archive_write_data (ar, cast(void*) data, ubyte.sizeof * data.length);
+                archive_write_data (ar, data.ptr, ubyte.sizeof * data.length);
             }
         }
     }

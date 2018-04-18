@@ -185,7 +185,7 @@ public:
         MDB_val mval;
         auto cdata = data.toStringz ();
         mval.mv_size = char.sizeof * strlen (cdata) + 1;
-        mval.mv_data = cast(void *) cdata;
+        mval.mv_data = cast(void*) cdata;
         return mval;
     }
 
