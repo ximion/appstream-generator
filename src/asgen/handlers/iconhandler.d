@@ -31,7 +31,8 @@ import std.typecons : scoped;
 import std.parallelism : parallel;
 import std.concurrency : Generator, yield;
 import containers : HashMap;
-import glib.KeyFile;
+import glib.KeyFile : KeyFile;
+import glib.GException : GException;
 import appstream.Component;
 import appstream.Icon;
 static import std.file;
@@ -89,33 +90,33 @@ public:
             try {
                 size = index.getInteger (section, "Size");
                 context = index.getString (section, "Context");
-            } catch (Throwable) {
+            } catch (GException) {
                 continue;
             }
 
             try {
                 threshold = index.getInteger (section, "Threshold");
-            } catch (Throwable) {
+            } catch (GException) {
                 threshold = 2;
             }
             try {
                 type = index.getString (section, "Type");
-            } catch (Throwable) {
+            } catch (GException) {
                 type = "Threshold";
             }
             try {
                 minSize = index.getInteger (section, "MinSize");
-            } catch (Throwable) {
+            } catch (GException) {
                 minSize = size;
             }
             try {
                 maxSize = index.getInteger (section, "MaxSize");
-            } catch (Throwable) {
+            } catch (GException) {
                 maxSize = size;
             }
             try {
                 scale = index.getInteger (section, "Scale");
-            } catch (Throwable) {
+            } catch (GException) {
                 scale = 1;
             }
 

@@ -167,7 +167,7 @@ bool localeValid (string locale) pure
 @trusted
 bool isTopLevelDomain (const string value) pure
 {
-    import asgen.bindings.appstream_utils;
+    import asgen.bindings.appstream_utils : as_utils_is_tld;
     if (value.empty)
         return false;
     return as_utils_is_tld (value.toStringz);
@@ -218,8 +218,6 @@ body
 @trusted
 string getCidFromGlobalID (string gcid) pure
 {
-    import asgen.bindings.appstream_utils;
-
     auto parts = gcid.split ("/");
     if (parts.length != 4)
         return null;

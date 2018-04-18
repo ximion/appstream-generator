@@ -320,7 +320,7 @@ public:
         try {
             if (std.file.exists (tmpDir))
                 rmdirRecurse (tmpDir);
-        } catch (Throwable) {
+        } catch (Exception) {
             // we ignore any error
         }
     }
