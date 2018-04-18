@@ -28,14 +28,14 @@ extern(C) {
     @nogc:
     @system:
 
-    bool as_utils_is_tld (const(char*) tld);
-    bool as_utils_is_category_name (const(char*) category_name);
+    bool as_utils_is_tld (const(char)* tld) pure;
+    bool as_utils_is_category_name (const(char)* category_name);
 
     const(char*) as_format_version_to_string (FormatVersion ver);
-    FormatVersion as_format_version_from_string (const(char*) version_str);
+    FormatVersion as_format_version_from_string (const(char)* version_str);
 
-    bool as_license_is_metadata_license (const(char*) license) pure;
-    char** as_spdx_license_tokenize (const(char*) license) pure;
+    bool as_license_is_metadata_license (const(char)* license) pure;
+    char** as_spdx_license_tokenize (const(char)* license) pure;
 
     const(char*) as_get_appstream_version ();
 }

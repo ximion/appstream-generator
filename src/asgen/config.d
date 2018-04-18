@@ -178,9 +178,11 @@ public:
     @property
     string formatVersionStr ()
     {
-        import asgen.bindings.appstream_utils;
+        import asgen.bindings.appstream_utils : as_format_version_to_string;
         import std.string : fromStringz;
-        return fromStringz (as_format_version_to_string (formatVersion));
+
+        auto ver = fromStringz (as_format_version_to_string (formatVersion));
+        return ver.to!string;
     }
 
     @property
