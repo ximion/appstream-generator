@@ -100,8 +100,8 @@ public:
             synchronized (this) {
                 immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
                 downloadFile (debFname, path);
+                return path;
             }
-            return path;
         }
         return debFname;
     }
