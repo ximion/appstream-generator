@@ -21,6 +21,7 @@
 module asgen.backends.ubuntu.ubupkgindex;
 
 import std.array : appender;
+import std.conv : to;
 
 import asgen.backends.debian;
 import asgen.backends.interfaces;
@@ -30,7 +31,7 @@ final class UbuntuPackageIndex : DebianPackageIndex
 {
 
 private:
-    Package[] langpacks;
+    UbuntuPackage[] langpacks;
 
 public:
     this (string dir)
@@ -46,10 +47,10 @@ public:
         super (dir);
     }
 
-    override
+    override protected
     DebPackage newPackage (string name, string ver, string arch)
     {
-        return new UbuntuPackage (name, ver, arch, tmpDir, langpacks);
+        return new UbuntuPackage (name, ver, arch, tmpDir);
     }
 
     override
@@ -58,15 +59,18 @@ public:
         import std.string : startsWith;
 
         auto pkgs = super.packagesFor (suite, section, arch, withLongDescs);
-        auto pkgslangpacks = appender!(Package[]);
+        auto pkgslangpacks = appender!(UbuntuPackage[]);
         pkgslangpacks.reserve (32);
 
         foreach (ref pkg; pkgs) {
                 if (pkg.name.startsWith ("language-pack-"))
-                    pkgslangpacks ~= pkg;
+                    pkgslangpacks ~= pkg.to!UbuntuPackage;
         }
 
         langpacks ~= pkgslangpacks.data;
+
+        foreach (ref pkg; pkgs)
+            to!UbuntuPackage (pkg).setLanguagePacks (langpacks);
 
         return pkgs;
     }

@@ -38,13 +38,18 @@ extern (C) char *bindtextdomain (const(char*) domainname, const(char*) dirName) 
 
 final class UbuntuPackage : DebPackage
 {
-    this (string pname, string pver, string parch, string globalTmpDir, ref Package[] langpacks)
+    this (string pname, string pver, string parch, string globalTmpDir)
     {
         this.globalTmpDir = globalTmpDir;
         this.langpackDir = buildPath (globalTmpDir, "langpacks");
         this.localeDir = buildPath (langpackDir, "locales");
-        this.langpacks = langpacks;
+
         super (pname, pver, parch);
+    }
+
+    void setLanguagePacks (ref UbuntuPackage[] langpacks)
+    {
+        this.langpacks = langpacks;
     }
 
     override
@@ -77,7 +82,7 @@ private:
     string langpackDir;
     string localeDir;
     string[] langpackLocales;
-    Package[] langpacks;
+    UbuntuPackage[] langpacks;
 
     void extractLangpacks ()
     {
@@ -89,33 +94,24 @@ private:
         import std.process : Pid, spawnProcess, wait;
         import std.string : splitLines, startsWith;
 
-        auto path = buildPath (langpackDir, "usr", "share", "locale-langpack");
-
         if (!langpackDir.exists) {
             bool[string] extracted;
 
             langpackDir.mkdirRecurse ();
-
             foreach (ref pkg; langpacks) {
                 if (pkg.name in extracted)
                     continue;
 
-                auto upkg = to!UbuntuPackage (pkg);
-
                 logDebug ("Extracting %s", pkg.name);
-                upkg.extractPackage (langpackDir);
+                pkg.extractPackage (langpackDir);
 
                 extracted[pkg.name] = true;
             }
 
-            // empty array, get back the memory
-            langpacks = [];
-
             auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
 
             localeDir.mkdirRecurse ();
-            foreach (locale; parallel (supportedd.dirEntries (SpanMode.shallow), 5))
-            {
+            foreach (locale; parallel (supportedd.dirEntries (SpanMode.shallow), 5)) {
                     foreach (ref line; locale.readText.splitLines) {
                             auto components = line.split (" ");
                             auto localecharset = components[0].split (".");
@@ -135,10 +131,9 @@ private:
                             scope (exit) wait (pid);
                     }
             }
-        } else {
-            // we don't need it; we've already extracted the langpacks
-            langpacks = [];
         }
+        // we don't need it; we've already extracted the langpacks
+        langpacks = [];
 
         if (langpackLocales is null)
             langpackLocales = localeDir.dirEntries (SpanMode.shallow)
@@ -149,7 +144,7 @@ private:
 
     string[string] getTranslations (const string domain, const string text)
     {
-        import core.stdc.locale;
+        import core.stdc.locale : setlocale, LC_ALL;
         import core.stdc.string : strdup;
 
         import std.c.stdlib : getenv, setenv, unsetenv;
@@ -158,7 +153,7 @@ private:
         char *[char *] env;
 
         foreach (ref var; ["LC_ALL", "LANG", "LANGUAGE", "LC_MESSAGES"]) {
-            auto value = getenv (var.toStringz);
+            const value = getenv (var.toStringz);
             if (value !is null) {
                 env[var.toStringz] = getenv (var.toStringz).strdup;
                 unsetenv (var.toStringz);
