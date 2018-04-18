@@ -20,7 +20,14 @@
 "desktop-file-hidden-set": {
   "text": ["This .desktop file has the 'Hidden' property set. This is wrong for vendor-installed .desktop files, and",
            "nullifies all effects this .desktop file has, which most certainly not what was intended.",
-           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">the specification</a> for details."],
+           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s06.html\">the specification</a> for details."],
+  "severity": "warning"
+},
+
+"desktop-file-empty-onlyshowin": {
+  "text": ["This .desktop file has the 'OnlyShowIn' property set with an empty value. This might not be intended, as this will hide",
+           "the application from all desktops. If you do want to hide the application from all desktops, using 'NoDisplay=true' is more explicit.",
+           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s06.html\">the specification</a> for details."],
   "severity": "warning"
 },
 

@@ -168,6 +168,14 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
         }
     } catch (GException) {}
 
+    try {
+        immutable onlyShowIn = df.getString (DESKTOP_GROUP, "OnlyShowIn");
+        if (onlyShowIn.empty) {
+            gres.addHint (fnameBase, "desktop-file-empty-onlyshowin");
+            if (!ignoreNoDisplay)
+                return null; // we ignore this .desktop file
+        }
+    } catch (GException) {}
 
     /* check this is a valid desktop file */
 	if (!df.hasGroup (DESKTOP_GROUP)) {
