@@ -19,10 +19,11 @@
 
 module asgen.reportgenerator;
 
-import std.stdio;
-import std.string;
+import std.stdio : File, writeln;
+import std.string : format, strip, startsWith, indexOf;
 import std.path : buildPath, buildNormalizedPath, dirName;
 import std.file : mkdirRecurse, rmdirRecurse;
+import std.algorithm : canFind;
 import std.array : empty;
 import std.json;
 import std.conv : to;
@@ -489,7 +490,8 @@ public:
                                 newInfo = true;
                             } else {
                                 // we already have a component with this gcid
-                                (*meP).archs ~= pkg.arch;
+                                if (!(*meP).archs.canFind (pkg.arch))
+                                    (*meP).archs ~= pkg.arch;
                                 continue;
                             }
                         }
