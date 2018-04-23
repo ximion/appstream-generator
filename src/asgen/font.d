@@ -38,7 +38,7 @@ import asgen.config : Config;
 // determined on the command-line via:
 // fc-query --format='FN: %{fullname}\nFS: %{family[0]} %{style[0]}\n' <fontfile>
 
-private static __gshared string[string] iconTexts;
+private static string[string] iconTexts;
 
 // initialize module static data
 shared static this ()
