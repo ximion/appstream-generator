@@ -30,4 +30,4 @@ cd ..
 #
 
 # run D-Scanner
-./tests/ci/run-dscanner.sh
+./tests/ci/run-dscanner.py . tests/dscanner.ini
