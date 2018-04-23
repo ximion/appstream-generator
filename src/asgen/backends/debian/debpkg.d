@@ -95,7 +95,7 @@ public:
     final @property override const(string[string]) description () const { return descTexts.description; }
     final @property override const(string[string]) summary () const { return descTexts.summary; }
 
-    final @property void   filename (string fname) { debFname = fname; localDebFname = null; }
+    final @property void filename (string fname) { debFname = fname; localDebFname = null; }
     override final
     string getFilename () {
         if (!localDebFname.empty)
@@ -110,9 +110,8 @@ public:
             }
         } else {
             localDebFname = debFname;
+            return debFname;
         }
-
-        return debFname;
     }
 
     override
