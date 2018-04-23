@@ -198,6 +198,10 @@ public:
                     cstore.addContents (pkid, pkg.contents);
                     logInfo ("Scanned %s for base suite.", pkid);
                 }
+
+                // chances are that we might never want to extract data from these packages,
+                // so close them for now - we can reopen them later if we actually need them.
+                pkg.close ();
             }
         }
 

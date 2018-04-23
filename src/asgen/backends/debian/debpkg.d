@@ -324,6 +324,7 @@ public:
     {
         controlArchive.close ();
         dataArchive.close ();
+        localDebFname = null;
 
         try {
             if (std.file.exists (tmpDir))
