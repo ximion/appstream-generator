@@ -89,11 +89,14 @@ abstract class Package
     @property const(string[string]) summary () const { return (string[string]).init; }
 
     /**
-     * Filename of the package. This string is only used for
+     * Local filename of the package. This string is only used for
      * issue reporting and other information, the file is never
-     * accessed directly (all data is retrieved via getFileData())
+     * accessed directly (all data is retrieved via getFileData()).
+     *
+     * This function should return a local filepath, backends might
+     * download missing packages on-demand from a web location.
      */
-    @property string filename () const;
+    string getFilename ();
 
     /**
      * A list payload files this package contains.

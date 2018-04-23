@@ -55,7 +55,9 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         try {
             fdata = gres.pkg.getFileData (fname);
         } catch (Exception e) {
-            gres.addHint (null, "pkg-extract-error", ["fname": fname.baseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
+            gres.addHint (null, "pkg-extract-error", ["fname": fname.baseName,
+                                                      "pkg_fname": gres.pkg.getFilename.baseName,
+                                                      "error": e.msg]);
             return;
         }
 
@@ -67,7 +69,9 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         try {
             font = new Font (fdata, fontBaseName);
         } catch (Exception e) {
-            gres.addHint (null, "font-load-error", ["fname": fontBaseName, "pkg_fname": gres.pkg.filename.baseName, "error": e.msg]);
+            gres.addHint (null, "font-load-error", ["fname": fontBaseName,
+                                                    "pkg_fname": gres.pkg.getFilename.baseName,
+                                                    "error": e.msg]);
             return;
         }
         allFonts[font.fullName.toLower] = font;

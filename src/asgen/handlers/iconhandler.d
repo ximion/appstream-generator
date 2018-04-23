@@ -546,12 +546,15 @@ public:
         try {
             iconData = cast(ubyte[]) sourcePkg.getFileData (iconPath);
         } catch (Exception e) {
-            gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+            gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath),
+                                                             "pkg_fname": baseName (sourcePkg.getFilename),
+                                                             "error": e.msg]);
             return false;
         }
 
         if (iconData.empty ()) {
-            gres.addHint (cpt.getId (), "pkg-empty-file", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename)]);
+            gres.addHint (cpt.getId (), "pkg-empty-file", ["fname": baseName (iconPath),
+                                                           "pkg_fname": baseName (sourcePkg.getFilename)]);
             return false;
         }
 
@@ -566,7 +569,9 @@ public:
                 cv.renderSvg (iconData);
                 cv.savePng (iconStoreLocation);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
+                                                                 "pkg_fname": baseName (sourcePkg.getFilename),
+                                                                 "error": e.msg]);
                 return false;
             }
         } else {
@@ -574,7 +579,9 @@ public:
             try {
                 img = new Image (iconData, iformat);
             } catch (Exception e) {
-                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath), "pkg_fname": baseName (sourcePkg.filename), "error": e.msg]);
+                gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
+                                                                 "pkg_fname": baseName (sourcePkg.getFilename),
+                                                                 "error": e.msg]);
                 return false;
             }
 
@@ -618,7 +625,7 @@ public:
                 img.savePng (iconStoreLocation);
             } catch (Exception e) {
                 gres.addHint (cpt, "image-write-error", ["fname": baseName (iconPath),
-                                                         "pkg_fname": baseName (sourcePkg.filename),
+                                                         "pkg_fname": baseName (sourcePkg.getFilename),
                                                          "error": e.msg]);
                 return false;
             }

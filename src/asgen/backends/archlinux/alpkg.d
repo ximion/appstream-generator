@@ -58,9 +58,9 @@ public:
     override
     @property const(string[string]) description () const { return desc; }
 
-    override
-    @property string filename () const { return pkgFname; }
     @property void filename (string fname) { pkgFname = fname; }
+    override
+    @property string getFilename () const { return pkgFname; }
 
     override
     @property string maintainer () const { return pkgmaintainer; }
@@ -75,7 +75,7 @@ public:
     const(ubyte)[] getFileData (string fname)
     {
         if (!archive.isOpen ()) {
-            archive.open (this.filename);
+            archive.open (this.getFilename);
         }
 
         return archive.readData (fname);

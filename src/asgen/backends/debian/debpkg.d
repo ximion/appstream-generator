@@ -19,9 +19,9 @@
 
 module asgen.backends.debian.debpkg;
 
-import std.stdio;
-import std.string;
-import std.path;
+import std.stdio : File, writeln;
+import std.string : format, strip, endsWith, splitLines, join, split;
+import std.path : buildNormalizedPath, buildPath, baseName;
 import std.array : empty, appender;
 import std.file : rmdirRecurse, mkdirRecurse;
 import std.typecons : Nullable;
@@ -78,6 +78,7 @@ private:
     ArchiveDecompressor dataArchive;
 
     string debFname;
+    string localDebFname;
 
 public:
     final @property override string name () const { return pkgname; }
@@ -94,18 +95,25 @@ public:
     final @property override const(string[string]) description () const { return descTexts.description; }
     final @property override const(string[string]) summary () const { return descTexts.summary; }
 
+    final @property void   filename (string fname) { debFname = fname; localDebFname = null; }
     override final
-    @property string filename () const {
+    string getFilename () {
+        if (!localDebFname.empty)
+            return localDebFname;
+
         if (debFname.isRemote) {
             synchronized (this) {
                 immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
                 downloadFile (debFname, path);
-                return path;
+                localDebFname = path;
+                return localDebFname;
             }
+        } else {
+            localDebFname = debFname;
         }
+
         return debFname;
     }
-    final @property void   filename (string fname) { debFname = fname; }
 
     override
     final @property string maintainer () const { return pkgmaintainer; }
@@ -170,12 +178,12 @@ public:
 
         ArchiveDecompressor ad;
         // extract the payload to a temporary location first
-        ad.open (this.filename);
+        ad.open (this.getFilename);
         mkdirRecurse (tmpDir);
 
         auto files = ad.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
         if (files.length == 0)
-            throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.filename));
+            throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.getFilename));
         immutable dataArchiveFname = files[0];
 
         dataArchive.open (dataArchiveFname);
@@ -196,19 +204,19 @@ public:
 
     private final auto openControlArchive ()
     {
-        import std.regex;
+        import std.regex : ctRegex;
 
         if (controlArchive.isOpen)
             return controlArchive;
 
         ArchiveDecompressor ad;
         // extract the payload to a temporary location first
-        ad.open (this.filename);
+        ad.open (this.getFilename);
         mkdirRecurse (tmpDir);
 
         auto files = ad.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
         if (files.empty)
-            throw new Exception ("Unable to find control data in Debian package: %s".format (this.filename));
+            throw new Exception ("Unable to find control data in Debian package: %s".format (this.getFilename));
         immutable controlArchiveFname = files[0];
 
         controlArchive.open (controlArchiveFname);
@@ -320,8 +328,9 @@ public:
         try {
             if (std.file.exists (tmpDir))
                 rmdirRecurse (tmpDir);
-        } catch (Exception) {
+        } catch (Exception e) {
             // we ignore any error
+            logDebug ("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
         }
     }
 }

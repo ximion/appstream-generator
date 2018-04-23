@@ -204,6 +204,7 @@ public:
         super (pname, pver, parch);
 
         assert (this.lpack !is null);
+        updateTmpDirPath ();
     }
 
     override

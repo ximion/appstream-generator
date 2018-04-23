@@ -44,7 +44,7 @@ public:
     @property override const(string[string]) description () const { return desc; }
 
     override
-    @property string filename () const { return testPkgFname; }
+    @property string getFilename () const { return testPkgFname; }
     @property void   filename (string fname) { testPkgFname = fname; }
 
     override
