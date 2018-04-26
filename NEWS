@@ -1,3 +1,25 @@
+Version 0.7.3
+~~~~~~~~~~~~~~
+Released: 2018-04-26
+
+Features:
+ * Don't include desktop files with an empty OnlyShowIn and complain about that
+ * Improve decompression code slightly
+ * Improve code to check for inclusion of .desktop files
+ * Optimize category filter function
+ * ubuntu: Use GC managed arrays for langpack info storage
+ * ubuntu: Hold copy of language pack array per package
+ * ubuntu: Don't load language packs multiple times, cleanup index data properly
+ * Close package from a base suite immediately in the seeding step
+
+Bugfixes:
+ * debian: Make package index threadsafe again
+ * Don't add data to contents store in parallel
+ * Don't add the same architecture multiple times when generating reports
+ * Enable static check for poor exception handling
+ * Don't run through a synchronized section when fetching package filename
+ * Update dscanner and invoke it from a more versatile Python script
+
 Version 0.7.2
 ~~~~~~~~~~~~~~
 Released: 2018-04-16
