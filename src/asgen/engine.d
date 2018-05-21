@@ -39,7 +39,7 @@ import asgen.contentsstore;
 import asgen.result;
 import asgen.hint;
 import asgen.reportgenerator;
-import asgen.utils : copyDir, stringArrayToByteArray;
+import asgen.utils : copyDir, stringArrayToByteArray, getCidFromGlobalID;
 
 import asgen.backends.interfaces;
 import asgen.backends.dummy;
@@ -347,6 +347,7 @@ public:
             mediaExportDir = dstore.mediaExportPoolDir;
 
         // collect metadata, icons and hints for the given packages
+        string[string] cidGcidMap;
         bool firstHintEntry = true;
         logDebug ("Building final metadata and hints files.");
         foreach (ref pkg; parallel (pkgs, 40)) {
@@ -367,6 +368,8 @@ public:
                     continue;
 
                 foreach (ref gcid; gcids) {
+                    cidGcidMap[getCidFromGlobalID (gcid)] = gcid;
+
                     // Symlink data from the pool to the suite-specific directories
                     if (useImmutableSuites) {
                         immutable gcidMediaPoolPath = buildPath (dstore.mediaExportPoolDir, gcid);
@@ -431,6 +434,7 @@ public:
             dataBaseFname = buildPath (dataExportDir, format ("Components-%s.xml", arch));
         else
             dataBaseFname = buildPath (dataExportDir, format ("Components-%s.yml", arch));
+        immutable cidIndexFname = buildPath (dataExportDir, format ("CID-Index-%s.json", arch));
         immutable hintsBaseFname = buildPath (hintsExportDir, format ("Hints-%s.json", arch));
 
         // write metadata
@@ -444,6 +448,12 @@ public:
         auto mdataFileBytes = cast(ubyte[]) mdataFile.data;
         compressAndSave (mdataFileBytes, dataBaseFname ~ ".gz", ArchiveType.GZIP);
         compressAndSave (mdataFileBytes, dataBaseFname ~ ".xz", ArchiveType.XZ);
+
+        // component ID index
+        import std.json : JSONValue, toJSON;
+        auto cidIndexJson = JSONValue (cidGcidMap);
+        auto cidIndexData = cast(ubyte[]) cidIndexJson.toJSON (true);
+        compressAndSave (cidIndexData, cidIndexFname ~ ".gz", ArchiveType.GZIP);
 
         // write hints
         logInfo ("Writing hints for %s/%s [%s]", suite.name, section, arch);
