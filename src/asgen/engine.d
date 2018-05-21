@@ -368,7 +368,7 @@ public:
                     continue;
 
                 foreach (ref gcid; gcids) {
-                    cidGcidMap[getCidFromGlobalID (gcid)] = gcid;
+                    synchronized (this) cidGcidMap[getCidFromGlobalID (gcid)] = gcid;
 
                     // Symlink data from the pool to the suite-specific directories
                     if (useImmutableSuites) {
