@@ -22,9 +22,7 @@ endif
 src_dir = include_directories('src/')
 
 dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
-glib_dep        = dependency('glib-2.0')
-gobject_dep     = dependency('gobject-2.0')
-gio_dep         = dependency('gio-2.0')
+glibd_dep       = dependency('glibd-2.0')
 appstream_dep   = dependency('appstream', version : '>= 0.12.0')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
 mustache_dep    = dependency('mustache-d', required: false)
@@ -51,26 +49,26 @@ gir_to_d_prog = find_program('girtod')
 gir_wrap_dir = source_root + '/contrib/girwrap/'
 gir_d_intf_dir = build_root + '/girepo/'
 
-message('Generating D interfaces from GIR...')
-girtod_gen = run_command(gir_to_d_prog.path(),
-                         '-i', gir_wrap_dir,
-                         '-o', gir_d_intf_dir)
-if girtod_gen.returncode() != 0
-    error('Unable to build D intefaces from GIR:\n' + girtod_gen.stderr() + girtod_gen.stdout())
-endif
-gir_bind_dir = include_directories('girepo')
 
-# Enlist D GIR interface sources
-dgir_glob_script = run_command(source_root + '/contrib/girwrap/find-d-intf-files.py')
-if dgir_glob_script.returncode() != 0
-    error('Unable to find D GIR interface source code:\n' + dgir_glob_script.stdout() + dgir_glob_script.stderr())
+
+
+message('Generating AppStream D interfaces from GIR...')
+girtod_gen = run_command(gir_to_d_prog,
+                         '-i', gir_wrap_dir,
+                         '-o', gir_d_intf_dir,
+                         '--print-files', 'relative,' + source_root)
+if girtod_gen.returncode() != 0
+    error('Unable to build D intefaces from GIR:\n' + girtod_gen.stderr())
 endif
-gir_binding_sources = dgir_glob_script.stdout().strip().split('\n')
+
+gir_bind_dir = include_directories('girepo')
+gir_binding_sources = girtod_gen.stdout().strip().split('\n')
 
 # static library of bindings automatically generated from GIR
 girbind_lib = static_library('girbindings',
     [gir_binding_sources],
-    include_directories: [gir_bind_dir]
+    include_directories: [gir_bind_dir],
+    dependencies: [glibd_dep]
 )
 
 #
