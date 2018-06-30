@@ -19,7 +19,8 @@ RUN apt-get install -yq --no-install-recommends \
     libglib2.0-dev \
     libstemmer-dev \
     libxml2-dev \
-    libyaml-dev
+    libyaml-dev \
+    gperf
 
 # install dependencies only for appstream-generator
 RUN apt-get install -yq --no-install-recommends \
