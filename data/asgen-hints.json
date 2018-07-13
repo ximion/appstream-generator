@@ -179,8 +179,10 @@
 
 "missing-desktop-file": {
   "text": ["Found an AppStream metainfo XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
-           "<code>&lt;id/&gt;</code> tag of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>",
-           "Please fix the packaging or work with upstream to resolve this issue."],
+           "<code>&lt;launchable type=\"desktop-id\"/&gt;</code> tag value of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>",
+           "Please fix the packaging or work with upstream to resolve this issue.",
+           "<small>For older metadata, the desktop-id is inferred from the <code>&lt;id/&gt;</code> tag. If the component ID ends in .desktop, and no <code>launchable</code>",
+           "tag is present, check if the .desktop file with the same name as the ID is in the same package.</small>"],
   "severity": "error"
 },
 
