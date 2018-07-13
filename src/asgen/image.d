@@ -54,16 +54,40 @@ enum ImageFormat {
 
 private void optimizePNG (string fname)
 {
-    import std.process;
+    import glib.Spawn : Spawn;
 
     auto conf = asgen.config.Config.get ();
     if (!conf.featureEnabled (GeneratorFeature.OPTIPNG))
         return;
 
-    // NOTE: Maybe add an option to run optipng with stronger optimization? (>= -o4)
-    auto optipng = execute (["optipng", fname ]);
-    if (optipng.status != 0)
-        logWarning ("Optipng on '%s' failed with error code %s: %s", fname, optipng.status, optipng.output);
+    int exitStatus;
+    string opngStdout;
+    string opngStderr;
+    try {
+        // NOTE: Maybe add an option to run optipng with stronger optimization? (>= -o4)
+        Spawn.sync (null, // working directory
+                    ["optipng", fname ], // argv
+                    [], // envp
+                    SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
+                    null, // child setup
+                    null, // user data
+                    opngStdout, // out stdout
+                    opngStderr, // out stderr
+                    exitStatus);
+    } catch (Exception e) {
+        logError ("Failed to spawn optipng: %s", e.to!string);
+        return;
+    }
+
+    if (exitStatus != 0) {
+        if (!opngStdout.empty) {
+            if (opngStderr.empty)
+                opngStderr = opngStdout;
+            else
+                opngStderr = opngStderr ~ "\n" ~ opngStdout;
+        }
+        logWarning ("Optipng on '%s' failed with error code %s: %s", fname, exitStatus, opngStderr);
+    }
 }
 
 /**
