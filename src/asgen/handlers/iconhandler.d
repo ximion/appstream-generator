@@ -803,23 +803,26 @@ public:
 
             // search for the right icon iside the current package
             auto success = findAndStoreXdgIcon (gres.pkg);
-            if ((!success) && (!gres.isIgnored (cpt))) {
+            if (!success && !gres.isIgnored (cpt)) {
                 // search in all packages
                 success = findAndStoreXdgIcon ();
-                if (success) {
+            }
+
+            if (success) {
                     // we found a valid stock icon, so set that additionally to the cached one
                     auto icon = new Icon ();
                     icon.setKind (IconKind.STOCK);
                     icon.setName (iconName);
                     cpt.addIcon (icon);
-                } else if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
+            } else {
+                if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
                     gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
+                    return false;
                 }
-            }
-
-            if ((!success) && (lastIconName is null)) {
-                gres.addHint (cpt.getId (), "icon-not-found", ["icon_fname": iconName]);
-                return false;
+                if (lastIconName is null) {
+                    gres.addHint (cpt.getId (), "icon-not-found", ["icon_fname": iconName]);
+                    return false;
+                }
             }
 
         }
