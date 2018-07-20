@@ -134,7 +134,7 @@ public:
         import core.stdc.locale : setlocale, LC_ALL;
         import core.stdc.string : strdup;
 
-        import std.c.stdlib : getenv, setenv, unsetenv;
+        import core.sys.posix.stdlib : getenv, setenv, unsetenv;
         import std.string : toStringz;
 
         char *[char *] env;
