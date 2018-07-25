@@ -86,6 +86,7 @@ private:
     FT_Face fface;
 
     string[] languages_;
+    string preferredLanguage_;
     string sampleText_;
     string sampleIconText_;
 
@@ -217,10 +218,8 @@ public:
         // this is a hack since some people don't set their
         // <languages> tag properly.
         immutable enIndex = languages_.countUntil ("en");
-        if (anyLangAdded && enIndex > 0) {
-            languages_ = languages_.remove (enIndex);
-            languages_ = "en" ~ languages_;
-        }
+        if (anyLangAdded && enIndex > 0)
+            preferredLanguage = "en";
     }
 
     @property
@@ -281,11 +280,38 @@ public:
         return languages_;
     }
 
+    @property
+    void preferredLanguage (string lang)
+    {
+        preferredLanguage_ = lang;
+    }
+
+    @property
+    string preferredLanguage ()
+    {
+        return preferredLanguage_;
+    }
+
+    void addLanguage (string lang)
+    {
+        languages_ ~= lang;
+    }
+
+    private void prepareLanguages ()
+    {
+        import std.algorithm : sort, uniq;
+        import std.array : array;
+        languages_ = languages_.sort.uniq.array;
+    }
+
     private void findSampleTexts ()
     {
         assert (ready ());
         import std.uni : byGrapheme, isGraphical, byCodePoint, Grapheme;
         import std.range;
+
+        // ensure we have no duplicates
+        prepareLanguages ();
 
         void setFallbackSampleTextIfRequired ()
         {
@@ -309,8 +335,15 @@ public:
             return g[0];
         }
 
+        // ensure we try the preferred language first
+        string[] tmpLangList;
+        if (preferredLanguage.empty)
+            tmpLangList = this.languages.dup;
+        else
+            tmpLangList = [this.preferredLanguage] ~ this.languages;
+
         // determine our sample texts
-        foreach (ref lang; this.languages) {
+        foreach (ref lang; tmpLangList) {
             auto plang = pango_language_from_string (lang.toStringz);
             auto text = pango_language_get_sample_string (plang).fromStringz;
 

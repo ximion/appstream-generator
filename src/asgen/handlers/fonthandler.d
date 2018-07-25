@@ -138,6 +138,27 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         return;
     }
 
+    // language information of fonts is often wrong. In case there was a metainfo file
+    // with languages explicitly set, we take the first language and prefer that over the others.
+    auto cptLanguages = cpt.getLanguages ();
+    if (cptLanguages !is null) {
+        auto firstLang = (cast(char*) cptLanguages.first.data).fromStringz;
+
+        foreach (ref font; selectedFonts.data)
+            font.preferredLanguage = firstLang.to!string;
+
+        // add languages mentioned in the metainfo file to list of supported languages
+        // of the respective font
+        auto item = cptLanguages.first.next;
+        while (item !is null) {
+
+            foreach (ref font; selectedFonts.data)
+                font.addLanguage (to!string ((cast(char*) item.data).fromStringz));
+
+            item = item.next;
+        }
+    }
+
     logDebug ("Rendering font data for %s", gcid);
 
     // process font files
