@@ -167,7 +167,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         logDebug ("Processing font '%s'", font.id);
 
         // add language information
-        foreach (ref lang; font.languages) {
+        foreach (ref lang; font.getLanguageList ()) {
             cpt.addLanguage (lang, 80);
         }
 

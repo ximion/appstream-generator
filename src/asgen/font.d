@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -25,6 +25,7 @@ import std.path : buildPath, baseName;
 import std.array : empty, appender, replace;
 import std.algorithm : countUntil, remove;
 static import std.file;
+import containers : HashSet;
 
 import asgen.bindings.freetype;
 import asgen.bindings.fontconfig;
@@ -85,7 +86,7 @@ private:
     FT_Library library;
     FT_Face fface;
 
-    string[] languages_;
+    HashSet!string languages_;
     string preferredLanguage_;
     string sampleText_;
     string sampleIconText_;
@@ -99,6 +100,8 @@ public:
 
     this (string fname)
     {
+        languages_ = HashSet!string (16);
+
         // NOTE: Freetype is completely non-threadsafe, but we only use it in the constructor.
         // So mark this section of code as synchronized to never run it in parallel (even having
         // two Font objects constructed in parallel may lead to errors)
@@ -173,7 +176,7 @@ public:
         scope (exit) FcPatternDestroy (fpattern);
 
         // load information about the font
-        auto res = appender!(string[]);
+        languages_ = HashSet!string (16);
 
         auto anyLangAdded = false;
         auto match = true;
@@ -193,7 +196,7 @@ public:
                 char *tmp;
                 FcStrListFirst (list);
                 while ((tmp = FcStrListNext (list)) !is null) {
-                    res ~= to!string (tmp.fromStringz);
+                    languages_.put (to!string (tmp.fromStringz));
                     anyLangAdded = true;
                 }
             }
@@ -211,14 +214,12 @@ public:
 
         // assume 'en' is available
         if (!anyLangAdded)
-            res ~= "en";
-        languages_ = res.data;
+            languages_.put ("en");
 
         // prefer the English language if possible
         // this is a hack since some people don't set their
         // <languages> tag properly.
-        immutable enIndex = languages_.countUntil ("en");
-        if (anyLangAdded && enIndex > 0)
+        if (anyLangAdded && languages_.contains ("en"))
             preferredLanguage = "en";
     }
 
@@ -274,10 +275,12 @@ public:
         return fface;
     }
 
-    @property
-    const(string[]) languages () const
+    auto getLanguageList ()
     {
-        return languages_;
+        import std.algorithm : sort, uniq;
+        import std.array : array;
+
+        return array (languages_[]).sort.uniq;
     }
 
     @property
@@ -294,14 +297,7 @@ public:
 
     void addLanguage (string lang)
     {
-        languages_ ~= lang;
-    }
-
-    private void prepareLanguages ()
-    {
-        import std.algorithm : sort, uniq;
-        import std.array : array;
-        languages_ = languages_.sort.uniq.array;
+        languages_.put (lang);
     }
 
     private void findSampleTexts ()
@@ -309,9 +305,6 @@ public:
         assert (ready ());
         import std.uni : byGrapheme, isGraphical, byCodePoint, Grapheme;
         import std.range;
-
-        // ensure we have no duplicates
-        prepareLanguages ();
 
         void setFallbackSampleTextIfRequired ()
         {
@@ -336,11 +329,9 @@ public:
         }
 
         // ensure we try the preferred language first
-        string[] tmpLangList;
-        if (preferredLanguage.empty)
-            tmpLangList = this.languages.dup;
-        else
-            tmpLangList = [this.preferredLanguage] ~ this.languages;
+        auto tmpLangList = array(getLanguageList ());
+        if (!preferredLanguage.empty)
+            tmpLangList = [this.preferredLanguage] ~ tmpLangList;
 
         // determine our sample texts
         foreach (ref lang; tmpLangList) {
@@ -440,6 +431,7 @@ unittest
 {
     import std.stdio : writeln, File;
     import std.path : buildPath;
+    import std.array : array;
     import asgen.utils : getTestSamplesDir;
     writeln ("TEST: ", "Font");
 
@@ -463,14 +455,17 @@ unittest
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);
 
-    writeln (font.languages);
-    assert (font.languages == ["en", "aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin", "bm", "br", "bs",
-                               "bua", "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da", "de", "ee", "el", "eo", "es", "et", "eu",
-                               "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht",
-                               "hu", "hz", "ia", "id", "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am", "ku-tr",
-                               "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt", "lv", "mg", "mh", "mi", "mk", "mn-mn", "mo", "ms", "mt",
-                               "na", "nb", "nds", "ng", "nl", "nn", "no", "nr", "nso", "nv", "ny", "oc", "om", "os", "pap-an", "pap-aw", "pl", "pt", "qu", "quz",
-                               "rm", "rn", "ro", "ru", "rw", "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn",
-                               "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw", "ty", "tyv", "uk", "uz", "ve",
-                               "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
+    const langList = array (font.getLanguageList ());
+    writeln (langList);
+    assert (langList == ["aa", "ab", "af", "ak", "an", "ast", "av", "ay", "az-az", "ba", "be", "ber-dz", "bg", "bi", "bin",
+                         "bm", "br", "bs", "bua", "ca", "ce", "ch", "chm", "co", "crh", "cs", "csb", "cu", "cv", "cy", "da",
+                         "de", "ee", "el", "en", "eo", "es", "et", "eu", "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur",
+                         "fy", "ga", "gd", "gl", "gn", "gv", "ha", "haw", "ho", "hr", "hsb", "ht", "hu", "hz", "ia", "id",
+                         "ie", "ig", "ik", "io", "is", "it", "jv", "kaa", "kab", "ki", "kj", "kk", "kl", "kr", "ku-am",
+                         "ku-tr", "kum", "kv", "kw", "kwm", "ky", "la", "lb", "lez", "lg", "li", "ln", "lt","lv", "mg", "mh",
+                         "mi", "mk", "mn-mn", "mo", "ms", "mt", "na", "nb", "nds", "ng", "nl", "nn", "no", "nr", "nso", "nv",
+                         "ny", "oc", "om", "os", "pap-an", "pap-aw", "pl", "pt", "qu", "quz", "rm", "rn", "ro", "ru", "rw",
+                         "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm","sma", "smj", "smn", "sms", "sn",
+                         "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw",
+                         "ty", "tyv", "uk", "uz", "ve", "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
 }
