@@ -328,6 +328,10 @@ public:
             return g[0];
         }
 
+        // always prefer English (even if not alphabetically first)
+        if (languages_.contains ("en"))
+            preferredLanguage = "en";
+
         // ensure we try the preferred language first
         auto tmpLangList = array(getLanguageList ());
         if (!preferredLanguage.empty)
