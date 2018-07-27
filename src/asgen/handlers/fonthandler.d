@@ -116,23 +116,19 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     auto selectedFonts = appender!(Font[]);
     if (fontHints.data.length == 0) {
         import std.algorithm : canFind, sort;
+        import std.array : array;
 
         selectedFonts.reserve (allFonts.length);
-        foreach (ref font; allFonts.byValue)
-            selectedFonts ~= font;
-
-        auto sf = selectedFonts.data;
-        selectedFonts.clear ();
 
         // prepend fonts that contain "regular" so we prefer the regular
         // font face for rendering samples over the other styles
         // also ensure that the font style list is sorted for more
         // deterministic results
         auto regularFound = false;
-        foreach (ref font; sf.sort) {
+        foreach (ref font; allFonts.byValue.array.sort!"a.fullName < b.fullName") {
             immutable fontStyleId = font.style.toLower;
             if (!regularFound && fontStyleId.canFind ("regular")) {
-                auto tmp = selectedFonts.data;
+                auto tmp = selectedFonts.data.dup;
                 selectedFonts.clear ();
                 selectedFonts ~= font;
                 selectedFonts ~= tmp;
