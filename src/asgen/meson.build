@@ -7,6 +7,8 @@ configure_file(input : 'defines.d.in',
                configuration: conf_data
 )
 
+data_import_dirs = include_directories('../../data')
+
 #
 # Sources
 #
@@ -93,6 +95,7 @@ asgen_exe = executable('appstream-generator',
                    fontconfig_dep,
                    pango_dep],
     link_with: [girbind_lib],
+    d_import_dirs: [data_import_dirs],
     install: true
 )
 
@@ -115,6 +118,7 @@ asgen_test_exe = executable('asgen_test',
                    fontconfig_dep,
                    pango_dep],
     link_with: [girbind_lib],
+    d_import_dirs: [data_import_dirs],
     d_unittest: true
 )
 test('asgen_tests', asgen_test_exe)

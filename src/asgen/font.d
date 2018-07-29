@@ -19,7 +19,7 @@
 
 module asgen.font;
 
-import std.string : format, fromStringz, toStringz, toLower, strip;
+import std.string : format, fromStringz, toStringz, toLower, strip, splitLines;
 import std.conv : to;
 import std.path : buildPath, baseName;
 import std.array : empty, appender, replace;
@@ -41,7 +41,9 @@ import asgen.config : Config;
 
 // global font icon text lookup table, initialized by the constructor or Font and valid (and in memory)
 // as long as the generator runs.
-private static string[string] iconTexts;
+private __gshared static string[string] iconTexts;
+
+private __gshared static string[] englishPangrams = import("pangrams/en.txt").splitLines ();
 
 /**
  * Representation of a single font file.
@@ -114,8 +116,8 @@ public:
             if (err != 0)
                 throw new Exception ("Unable to load font face from file. Error code: %s".format (err));
 
-                loadFontConfigData (fname);
-                fileBaseName = fname.baseName;
+            loadFontConfigData (fname);
+            fileBaseName = fname.baseName;
         }
     }
 
@@ -307,6 +309,24 @@ public:
         import std.uni : byGrapheme, isGraphical, byCodePoint, Grapheme;
         import std.range;
 
+        string randomEnglishPangram ()
+        {
+            import std.digest.crc : crc32Of;
+            import std.conv : to;
+            import std.bitmanip : read;
+
+            auto tmpFontId = this.family;
+            if (tmpFontId.empty)
+                tmpFontId = this.fileBaseName;
+
+            // we do want deterministic results here, so base the "random"
+            // pangram on the font family / font base name
+	        auto hash = crc32Of (tmpFontId).to!(ubyte[]);
+            immutable pangramId = hash.read!uint % englishPangrams.length;
+
+            return englishPangrams[pangramId];
+        }
+
         void setFallbackSampleTextIfRequired ()
         {
             if (sampleText_.empty)
@@ -341,18 +361,22 @@ public:
         // determine our sample texts
         foreach (ref lang; tmpLangList) {
             auto plang = pango_language_from_string (lang.toStringz);
-            auto text = pango_language_get_sample_string (plang).fromStringz;
+            string text;
+            if (lang == "en")
+                text = randomEnglishPangram ();
+            else
+                text = pango_language_get_sample_string (plang).fromStringz.to!string;
 
-			if (text.empty)
-				continue;
+            if (text.empty)
+                continue;
 
-            sampleText_ = text.dup;
+            sampleText_ = text;
             const itP = lang in iconTexts;
             if (itP !is null) {
                 sampleIconText_ = *itP;
                 break;
             }
-		}
+        }
 
         // set some default values if we have been unable to find any texts
         setFallbackSampleTextIfRequired ();
