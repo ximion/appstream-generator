@@ -191,7 +191,9 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
 
         // add language information
         foreach (ref lang; font.getLanguageList ()) {
-            cpt.addLanguage (lang, 80);
+            // we have no idea how well the font supports the language's script,
+            // but since it adverties support in its metadata, we just assume 100% here
+            cpt.addLanguage (lang, 100);
         }
 
         // render an icon for our font
