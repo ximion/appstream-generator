@@ -39,45 +39,13 @@ import asgen.config : Config;
 // determined on the command-line via:
 // fc-query --format='FN: %{fullname}\nFS: %{family[0]} %{style[0]}\n' <fontfile>
 
+// global font icon text lookup table, initialized by the constructor or Font and valid (and in memory)
+// as long as the generator runs.
 private static string[string] iconTexts;
 
-// initialize module static data
-shared static this ()
-{
-    if (iconTexts.length != 0)
-        return;
-    synchronized
-        iconTexts = ["en": "Aa",
-                     "ar": "أب",
-                     "as": "অআই",
-                     "bn": "অআই",
-                     "be": "Аа",
-                     "bg": "Аа",
-                     "cs": "Aa",
-                     "da": "Aa",
-                     "de": "Aa",
-                     "es": "Aa",
-                     "fr": "Aa",
-                     "gu": "અબક",
-                     "hi": "अआइ",
-                     "he": "אב",
-                     "it": "Aa",
-                     "kn": "ಅಆಇ",
-                     "ml": "ആഇ",
-                     "ne": "अआइ",
-                     "nl": "Aa",
-                     "or": "ଅଆଇ",
-                     "pa": "ਅਆਇ",
-                     "pl": "ĄĘ",
-                     "pt": "Aa",
-                     "ru": "Аа",
-                     "sv": "Åäö",
-                     "ta": "அஆஇ",
-                     "te": "అఆఇ",
-                     "ua": "Аа",
-                     "zh-tw": "漢"];
-}
-
+/**
+ * Representation of a single font file.
+ */
 final class Font
 {
 
@@ -106,6 +74,39 @@ public:
         // So mark this section of code as synchronized to never run it in parallel (even having
         // two Font objects constructed in parallel may lead to errors)
         synchronized {
+            // initialize the global font icon lookup table
+            if (iconTexts.length == 0) {
+                iconTexts = ["en": "Aa",
+                             "ar": "أب",
+                             "as": "অআই",
+                             "bn": "অআই",
+                             "be": "Аа",
+                             "bg": "Аа",
+                             "cs": "Aa",
+                             "da": "Aa",
+                             "de": "Aa",
+                             "es": "Aa",
+                             "fr": "Aa",
+                             "gu": "અબક",
+                             "hi": "अआइ",
+                             "he": "אב",
+                             "it": "Aa",
+                             "kn": "ಅಆಇ",
+                             "ml": "ആഇ",
+                             "ne": "अआइ",
+                             "nl": "Aa",
+                             "or": "ଅଆଇ",
+                             "pa": "ਅਆਇ",
+                             "pl": "ĄĘ",
+                             "pt": "Aa",
+                             "ru": "Аа",
+                             "sv": "Åäö",
+                             "ta": "அஆஇ",
+                             "te": "అఆఇ",
+                             "ua": "Аа",
+                             "zh-tw": "漢"];
+            }
+
             initFreeType ();
 
             FT_Error err;
@@ -277,10 +278,10 @@ public:
 
     auto getLanguageList ()
     {
-        import std.algorithm : sort, uniq;
+        import std.algorithm : sort;
         import std.array : array;
 
-        return array (languages_[]).sort.uniq;
+        return array (languages_[]).sort;
     }
 
     @property
@@ -342,11 +343,11 @@ public:
             auto plang = pango_language_from_string (lang.toStringz);
             auto text = pango_language_get_sample_string (plang).fromStringz;
 
-			if (text is null)
+			if (text.empty)
 				continue;
 
             sampleText_ = text.dup;
-            auto itP = lang in iconTexts;
+            const itP = lang in iconTexts;
             if (itP !is null) {
                 sampleIconText_ = *itP;
                 break;
