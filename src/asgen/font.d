@@ -41,9 +41,9 @@ import asgen.config : Config;
 
 // global font icon text lookup table, initialized by the constructor or Font and valid (and in memory)
 // as long as the generator runs.
-private __gshared static string[string] iconTexts;
+private static string[string] iconTexts;
 
-private __gshared static string[] englishPangrams = import("pangrams/en.txt").splitLines ();
+private static string[] englishPangrams = import("pangrams/en.txt").splitLines ();
 
 /**
  * Representation of a single font file.
