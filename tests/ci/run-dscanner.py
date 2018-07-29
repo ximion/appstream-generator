@@ -31,7 +31,8 @@ def find_include_dirs(source_root):
 
     extra_inc = ['containers',
                  'stdx-allocator',
-                 'mustache-d']
+                 'mustache-d',
+                 'glibd-2']
 
     for d in extra_inc:
         for inc_root in ['/usr/include/d/', '/usr/local/include/d/']:
