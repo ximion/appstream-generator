@@ -314,7 +314,7 @@ public:
 
         // we do want deterministic results here, so base the "random"
         // pangram on the font family / font base name
-	    immutable ubyte[4] hash = crc32Of (tmpId);
+        immutable ubyte[4] hash = crc32Of (tmpId);
         immutable pangramIdx = hash.to!(ubyte[]).peek!uint % englishPangrams.length;
 
         return englishPangrams[pangramIdx];
