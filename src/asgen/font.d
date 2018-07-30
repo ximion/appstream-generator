@@ -303,29 +303,37 @@ public:
         languages_.put (lang);
     }
 
+    private string randomEnglishPangram (const string tmpId)
+    {
+        import std.digest.crc : crc32Of;
+        import std.conv : to;
+        import std.bitmanip : peek;
+        import std.range : take;
+
+        import std.stdio : writeln;
+
+        // we do want deterministic results here, so base the "random"
+        // pangram on the font family / font base name
+	    immutable ubyte[4] hash = crc32Of (tmpId);
+        immutable pangramIdx = hash.to!(ubyte[]).peek!uint % englishPangrams.length;
+
+        return englishPangrams[pangramIdx];
+    }
+
+    private string randomEnglishPangram ()
+    {
+        auto tmpFontId = this.family;
+        if (tmpFontId.empty)
+            tmpFontId = this.fileBaseName;
+
+        return randomEnglishPangram (tmpFontId);
+    }
+
     private void findSampleTexts ()
     {
         assert (ready ());
         import std.uni : byGrapheme, isGraphical, byCodePoint, Grapheme;
         import std.range;
-
-        string randomEnglishPangram ()
-        {
-            import std.digest.crc : crc32Of;
-            import std.conv : to;
-            import std.bitmanip : read;
-
-            auto tmpFontId = this.family;
-            if (tmpFontId.empty)
-                tmpFontId = this.fileBaseName;
-
-            // we do want deterministic results here, so base the "random"
-            // pangram on the font family / font base name
-	        auto hash = crc32Of (tmpFontId).to!(ubyte[]);
-            immutable pangramId = hash.read!uint % englishPangrams.length;
-
-            return englishPangrams[pangramId];
-        }
 
         void setFallbackSampleTextIfRequired ()
         {
@@ -497,4 +505,11 @@ unittest
                          "sah", "sc", "sco", "se", "sel", "sg", "sh", "shs", "sk", "sl", "sm","sma", "smj", "smn", "sms", "sn",
                          "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "tg", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw",
                          "ty", "tyv", "uk", "uz", "ve", "vi", "vo", "vot", "wa", "wen", "wo", "xh", "yap", "yo", "za", "zu"]);
+
+
+    // uses "Noto Sans"
+    assert (font.randomEnglishPangram () == "A large fawn jumped quickly over white zebras in a box.");
+
+    assert (font.randomEnglishPangram ("aaaaa") == "Jack amazed a few girls by dropping the antique onyx vase.");
+    assert (font.randomEnglishPangram ("abcdefg") == "Two driven jocks help fax my big quiz.");
 }
