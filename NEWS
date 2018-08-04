@@ -1,3 +1,27 @@
+Version 0.7.4
+~~~~~~~~~~~~~~
+Released: 2018-08-04
+
+Notes:
+
+Features:
+ * Write CID<->GCID mapping table as additional output data (Matthias Klumpp)
+ * Don't rebuild GLibD as part of asgen, use the shared library instead (Matthias Klumpp)
+ * Add hint to add launchable tag if .desktop file is missing (Matthias Klumpp)
+ * Use posix_spawn codepath for optipng if possible via GLib (Matthias Klumpp)
+ * Unconditionally add stock-type icon if desktop-file allows for it (Matthias Klumpp)
+ * Allow font languages to be specified in a languages tag (Matthias Klumpp)
+ * Improve font language processing with metainfo hints (Matthias Klumpp)
+ * fonts: Sort selected font styles, prefer regular style for samples (Matthias Klumpp)
+ * fonts: Use a random pangram for fonts supporting English (Matthias Klumpp)
+ * fonts: Assume 100% language support for all locale mentioned in font data (Matthias Klumpp)
+
+Bugfixes:
+ * Fix build with phobos 2.081 (Antonio Rojas)
+ * Depend on non-broken Meson version (Matthias Klumpp)
+ * fonts: Always prefer English for samples if font supports it (Matthias Klumpp)
+ * Initialize font icon lookup table only if there are fonts (Matthias Klumpp)
+
 Version 0.7.3
 ~~~~~~~~~~~~~~
 Released: 2018-04-26
