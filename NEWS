@@ -2,8 +2,6 @@ Version 0.7.4
 ~~~~~~~~~~~~~~
 Released: 2018-08-04
 
-Notes:
-
 Features:
  * Write CID<->GCID mapping table as additional output data (Matthias Klumpp)
  * Don't rebuild GLibD as part of asgen, use the shared library instead (Matthias Klumpp)
