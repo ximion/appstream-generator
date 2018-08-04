@@ -23,7 +23,7 @@ src_dir = include_directories('src/')
 
 dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
 glibd_dep       = dependency('glibd-2.0')
-appstream_dep   = dependency('appstream', version : '>= 0.12.0')
+appstream_dep   = dependency('appstream', version : '>= 0.12.2')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
 mustache_dep    = dependency('mustache-d', required: false)
 archive_dep     = dependency('libarchive', version : '>= 3.2')
@@ -48,9 +48,6 @@ endif
 gir_to_d_prog = find_program('girtod')
 gir_wrap_dir = source_root + '/contrib/girwrap/'
 gir_d_intf_dir = build_root + '/girepo/'
-
-
-
 
 message('Generating AppStream D interfaces from GIR...')
 girtod_gen = run_command(gir_to_d_prog,
