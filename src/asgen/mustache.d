@@ -85,14 +85,15 @@ class MustacheException : Exception
  * Well, $6000, after taxes.
  * -----
  */
-struct MustacheEngine(String = string) if (isSomeString!(String))
+struct MustacheEngine(String = string)
+if (isSomeString!(String))
 {
     static assert(!is(String == wstring), "wstring is unsupported. It's a buggy!");
 
 
   public:
-    alias String delegate(String) Handler;
-    alias string delegate(string) FindPath;
+    alias Handler  = String delegate(String);
+    alias FindPath = string delegate(string);
 
 
     /**
@@ -183,36 +184,33 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
                 Context[]               list;
             }
 
-            @trusted nothrow
+            this(bool u) nothrow
             {
-                this(bool u)
-                {
-                    type = SectionType.use;
-                }
+                type = SectionType.use;
+            }
 
-                this(String[String] v)
-                {
-                    type = SectionType.var;
-                    var  = v;
-                }
+            this(String[String] v) nothrow
+            {
+                type = SectionType.var;
+                var  = v;
+            }
 
-                this(String delegate(String) f)
-                {
-                    type = SectionType.func;
-                    func = f;
-                }
+            this(String delegate(String) f) nothrow
+            {
+                type = SectionType.func;
+                func = f;
+            }
 
-                this(Context c)
-                {
-                    type = SectionType.list;
-                    list = [c];
-                }
+            this(Context c) nothrow
+            {
+                type = SectionType.list;
+                list = [c];
+            }
 
-                this(Context[] c)
-                {
-                    type = SectionType.list;
-                    list = c;
-                }
+            this(Context[] c) nothrow
+            {
+                type = SectionType.list;
+                list = c;
             }
 
             /* nothrow : AA's length is not nothrow */
@@ -420,7 +418,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             size_t keyIndex = 0;
             while (currentSection) {
                 // Matched the entire key?
-                if (keyIndex == key.length-1)
+                if (keyIndex == key.length.to!long - 1)
                     return currentSection.empty ? Section.nil : *currentSection;
 
                 if (currentSection.type != SectionType.list)
@@ -449,9 +447,9 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             return null;
         }
 
-        alias fetchSection!(String[String],          SectionType.var,  "Var")  fetchVar;
-        alias fetchSection!(Context[],               SectionType.list, "List") fetchList;
-        alias fetchSection!(String delegate(String), SectionType.func, "Func") fetchFunc;
+        alias fetchVar  = fetchSection!(String[String],          SectionType.var,  "Var");
+        alias fetchList = fetchSection!(Context[],               SectionType.list, "List");
+        alias fetchFunc = fetchSection!(String delegate(String), SectionType.func, "Func");
     }
 
     unittest
@@ -982,6 +980,12 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
                 // whitespace might be different
                 return key == m.key && nodes == m.nodes;
             }
+
+            size_t toHash() const nothrow @trusted
+            {
+                return typeid(key).getHash(&key) + typeid(nodes).getHash(&nodes);
+            }
+
         }
 
         Node[] result;
@@ -1129,7 +1133,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
         }
     }
 
-    private static String[] parseKey(String src, String eTag, out size_t end)
+    static String[] parseKey(String src, String eTag, out size_t end)
     {
         String[] key;
         size_t index = 0;
@@ -1251,7 +1255,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             size_t end;
             String src = "a.b.c";
             try {
-                auto key = parseKey(src, "}}", end);
+                parseKey(src, "}}", end);
                 assert(false);
             } catch (const MustacheException e) { }
         }
@@ -1259,7 +1263,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             size_t end;
             String src = "  }}";
             try {
-                auto key = parseKey(src, "}}", end);
+                parseKey(src, "}}", end);
                 assert(false);
             } catch (const MustacheException e) { }
         }
@@ -1267,7 +1271,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             size_t end;
             String src = "Mio.}}";
             try {
-                auto key = parseKey(src, "}}", end);
+                parseKey(src, "}}", end);
                 assert(false);
             } catch (const MustacheException e) { }
         }
@@ -1275,7 +1279,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             size_t end;
             String src = "Mio. .Ritsu}}";
             try {
-                auto key = parseKey(src, "}}", end);
+                parseKey(src, "}}", end);
                 assert(false);
             } catch (const MustacheException e) { }
         }
@@ -1333,34 +1337,31 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
             }
         }
 
-        @trusted nothrow
+        /**
+         * Constructs with arguments.
+         *
+         * Params:
+         *   t = raw text
+         */
+        this(String t) nothrow
         {
-            /**
-             * Constructs with arguments.
-             *
-             * Params:
-             *   t = raw text
-             */
-            this(String t)
-            {
-                type = NodeType.text;
-                text = t;
-            }
+            type = NodeType.text;
+            text = t;
+        }
 
-            /**
-             * ditto
-             *
-             * Params:
-             *   t = Mustache's node type
-             *   k = key string of tag
-             *   f = invert? or escape?
-             */
-            this(NodeType t, String[] k, bool f = false)
-            {
-                type = t;
-                key  = k;
-                flag = f;
-            }
+        /**
+         * ditto
+         *
+         * Params:
+         *   t = Mustache's node type
+         *   k = key string of tag
+         *   f = invert? or escape?
+         */
+        this(NodeType t, String[] k, bool f = false) nothrow
+        {
+            type = t;
+            key  = k;
+            flag = f;
         }
 
         /**
@@ -1418,7 +1419,7 @@ struct MustacheEngine(String = string) if (isSomeString!(String))
 
 unittest
 {
-    alias MustacheEngine!(string) Mustache;
+    alias Mustache = MustacheEngine!(string);
 
     std.file.write("unittest.mustache", "Level: {{lvl}}");
     scope(exit) std.file.remove("unittest.mustache");
