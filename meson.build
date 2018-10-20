@@ -25,7 +25,6 @@ dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dco
 glibd_dep       = dependency('glibd-2.0')
 appstream_dep   = dependency('appstream', version : '>= 0.12.2')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
-mustache_dep    = dependency('mustache-d', required: false)
 archive_dep     = dependency('libarchive', version : '>= 3.2')
 cairo_dep       = dependency('cairo', version : '>= 1.12')
 gdkpixbuf_dep   = dependency('gdk-pixbuf-2.0')
@@ -34,13 +33,6 @@ curl_dep        = dependency('libcurl')
 freetype_dep    = dependency('freetype2')
 pango_dep       = dependency('pango')
 fontconfig_dep  = dependency('fontconfig')
-
-if not mustache_dep.found()
-    mustache_sp = subproject('mustache-d')
-    mustache_dep = declare_dependency(link_with: mustache_sp.get_variable('mustache_lib'),
-        include_directories: mustache_sp.get_variable('src_dir')
-    )
-endif
 
 #
 # Build interfaces from GIR
