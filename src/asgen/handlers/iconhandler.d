@@ -816,11 +816,11 @@ public:
                     cpt.addIcon (icon);
             } else {
                 if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
-                    gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
+                    gres.addHint (cpt.getId, "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
                     return false;
                 }
                 if (lastIconName is null) {
-                    gres.addHint (cpt.getId (), "icon-not-found", ["icon_fname": iconName]);
+                    gres.addHint (cpt.getId, "icon-not-found", ["icon_fname": iconName]);
                     return false;
                 }
             }
