@@ -31,7 +31,6 @@ def find_include_dirs(source_root):
 
     extra_inc = ['containers',
                  'stdx-allocator',
-                 'mustache-d',
                  'glibd-2']
 
     for d in extra_inc:
