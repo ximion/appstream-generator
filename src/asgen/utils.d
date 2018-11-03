@@ -395,7 +395,7 @@ ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
 @safe
 bool isRemote (const string uri)
 {
-    import std.regex;
+    import std.regex : ctRegex, matchFirst;
 
     auto uriregex = ctRegex!(`^(https?|ftps?)://`);
     auto match = matchFirst (uri, uriregex);
@@ -408,6 +408,7 @@ in { assert (url.isRemote); }
 body
 {
     import core.time : dur;
+    import std.string : toLower;
     import std.net.curl : CurlException, HTTP, FTP, HTTPStatusException;
 
     Nullable!SysTime ret;
@@ -422,6 +423,7 @@ body
     logDebug ("Downloading %s", url);
     try {
         if (url.startsWith ("http")) {
+            immutable httpsUrl = url.startsWith ("https");
             auto downloader = HTTP (url);
             HTTP.StatusLine statusLine;
 
@@ -429,6 +431,13 @@ body
             downloader.dataTimeout = dur!"seconds" (30);
             downloader.onReceive = (data) => onReceiveCb (dest, data);
             downloader.onReceiveStatusLine = (HTTP.StatusLine l) { statusLine = l; };
+            downloader.onReceiveHeader = (in char[] key, in char[] value) {
+                // we will not allow a HTTPS --> HTTP downgrade
+                if (!httpsUrl)
+                    return;
+                if (key == "location" && value.toLower.startsWith ("http:"))
+                    throw new CurlException ("HTTPS URL tried to rediect to a less secure HTTP URL.");
+            };
             downloader.perform();
             if ("last-modified" in downloader.responseHeaders) {
                     auto lastmodified = downloader.responseHeaders["last-modified"];
@@ -619,5 +628,8 @@ unittest
         downloadFile ("https://example.com", "/tmp/asgen-test.examplecom" ~ randomString (4));
 
         assertThrown!HTTPStatusException (downloadFile ("https://example.com/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 1));
+
+        // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
+        downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
     }
 }
