@@ -18,7 +18,8 @@
  */
 
 import std.stdio;
-import std.path : getcwd, buildPath;
+import std.path : buildPath;
+import std.file : getcwd;
 import std.getopt;
 import std.string : format;
 import std.array : empty;
