@@ -407,8 +407,8 @@ private immutable(Nullable!SysTime) download (const string url, ref File dest, c
 in { assert (url.isRemote); }
 body
 {
-    import core.time;
-    import std.net.curl : CurlException, HTTP, FTP;
+    import core.time : dur;
+    import std.net.curl : CurlException, HTTP, FTP, HTTPStatusException;
 
     Nullable!SysTime ret;
 
@@ -423,13 +423,21 @@ body
     try {
         if (url.startsWith ("http")) {
             auto downloader = HTTP (url);
+            HTTP.StatusLine statusLine;
+
             downloader.connectTimeout = dur!"seconds" (30);
             downloader.dataTimeout = dur!"seconds" (30);
             downloader.onReceive = (data) => onReceiveCb (dest, data);
+            downloader.onReceiveStatusLine = (HTTP.StatusLine l) { statusLine = l; };
             downloader.perform();
             if ("last-modified" in downloader.responseHeaders) {
                     auto lastmodified = downloader.responseHeaders["last-modified"];
                     ret = parseRFC822DateTime(lastmodified);
+            }
+
+            if (statusLine.code / 100 != 2) {
+                throw new HTTPStatusException(statusLine.code,
+                           format("HTTP request returned status code %d (%s)", statusLine.code, statusLine.reason));
             }
         } else {
             auto downloader = FTP (url);
@@ -503,6 +511,7 @@ out { assert (std.file.exists (dest)); }
 do
 {
     import std.file : exists, mkdirRecurse, setTimes, remove;
+    static import std.file;
 
     if (dest.exists) {
         logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
@@ -529,7 +538,7 @@ do
 string
 getTestSamplesDir () @trusted
 {
-    import std.path : getcwd;
+    import std.file : getcwd;
 
     auto path = buildPath (getcwd (), "tests", "samples");
     if (std.file.exists (path))
@@ -561,10 +570,11 @@ Nullable!Icon componentGetStockIcon (ref Component cpt)
     return res;
 }
 
+@trusted
 unittest
 {
     import std.exception : assertThrown;
-    writeln ("TEST: ", "GCID");
+    writeln ("TEST: ", "Utils");
 
     assert (buildCptGlobalID ("foobar.desktop", "DEADBEEF") == "f/fo/foobar.desktop/DEADBEEF");
     assert (buildCptGlobalID ("org.gnome.yelp.desktop", "DEADBEEF") == "org/gnome/yelp.desktop/DEADBEEF");
@@ -593,4 +603,21 @@ unittest
     assert (isRemote ("https://example.org"));
     assert (!isRemote ("/srv/mirror"));
     assert (!isRemote ("file:///srv/test"));
+
+    auto networkEnabled = true;
+    try {
+        getFileContents ("https://example.com", 2);
+    } catch (Exception e) {
+        writeln ("INFO: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
+        networkEnabled = false;
+    }
+
+    if (networkEnabled) {
+        import std.net.curl : HTTPStatusException;
+
+        // NOTE: These tests require an internet connection to be available
+        downloadFile ("https://example.com", "/tmp/asgen-test.examplecom" ~ randomString (4));
+
+        assertThrown!HTTPStatusException (downloadFile ("https://example.com/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 1));
+    }
 }
