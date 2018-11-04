@@ -436,7 +436,7 @@ body
                 if (!httpsUrl)
                     return;
                 if (key == "location" && value.toLower.startsWith ("http:"))
-                    throw new CurlException ("HTTPS URL tried to rediect to a less secure HTTP URL.");
+                    throw new CurlException ("HTTPS URL tried to redirect to a less secure HTTP URL.");
             };
             downloader.perform();
             if ("last-modified" in downloader.responseHeaders) {
