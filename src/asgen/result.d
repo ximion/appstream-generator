@@ -263,12 +263,18 @@ public:
                 if (!addHint (cpt, "metainfo-no-summary"))
                     continue;
 
-            // desktop apps get extra treatment (more validation, addition of fallback long-description)
-            if (ckind == ComponentKind.DESKTOP_APP) {
+            // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
+            if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
                 // checks specific for .desktop and web apps
-                if (cpt.getIcons ().len == 0)
-                    if (!addHint (cpt, "gui-app-without-icon"))
-                        continue;
+                if (cpt.getIcons ().len == 0) {
+                    if (ckind == ComponentKind.DESKTOP_APP) {
+                        if (!addHint (cpt, "gui-app-without-icon"))
+                            continue;
+                    } else if (ckind == ComponentKind.WEB_APP) {
+                        if (!addHint (cpt, "web-app-without-icon"))
+                            continue;
+                    }
+                }
 
                 // desktop-application components are required to have a category
                 if (cpt.getCategories ().len <= 0)
@@ -294,12 +300,14 @@ public:
                 }
 
                 // check if we can add a launchable here
-                if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
-                    import appstream.Launchable;
-                    auto launch = new Launchable;
-                    launch.setKind (LaunchableKind.DESKTOP_ID);
-                    launch.addEntry (cpt.getId ());
-                    cpt.addLaunchable (launch);
+                if (ckind == ComponentKind.DESKTOP_APP) {
+                    if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
+                        import appstream.Launchable;
+                        auto launch = new Launchable;
+                        launch.setKind (LaunchableKind.DESKTOP_ID);
+                        launch.addEntry (cpt.getId ());
+                        cpt.addLaunchable (launch);
+                    }
                 }
             }
 

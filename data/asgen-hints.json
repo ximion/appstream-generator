@@ -62,6 +62,13 @@
   "severity": "error"
 },
 
+"web-app-without-icon": {
+  "text": [ "The component is a GUI web application, but it either has no icon set in its metainfo file,",
+            "or we could not find a matching icon for this application."
+          ],
+  "severity": "error"
+},
+
 "icon-scaled-up": {
   "text": "Icon file '{{icon_name}}' was scaled up from {{icon_size}}px to {{scale_size}}px. Please try to supply a bigger icon.",
   "severity": "warning"
