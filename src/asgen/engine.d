@@ -470,11 +470,11 @@ public:
     private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)
     {
         // always load the "main" and "universe" components, which contain most of the icon data
-        // on Debian and Ubuntu.
+        // on Debian and Ubuntu. Load the "core" and "extra" components for Arch Linux.
         // FIXME: This is a hack, find a sane way to get rid of this, or at least get rid of the
         // distro-specific hardcoding.
         auto pkgs = appender!(Package[]);
-        foreach (ref newSection; ["main", "universe"]) {
+        foreach (ref newSection; ["main", "universe", "core", "extra"]) {
             if ((section != newSection) && (suite.sections.canFind (newSection))) {
                 pkgs ~= pkgIndex.packagesFor (suite.name, newSection, arch);
                 if (!suite.baseSuite.empty)
