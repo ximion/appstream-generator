@@ -318,7 +318,7 @@ public:
         return val !is null;
     }
 
-    void addGeneratorResult (DataType dtype, GeneratorResult gres)
+    void addGeneratorResult (DataType dtype, GeneratorResult gres, const bool alwaysRegenerate = false)
     {
         // if the package has no components or hints,
         // mark it as always-ignore
@@ -329,7 +329,7 @@ public:
 
         foreach (ref cpt; gres.getComponents ()) {
             auto gcid = gres.gcidForComponent (cpt);
-            if (metadataExists (dtype, gcid)) {
+            if (metadataExists (dtype, gcid) && !alwaysRegenerate) {
                 // we already have seen this exact metadata - only adjust the reference,
                 // and don't regenerate it.
                 continue;

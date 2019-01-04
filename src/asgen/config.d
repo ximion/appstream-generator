@@ -46,6 +46,7 @@ struct Suite
     string iconTheme;
     string[] sections;
     string[] architectures;
+    string extraMetainfoDir;
     bool isImmutable;
 }
 
@@ -305,6 +306,7 @@ public:
         dataExportDir  = buildPath (exportDir, "data");
         hintsExportDir = buildPath (exportDir, "hints");
         htmlExportDir  = buildPath (exportDir, "html");
+        auto extraMetainfoDir = buildPath (workspaceDir, "extra-metainfo");
 
         if ("ExportDirs" in root) {
             auto edirs = root["ExportDirs"].object;
@@ -328,9 +330,13 @@ public:
             }
         }
 
+        // a place where external metainfo data can be injected
+        if ("ExtraMetainfoDir" in root)
+            extraMetainfoDir = root["ExtraMetainfoDir"].str;
+
         this.metadataType = DataType.XML;
         if ("MetadataType" in root)
-            if (root["MetadataType"].str.toLower () == "yaml")
+            if (root["MetadataType"].str.toLower == "yaml")
                 this.metadataType = DataType.YAML;
 
         if ("CAInfo" in root)
@@ -365,7 +371,7 @@ public:
         // we default to the Debian backend for now
         auto backendName = "debian";
         if ("Backend" in root)
-            backendName = root["Backend"].str.toLower ();
+            backendName = root["Backend"].str.toLower;
         switch (backendName) {
             case "dummy":
                 this.backend = Backend.Dummy;
@@ -394,7 +400,7 @@ public:
         }
 
         auto hasImmutableSuites = false;
-        foreach (suiteName; root["Suites"].object.byKey ()) {
+        foreach (suiteName; root["Suites"].object.byKey) {
             Suite suite;
             suite.name = suiteName;
 
@@ -422,6 +428,10 @@ public:
                 if (suite.isImmutable)
                     hasImmutableSuites = true;
             }
+
+            const suiteExtraMIDir = buildNormalizedPath (extraMetainfoDir, suite.name);
+            if (suiteExtraMIDir.existsAndIsDir)
+                suite.extraMetainfoDir = suiteExtraMIDir;
 
             suites ~= suite;
         }

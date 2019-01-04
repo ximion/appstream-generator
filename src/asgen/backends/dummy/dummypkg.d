@@ -66,7 +66,9 @@ public:
     override
     ubyte[] getFileData (string fname)
     {
-        return ['N', 'O', 'T', 'H', 'I', 'N', 'G'];
+        if (fname == "TEST")
+            return ['N', 'O', 'T', 'H', 'I', 'N', 'G'];
+        return [];
     }
 
     @property override

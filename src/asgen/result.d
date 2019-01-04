@@ -49,6 +49,10 @@ int evaluateCustomEntry (void *keyPtr, void *value, void *userData)
     return true;
 }
 
+/**
+ * Holds metadata generator result(s) and issue hints
+ * for a single package.
+ */
 final class GeneratorResult
 {
 
@@ -133,8 +137,11 @@ public:
             throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
 
         // web applications don't have a package name set
-        if (cpt.getKind != ComponentKind.WEB_APP)
+        if ((cpt.getKind != ComponentKind.WEB_APP) &&
+            (cpt.getMergeKind != MergeKind.REMOVE_COMPONENT)) {
             cpt.setPkgnames ([this.pkgname]);
+        }
+
         cpts[cid] = cpt;
         updateComponentGCID (cpt, data);
     }

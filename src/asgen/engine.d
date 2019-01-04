@@ -51,6 +51,10 @@ import asgen.backends.rpmmd;
 import asgen.handlers.iconhandler;
 
 
+/**
+ * Class orchestrating the whole metadata extraction
+ * and publication process.
+ */
 final class Engine
 {
 
@@ -495,6 +499,70 @@ public:
     }
 
     /**
+     * Read a dedicated JSON file which contains information on which components
+     * to remove from preexisting metadata.
+     */
+    private void readRemovedComponentsInfo (string metainfoDir, GeneratorResult gres)
+    {
+        import std.json : parseJSON;
+        import std.stdio : File;
+
+        immutable fname = buildPath (metainfoDir, "removed-components.json");
+        if (!std.file.exists (fname))
+            return;
+
+        auto f = File (fname, "r");
+        string jsonData;
+        string line;
+        while ((line = f.readln ()) !is null)
+            jsonData ~= line;
+
+        auto res = appender!(Component[]);
+        auto jroot = parseJSON (jsonData);
+        foreach (jCid; jroot.array) {
+            immutable cid = jCid.str;
+
+            auto cpt = new Component;
+            cpt.setKind (ComponentKind.GENERIC);
+            cpt.setMergeKind (MergeKind.REMOVE_COMPONENT);
+            cpt.setId (cid);
+
+            gres.addComponent (cpt, metainfoDir ~ "/-" ~ cid);
+        }
+    }
+
+    /**
+     * Read metainfo and auxiliary data injected by the person running the data generator.
+     */
+    private Package processExtraMetainfoData (Suite suite, const string section, const string arch)
+    {
+        import asgen.utils : existsAndIsDir;
+
+        if (suite.extraMetainfoDir is null)
+            return null;
+
+        // we create a dummy package to hold information for the injected components
+        auto pkg = new DummyPackage ("+extra-metainfo", "0~0", arch);
+        pkg.maintainer = "AppStream Generator Maintainer";
+        auto gres = new GeneratorResult (pkg);
+
+        immutable extraMIDir = buildNormalizedPath (suite.extraMetainfoDir, section);
+        immutable archExtraMIDir = buildNormalizedPath (extraMIDir, arch);
+
+        logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
+
+        if (extraMIDir.existsAndIsDir)
+            readRemovedComponentsInfo (extraMIDir, gres);
+        if (archExtraMIDir.existsAndIsDir)
+            readRemovedComponentsInfo (archExtraMIDir, gres);
+
+        // write resulting data into the database
+        dstore.addGeneratorResult (this.conf.metadataType, gres, true);
+
+        return pkg;
+    }
+
+    /**
      * Scan and export data and hints for a specific section in a suite.
      */
     private bool processSuiteSection (Suite suite, const string section, ReportGenerator rgen)
@@ -523,6 +591,11 @@ public:
                                           getIconCandidatePackages (suite, section, arch),
                                           suite.iconTheme);
             processPackages (pkgs, iconh);
+
+            // read injected data and add it to the database as a fake package
+            auto fakePkg = processExtraMetainfoData (suite, section, arch);
+            if (fakePkg !is null)
+                pkgs ~= fakePkg;
 
             // export package data
             exportData (suite, section, arch, pkgs, !iconTarBuilt);
