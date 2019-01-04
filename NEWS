@@ -1,3 +1,21 @@
+Version 0.7.5
+~~~~~~~~~~~~~~
+Released: 2019-01-04
+
+Features:
+ * Load components for Arch Linux (Balló György)
+ * Embed mustache-d code (Matthias Klumpp)
+ * Protect against HTTPS-to-HTTP downgrades (Matthias Klumpp)
+ * Allow asgen maintainer to mark components for removal and inject
+   additional metainfo files (Matthias Klumpp)
+ * docs: Document the metainfo injection feature (Matthias Klumpp)
+
+Bugfixes:
+ * Fix a few issues found by dscanner (Matthias Klumpp)
+ * Properly error out on HTTP 404 status codes (Matthias Klumpp)
+ * Add wrapfile for mir-core (Matthias Klumpp)
+ * Also ignore web applications without an icon (Matthias Klumpp)
+
 Version 0.7.4
 ~~~~~~~~~~~~~~
 Released: 2018-08-04
