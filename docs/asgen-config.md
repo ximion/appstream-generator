@@ -57,6 +57,7 @@ Features | Disable or enable selected generator features. For a detailed descrip
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.
 AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the collection metadata output. This key takes a list of custom-key strings as value.
 ExportDirs | Set where to export data. The dictionary requires full paths set for the "Media", "Data", "Hints" or "Html" key. In case a value is missing, the default locations are used.
+ExtraMetainfoDir | Path to a directory where additional injected metainfo files are located. If not set, the `extra-metainfo` directory in the project workspace is used.
 WorkspaceDir | Explicitly set the location of the workspace. Only makes sense if the generator is meant to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag.
 Icons | Customize the icon policy. See below for more details.
 
@@ -101,6 +102,17 @@ The values for the icon-size keys are dictionaries with two boolean keys, `cache
 Cached means an icon tarball is generated for the icon size that can be made available locally, while remote means the icon can be downloaded on-demand by the software center and no local cache of all icons exists. Icon sizes not mentioned, or with both `cached` and `remote` set to `false` will not be extracted.
 The `64x64` icon size must always be present and be cached. If this is not the case, appstream-generator will adjust the configuration internally and emit a warning.
 If no `Icons` field is present, appstream-generator will use a default policy for icons (creating cache tarballs for all sizes, and remote links for sizes >= 129x128px).
+
+## Injecting extra metainfo / removing components
+
+Sometimes injecting metainfo files directly into the generation process instead of packaging them makes sense. This can be done for example for `web-application` components, `operating-system` components or for components which are merged into others. It is discouraged to use this feature for any components that are directly tied to a package.
+Metainfo XML files can be placed in `%ExtraMetainfoDir%/suite/section/(arch)`, where `%ExtraMetainfoDir%` usually is the `extra-metainfo` directory in the generator's current workspace, unless this default is overriden in the configuration file.
+If the `arch` part of the path is omitted, a metainfo file is added to all active architectures. E.g. a XML file placed in `%ExtraMetainfoDir%/buster/main/` will apply to all active architectures for `buster`, while files in `%ExtraMetainfoDir%/buster/main/amd64/` will only apply to the `amd64` architecture.
+
+Additionally to metainfo XML files, a `removed-components.json` file may be placed in the extra-metainfo directories. This JSON file contains a list of component IDs that should be removed from the metadata pool on client machines. By listing IDs in this file, the generator will create a special component that will trigger a component with the same ID to be removed from the metadata pool if its priority is lower.
+This feature is useful for overlay suites, for example if the `buster-updates` suite (with priority 10) wants to completely remove a component from the `buster` suite (with priority 0) from the user's eyes. This may be necessary if a component improperly changes its ID, if you are maintaining an overlay distribution and can not control the composition of packages in the base suites, or in case of legal issues where a component has to be removed retroactively from a frozen distribution suite. It may also be useful to hide `web-application` components in a stable distribution in case their service is discontinued before the distribution release is out of support as well.
+
+Internally, injected metainfo data is grouped under a special fake package name, in order to allow the generator to properly record hints for the added components and to associate the data with the right suite(s).
 
 ## Minimal configuration file
 
