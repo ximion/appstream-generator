@@ -32,7 +32,7 @@
 },
 
 "metainfo-parsing-error": {
-  "text": "Unable to parse AppStream metainfo file, the data is likely malformed.<br/>Error: {{msg}}",
+  "text": "Unable to parse AppStream metainfo file '{{fname}}', the data is likely malformed.<br/>Error: {{error}}",
   "severity": "error"
 },
 

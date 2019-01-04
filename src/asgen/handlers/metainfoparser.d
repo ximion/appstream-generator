@@ -85,7 +85,7 @@ Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string 
     try {
         mdata.parse (data, FormatKind.XML);
     } catch (Exception e) {
-        gres.addHint ("general", "metainfo-parsing-error", e.msg);
+        gres.addHint ("general", "metainfo-parsing-error", ["fname": mfname, "error": e.msg]);
         return null;
     }
 

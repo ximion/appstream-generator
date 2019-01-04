@@ -531,6 +531,29 @@ public:
     }
 
     /**
+     * Read a bunch of additional, injected metainfo files.
+     */
+    private void readInjectedMetainfo (string metainfoDir, GeneratorResult gres)
+    {
+        import std.file : dirEntries, SpanMode;
+        import std.stdio : File;
+        import std.path : baseName;
+        import asgen.handlers.metainfoparser : parseMetaInfoFile;
+
+        foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
+            auto f = File (miFname, "r");
+            string line;
+            auto data = appender!string;
+            while ((line = f.readln ()) !is null)
+                data ~= line;
+
+            immutable miBasename = miFname.baseName;
+            logInfo ("Loading injected metainfo: %s", miBasename);
+            parseMetaInfoFile (gres, data.data, miBasename);
+        }
+    }
+
+    /**
      * Read metainfo and auxiliary data injected by the person running the data generator.
      */
     private Package processExtraMetainfoData (Suite suite, const string section, const string arch)
@@ -550,10 +573,14 @@ public:
 
         logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
 
-        if (extraMIDir.existsAndIsDir)
+        if (extraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (extraMIDir, gres);
-        if (archExtraMIDir.existsAndIsDir)
+            readInjectedMetainfo (extraMIDir, gres);
+        }
+        if (archExtraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (archExtraMIDir, gres);
+            readInjectedMetainfo (archExtraMIDir, gres);
+        }
 
         // write resulting data into the database
         dstore.addGeneratorResult (this.conf.metadataType, gres, true);
