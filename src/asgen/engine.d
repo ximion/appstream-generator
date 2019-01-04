@@ -517,7 +517,6 @@ public:
         while ((line = f.readln ()) !is null)
             jsonData ~= line;
 
-        auto res = appender!(Component[]);
         auto jroot = parseJSON (jsonData);
         foreach (jCid; jroot.array) {
             immutable cid = jCid.str;
