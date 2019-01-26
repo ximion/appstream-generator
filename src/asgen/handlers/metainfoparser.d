@@ -35,7 +35,7 @@ immutable MAX_RELEASE_INFO_COUNT = 6; /// Maximum amount of releases present in 
 
 private bool isAcceptableMetainfoLicense (string licenseExpression) pure
 {
-    import asgen.bindings.appstream_utils;
+    import asgen.bindings.appstream_utils : spdxLicenseTokenize, spdxLicenseIsMetadataLicense;
 
     bool requiresAllTokens = true;
     uint licenseGoodCnt = 0;
