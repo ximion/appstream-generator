@@ -292,18 +292,26 @@ public:
                 if (!addHint (cpt, "metainfo-no-summary"))
                     continue;
 
+            // ensure that everything that should have an icon has one
+            if (cpt.getIcons.len == 0) {
+                if (ckind == ComponentKind.DESKTOP_APP) {
+                    if (!addHint (cpt, "gui-app-without-icon"))
+                        continue;
+                } else if (ckind == ComponentKind.WEB_APP) {
+                    if (!addHint (cpt, "web-app-without-icon"))
+                        continue;
+                } else if (ckind == ComponentKind.FONT) {
+                    if (!addHint (cpt, "font-without-icon"))
+                        continue;
+                } else if (ckind == ComponentKind.OPERATING_SYSTEM) {
+                    if (!addHint (cpt, "os-without-icon"))
+                        continue;
+                }
+            }
+
             // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
             if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
                 // checks specific for .desktop and web apps
-                if (cpt.getIcons.len == 0) {
-                    if (ckind == ComponentKind.DESKTOP_APP) {
-                        if (!addHint (cpt, "gui-app-without-icon"))
-                            continue;
-                    } else if (ckind == ComponentKind.WEB_APP) {
-                        if (!addHint (cpt, "web-app-without-icon"))
-                            continue;
-                    }
-                }
 
                 // desktop-application components are required to have a category
                 if (cpt.getCategories.len <= 0)

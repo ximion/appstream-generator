@@ -69,6 +69,18 @@
   "severity": "error"
 },
 
+"font-without-icon": {
+  "text": [ "The component is a font, but somehow we failed to automatically generate an icon for it, and no custom icon was set explicitly.",
+            "Is there a font file in the analyzed package, and does the metainfo file set the right font name to look for?"
+          ],
+  "severity": "warning"
+},
+
+"os-without-icon": {
+  "text": "The component is an operating system, but no icon was found for it. Setting an icon would improve the look of this component in GUIs.",
+  "severity": "info"
+},
+
 "icon-scaled-up": {
   "text": "Icon file '{{icon_name}}' was scaled up from {{icon_size}}px to {{scale_size}}px. Please try to supply a bigger icon.",
   "severity": "warning"
