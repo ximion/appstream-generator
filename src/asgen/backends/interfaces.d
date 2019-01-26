@@ -63,6 +63,18 @@ class GStreamer
 }
 
 /**
+ * Type of a package that can be processed.
+ * Allows distinguishing "real" packages from
+ * virtual or fake ones that are used internally.
+ */
+enum PackageKind
+{
+    UNKNOWN,
+    PHYSICAL,
+    FAKE
+}
+
+/**
  * Represents a distribution package in the generator.
  */
 abstract class Package
@@ -71,6 +83,15 @@ abstract class Package
     @property string ver () const @safe pure;
     @property string arch () const @safe pure;
     @property string maintainer () const;
+
+    /**
+     * Type of this package (whether it actually exists or is a fake/virtual package)
+     * You pretty much always want PHYSICAL.
+     */
+    @property PackageKind kind () @safe pure
+    {
+        return PackageKind.PHYSICAL;
+    }
 
     /**
      * A associative array containing package descriptions.

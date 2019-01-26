@@ -564,7 +564,8 @@ public:
             return null;
 
         // we create a dummy package to hold information for the injected components
-        auto pkg = new DummyPackage ("+extra-metainfo", "0~0", arch);
+        auto pkg = new DummyPackage (EXTRA_METAINFO_FAKE_PKGNAME, "0~0", arch);
+        pkg.kind = PackageKind.FAKE;
         pkg.maintainer = "AppStream Generator Maintainer";
         auto gres = new GeneratorResult (pkg);
 

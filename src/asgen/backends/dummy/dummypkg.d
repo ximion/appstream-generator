@@ -35,6 +35,7 @@ private:
     string pkgmaintainer;
     string[string] desc;
     string testPkgFname;
+    PackageKind _kind;
 
 public:
     @property override string name () const { return pkgname; }
@@ -56,6 +57,7 @@ public:
         pkgname = pname;
         pkgver = pver;
         pkgarch = parch;
+        _kind = PackageKind.PHYSICAL;
     }
 
     void setDescription (string text, string locale)
@@ -80,5 +82,17 @@ public:
     override
     void close ()
     {
+    }
+
+    @property override
+    PackageKind kind () @safe pure
+    {
+        return this._kind;
+    }
+
+    @property
+    void kind (PackageKind v) @safe pure
+    {
+        this._kind = v;
     }
 }

@@ -90,6 +90,9 @@ enum GeneratorFeature
     PROCESS_GSTREAMER   = 1 << 9,
 }
 
+/// Fake package name AppStream Generator uses internally to inject additional metainfo on users' request
+public immutable EXTRA_METAINFO_FAKE_PKGNAME = "+extra-metainfo";
+
 /// A list of valid icon sizes that we recognize in AppStream
 public immutable allowedIconSizes  = [ImageSize (48),  ImageSize (48, 48, 2),
                                       ImageSize (64),  ImageSize (64, 64, 2),

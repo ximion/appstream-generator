@@ -258,9 +258,31 @@ public:
                 if (!addHint (cpt, "metainfo-unknown-type"))
                     continue;
 
-            if ((!cpt.hasBundle) && (cpt.getPkgnames.empty) && (ckind != ComponentKind.WEB_APP))
-                if (!addHint (cpt, "no-install-candidate"))
-                    continue;
+            if (cpt.getPkgnames.empty) {
+                // no packages are associated with this component
+
+                if (ckind != ComponentKind.WEB_APP &&
+                    ckind != ComponentKind.OPERATING_SYSTEM &&
+                    ckind != ComponentKind.REPOSITORY) {
+                        // this component is not allowed to have no installation candidate
+                        if (!cpt.hasBundle) {
+                            if (!addHint (cpt, "no-install-candidate"))
+                                continue;
+                        }
+                }
+            } else {
+                // packages are associated with this component
+
+                if (pkg.kind == PackageKind.FAKE) {
+                    import std.algorithm : canFind;
+                    import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
+
+                    if (cpt.getPkgnames.canFind (EXTRA_METAINFO_FAKE_PKGNAME)) {
+                        if (!addHint (cpt, "component-fake-package-association"))
+                            continue;
+                    }
+                }
+            }
 
             if (cpt.getName.empty)
                 if (!addHint (cpt, "metainfo-no-name"))
@@ -273,7 +295,7 @@ public:
             // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
             if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
                 // checks specific for .desktop and web apps
-                if (cpt.getIcons ().len == 0) {
+                if (cpt.getIcons.len == 0) {
                     if (ckind == ComponentKind.DESKTOP_APP) {
                         if (!addHint (cpt, "gui-app-without-icon"))
                             continue;
@@ -284,7 +306,7 @@ public:
                 }
 
                 // desktop-application components are required to have a category
-                if (cpt.getCategories ().len <= 0)
+                if (cpt.getCategories.len <= 0)
                     if (!addHint (cpt, "no-valid-category"))
                         continue;
 
@@ -309,10 +331,10 @@ public:
                 // check if we can add a launchable here
                 if (ckind == ComponentKind.DESKTOP_APP) {
                     if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
-                        import appstream.Launchable;
+                        import appstream.Launchable : Launchable, LaunchableKind;
                         auto launch = new Launchable;
                         launch.setKind (LaunchableKind.DESKTOP_ID);
-                        launch.addEntry (cpt.getId ());
+                        launch.addEntry (cpt.getId);
                         cpt.addLaunchable (launch);
                     }
                 }
@@ -320,10 +342,8 @@ public:
 
             // finally, filter custom tags
             auto customHashTable = cpt.getCustom ();
-            auto noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
+            immutable noCustomKeysAllowed = conf.allowedCustomKeys.length == 0;
             if (customHashTable.size > 0) {
-                import glib.c.types;
-
                 if (noCustomKeysAllowed) {
                     // if we don't allow any custom keys, we can delete them faster
                     customHashTable.removeAll ();
@@ -333,6 +353,7 @@ public:
                 // filter the custom values
                 customHashTable.foreachRemove (&evaluateCustomEntry, &conf);
             }
+
         }
     }
 

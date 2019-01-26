@@ -240,6 +240,11 @@
 "font-load-error": {
   "text": "Unable to load font '{{fname}}' from package '{{pkg_fname}}: {{error}}",
   "severity": "error"
+},
+
+"component-fake-package-association": {
+  "text": "This component has a fake or virtual package set as installation candidate. This is not allowed.",
+  "severity": "error"
 }
 
 }
