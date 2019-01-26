@@ -23,7 +23,7 @@ src_dir = include_directories('src/')
 
 dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
 glibd_dep       = dependency('glibd-2.0')
-appstream_dep   = dependency('appstream', version : '>= 0.12.4')
+appstream_dep   = dependency('appstream', version : '>= 0.12.5')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
 archive_dep     = dependency('libarchive', version : '>= 3.2')
 cairo_dep       = dependency('cairo', version : '>= 1.12')
