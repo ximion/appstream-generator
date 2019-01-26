@@ -31,6 +31,8 @@ import asgen.result;
 import asgen.utils;
 
 
+immutable MAX_RELEASE_INFO_COUNT = 6; /// Maximum amount of releases present in output data
+
 private bool isAcceptableMetainfoLicense (string licenseExpression) pure
 {
     import asgen.bindings.appstream_utils;
@@ -107,9 +109,17 @@ Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string 
     }
 
     // quit immediately if we have an unknown component type
-    if (cpt.getKind () == ComponentKind.UNKNOWN) {
+    if (cpt.getKind == ComponentKind.UNKNOWN) {
         gres.addHint (cpt, "metainfo-unknown-type");
         return null;
+    }
+
+    // limit the amount of releases that we add to the output metadata.
+    // since releases are sorted with the newest one at the top, we will only
+    // remove the older ones.
+    auto releases = cpt.getReleases;
+    if (releases.len > MAX_RELEASE_INFO_COUNT) {
+        releases.setSize (MAX_RELEASE_INFO_COUNT);
     }
 
     return cpt;
