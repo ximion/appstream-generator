@@ -533,12 +533,12 @@ public:
     /**
      * Read a bunch of additional, injected metainfo files.
      */
-    private void readInjectedMetainfo (string metainfoDir, GeneratorResult gres)
+    private void readInjectedMetainfo (string metainfoDir, IconHandler iconh, GeneratorResult gres)
     {
         import std.file : dirEntries, SpanMode;
         import std.stdio : File;
         import std.path : baseName;
-        import asgen.handlers.metainfoparser : parseMetaInfoFile;
+        import asgen.handlers.metainfoparser : parseMetaInfoData;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
             auto f = File (miFname, "r");
@@ -549,41 +549,49 @@ public:
 
             immutable miBasename = miFname.baseName;
             logInfo ("Loading injected metainfo: %s", miBasename);
-            parseMetaInfoFile (gres, data.data, miBasename);
+            auto cpt = parseMetaInfoData (gres, data.data, miBasename);
+            iconh.process (gres, cpt);
         }
     }
 
     /**
      * Read metainfo and auxiliary data injected by the person running the data generator.
      */
-    private Package processExtraMetainfoData (Suite suite, const string section, const string arch)
+    private Package processExtraMetainfoData (Suite suite, IconHandler iconh, const string section, const string arch)
     {
+        import asgen.datainjectpkg : DataInjectPackage;
         import asgen.utils : existsAndIsDir;
 
         if (suite.extraMetainfoDir is null)
             return null;
 
-        // we create a dummy package to hold information for the injected components
-        auto pkg = new DummyPackage (EXTRA_METAINFO_FAKE_PKGNAME, "0~0", arch);
-        pkg.kind = PackageKind.FAKE;
-        pkg.maintainer = "AppStream Generator Maintainer";
-        auto gres = new GeneratorResult (pkg);
-
         immutable extraMIDir = buildNormalizedPath (suite.extraMetainfoDir, section);
         immutable archExtraMIDir = buildNormalizedPath (extraMIDir, arch);
 
+        // we create a dummy package to hold information for the injected components
+        auto pkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
+        pkg.dataLocation = buildPath (extraMIDir, "icons");
+        pkg.maintainer = "AppStream Generator Maintainer";
+        auto gres = new GeneratorResult (pkg);
+
         logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
+
+        // ensure we have no leftover hints in the database.
+        // since this package never changes its version number, cruft data will not be automatically
+        // removed for it.
+        dstore.removePackage (pkg.id);
 
         if (extraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (extraMIDir, gres);
-            readInjectedMetainfo (extraMIDir, gres);
+            readInjectedMetainfo (extraMIDir, iconh, gres);
         }
         if (archExtraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (archExtraMIDir, gres);
-            readInjectedMetainfo (archExtraMIDir, gres);
+            readInjectedMetainfo (archExtraMIDir, iconh, gres);
         }
 
         // write resulting data into the database
+        gres.finalize ();
         dstore.addGeneratorResult (this.conf.metadataType, gres, true);
 
         return pkg;
@@ -620,7 +628,7 @@ public:
             processPackages (pkgs, iconh);
 
             // read injected data and add it to the database as a fake package
-            auto fakePkg = processExtraMetainfoData (suite, section, arch);
+            auto fakePkg = processExtraMetainfoData (suite, iconh, section, arch);
             if (fakePkg !is null)
                 pkgs ~= fakePkg;
 

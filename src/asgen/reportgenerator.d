@@ -314,6 +314,7 @@ public:
                             case ComponentKind.DESKTOP_APP:
                             case ComponentKind.WEB_APP:
                             case ComponentKind.FONT:
+                            case ComponentKind.OPERATING_SYSTEM:
                                 if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
                                     iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
                                 else

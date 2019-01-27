@@ -82,7 +82,7 @@ private bool isAcceptableMetainfoLicense (string licenseExpression) pure
     return false;
 }
 
-Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string data, const string mfname)
+Component parseMetaInfoData (Metadata mdata, GeneratorResult gres, const string data, const string mfname)
 {
     try {
         mdata.parse (data, FormatKind.XML);
@@ -125,13 +125,15 @@ Component parseMetaInfoFile (Metadata mdata, GeneratorResult gres, const string 
     return cpt;
 }
 
-Component parseMetaInfoFile (GeneratorResult gres, const string data, const string mfname)
+Component parseMetaInfoData (GeneratorResult gres, const string data, const string mfname)
 {
     auto mdata = new Metadata ();
     mdata.setLocale ("ALL");
     mdata.setFormatStyle (FormatStyle.METAINFO);
 
-    return parseMetaInfoFile (mdata, gres, data, mfname);
+    auto cpt = parseMetaInfoData (mdata, gres, data, mfname);
+    gres.updateComponentGCID (cpt, data);
+    return cpt;
 }
 
 unittest {

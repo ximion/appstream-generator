@@ -497,7 +497,7 @@ public:
         }
 
         auto path = buildPath (cptExportPath, "icons", size.toString);
-        auto iconName = "%s_%s".format (gres.pkgname,  baseName (iconPath));
+        auto iconName = (gres.pkg.kind == PackageKind.FAKE)? baseName (iconPath) : "%s_%s".format (gres.pkgname,  baseName (iconPath));
 
         if (iconName.endsWith (".svgz"))
             iconName = iconName.replace (".svgz", ".png");
@@ -705,6 +705,9 @@ public:
         return info;
     }
 
+    /**
+     * Try to find & store icons for a selected component.
+     */
     bool process (GeneratorResult gres, Component cpt)
     {
         auto iconName = getIconNameAndClear (cpt);
@@ -750,15 +753,16 @@ public:
                     auto infoP = (size in iconRes);
 
                     IconFindResult info;
-                    info.pkg = null;
-                    if (infoP !is null)
+                    if (infoP is null)
+                        info.pkg = null;
+                    else
                         info = *infoP;
 
                     // check if we can scale another size to the desired one
                     if (info.pkg is null)
                         info = findIconScalableToSize (iconRes, size);
 
-                    // give up if we still haven't found an icon
+                    // give up if we still haven't found an icon (in which case `info.pkg` would be set)
                     if (info.pkg is null)
                         continue;
 

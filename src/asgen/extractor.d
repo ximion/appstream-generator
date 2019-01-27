@@ -94,7 +94,7 @@ public:
             auto data = cast(string) dataBytes;
 
             mdata.clearComponents ();
-            auto cpt = parseMetaInfoFile (mdata, gres, data, mfname);
+            auto cpt = parseMetaInfoData (mdata, gres, data, mfname);
             if (cpt is null)
                 continue;
 

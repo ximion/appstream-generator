@@ -26,6 +26,7 @@ asgen_sources = [
     'bindings/rsvg.d',
     'config.d',
     'contentsstore.d',
+    'datainjectpkg.d',
     'datastore.d',
     'engine.d',
     'extractor.d',

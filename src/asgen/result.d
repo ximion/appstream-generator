@@ -138,8 +138,10 @@ public:
 
         // web applications don't have a package name set
         if ((cpt.getKind != ComponentKind.WEB_APP) &&
+            (cpt.getKind != ComponentKind.OPERATING_SYSTEM) &&
             (cpt.getMergeKind != MergeKind.REMOVE_COMPONENT)) {
-            cpt.setPkgnames ([this.pkgname]);
+            if (pkg.kind != PackageKind.FAKE)
+                cpt.setPkgnames ([this.pkgname]);
         }
 
         cpts[cid] = cpt;
@@ -311,8 +313,6 @@ public:
 
             // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
             if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
-                // checks specific for .desktop and web apps
-
                 // desktop-application components are required to have a category
                 if (cpt.getCategories.len <= 0)
                     if (!addHint (cpt, "no-valid-category"))
