@@ -253,7 +253,7 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
-        auto pkgCMap = HashMap!(string, string) (32);
+        auto pkgCMap = HashMap!(string, string) (64);
         foreach (ref pkid; pkids) {
             MDB_val pkey = makeDbValue (pkid);
             MDB_val cval;

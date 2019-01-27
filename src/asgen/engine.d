@@ -48,7 +48,7 @@ import asgen.backends.ubuntu;
 import asgen.backends.archlinux;
 import asgen.backends.rpmmd;
 
-import asgen.handlers.iconhandler;
+import asgen.handlers : IconHandler, LocaleHandler;
 
 
 /**
@@ -132,7 +132,8 @@ public:
      */
     private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
-        auto mde = scoped!DataExtractor (dstore, iconh);
+        auto localeh = scoped!LocaleHandler (pkgs);
+        auto mde = scoped!DataExtractor (dstore, iconh, localeh);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
             if (dstore.packageExists (pkid))

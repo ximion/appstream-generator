@@ -282,9 +282,11 @@ public:
         // so we have to cache the data.
         auto tmpThemes = HashMap!(string, Theme) (16);
         auto filesPkids = ccache.getIconFilesMap (pkgMap.keys);
-        foreach (fname; parallel (filesPkids.byKey, 100)) {
+        foreach (info; parallel (filesPkids.byKeyValue, 100)) {
+            immutable fname = info.key;
+            immutable pkgid = info.value;
             if (fname.startsWith ("/usr/share/pixmaps/")) {
-                auto pkg = getPackage (filesPkids[fname]);
+                auto pkg = getPackage (pkgid);
                 if (pkg is null)
                     continue;
                 synchronized (this) iconFiles[fname] = pkg;

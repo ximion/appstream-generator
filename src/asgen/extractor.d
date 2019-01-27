@@ -47,15 +47,17 @@ private:
 
     DataStore dstore;
     IconHandler iconh;
+    LocaleHandler localeh;
     Config conf;
     DataType dtype;
 
 public:
 
-    this (DataStore db, IconHandler iconHandler)
+    this (DataStore db, IconHandler iconHandler, LocaleHandler localeHandler)
     {
         dstore = db;
         iconh = iconHandler;
+        localeh = localeHandler;
         conf = Config.get ();
         dtype = conf.metadataType;
     }
@@ -273,7 +275,7 @@ public:
 
             // process locale information.
             if (conf.feature.processLocale)
-                processLocaleInfoForComponent (gres, cpt);
+                localeh.processLocaleInfoForComponent (gres, cpt);
 
             // we don't want to run expensive font processing if we don't have a font component.
             // since the font handler needs to load all font data prior to processing the component,
