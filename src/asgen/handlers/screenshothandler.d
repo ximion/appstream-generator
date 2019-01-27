@@ -21,10 +21,10 @@ module asgen.handlers.screenshothandler;
 
 import std.path : baseName, buildPath;
 import std.uni : toLower;
-import std.string : format;
+import std.string : format, strip;
 import std.array : empty;
 import std.algorithm : startsWith;
-import std.stdio;
+import std.conv : to;
 import gobject.ObjectG;
 import appstream.c.functions;
 import appstream.Component;
@@ -51,10 +51,8 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
         // cast array data to D Screenshot and keep a reference to the C struct
         auto scr = new Screenshot (cast (AsScreenshot*) scrArr.index (i));
         auto resScr = processScreenshot (gres, cpt, scr, mediaExportDir, i+1);
-        if (resScr !is null) {
-            validScrs ~= resScr;
-            resScr.doref ();
-        }
+        if (resScr !is null)
+            validScrs ~= resScr.ref_.to!Screenshot;
     }
 
     // drop all screenshots from the component
@@ -68,21 +66,26 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
 
 private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
 {
-    import std.stdio;
-
     auto imgArr = scr.getImages ();
     if (imgArr.len == 0) {
-        gres.addHint (cpt.getId (), "metainfo-screenshot-but-no-image");
+        gres.addHint (cpt, "metainfo-screenshot-but-no-image");
         return null;
     }
 
     auto initImg = new Image (cast(AsImage*) imgArr.index (0));
-    initImg.doref ();
+    initImg = initImg.ref_.to!Image;
     // drop all images
     imgArr.removeRange (0, imgArr.len);
 
     auto conf = asgen.config.Config.get ();
     auto origImgUrl = initImg.getUrl ();
+
+    // sometimes people space out their URLs weird or add empty content.
+    // that will generate a warning already, but we should also immediately skip those
+    // entries here.
+    origImgUrl = origImgUrl.strip ();
+    if (origImgUrl.empty)
+        return null;
 
     ubyte[] imgData;
     try {
