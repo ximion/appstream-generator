@@ -444,9 +444,9 @@ body
                     ret = parseRFC822DateTime(lastmodified);
             }
 
-            if (statusLine.code != 200) {
-                throw new HTTPStatusException(statusLine.code,
-                           format("HTTP request returned status code %d (%s)", statusLine.code, statusLine.reason));
+            if (statusLine.code != 200 && statusLine.code != 301) {
+                throw new HTTPStatusException (statusLine.code,
+                           "HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
             }
         } else {
             auto downloader = FTP (url);
@@ -456,7 +456,7 @@ body
             downloader.perform();
         }
         logDebug ("Downloaded %s", url);
-    } catch (CurlException e) {
+    } catch (Exception e) {
         if (retryCount > 0) {
             logDebug ("Failed to download %s, will retry %d more %s",
                       url,
@@ -532,7 +532,7 @@ ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
             download (path, file, retryCount);
         }
 
-        return ptr.fromStringz.to!(ubyte[]).dup;
+        return (cast(ubyte[]) ptr.fromStringz).dup;
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
@@ -666,9 +666,9 @@ unittest
         import std.net.curl : HTTPStatusException;
 
         // NOTE: These tests require an internet connection to be available
-        downloadFile ("https://example.com", "/tmp/asgen-test.examplecom" ~ randomString (4));
+        downloadFile ("https://freedesktop.org", "/tmp/asgen-test.fdo" ~ randomString (4));
 
-        assertThrown!HTTPStatusException (downloadFile ("https://example.com/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 1));
+        assertThrown!HTTPStatusException (downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 1));
 
         // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
         downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);

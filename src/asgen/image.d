@@ -154,13 +154,13 @@ public:
         throwGError (error, format ("Unable to open image '%s'", baseName (fname)));
     }
 
-    this (ref ubyte[] imgBytes, ImageFormat ikind)
+    this (const(ubyte)[] imgBytes, ImageFormat ikind)
     {
         import gio.c.functions;
         import gio.MemoryInputStream;
 
         auto istream = new MemoryInputStream ();
-        istream.addData (imgBytes, null);
+        istream.addData (cast(ubyte[]) imgBytes, null);
 
         GError *error = null;
         pix = gdk_pixbuf_new_from_stream (cast(GInputStream*) istream.getMemoryInputStreamStruct (), null, &error);
@@ -289,7 +289,7 @@ public:
         //! return srf.cairo_image_surface_get_height ();
     }
 
-    void renderSvg (ref ubyte[] svgBytes)
+    void renderSvg (const(ubyte)[] svgBytes)
     {
         // NOTE: unfortunately, Cairo/RSvg uses Fontconfig internally, so
         // we need to lock this down since a parallel-processed font

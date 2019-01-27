@@ -542,9 +542,9 @@ public:
 
         // filepath is checked because icon can reside in another binary
         // eg amarok's icon is in amarok-data
-        ubyte[] iconData = null;
+        const(ubyte)[] iconData = null;
         try {
-            iconData = cast(ubyte[]) sourcePkg.getFileData (iconPath);
+            iconData = sourcePkg.getFileData (iconPath);
         } catch (Exception e) {
             gres.addHint(cpt.getId (), "pkg-extract-error", ["fname": baseName (iconPath),
                                                              "pkg_fname": baseName (sourcePkg.getFilename),
