@@ -35,7 +35,7 @@ import asgen.backends.debian.tagfile;
 import asgen.backends.debian.debpkg;
 import asgen.backends.debian.debutils;
 import asgen.config;
-import asgen.utils : escapeXml, getFileContents, isRemote;
+import asgen.utils : escapeXml, getTextFileContents, isRemote;
 
 
 class DebianPackageIndex : PackageIndex
@@ -83,7 +83,7 @@ public:
 
         try {
             synchronized (this) {
-                const inReleaseContents = getFileContents (inRelease);
+                const inReleaseContents = getTextFileContents (inRelease);
 
                 foreach (const ref entry; inReleaseContents) {
                     auto match = entry.matchFirst (translationregex);

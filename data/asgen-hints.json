@@ -257,6 +257,11 @@
 "component-fake-package-association": {
   "text": "This component has a fake or virtual package set as installation candidate. This is not allowed.",
   "severity": "error"
+},
+
+"mo-file-error": {
+  "text": "Unable to process Gettext *.mo file for locale '{{locale}}'. The file is probably invalid, and no language information could be extracted.",
+  "severity": "warning"
 }
 
 }

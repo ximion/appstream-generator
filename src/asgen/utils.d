@@ -444,7 +444,7 @@ body
                     ret = parseRFC822DateTime(lastmodified);
             }
 
-            if (statusLine.code / 100 != 2) {
+            if (statusLine.code != 200) {
                 throw new HTTPStatusException(statusLine.code,
                            format("HTTP request returned status code %d (%s)", statusLine.code, statusLine.reason));
             }
@@ -479,12 +479,12 @@ body
  *
  * Returns: The data if successful.
  */
-string[] getFileContents (const string path, const uint retryCount = 5) @trusted
+string[] getTextFileContents (const string path, const uint retryCount = 5) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
 
-    char * ptr = null;
+    char* ptr = null;
     scope (exit) free (ptr);
 
     size_t sz = 0;
@@ -503,6 +503,48 @@ string[] getFileContents (const string path, const uint retryCount = 5) @trusted
             throw new Exception ("No such file '%s'", path);
 
         return std.file.readText (path).splitLines;
+    }
+}
+
+/**
+ * Download or open `path` and return it as a byte array.
+ *
+ * Params:
+ *      path = The path to access.
+ *
+ * Returns: The data if successful.
+ */
+ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
+{
+    import core.stdc.stdlib : free;
+    import core.sys.posix.stdio : fclose, open_memstream;
+
+    char* ptr = null;
+    scope (exit) free (ptr);
+
+    size_t sz = 0;
+
+    if (path.isRemote) {
+        {
+            auto f = open_memstream (&ptr, &sz);
+            scope (exit) fclose (f);
+            auto file = File.wrapFile (f);
+            download (path, file, retryCount);
+        }
+
+        return ptr.fromStringz.to!(ubyte[]).dup;
+    } else {
+        if (!std.file.exists (path))
+            throw new Exception ("No such file '%s'", path);
+
+        ubyte[] data;
+        auto f = File (path, "r");
+        while (!f.eof) {
+            char[GENERIC_BUFFER_SIZE] buf;
+            data ~= f.rawRead (buf);
+        }
+
+        return data;
     }
 }
 
@@ -544,8 +586,7 @@ do
  * The function will look for test data in the current
  * working directory.
  */
-string
-getTestSamplesDir () @trusted
+string getTestSamplesDir () @trusted
 {
     import std.file : getcwd;
 
@@ -615,7 +656,7 @@ unittest
 
     auto networkEnabled = true;
     try {
-        getFileContents ("https://example.com", 2);
+        getFileContents ("https://debian.org", 2);
     } catch (Exception e) {
         writeln ("INFO: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
         networkEnabled = false;

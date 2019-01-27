@@ -34,6 +34,7 @@ asgen_sources = [
     'handlers/desktopparser.d',
     'handlers/fonthandler.d',
     'handlers/iconhandler.d',
+    'handlers/localehandler.d',
     'handlers/metainfoparser.d',
     'handlers/metainfovalidator.d',
     'handlers/package.d',
