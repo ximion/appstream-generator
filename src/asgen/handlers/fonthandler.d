@@ -203,6 +203,15 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
                                       font,
                                       cptIconsPath,
                                       cpt);
+
+        // set additional metadata. The font metadata might be terrible, but if the data is bad
+        // it hopefully motivates people to write proper metainfo files.
+        if (cpt.getDescription.empty && !font.description.empty) {
+            cpt.setDescription (font.description, "C");
+        }
+        if (cpt.getUrl (UrlKind.HOMEPAGE).empty && !font.homepage.empty) {
+            cpt.addUrl (UrlKind.HOMEPAGE, font.homepage);
+        }
     }
 
     // render all sample screenshots for all font styles we have

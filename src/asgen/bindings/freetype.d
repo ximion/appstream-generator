@@ -56,3 +56,8 @@ FT_Error FT_Select_Charmap (FT_Face face,
                             FT_Encoding encoding);
 FT_Error FT_Set_Charmap (FT_Face face,
                          FT_CharMap  charmap);
+
+FT_UInt FT_Get_Sfnt_Name_Count (FT_Face face);
+FT_Error FT_Get_Sfnt_Name (FT_Face face,
+                           FT_UInt idx,
+                           FT_SfntName *aname);

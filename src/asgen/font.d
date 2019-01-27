@@ -56,13 +56,17 @@ private:
     FT_Library library;
     FT_Face fface;
 
-    HashSet!string languages_;
-    string preferredLanguage_;
-    string sampleText_;
-    string sampleIconText_;
+    HashSet!string _languages;
+    string _preferredLanguage;
+    string _sampleText;
+    string _sampleIconText;
 
-    string style_;
-    string fullname_;
+    string _style;
+    string _fullname;
+
+    string _description;
+    string _designerName;
+    string _homepage;
 
     immutable string fileBaseName;
 
@@ -70,7 +74,7 @@ public:
 
     this (string fname)
     {
-        languages_ = HashSet!string (16);
+        _languages = HashSet!string (16);
 
         // NOTE: Freetype is completely non-threadsafe, but we only use it in the constructor.
         // So mark this section of code as synchronized to never run it in parallel (even having
@@ -179,7 +183,7 @@ public:
         scope (exit) FcPatternDestroy (fpattern);
 
         // load information about the font
-        languages_ = HashSet!string (16);
+        _languages = HashSet!string (16);
 
         auto anyLangAdded = false;
         auto match = true;
@@ -199,7 +203,7 @@ public:
                 char *tmp;
                 FcStrListFirst (list);
                 while ((tmp = FcStrListNext (list)) !is null) {
-                    languages_.put (to!string (tmp.fromStringz));
+                    _languages.put (to!string (tmp.fromStringz));
                     anyLangAdded = true;
                 }
             }
@@ -207,23 +211,70 @@ public:
 
         char *fullNameVal;
         if (FcPatternGetString (fpattern, FC_FULLNAME, 0, &fullNameVal) == FcResult.Match) {
-            fullname_ = fullNameVal.fromStringz.dup;
+            _fullname = fullNameVal.fromStringz.dup;
         }
 
         char *styleVal;
         if (FcPatternGetString (fpattern, FC_STYLE, 0, &styleVal) == FcResult.Match) {
-            style_ = styleVal.fromStringz.dup;
+            _style = styleVal.fromStringz.dup;
         }
 
         // assume 'en' is available
         if (!anyLangAdded)
-            languages_.put ("en");
+            _languages.put ("en");
 
         // prefer the English language if possible
         // this is a hack since some people don't set their
         // <languages> tag properly.
-        if (anyLangAdded && languages_.contains ("en"))
+        if (anyLangAdded && _languages.contains ("en"))
             preferredLanguage = "en";
+
+        // read font metadata, if any is there
+        readSFNTData ();
+    }
+
+    private void readSFNTData ()
+    {
+        import glib.c.functions : g_convert, g_free;
+
+        immutable namecount = FT_Get_Sfnt_Name_Count (fface);
+        for (int index = 0; index < namecount; index++) {
+            FT_SfntName sname;
+            if (FT_Get_Sfnt_Name (fface, index, &sname) != 0)
+                continue;
+
+            // only handle unicode names for en_US
+            if (!(sname.platform_id == TT_PLATFORM_MICROSOFT
+                && sname.encoding_id == TT_MS_ID_UNICODE_CS
+                && sname.language_id == TT_MS_LANGID_ENGLISH_UNITED_STATES))
+                continue;
+
+            char* val = g_convert(cast(char*) sname.string,
+                                  sname.string_len,
+                                  "UTF-8",
+                                  "UTF-16BE",
+                                  null,
+                                  null,
+                                  null);
+            scope (exit) g_free (val);
+            switch (sname.name_id) {
+                case TT_NAME_ID_SAMPLE_TEXT:
+                    this._sampleIconText = val.fromStringz.dup;
+                    break;
+                case TT_NAME_ID_DESCRIPTION:
+                    this._description = val.fromStringz.dup;
+                    break;
+                case TT_NAME_ID_DESIGNER_URL:
+                    this._homepage = val.fromStringz.dup;
+                    break;
+                case TT_NAME_ID_VENDOR_URL:
+                    if (this._homepage.empty)
+                        this._homepage = val.fromStringz.dup;
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     @property
@@ -236,16 +287,16 @@ public:
     @property
     string style ()
     {
-        return style_;
+        return _style;
     }
 
     @property
     string fullName ()
     {
-        if (fullname_.empty)
+        if (_fullname.empty)
             return "%s %s".format (family, style);
         else
-            return fullname_;
+            return _fullname;
     }
 
     @property
@@ -283,24 +334,36 @@ public:
         import std.algorithm : sort;
         import std.array : array;
 
-        return array (languages_[]).sort;
+        return array (_languages[]).sort;
     }
 
     @property
     void preferredLanguage (string lang)
     {
-        preferredLanguage_ = lang;
+        _preferredLanguage = lang;
     }
 
     @property
     string preferredLanguage ()
     {
-        return preferredLanguage_;
+        return _preferredLanguage;
     }
 
     void addLanguage (string lang)
     {
-        languages_.put (lang);
+        _languages.put (lang);
+    }
+
+    @property
+    string description ()
+    {
+        return _description;
+    }
+
+    @property
+    string homepage ()
+    {
+        return _homepage;
     }
 
     private string randomEnglishPangram (const string tmpId)
@@ -337,17 +400,17 @@ public:
 
         void setFallbackSampleTextIfRequired ()
         {
-            if (sampleText_.empty)
-                sampleText_ = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
+            if (_sampleText.empty)
+                _sampleText = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
 
-            if (sampleIconText_.empty) {
+            if (_sampleIconText.empty) {
                 import std.conv : text;
 
-                auto graphemes = sampleText_.byGrapheme;
+                auto graphemes = _sampleText.byGrapheme;
                 if (graphemes.walkLength > 3)
-                    sampleIconText_ = graphemes.array[0..3].byCodePoint.text;
+                    _sampleIconText = graphemes.array[0..3].byCodePoint.text;
                 else
-                    sampleIconText_ = "Aa";
+                    _sampleIconText = "Aa";
             }
         }
 
@@ -357,8 +420,14 @@ public:
             return g[0];
         }
 
+        // if we only have to set the icon text, try to do it!
+        if (!_sampleText.empty)
+            setFallbackSampleTextIfRequired ();
+        if (!_sampleIconText.empty)
+            return;
+
         // always prefer English (even if not alphabetically first)
-        if (languages_.contains ("en"))
+        if (_languages.contains ("en"))
             preferredLanguage = "en";
 
         // ensure we try the preferred language first
@@ -378,10 +447,10 @@ public:
             if (text.empty)
                 continue;
 
-            sampleText_ = text;
+            _sampleText = text;
             const itP = lang in iconTexts;
             if (itP !is null) {
-                sampleIconText_ = *itP;
+                _sampleIconText = *itP;
                 break;
             }
         }
@@ -391,15 +460,15 @@ public:
 
         // check if we have a font that can actually display the characters we picked - in case
         // it doesn't, we just select random chars.
-        if (FT_Get_Char_Index (fface, getFirstUnichar (sampleIconText_)) == 0) {
-            sampleText_ = "☃❤✓☀★☂♞☯☢∞❄♫↺";
-            sampleIconText_ = "☃❤";
+        if (FT_Get_Char_Index (fface, getFirstUnichar (_sampleIconText)) == 0) {
+            _sampleText = "☃❤✓☀★☂♞☯☢∞❄♫↺";
+            _sampleIconText = "☃❤";
         }
-        if (FT_Get_Char_Index (fface, getFirstUnichar (sampleIconText_)) == 0) {
+        if (FT_Get_Char_Index (fface, getFirstUnichar (_sampleIconText)) == 0) {
             import std.uni;
 
-            sampleText_ = "";
-            sampleIconText_ = "";
+            _sampleText = "";
+            _sampleIconText = "";
 
             auto count = 0;
             for (uint map = 0; map < fface.num_charmaps; map++) {
@@ -413,7 +482,7 @@ public:
                     immutable chc = to!dchar (charcode);
                     if (chc.isGraphical && !chc.isSpace && !chc.isPunctuation) {
                         count++;
-                        sampleText_ ~= chc;
+                        _sampleText ~= chc;
                     }
 
                     if (count >= 24)
@@ -425,7 +494,7 @@ public:
                     break;
             }
 
-            sampleText_ = sampleText_.strip;
+            _sampleText = _sampleText.strip;
 
             // if we were unsuccessful at adding chars, set fallback again
             // (and in this case, also set the icon text to something useful again)
@@ -436,31 +505,31 @@ public:
     @property
     string sampleText ()
     {
-        if (sampleText_.empty)
+        if (_sampleText.empty)
             findSampleTexts ();
-        return sampleText_;
+        return _sampleText;
     }
 
     @property
     void sampleText (string val)
     {
         if (val.length > 2)
-            sampleText_ = val;
+            _sampleText = val;
     }
 
     @property
     string sampleIconText ()
     {
-        if (sampleIconText_.empty)
+        if (_sampleIconText.empty)
             findSampleTexts ();
-        return sampleIconText_;
+        return _sampleIconText;
     }
 
     @property
     void sampleIconText (string val)
     {
         if (val.length <= 3)
-            sampleIconText_ = val;
+            _sampleIconText = val;
     }
 }
 
@@ -491,6 +560,8 @@ unittest
     assert (font.family == "Noto Sans");
     assert (font.style == "Regular");
     assert (font.charset == FT_ENCODING_UNICODE);
+    assert (font.homepage == "http://www.monotype.com/studio");
+    assert (font.description == "Data hinted. Designed by Monotype design team.");
 
     const langList = array (font.getLanguageList ());
     writeln (langList);
