@@ -271,6 +271,10 @@ public:
             if (!conf.feature.noDownloads)
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
 
+            // process locale information.
+            if (conf.feature.processLocale)
+                processLocaleInfoForComponent (gres, cpt);
+
             // we don't want to run expensive font processing if we don't have a font component.
             // since the font handler needs to load all font data prior to processing the component,
             // for efficiency we only record whether we need to process fonts here and then handle

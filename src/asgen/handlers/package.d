@@ -25,3 +25,4 @@ public import asgen.handlers.iconhandler;
 public import asgen.handlers.metainfoparser;
 public import asgen.handlers.metainfovalidator;
 public import asgen.handlers.screenshothandler;
+public import asgen.handlers.localehandler;
