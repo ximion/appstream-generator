@@ -556,7 +556,7 @@ public:
 
             // expire data in suite-specific media directories,
             // if suite is not marked as immutable
-            if (conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+            if (conf.feature.immutableSuites) {
                 foreach (ref suite; conf.suites) {
                     if (suite.isImmutable)
                         continue;

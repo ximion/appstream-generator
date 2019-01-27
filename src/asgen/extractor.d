@@ -183,7 +183,7 @@ public:
 
             // do a validation of the file. Validation is slow, so we allow
             // the user to disable this feature.
-            if (conf.featureEnabled (GeneratorFeature.VALIDATE)) {
+            if (conf.feature.validate) {
                 if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
                     validateMetaInfoFile (gres, cpt, data);
             }
@@ -198,7 +198,7 @@ public:
                 gres.updateComponentGCID (cpt, ddata);
         }
 
-        if (conf.featureEnabled (GeneratorFeature.PROCESS_GSTREAMER) && !pkg.gst.isNull && pkg.gst.isNotEmpty) {
+        if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.isNotEmpty) {
             auto data = appender!string;
             data.reserve(512);
 
@@ -268,7 +268,7 @@ public:
 
             // download and resize screenshots.
             // we don't even need to call this if no downloads are allowed.
-            if (!conf.featureEnabled (GeneratorFeature.NO_DOWNLOADS))
+            if (!conf.feature.noDownloads)
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
 
             // we don't want to run expensive font processing if we don't have a font component.
@@ -281,7 +281,7 @@ public:
         }
 
         // render font previews and extract font metadata (if any of the components is a font)
-        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS)) {
+        if (conf.feature.processFonts) {
             if (hasFontComponent)
                 processFontData (gres, dstore.mediaExportPoolDir);
         }

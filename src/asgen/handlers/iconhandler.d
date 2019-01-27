@@ -43,7 +43,7 @@ import asgen.result;
 import asgen.image;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
-import asgen.config : Config, IconPolicy, GeneratorFeature;
+import asgen.config : Config, IconPolicy;
 
 
 // all image extensions that we recognize as possible for icons.
@@ -250,7 +250,7 @@ public:
         assert (defaultIconPolicy.storeCached == true);
 
         auto conf = Config.get;
-        allowIconUpscaling = conf.featureEnabled (GeneratorFeature.ALLOW_ICON_UPSCALE);
+        allowIconUpscaling = conf.feature.allowIconUpscale;
 
         // Preseeded theme names.
         // * prioritize hicolor, because that's where apps often install their upstream icon

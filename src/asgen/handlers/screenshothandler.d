@@ -137,7 +137,7 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         // if we should not create a screenshots store, delete the just-downloaded file and set
         // the original upstream URL as source.
         // we still needed to download the screenshot to get information about its size.
-        if (!conf.featureEnabled (GeneratorFeature.STORE_SCREENSHOTS)) {
+        if (!conf.feature.storeScreenshots) {
             img.setUrl (origImgUrl);
             scr.addImage (img);
 

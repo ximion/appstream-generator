@@ -103,7 +103,7 @@ public:
 
         // for Cairo/Fontconfig issues with multithreading
         import asgen.image : setupFontconfigMutex;
-        if (conf.featureEnabled (GeneratorFeature.PROCESS_FONTS))
+        if (conf.feature.processFonts)
             setupFontconfigMutex ();
     }
 
@@ -269,7 +269,7 @@ public:
         immutable timeStr = time.toISOString ();
 
         string mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
-        if (conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+        if (conf.feature.immutableSuites) {
             mediaPoolUrl = buildPath (conf.mediaBaseUrl, suite.name);
         }
 
@@ -280,7 +280,7 @@ public:
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
             if (!conf.mediaBaseUrl.empty ())
                 head ~= format (" media_baseurl=\"%s\"", mediaPoolUrl);
-            if (conf.featureEnabled (GeneratorFeature.METADATA_TIMESTAMPS))
+            if (conf.feature.metadataTimestamps)
                 head ~= format (" time=\"%s\"", timeStr);
             head ~= ">";
         } else {
@@ -294,7 +294,7 @@ public:
                 head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);
-            if (conf.featureEnabled (GeneratorFeature.METADATA_TIMESTAMPS))
+            if (conf.feature.metadataTimestamps)
                 head ~= format ("\nTime: %s", timeStr);
         }
 
@@ -342,7 +342,7 @@ public:
             }
         }
 
-        immutable useImmutableSuites = conf.featureEnabled (GeneratorFeature.IMMUTABLE_SUITES);
+        immutable useImmutableSuites = conf.feature.immutableSuites;
         // select the media export target directory
         string mediaExportDir;
         if (useImmutableSuites)

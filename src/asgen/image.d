@@ -57,7 +57,7 @@ private void optimizePNG (string fname)
     import glib.Spawn : Spawn;
 
     auto conf = asgen.config.Config.get ();
-    if (!conf.featureEnabled (GeneratorFeature.OPTIPNG))
+    if (!conf.feature.optipng)
         return;
 
     int exitStatus;

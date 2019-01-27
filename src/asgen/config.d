@@ -75,19 +75,19 @@ enum Backend
 /**
  * Generator features that can be toggled by the user.
  */
-enum GeneratorFeature
+struct GeneratorFeatures
 {
-    NONE = 0,
-    PROCESS_DESKTOP     = 1 << 0,
-    VALIDATE            = 1 << 1,
-    NO_DOWNLOADS        = 1 << 2,
-    STORE_SCREENSHOTS   = 1 << 3,
-    OPTIPNG             = 1 << 4,
-    METADATA_TIMESTAMPS = 1 << 5,
-    IMMUTABLE_SUITES    = 1 << 6,
-    PROCESS_FONTS       = 1 << 7,
-    ALLOW_ICON_UPSCALE  = 1 << 8,
-    PROCESS_GSTREAMER   = 1 << 9,
+    bool processDesktop;
+    bool validate;
+    bool noDownloads;
+    bool storeScreenshots;
+    bool optipng;
+    bool metadataTimestamps;
+    bool immutableSuites;
+    bool processFonts;
+    bool allowIconUpscale;
+    bool processGStreamer;
+    bool processLocale;
 }
 
 /// Fake package name AppStream Generator uses internally to inject additional metainfo on users' request
@@ -152,7 +152,7 @@ public:
     Suite[] suites;
     string[] oldsuites;
     DataType metadataType;
-    uint enabledFeatures; // bitfield
+    GeneratorFeatures feature; /// Set which features are enabled or disabled
 
     bool[string] allowedCustomKeys; // set of allowed keys in <custom/> tags
 
@@ -246,24 +246,6 @@ public:
         }
 
         return null;
-    }
-
-    private void setFeature (GeneratorFeature feature, bool enabled)
-    {
-        if (enabled)
-            enabledFeatures |= feature;
-        else
-            disableFeature (feature);
-    }
-
-    private void disableFeature (GeneratorFeature feature)
-    {
-        enabledFeatures &= ~feature;
-    }
-
-    bool featureEnabled (GeneratorFeature feature)
-    {
-        return (enabledFeatures & feature) > 0;
     }
 
     void loadFromFile (string fname, string enforcedWorkspaceDir = null)
@@ -511,15 +493,16 @@ public:
                 allowedCustomKeys[key.str] = true;
 
         // Enable features which are default-enabled
-        setFeature (GeneratorFeature.PROCESS_DESKTOP, true);
-        setFeature (GeneratorFeature.VALIDATE, true);
-        setFeature (GeneratorFeature.STORE_SCREENSHOTS, true);
-        setFeature (GeneratorFeature.OPTIPNG, true);
-        setFeature (GeneratorFeature.METADATA_TIMESTAMPS, true);
-        setFeature (GeneratorFeature.IMMUTABLE_SUITES, true);
-        setFeature (GeneratorFeature.PROCESS_FONTS, true);
-        setFeature (GeneratorFeature.ALLOW_ICON_UPSCALE, true);
-        setFeature (GeneratorFeature.PROCESS_GSTREAMER, true);
+        feature.processDesktop = true;
+        feature.validate = true;
+        feature.storeScreenshots = true;
+        feature.optipng = true;
+        feature.metadataTimestamps = true;
+        feature.immutableSuites = true;
+        feature.processFonts = true;
+        feature.allowIconUpscale = true;
+        feature.processGStreamer = true;
+        feature.processLocale = true;
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -527,34 +510,37 @@ public:
             foreach (featureId; featuresObj.byKey ()) {
                 switch (featureId) {
                     case "validateMetainfo":
-                        setFeature (GeneratorFeature.VALIDATE, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                        feature.validate = featuresObj[featureId].type == JSON_TYPE.TRUE;
                         break;
                     case "processDesktop":
-                        setFeature (GeneratorFeature.PROCESS_DESKTOP, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                        feature.processDesktop = featuresObj[featureId].type == JSON_TYPE.TRUE;
                         break;
                     case "noDownloads":
-                            setFeature (GeneratorFeature.NO_DOWNLOADS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.noDownloads = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "createScreenshotsStore":
-                            setFeature (GeneratorFeature.STORE_SCREENSHOTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.storeScreenshots = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "optimizePNGSize":
-                            setFeature (GeneratorFeature.OPTIPNG, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.optipng = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "metadataTimestamps":
-                            setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.metadataTimestamps = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "immutableSuites":
-                            setFeature (GeneratorFeature.METADATA_TIMESTAMPS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.immutableSuites = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "processFonts":
-                            setFeature (GeneratorFeature.PROCESS_FONTS, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.processFonts = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "allowIconUpscaling":
-                            setFeature (GeneratorFeature.ALLOW_ICON_UPSCALE, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.allowIconUpscale = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     case "processGStreamer":
-                            setFeature (GeneratorFeature.PROCESS_GSTREAMER, featuresObj[featureId].type == JSON_TYPE.TRUE);
+                            feature.processGStreamer = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            break;
+                    case "processLocale":
+                            feature.processLocale = featuresObj[featureId].type == JSON_TYPE.TRUE;
                             break;
                     default:
                         break;
@@ -563,21 +549,21 @@ public:
         }
 
         // check if we need to disable features because some prerequisites are not met
-        if (featureEnabled (GeneratorFeature.OPTIPNG)) {
+        if (feature.optipng) {
             if (!"/usr/bin/optipng".exists) {
-                setFeature (GeneratorFeature.OPTIPNG, false);
+                feature.optipng = false;
                 logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
             }
         }
 
-        if (featureEnabled (GeneratorFeature.NO_DOWNLOADS)) {
+        if (feature.noDownloads) {
             // since disallowing network access might have quite a lot of sideeffects, we print
             // a message to the logs to make debugging easier.
             // in general, running with noDownloads is discouraged.
             logWarning ("Configuration does not permit downloading files. Several features will not be available.");
         }
 
-        if (!featureEnabled (GeneratorFeature.IMMUTABLE_SUITES)) {
+        if (!feature.immutableSuites) {
             // Immutable suites won't work if the feature is disabled - log this error
             if (hasImmutableSuites)
                 logError ("Suites are defined as immutable, but the `immutableSuites` feature is disabled. Immutability will not work!");
