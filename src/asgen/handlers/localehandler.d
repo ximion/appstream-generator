@@ -147,8 +147,10 @@ private:
             // check if we already have a package - lookups in this HashMap are faster
             // due to its smaller size and (most of the time) outweight the following additional
             // lookup for the right package entity.
-            if (localeIdPkgMap.get (id, null) !is null)
-                continue;
+            synchronized (this) {
+                if (localeIdPkgMap.get (id, null) !is null)
+                    continue;
+            }
 
             Package pkg;
             if (pkgid !is null)
