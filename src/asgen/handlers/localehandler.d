@@ -233,6 +233,12 @@ private:
                 if (nstrings > maxNStrings)
                     maxNStrings = nstrings;
             }
+
+            // remove the packages' temporary data if it isn't our primary package.
+            // extracting locale potentially opens lots of huge packages, and we can conserve
+            // disk space this way.
+            if (pkg != gres.pkg)
+                pkg.cleanupTemp ();
         }
 
         // by this point we should have at least some locale information.

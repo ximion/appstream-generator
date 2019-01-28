@@ -130,10 +130,17 @@ abstract class Package
     abstract const(ubyte)[] getFileData (string fname);
 
     /**
+     * Remove temporary data that might have been created while loading information from
+     * this package. This function can be called to avoid excessive use of disk space.
+     * As opposed to `close()`, the package may be reopened afterwards.
+     */
+    void cleanupTemp () {}
+
+    /**
      * Close the package. This function is called when we will
      * no longer request any file data from this package.
      */
-    abstract void close () {}
+    abstract void finish () {}
 
     @property Nullable!GStreamer gst () { return Nullable!GStreamer (); }
 

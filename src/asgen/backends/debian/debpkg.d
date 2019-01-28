@@ -232,7 +232,7 @@ public:
     @property override final
     string[] contents ()
     {
-        import std.utf;
+        import std.utf : toUTF8;
 
         if (contentsRead)
             return contentsL;
@@ -319,11 +319,10 @@ public:
     }
 
     override final
-    void close ()
+    void cleanupTemp ()
     {
         controlArchive.close ();
         dataArchive.close ();
-        localDebFname = null;
 
         try {
             if (std.file.exists (tmpDir))
@@ -332,5 +331,12 @@ public:
             // we ignore any error
             logDebug ("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
         }
+    }
+
+    override final
+    void finish ()
+    {
+        localDebFname = null;
+        cleanupTemp ();
     }
 }

@@ -80,7 +80,7 @@ public:
     }
 
     override
-    void close ()
+    void finish ()
     {
     }
 

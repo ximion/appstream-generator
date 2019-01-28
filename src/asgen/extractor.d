@@ -294,7 +294,7 @@ public:
 
         // this removes invalid components and cleans up the result
         gres.finalize ();
-        pkg.close ();
+        pkg.finish ();
 
         return gres;
     }

@@ -148,7 +148,7 @@ public:
             }
 
             // we don't need content data from this package anymore
-            pkg.close ();
+            pkg.finish ();
         }
     }
 
@@ -205,8 +205,8 @@ public:
                 }
 
                 // chances are that we might never want to extract data from these packages,
-                // so close them for now - we can reopen them later if we actually need them.
-                pkg.close ();
+                // so remove their temporary data for now - we can reopen the packages later if we actually need them.
+                pkg.cleanupTemp ();
             }
         }
 
@@ -242,7 +242,7 @@ public:
                 dstore.setPackageIgnore (pkid);
                 logInfo ("Scanned %s, no interesting files found.", pkid);
                 // we won't use this anymore
-                pkg.close ();
+                pkg.finish ();
             } else {
                 logInfo ("Scanned %s, could be interesting.", pkid);
                 interestingFound = true;
