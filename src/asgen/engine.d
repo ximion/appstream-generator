@@ -534,11 +534,12 @@ public:
     /**
      * Read a bunch of additional, injected metainfo files.
      */
-    private void readInjectedMetainfo (string metainfoDir, IconHandler iconh, GeneratorResult gres)
+    private void readInjectedMetainfo (string metainfoDir, IconHandler iconh, GeneratorResult gres, const string arch)
     {
         import std.file : dirEntries, SpanMode;
         import std.stdio : File;
         import std.path : baseName;
+        import std.array : replace;
         import asgen.handlers.metainfoparser : parseMetaInfoData;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
@@ -549,7 +550,13 @@ public:
                 data ~= line;
 
             immutable miBasename = miFname.baseName;
-            logInfo ("Loading injected metainfo: %s", miBasename);
+            logInfo ("Loading injected metainfo [%s]: %s", arch, miBasename);
+
+            // we want some replacement logic for arch-specific injected metainfo files,
+            // so arch-specific xml files can replace generic ones. To archieve that we assume
+            // the metainfo file is named after the component-ID it contains and do some cheap replacement here.
+            gres.dropComponent (miBasename.replace (".metainfo.xml", ""));
+
             auto cpt = parseMetaInfoData (gres, data.data, miBasename);
             iconh.process (gres, cpt);
         }
@@ -584,11 +591,11 @@ public:
 
         if (extraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (extraMIDir, gres);
-            readInjectedMetainfo (extraMIDir, iconh, gres);
+            readInjectedMetainfo (extraMIDir, iconh, gres, "all");
         }
         if (archExtraMIDir.existsAndIsDir) {
             readRemovedComponentsInfo (archExtraMIDir, gres);
-            readInjectedMetainfo (archExtraMIDir, iconh, gres);
+            readInjectedMetainfo (archExtraMIDir, iconh, gres, arch);
         }
 
         // write resulting data into the database
