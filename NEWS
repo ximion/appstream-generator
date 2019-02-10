@@ -1,3 +1,22 @@
+Version 0.7.6
+~~~~~~~~~~~~~~
+Released: 2019-01-10
+
+Features:
+ * Limit the amount of release metadata in output (Matthias Klumpp)
+ * Implement icon loading for injected metadata (Matthias Klumpp)
+ * Prefer some SFNT font metadata over internal heuristics (Matthias Klumpp)
+ * Implement Gettext locale processing (Matthias Klumpp)
+ * Use a struct instead of bitfield to store enabled generator features (Matthias Klumpp)
+ * Refactor locale statistics loader (Matthias Klumpp)
+ * Explicitly remove temporary package data after reading locale info (Matthias Klumpp)
+ * Make arch-specific injected metadata override arch:all data (Matthias Klumpp)
+
+Bugfixes:
+ * Complain if the user wants to associate a component with a fake package (Matthias Klumpp)
+ * Check that fonts and OS components have an icon (Matthias Klumpp)
+ * Sanitize image URLs before attempting download (Matthias Klumpp)
+
 Version 0.7.5
 ~~~~~~~~~~~~~~
 Released: 2019-01-04
