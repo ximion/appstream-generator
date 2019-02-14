@@ -136,10 +136,11 @@ public:
         if (cid.empty)
             throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
 
-        // web applications don't have a package name set
-        if ((cpt.getKind != ComponentKind.WEB_APP) &&
-            (cpt.getKind != ComponentKind.OPERATING_SYSTEM) &&
-            (cpt.getMergeKind != MergeKind.REMOVE_COMPONENT)) {
+        // web applications, operating systems, repositories
+        // and component-removal merges don't (need to) have a package name set
+        if (cpt.getKind != ComponentKind.WEB_APP &&
+            cpt.getKind != ComponentKind.OPERATING_SYSTEM &&
+            cpt.getMergeKind != MergeKind.REMOVE_COMPONENT) {
             if (pkg.kind != PackageKind.FAKE)
                 cpt.setPkgnames ([this.pkgname]);
         }
@@ -253,100 +254,106 @@ public:
         // we need to duplicate the associative array, because the addHint() function
         // may remove entries from "cpts", breaking our foreach loop.
         foreach (cpt; cpts.dup.byValue) {
-            auto ckind = cpt.getKind;
+            immutable ckind = cpt.getKind;
             cpt.setActiveLocale ("C");
 
             if (ckind == ComponentKind.UNKNOWN)
                 if (!addHint (cpt, "metainfo-unknown-type"))
                     continue;
 
-            if (cpt.getPkgnames.empty) {
-                // no packages are associated with this component
+            if (cpt.getMergeKind == MergeKind.NONE) {
+                // only perform these checks if we don't have a merge-component
+                // (which is by definition incomplete and only is required to have its ID present)
 
-                if (ckind != ComponentKind.WEB_APP &&
-                    ckind != ComponentKind.OPERATING_SYSTEM &&
-                    ckind != ComponentKind.REPOSITORY) {
-                        // this component is not allowed to have no installation candidate
-                        if (!cpt.hasBundle) {
-                            if (!addHint (cpt, "no-install-candidate"))
+                if (cpt.getPkgnames.empty) {
+                    // no packages are associated with this component
+
+                    if (ckind != ComponentKind.WEB_APP &&
+                        ckind != ComponentKind.OPERATING_SYSTEM &&
+                        ckind != ComponentKind.REPOSITORY) {
+                            // this component is not allowed to have no installation candidate
+                            if (!cpt.hasBundle) {
+                                if (!addHint (cpt, "no-install-candidate"))
+                                    continue;
+                            }
+                    }
+                } else {
+                    // packages are associated with this component
+
+                    if (pkg.kind == PackageKind.FAKE) {
+                        import std.algorithm : canFind;
+                        import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
+
+                        if (cpt.getPkgnames.canFind (EXTRA_METAINFO_FAKE_PKGNAME)) {
+                            if (!addHint (cpt, "component-fake-package-association"))
                                 continue;
                         }
+                    }
                 }
-            } else {
-                // packages are associated with this component
 
-                if (pkg.kind == PackageKind.FAKE) {
-                    import std.algorithm : canFind;
-                    import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
+                if (cpt.getName.empty)
+                    if (!addHint (cpt, "metainfo-no-name"))
+                        continue;
 
-                    if (cpt.getPkgnames.canFind (EXTRA_METAINFO_FAKE_PKGNAME)) {
-                        if (!addHint (cpt, "component-fake-package-association"))
+                if (cpt.getSummary.empty)
+                    if (!addHint (cpt, "metainfo-no-summary"))
+                        continue;
+
+                // ensure that everything that should have an icon has one
+                if (cpt.getIcons.len == 0) {
+                    if (ckind == ComponentKind.DESKTOP_APP) {
+                        if (!addHint (cpt, "gui-app-without-icon"))
+                            continue;
+                    } else if (ckind == ComponentKind.WEB_APP) {
+                        if (!addHint (cpt, "web-app-without-icon"))
+                            continue;
+                    } else if (ckind == ComponentKind.FONT) {
+                        if (!addHint (cpt, "font-without-icon"))
+                            continue;
+                    } else if (ckind == ComponentKind.OPERATING_SYSTEM) {
+                        if (!addHint (cpt, "os-without-icon"))
                             continue;
                     }
                 }
-            }
 
-            if (cpt.getName.empty)
-                if (!addHint (cpt, "metainfo-no-name"))
-                    continue;
-
-            if (cpt.getSummary.empty)
-                if (!addHint (cpt, "metainfo-no-summary"))
-                    continue;
-
-            // ensure that everything that should have an icon has one
-            if (cpt.getIcons.len == 0) {
-                if (ckind == ComponentKind.DESKTOP_APP) {
-                    if (!addHint (cpt, "gui-app-without-icon"))
-                        continue;
-                } else if (ckind == ComponentKind.WEB_APP) {
-                    if (!addHint (cpt, "web-app-without-icon"))
-                        continue;
-                } else if (ckind == ComponentKind.FONT) {
-                    if (!addHint (cpt, "font-without-icon"))
-                        continue;
-                } else if (ckind == ComponentKind.OPERATING_SYSTEM) {
-                    if (!addHint (cpt, "os-without-icon"))
-                        continue;
-                }
-            }
-
-            // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
-            if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
-                // desktop-application components are required to have a category
-                if (cpt.getCategories.len <= 0)
-                    if (!addHint (cpt, "no-valid-category"))
-                        continue;
-
-                // inject package descriptions, if needed
-                auto flags = cpt.getValueFlags;
-                cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
-
-                cpt.setActiveLocale ("C");
-                if (cpt.getDescription.empty) {
-                    // component doesn't have a long description, add one from
-                    // the packaging.
-                    auto desc_added = false;
-                    foreach (ref lang, ref desc; pkg.description) {
-                            cpt.setDescription (desc, lang);
-                            desc_added = true;
-                    }
-                    if (desc_added)
-                        if (!addHint (cpt, "description-from-package"))
+                // desktop and web apps get extra treatment (more validation, addition of fallback long-description)
+                if (ckind == ComponentKind.DESKTOP_APP || ckind == ComponentKind.WEB_APP) {
+                    // desktop-application components are required to have a category
+                    if (cpt.getCategories.len <= 0)
+                        if (!addHint (cpt, "no-valid-category"))
                             continue;
-                }
 
-                // check if we can add a launchable here
-                if (ckind == ComponentKind.DESKTOP_APP) {
-                    if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
-                        import appstream.Launchable : Launchable, LaunchableKind;
-                        auto launch = new Launchable;
-                        launch.setKind (LaunchableKind.DESKTOP_ID);
-                        launch.addEntry (cpt.getId);
-                        cpt.addLaunchable (launch);
+                    // inject package descriptions, if needed
+                    auto flags = cpt.getValueFlags;
+                    cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+
+                    cpt.setActiveLocale ("C");
+                    if (cpt.getDescription.empty) {
+                        // component doesn't have a long description, add one from
+                        // the packaging.
+                        auto desc_added = false;
+                        foreach (ref lang, ref desc; pkg.description) {
+                                cpt.setDescription (desc, lang);
+                                desc_added = true;
+                        }
+                        if (desc_added)
+                            if (!addHint (cpt, "description-from-package"))
+                                continue;
                     }
-                }
-            }
+
+                    // check if we can add a launchable here
+                    if (ckind == ComponentKind.DESKTOP_APP) {
+                        if ((cpt.getLaunchable (LaunchableKind.DESKTOP_ID) is null) && (cpt.getId.endsWith (".desktop"))) {
+                            import appstream.Launchable : Launchable, LaunchableKind;
+                            auto launch = new Launchable;
+                            launch.setKind (LaunchableKind.DESKTOP_ID);
+                            launch.addEntry (cpt.getId);
+                            cpt.addLaunchable (launch);
+                        }
+                    }
+                } // end of checks for desktop/web apps
+
+            } // end of check for non-merge components
 
             // finally, filter custom tags
             auto customHashTable = cpt.getCustom ();
@@ -362,7 +369,7 @@ public:
                 customHashTable.foreachRemove (&evaluateCustomEntry, &conf);
             }
 
-        }
+        } // end of components loop
     }
 
     /**
