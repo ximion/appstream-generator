@@ -7,7 +7,10 @@ FROM debian:unstable
 RUN apt-get update -qq
 
 # install build essentials
-RUN apt-get install -yq git gcc gdc ldc
+RUN apt-get install -yq git gcc ldc
+RUN echo "deb http://deb.debian.org/debian experimental main" >> /etc/apt/sources.list
+RUN apt-get update -qq
+RUN apt-get -t experimental install -yq gdc-9
 
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \
