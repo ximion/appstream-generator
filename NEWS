@@ -1,3 +1,13 @@
+Version 0.7.7
+~~~~~~~~~~~~~~
+Released: 2019-02-24
+
+Features:
+ * Speed up locale search by moving it to its own database cache (Matthias Klumpp)
+
+Bugfixes:
+ * Component removal requests don't need to have a package-name set (Matthias Klumpp)
+
 Version 0.7.6
 ~~~~~~~~~~~~~~
 Released: 2019-01-10
