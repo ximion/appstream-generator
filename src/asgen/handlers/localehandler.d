@@ -136,29 +136,25 @@ private:
 
         // we make the assumption here that all locale for a given domain are in one package.
         // otherwise this global search will get even more insane.
-        foreach (info; parallel (ccache.getContentsMap (pkgMap.keys).byKeyValue, 100)) {
-            immutable fname = info.key;
+        // the key of the map returned by getLocaleMap will therefore contain only the locale
+        // file basename instead of a full path
+        auto dbLocaleMap = ccache.getLocaleMap (pkgMap.keys);
+        foreach (info; dbLocaleMap.byKeyValue) {
+            immutable id = info.key;
             immutable pkgid = info.value;
-
-            if (!fname.startsWith ("/usr/share/locale/"))
-                continue;
-            immutable id = fname.baseName;
 
             // check if we already have a package - lookups in this HashMap are faster
             // due to its smaller size and (most of the time) outweight the following additional
             // lookup for the right package entity.
-            synchronized (this) {
-                if (localeIdPkgMap.get (id, null) !is null)
-                    continue;
-            }
+            if (localeIdPkgMap.get (id, null) !is null)
+                continue;
 
             Package pkg;
             if (pkgid !is null)
                 pkg = pkgMap.get (pkgid, null);
 
-            if (pkg !is null) {
-                synchronized (this) localeIdPkgMap[id] = pkg;
-            }
+            if (pkg !is null)
+                localeIdPkgMap[id] = pkg;
         }
 
         logDebug ("Created new LocaleHandler.");

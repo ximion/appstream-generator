@@ -43,6 +43,7 @@ private:
     MDB_envp dbEnv;
     MDB_dbi dbContents;
     MDB_dbi dbIcons;
+    MDB_dbi dbLocale;
 
     bool opened;
 
@@ -84,9 +85,9 @@ public:
         scope (failure) dbEnv.mdb_env_close ();
         checkError (rc, "mdb_env_create");
 
-        // We are going to use at max 2 sub-databases:
-        // contents and icons
-        rc = dbEnv.mdb_env_set_maxdbs (2);
+        // We are going to use at max 3 sub-databases:
+        // contents, icons and locale
+        rc = dbEnv.mdb_env_set_maxdbs (3);
         checkError (rc, "mdb_env_set_maxdbs");
 
         // set a huge map size to be futureproof.
@@ -117,6 +118,10 @@ public:
         // of IconHandler much faster.
         rc = txn.mdb_dbi_open ("icondata", MDB_CREATE, &dbIcons);
         checkError (rc, "open icon-info database");
+
+        // contains list of locale files and related data
+        rc = txn.mdb_dbi_open ("localedata", MDB_CREATE, &dbLocale);
+        checkError (rc, "open locale-info database");
 
         rc = txn.mdb_txn_commit ();
         checkError (rc, "mdb_txn_commit");
@@ -181,6 +186,10 @@ public:
         res = txn.mdb_del (dbIcons, &key, null);
         if (res != MDB_NOTFOUND)
             checkError (res, "mdb_del (icons)");
+
+        res = txn.mdb_del (dbLocale, &key, null);
+        if (res != MDB_NOTFOUND)
+            checkError (res, "mdb_del (locale)");
     }
 
     bool packageExists (string pkid)
@@ -206,21 +215,28 @@ public:
 
     void addContents (string pkid, string[] contents)
     {
-        MDB_val key;
-        MDB_val contentsVal, iconsVal;
-
-        // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index)
+        // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index),
+        // as well as locale information
         auto iconInfo = appender!(string[]);
-        foreach (ref c; contents) {
-            if ((c.startsWith ("/usr/share/icons/")) ||
-                (c.startsWith ("/usr/share/pixmaps/"))) {
-                    iconInfo ~= c;
+        auto localeInfo = appender!(string[]);
+        foreach (ref f; contents) {
+            if ((f.startsWith ("/usr/share/icons/")) ||
+                (f.startsWith ("/usr/share/pixmaps/"))) {
+                    iconInfo ~= f;
+                    continue;
                 }
+
+            if (f.startsWith ("/usr/share/locale/")) {
+                    localeInfo ~= f;
+                    continue;
+            }
         }
 
         immutable contentsStr = contents.join ("\n");
 
         synchronized (this) {
+            MDB_val key, contentsVal;
+
             key = makeDbValue (pkid);
             contentsVal = makeDbValue (contentsStr);
 
@@ -231,19 +247,34 @@ public:
             auto res = txn.mdb_put (dbContents, &key, &contentsVal, 0);
             checkError (res, "mdb_put");
 
+            // if we have icon information, store that too
             if (!iconInfo.data.empty) {
-                // we have icon information, store it too
+                MDB_val iconsVal;
+
                 immutable iconsStr = iconInfo.data.join ("\n");
                 iconsVal = makeDbValue (iconsStr);
 
                 res = txn.mdb_put (dbIcons, &key, &iconsVal, 0);
                 checkError (res, "mdb_put (icons)");
             }
+
+            // store locale
+            if (!localeInfo.data.empty) {
+                MDB_val localeVal;
+
+                immutable localeStr = localeInfo.data.join ("\n");
+                localeVal = makeDbValue (localeStr);
+
+                res = txn.mdb_put (dbLocale, &key, &localeVal, 0);
+                checkError (res, "mdb_put (locale)");
+            }
         }
     }
 
-    private HashMap!(string, string) getFilesMap (string[] pkids, MDB_dbi dbi)
+    private HashMap!(string, string) getFilesMap (string[] pkids, MDB_dbi dbi, bool useBaseName = false)
     {
+        import std.path : baseName;
+
         MDB_cursorp cur;
 
         auto txn = newTransaction (MDB_RDONLY);
@@ -267,7 +298,10 @@ public:
             auto contents = to!string (data);
 
             foreach (ref c; contents.split ("\n")) {
-                pkgCMap[c] = pkid;
+                if (useBaseName)
+                    pkgCMap[c.baseName] = pkid;
+                else
+                    pkgCMap[c] = pkid;
             }
         }
 
@@ -282,6 +316,14 @@ public:
     auto getIconFilesMap (string[] pkids)
     {
         return getFilesMap (pkids, dbIcons);
+    }
+
+    auto getLocaleMap (string[] pkids)
+    {
+        // we make the assumption here that all locale for a given domain are in one package.
+        // otherwise this global search will get even more insane.
+        // (that's why useBaseName is set to "true" - this could maybe change in future though
+        return getFilesMap (pkids, dbLocale, true);
     }
 
     private string[] getContentsList (string pkid, MDB_dbi dbi)
@@ -317,6 +359,11 @@ public:
     string[] getIcons (string pkid)
     {
         return getContentsList (pkid, dbIcons);
+    }
+
+    string[] getLocaleFiles (string pkid)
+    {
+        return getContentsList (pkid, dbLocale);
     }
 
     HashSet!(immutable string) getPackageIdSet ()
@@ -356,6 +403,9 @@ public:
             res = txn.mdb_del (dbIcons, &key, null);
             if (res != MDB_NOTFOUND)
                 checkError (res, "mdb_del (icons)");
+            res = txn.mdb_del (dbLocale, &key, null);
+            if (res != MDB_NOTFOUND)
+                checkError (res, "mdb_del (locale)");
         }
     }
 
