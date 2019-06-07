@@ -29,7 +29,8 @@ import std.range : chain;
 import std.algorithm : startsWith;
 import std.array : appender, empty;
 import std.path : buildPath, dirName, buildNormalizedPath;
-import std.typecons : Nullable;
+import std.typecons : Nullable, Rebindable;
+import std.traits : Unqual, hasIndirections;
 import std.datetime : Clock, parseRFC822DateTime, SysTime;
 static import std.file;
 
@@ -618,6 +619,42 @@ Nullable!Icon componentGetStockIcon (ref Component cpt)
     }
 
     return res;
+}
+
+template StoredType(T)
+{
+    static if ( is (T==immutable) || is(T==const) )
+    {
+        static if ( is(T==class) )
+        {
+            alias StoredType = Rebindable!T;
+        }
+        else
+        {
+            alias StoredType = Unqual!T;
+        }
+    }
+    else
+    {
+        alias StoredType = T;
+    }
+}
+
+bool UseGCRanges(T)() {
+    return hasIndirections!T;
+}
+
+bool UseGCRanges(Allocator, T, bool GCRangesAllowed)()
+{
+    import std.experimental.allocator.gc_allocator;
+    return !is(Allocator==GCAllocator) && hasIndirections!T && GCRangesAllowed;
+}
+
+bool UseGCRanges(Allocator, K, V, bool GCRangesAllowed)()
+{
+    import std.experimental.allocator.gc_allocator;
+
+    return  !is(Allocator == GCAllocator) && (hasIndirections!K || hasIndirections!V ) && GCRangesAllowed;
 }
 
 @trusted
