@@ -22,14 +22,13 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * libarchive (>= 3.2) [5]
  * LMDB [6]
  * GirToD [7]
- * Containers [8]
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
  * FreeType
  * Fontconfig
  * Pango
- * Yarn (optional) [9]
+ * Yarn (optional) [8]
 
 [1]: https://github.com/ldc-developers/ldc/releases
 [2]: http://mesonbuild.com/
@@ -38,14 +37,13 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 [5]: https://libarchive.org/
 [6]: https://symas.com/lmdb/
 [7]: https://github.com/gtkd-developers/gir-to-d
-[8]: https://github.com/dlang-community/containers
-[9]: https://yarnpkg.com/
+[8]: https://yarnpkg.com/
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
 sudo apt install meson ldc gir-to-d libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
     librsvg2-dev liblmdb-dev libcairo2-dev libcurl4-gnutls-dev libfreetype6-dev libfontconfig1-dev \
-    libpango1.0-dev libglibd-2.0-dev libdcontainers-dev
+    libpango1.0-dev libglibd-2.0-dev
 ```
 
 ### Build instructions
