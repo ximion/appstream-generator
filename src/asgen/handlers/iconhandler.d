@@ -30,13 +30,13 @@ import std.variant : Algebraic;
 import std.typecons : scoped;
 import std.parallelism : parallel;
 import std.concurrency : Generator, yield;
-import containers : HashMap;
 import glib.KeyFile : KeyFile;
 import glib.GException : GException;
 import appstream.Component;
 import appstream.Icon;
 static import std.file;
 
+import asgen.containers : HashMap;
 import asgen.utils;
 import asgen.logging;
 import asgen.result;
@@ -233,7 +233,7 @@ public:
     {
         logDebug ("Creating new IconHandler");
 
-        iconFiles = HashMap!(string, Package) (32);
+        iconFiles.clear ();
         mediaExportPath = mediaPath;
         this.iconPolicy = iconPolicy;
 
@@ -280,9 +280,9 @@ public:
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
-        auto tmpThemes = HashMap!(string, Theme) (16);
-        auto filesPkids = ccache.getIconFilesMap (pkgMap.keys);
-        foreach (info; parallel (filesPkids.byKeyValue, 100)) {
+        HashMap!(string, Theme) tmpThemes;
+        auto filesPkids = ccache.getIconFilesMap (array(pkgMap.byKey));
+        foreach (info; parallel (filesPkids.byPair, 100)) {
             immutable fname = info.key;
             immutable pkgid = info.value;
             if (fname.startsWith ("/usr/share/pixmaps/")) {
@@ -429,7 +429,7 @@ public:
      **/
     private auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
     {
-        auto sizeMap = HashMap!(ImageSize, IconFindResult) (16);
+        HashMap!(ImageSize, IconFindResult) sizeMap;
 
         foreach (size; sizes) {
             // search for possible icon filenames, using relaxed scaling rules by default
@@ -749,7 +749,7 @@ public:
                 if (iconRes.empty)
                     return false;
 
-                auto iconsStored = HashMap!(ImageSize, IconFindResult) (8);
+                HashMap!(ImageSize, IconFindResult) iconsStored;
                 foreach (ref policy; iconPolicy) {
                     immutable size = policy.iconSize;
                     auto infoP = (size in iconRes);

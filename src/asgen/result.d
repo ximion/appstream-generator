@@ -24,9 +24,9 @@ import std.string;
 import std.array : empty;
 import std.conv : to;
 import std.json;
-import containers : HashMap;
 import appstream.Component;
 
+import asgen.containers : HashMap;
 import asgen.hint;
 import asgen.utils : buildCptGlobalID;
 import asgen.backends.interfaces;
@@ -73,9 +73,6 @@ public:
         this.pkid = pkg.id;
         this.pkgname = pkg.name;
         this.pkg = pkg;
-
-        mdataHashes = HashMap!(string, string) (2);
-        hints = HashMap!(string, GeneratorHint[]) (2);
     }
 
     @safe

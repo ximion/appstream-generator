@@ -28,7 +28,7 @@ import std.parallelism : parallel;
 import appstream.Component : Component, ComponentKind;
 import appstream.Translation : Translation, TranslationKind;
 
-import containers: HashMap;
+import asgen.containers: HashMap;
 import asgen.logging;
 import asgen.result : GeneratorResult;
 import asgen.backends.interfaces : Package;
@@ -111,6 +111,7 @@ private:
 
     public this (Package[] pkgList)
     {
+        import std.array : array;
         import std.typecons : scoped;
         import asgen.contentsstore : ContentsStore;
         import asgen.config : Config;
@@ -118,13 +119,13 @@ private:
         logDebug ("Creating new LocaleHandler.");
 
         // convert the list into a HashMap for faster lookups
-        auto pkgMap = HashMap!(string, Package) (64);
+        HashMap!(string, Package) pkgMap;
         foreach (ref pkg; pkgList) {
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
         }
 
-        localeIdPkgMap = HashMap!(string, Package) (64);
+        localeIdPkgMap.clear ();
 
         auto conf = Config.get;
         if (!conf.feature.processLocale)
@@ -138,8 +139,8 @@ private:
         // otherwise this global search will get even more insane.
         // the key of the map returned by getLocaleMap will therefore contain only the locale
         // file basename instead of a full path
-        auto dbLocaleMap = ccache.getLocaleMap (pkgMap.keys);
-        foreach (info; dbLocaleMap.byKeyValue) {
+        auto dbLocaleMap = ccache.getLocaleMap (array(pkgMap.byKey));
+        foreach (info; dbLocaleMap.byPair) {
             immutable id = info.key;
             immutable pkgid = info.value;
 
@@ -199,7 +200,7 @@ private:
             return;
 
         ulong maxNStrings = 0;
-        auto localeMap = HashMap!(string, ulong) (32);
+        HashMap!(string, ulong) localeMap;
 
         // Process Gettext .mo files for information
         foreach (ref domain; gettextDomains) {
@@ -244,7 +245,7 @@ private:
             return;
         }
 
-        foreach (ref info; localeMap.byKeyValue) {
+        foreach (ref info; localeMap.byPair) {
             immutable locale = info.key;
             immutable nstrings = info.value;
 

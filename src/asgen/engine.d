@@ -27,11 +27,11 @@ import std.file : mkdirRecurse, rmdirRecurse;
 import std.algorithm : canFind, sort, SwapStrategy;
 import std.typecons : scoped, Nullable, Tuple;
 import std.conv : to;
-import containers : HashSet, HashMap;
 static import std.file;
 import appstream.Component;
 
 import asgen.config;
+import asgen.containers : HashMap;
 import asgen.logging;
 import asgen.extractor;
 import asgen.datastore;
@@ -490,7 +490,7 @@ public:
             pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
         pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
 
-        auto pkgMap = HashMap!(string, Package) (32);
+        HashMap!(string, Package) pkgMap;
         foreach (ref pkg; pkgs.data) {
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
@@ -733,7 +733,7 @@ public:
             return false;
         }
 
-        auto pkgByArch = HashMap!(string, Appender!(Package[])) (16);
+        HashMap!(string, Appender!(Package[])) pkgByArch;
         foreach (fname; files) {
             auto pkg = pkgIndex.packageForFile (fname, suiteName, sectionName);
             if (pkg is null) {
@@ -748,7 +748,7 @@ public:
             (*pkgsP) ~= pkg;
         }
 
-        foreach (arch; pkgByArch.keys) {
+        foreach (arch; pkgByArch.byKey) {
             auto pkgs = pkgByArch[arch];
 
             // update package contents information and flag boring packages as ignored
@@ -964,8 +964,8 @@ public:
         logInfo ("Collecting information.");
 
         // get sets of all packages registered in the database
-        HashSet!(immutable string) pkidsContents;
-        HashSet!(immutable string) pkidsData;
+        HashMap!(immutable string, bool) pkidsContents;
+        HashMap!(immutable string, bool) pkidsData;
         foreach (i; parallel ([1, 2])) {
             if (i == 1)
                 pkidsContents = cstore.getPackageIdSet ();

@@ -25,8 +25,8 @@ import std.path : buildPath, baseName;
 import std.array : empty, appender, replace;
 import std.algorithm : countUntil, remove;
 static import std.file;
-import containers : HashSet;
 
+import asgen.containers : HashMap;
 import asgen.bindings.freetype;
 import asgen.bindings.fontconfig;
 import asgen.bindings.pango;
@@ -56,7 +56,7 @@ private:
     FT_Library library;
     FT_Face fface;
 
-    HashSet!string _languages;
+    HashMap!(string, bool) _languages;
     string _preferredLanguage;
     string _sampleText;
     string _sampleIconText;
@@ -74,7 +74,7 @@ public:
 
     this (string fname)
     {
-        _languages = HashSet!string (16);
+        _languages.clear ();
 
         // NOTE: Freetype is completely non-threadsafe, but we only use it in the constructor.
         // So mark this section of code as synchronized to never run it in parallel (even having
@@ -183,7 +183,7 @@ public:
         scope (exit) FcPatternDestroy (fpattern);
 
         // load information about the font
-        _languages = HashSet!string (16);
+        _languages.clear ();
 
         auto anyLangAdded = false;
         auto match = true;
@@ -203,7 +203,7 @@ public:
                 char *tmp;
                 FcStrListFirst (list);
                 while ((tmp = FcStrListNext (list)) !is null) {
-                    _languages.put (to!string (tmp.fromStringz));
+                    _languages.put (to!string (tmp.fromStringz), true);
                     anyLangAdded = true;
                 }
             }
@@ -221,7 +221,7 @@ public:
 
         // assume 'en' is available
         if (!anyLangAdded)
-            _languages.put ("en");
+            _languages.put ("en", true);
 
         // prefer the English language if possible
         // this is a hack since some people don't set their
@@ -334,7 +334,7 @@ public:
         import std.algorithm : sort;
         import std.array : array;
 
-        return array (_languages[]).sort;
+        return array (_languages.byKey).sort;
     }
 
     @property
@@ -351,7 +351,7 @@ public:
 
     void addLanguage (string lang)
     {
-        _languages.put (lang);
+        _languages.put (lang, true);
     }
 
     @property

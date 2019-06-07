@@ -20,8 +20,8 @@
 import std.stdio : File;
 import std.array : empty;
 import std.path : buildPath, relativePath;
-import containers : HashMap;
 
+import asgen.containers : HashMap;
 import asgen.backends.interfaces;
 import asgen.utils : GENERIC_BUFFER_SIZE;
 import asgen.logging;
@@ -86,19 +86,20 @@ public:
     string[] contents ()
     {
         import std.file : dirEntries, SpanMode;
+        import std.array : array;
 
         if (_dataLocation.empty)
             return [];
 
         if (!_contents.empty)
-            return _contents.keys;
+            return array(_contents.byKey);
 
         foreach (iconFname; _dataLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
             immutable iconBasePath = relativePath (iconFname, _dataLocation);
             _contents[buildPath ("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
         }
 
-        return _contents.keys;
+        return array(_contents.byKey);
     }
 
     override

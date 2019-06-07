@@ -23,8 +23,8 @@ module asgen.backends.ubuntu.ubupkgindex;
 import std.string : format;
 import std.array : appender;
 import std.conv : to;
-import containers : HashSet;
 
+import asgen.containers : HashMap;
 import asgen.backends.debian;
 import asgen.backends.interfaces;
 import asgen.backends.ubuntu.ubupkg;
@@ -34,7 +34,9 @@ final class UbuntuPackageIndex : DebianPackageIndex
 
 private:
     LanguagePackProvider langpacks;
-    HashSet!string checkedLangPacks;
+
+    // holds the IDs of suite/section/arch combinations where we scanned language packs
+    HashMap!(string, bool) checkedLangPacks;
 
 public:
     this (string dir)
@@ -49,16 +51,13 @@ public:
          * around, which is very expensive.
          */
         langpacks = new LanguagePackProvider (tmpDir);
-
-        // holds the IDs of suite/section/arch combinations where we scanned language packs
-        checkedLangPacks = HashSet!string (4);
     }
 
     override
     void release ()
     {
         super.release ();
-        checkedLangPacks = HashSet!string (4);
+        checkedLangPacks.clear ();
         langpacks = new LanguagePackProvider (tmpDir);
     }
 
@@ -90,7 +89,7 @@ public:
             }
 
             langpacks.addLanguagePacks (pkgslangpacks.data);
-            checkedLangPacks.insert (ssaId);
+            checkedLangPacks.put (ssaId, true);
         }
 
         return pkgs;

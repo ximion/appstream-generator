@@ -477,6 +477,15 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     }
 
     ///
+    /// Check if the given key is contained in the hash map.
+    ///
+    bool contains(K k)
+    {
+        V* v = k in this;
+        return v !is null;
+    }
+
+    ///
     alias require = getOrAdd;
 
     /// get current grow factor.
@@ -696,6 +705,12 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     auto length() const pure nothrow @nogc @safe
     {
         return _allocated;
+    }
+
+    /// whether the table contains any keys
+    bool empty() const pure nothrow @nogc @safe
+    {
+        return _allocated == 0;
     }
 
     /// get current buckets number

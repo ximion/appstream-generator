@@ -26,10 +26,10 @@ import std.algorithm : remove;
 import std.array : appender, array;
 import std.conv : to;
 import std.typecons : scoped;
-import containers : HashMap, HashSet;
 static import std.file;
 
 import asgen.logging;
+import asgen.containers : HashMap;
 import asgen.backends.interfaces;
 import asgen.backends.debian.tagfile;
 import asgen.backends.debian.debpkg;
@@ -44,6 +44,8 @@ class DebianPackageIndex : PackageIndex
 private:
     string rootDir;
     HashMap!(string, Package[]) pkgCache;
+
+    // index of localized text for a specific package name
     HashMap!(string, DebPackageLocaleTexts) l10nTextIndex;
     bool[string] indexChanged;
 
@@ -54,22 +56,19 @@ public:
 
     this (string dir)
     {
-        pkgCache = HashMap!(string, Package[]) (4);
+        pkgCache.clear ();
         this.rootDir = dir;
         if (!dir.isRemote && !std.file.exists (dir))
             throw new Exception ("Directory '%s' does not exist.".format (dir));
 
         auto conf = Config.get ();
         tmpDir = buildPath (conf.getTmpDir, dir.baseName);
-
-        // index of localized text for a specific package name
-        l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
     }
 
     void release ()
     {
-        pkgCache = HashMap!(string, Package[]) (4);
-        l10nTextIndex = HashMap!(string, DebPackageLocaleTexts) (64);
+        pkgCache.clear ();
+        l10nTextIndex.clear ();
         indexChanged = null;
     }
 
@@ -79,7 +78,7 @@ public:
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
         auto translationregex = r"%s/i18n/Translation-(\w+)$".format (section).regex;
-        auto ret = HashSet!string (32);
+        HashMap!(string, bool) ret;
 
         try {
             synchronized (this) {
@@ -91,7 +90,7 @@ public:
                     if (match.empty)
                         continue;
 
-                    ret.put (match[1]);
+                    ret.put (match[1], true);
                 }
             }
         } catch (Exception ex) {
@@ -99,7 +98,7 @@ public:
             return ["en"];
         }
 
-        return cast(immutable) array (ret[]);
+        return cast(immutable) array (ret.byKey);
     }
 
     /**
@@ -241,7 +240,7 @@ public:
         tagf.open (indexFname);
         logDebug ("Opened: %s", indexFname);
 
-        auto pkgs = HashMap!(string, DebPackage) (128);
+        HashMap!(string, DebPackage) pkgs;
         do {
             import std.algorithm : map;
             import std.array : array;
@@ -304,7 +303,7 @@ public:
         if (withLongDescs)
             loadPackageLongDescs (pkgs, suite, section);
 
-        return pkgs.values;
+        return array(pkgs.byValue);
     }
 
     Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)

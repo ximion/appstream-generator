@@ -25,10 +25,10 @@ import std.string;
 import std.path : baseName;
 import std.algorithm : canFind;
 import std.typecons : scoped;
-import containers : HashMap, DynamicArray;
 import appstream.Component;
 import appstream.Metadata;
 
+import asgen.containers : HashMap, SList;
 import asgen.config;
 import asgen.hint;
 import asgen.result;
@@ -68,8 +68,8 @@ public:
         auto gres = new GeneratorResult (pkg);
 
         // prepare a list of metadata files which interest us
-        auto desktopFiles = HashMap!(string, string) (8);
-        DynamicArray!string metadataFiles;
+        HashMap!(string, string) desktopFiles;
+        string[] metadataFiles;
         foreach (ref fname; pkg.contents) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
                 desktopFiles[baseName (fname)] = fname;
@@ -91,7 +91,7 @@ public:
         mdata.setFormatStyle (FormatStyle.METAINFO);
 
         // now process metainfo XML files
-        foreach (ref mfname; metadataFiles) {
+        foreach (ref const mfname; metadataFiles) {
             auto dataBytes = pkg.getFileData (mfname);
             auto data = cast(string) dataBytes;
 

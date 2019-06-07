@@ -26,8 +26,7 @@ import std.array : appender, empty;
 import std.conv : to;
 import std.path : buildPath;
 
-import containers : HashMap;
-
+import asgen.containers : HashMap;
 import asgen.zarchive;
 import asgen.logging;
 
@@ -49,7 +48,7 @@ public:
 
     this () @trusted
     {
-        currentBlock = HashMap!(string, string) (16);
+        currentBlock.clear ();
     }
 
     void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
