@@ -122,6 +122,10 @@ private bool keyEquals(K)(K a, K b)
         {
             return c == other.c;
         }
+        override size_t toHash() const nothrow @safe
+        {
+            return c;
+	}
     }
     C a = new C(0);
     C b = new C(1);
@@ -845,7 +849,7 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     assert("world" !in counter);
     assert(counter["hello"] == 1);
     assert(counter["should"] == 2);
-    assert(counter.length == words.length - 1);
+    assert(counter.length == cast(int)(words.length) - 1);
     // clear counter
     counter.clear;
     assert(counter.length == 0);
@@ -865,7 +869,7 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     assert("world" !in counter);
     assert(counter["hello"] == 1);
     assert(counter["should"] == 2);
-    assert(counter.length == words.length - 1);
+    assert(counter.length == cast(int)(words.length) - 1);
     // iterators
     assert(counter.byKey.count == counter.byValue.count);
     assert(words.all!(w => w in counter));          // all words are in table
@@ -1262,7 +1266,6 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     assert(v);
     assert(*v == 1);
     K k1 = new c(1);
-    V v1 = 1;
     h.put(k0, v0);
     assert(!keyEquals(k0, k1));
 }
@@ -1532,10 +1535,6 @@ struct HashMap(K, V, Allocator = Mallocator, bool GCRangesAllowed = true) {
     {
         return 2;
     };
-    F three = function()
-    {
-        return 3;
-    };
     F four = function()
     {
         return 4;
@@ -1647,12 +1646,12 @@ unittest {
     class C
     {
         int s;
-        bool opEquals(const C other) @safe @nogc
+        bool opEquals(const C other) const @safe @nogc
         {
             return s == other.s;
         }
 
-        override hash_t toHash() @safe @nogc
+        override hash_t toHash() const @safe @nogc
         {
             return hash_function(s);
         }
@@ -1762,12 +1761,12 @@ unittest {
     class C
     {
         int s;
-        bool opEquals(const C other) @nogc
+        bool opEquals(const C other) const @nogc
         {
             return s == other.s;
         }
 
-        override hash_t toHash() @nogc
+        override hash_t toHash() const @nogc
         {
             return hash_function(s);
         }
@@ -1800,12 +1799,12 @@ unittest {
     class C
     {
         int s;
-        bool opEquals(const C other) @safe
+        bool opEquals(const C other) const @safe
         {
             return s == other.s;
         }
 
-        override hash_t toHash() @safe
+        override hash_t toHash() const @safe
         {
             return hash_function(s);
         }

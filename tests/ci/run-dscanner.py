@@ -29,9 +29,7 @@ def find_include_dirs(source_root):
     incdirs = find_local_include_dirs(source_root)
     incdirs.append(os.path.join(source_root, 'src'))
 
-    extra_inc = ['containers',
-                 'stdx-allocator',
-                 'glibd-2']
+    extra_inc = ['glibd-2']
 
     for d in extra_inc:
         for inc_root in ['/usr/include/d/', '/usr/local/include/d/']:

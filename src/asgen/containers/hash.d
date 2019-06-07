@@ -92,6 +92,9 @@ if ( !UseToHashMethod!T )
         hash_t toHash() const @safe {
             return 0;
         }
+        bool opEquals(const A1 other) const @safe {
+            return other.toHash() == toHash();
+        }
     }
     assert(UseToHashMethod!A1);
 
@@ -99,6 +102,9 @@ if ( !UseToHashMethod!T )
     class C0 {
         override hash_t toHash() const @safe {
             return 0;
+        }
+        bool opEquals(const C0 other) const @safe {
+            return other.toHash() == toHash();
         }
     }
     assert(UseToHashMethod!C0);

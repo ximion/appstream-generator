@@ -752,7 +752,7 @@ struct SList(T, Allocator = Mallocator, bool GCRangesAllowed = true) {
         private {
             _Node!T *current;
         }
-        auto front() pure nothrow @safe @nogc @property {
+        auto front() inout pure nothrow @safe @nogc @property {
             return &current.v;
         }
         void popFront() @safe @nogc nothrow {
@@ -882,13 +882,13 @@ struct SList(T, Allocator = Mallocator, bool GCRangesAllowed = true) {
     assert(!removed);
     assert(l.length()==0);
     auto l1 = SList!int();
-    foreach(i;0..10000) {
+    foreach(i;0..10_000) {
         l1.insertBack(i);
     }
     while(l1.length) {
         l1.popFront();
     }
-    foreach(i;0..10000) {
+    foreach(i;0..10_000) {
         l1.insertFront(i);
     }
     while(l1.length) {
@@ -905,7 +905,7 @@ struct SList(T, Allocator = Mallocator, bool GCRangesAllowed = true) {
         }
     }
     SList!C l2;
-    foreach(i;0..10000) {
+    foreach(i;0..10_000) {
         l2.insertBack(new C(i));
     }
     while(l2.length) {
@@ -933,7 +933,7 @@ struct SList(T, Allocator = Mallocator, bool GCRangesAllowed = true) {
         assert(dlist.length == 0);
 
         n1 = dlist.insert_first(1);
-        auto n2 = dlist.insert_last(2);
+        dlist.insert_last(2);
         assert(dlist.length == 2);
         dlist.move_to_tail(n1);
         assert(dlist.head.payload == 2);
@@ -1553,7 +1553,7 @@ struct CompressedList(T, Allocator = Mallocator, bool GCRangesAllowed = true)
     assert(list.front == 99);
     assert(list.back == 100);
     auto p98 = list.insertFront(98);
-    auto p101 = list.insertBack(101);
+    list.insertBack(101);
     () @trusted // * and remove for poiners is unsafe
     {
         assert(*p98 == 98);
@@ -1585,7 +1585,7 @@ struct CompressedList(T, Allocator = Mallocator, bool GCRangesAllowed = true)
         auto r = list.range();
         while(!r.empty)
         {
-            int v = r.front;
+            r.front;
             r.popFront();
         }
         assert(list.empty);
