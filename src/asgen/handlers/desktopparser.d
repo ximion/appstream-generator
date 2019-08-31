@@ -222,7 +222,7 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
     immutable hasExistingName = !cpt.getName ().empty;
     immutable hasExistingSummary = !cpt.getSummary ().empty;
     immutable hasExistingCategories = cpt.getCategories ().len > 0;
-    immutable hasExistingMimetypes = cpt.getProvidedForKind (ProvidedKind.MIMETYPE) !is null;
+    immutable hasExistingMimetypes = cpt.getProvidedForKind (ProvidedKind.MEDIATYPE) !is null;
 
     size_t dummy;
     auto keys = df.getKeys (DESKTOP_GROUP, dummy);
@@ -285,10 +285,10 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             if (mts.empty)
                 continue;
 
-            auto prov = cpt.getProvidedForKind (ProvidedKind.MIMETYPE);
+            auto prov = cpt.getProvidedForKind (ProvidedKind.MEDIATYPE);
             if (prov is null) {
                 prov = new Provided;
-                prov.setKind (ProvidedKind.MIMETYPE);
+                prov.setKind (ProvidedKind.MEDIATYPE);
             }
 
             foreach (ref mt; mts) {

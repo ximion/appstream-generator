@@ -57,14 +57,14 @@ void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
             continue;
         }
 
-        auto importance = issue.getImportance ();
+        immutable severity = issue.getSeverity ();
         auto msg = issue.getMessage();
 
         // we ignore pedantic hints by default and don't store or display them
-        if (importance == IssueImportance.PEDANTIC)
+        if (severity == IssueSeverity.PEDANTIC)
             continue;
 
-        if (importance == IssueImportance.INFO)
+        if (severity == IssueSeverity.INFO)
             res.addHint (cpt.getId (), "metainfo-validation-hint", msg);
         else
             res.addHint (cpt.getId (), "metainfo-validation-issue", msg);
