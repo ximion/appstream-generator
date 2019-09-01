@@ -449,7 +449,7 @@ public:
         DataSummary dsum;
 
         logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
-        auto hintstore = HintsStorage.get ();
+        auto hintTagRegistry = HintTagRegistry.get ();
 
         auto dtype = conf.metadataType;
         auto mdata = scoped!Metadata ();
@@ -566,12 +566,12 @@ public:
 
                     foreach (jhint; jhints.array) {
                         auto tag = jhint["tag"].str;
-                        auto hdef = hintstore.getHintDef (tag);
+                        auto hdef = hintTagRegistry.getHintDef (tag);
                         if (hdef.tag is null) {
                             logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
 
                             // emit an internal error, invalid tags shouldn't happen
-                            hdef = hintstore.getHintDef ("internal-unknown-tag");
+                            hdef = hintTagRegistry.getHintDef ("internal-unknown-tag");
                             assert (hdef.tag !is null);
                             jhint["vars"] = ["tag": tag];
                         }
@@ -584,7 +584,7 @@ public:
                         auto msg = mustache.renderString (hdef.text, context);
 
                         // add the new hint to the right category
-                        auto severity = hintstore.getSeverity (tag);
+                        auto severity = hintTagRegistry.getSeverity (tag);
                         if (severity == HintSeverity.INFO) {
                             he.infos ~= HintTag (tag, msg);
                             pkgsummary.infoCount++;

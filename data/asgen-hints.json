@@ -116,13 +116,8 @@
   "severity": "error"
 },
 
-"metainfo-validation-hint": {
-  "text": "Validation of the metainfo file yielded the following hint: {{msg}}",
-  "severity": "info"
-},
-
-"metainfo-validation-issue": {
-  "text": "Validation of the metainfo file found a problem: {{msg}}",
+"metainfo-validation-error": {
+  "text": "Validation of the metainfo file failed: {{msg}}",
   "severity": "warning"
 },
 

@@ -25,7 +25,7 @@ import std.string : format;
 import std.stdio;
 import std.typecons : scoped;
 
-import appstream.Validator;
+import appstream.Validator : Validator;
 import appstream.ValidatorIssue;
 import appstream.Component;
 import glib.ListG;
@@ -35,15 +35,20 @@ import asgen.result;
 import asgen.utils;
 
 
-void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
+void validateMetaInfoFile (GeneratorResult res, Component cpt, string data, string miBasename)
 {
-    auto validator = scoped!Validator ();
+    // create thread-local validator for efficiency
+    static Validator validator = null;
+    if (validator is null)
+        validator = new Validator;
+
     validator.setCheckUrls (false); // don't check web URLs for validity
+    validator.clearIssues (); // remove issues from a previous use of this validator
 
     try {
         validator.validateData (data);
     } catch (Exception e) {
-        res.addHint (cpt.getId (), "metainfo-validation-issue", "The file could not be validated due to an error: " ~ e.msg);
+        res.addHint (cpt.getId (), "metainfo-validation-error", e.msg);
         return;
     }
 
@@ -51,22 +56,27 @@ void validateMetaInfoFile (GeneratorResult res, Component cpt, string data)
     for (ListG l = issueList; l !is null; l = l.next) {
         auto issue = ObjectG.getDObject!ValidatorIssue (cast (typeof(ValidatorIssue.tupleof[0])) l.data);
 
-        // we have a special hint tag for legacy metadata
-        if (issue.getKind () == IssueKind.LEGACY) {
+        // create a tag for asgen out of the AppStream validator tag by prefixing it
+        immutable asvTag = "asv-%s".format (issue.getTag);
+
+        // we have a special hint tag for legacy metadata,
+        // with its proper "error" priority
+        if (asvTag == "asv-metainfo-ancient") {
             res.addHint (cpt.getId (), "ancient-metadata");
             continue;
         }
 
-        immutable severity = issue.getSeverity ();
-        auto msg = issue.getMessage();
-
-        // we ignore pedantic hints by default and don't store or display them
-        if (severity == IssueSeverity.PEDANTIC)
-            continue;
-
-        if (severity == IssueSeverity.INFO)
-            res.addHint (cpt.getId (), "metainfo-validation-hint", msg);
+        immutable line = issue.getLine;
+        string location;
+        if (line >= 0)
+            location = "%s:%s".format (miBasename, line);
         else
-            res.addHint (cpt.getId (), "metainfo-validation-issue", msg);
+            location = miBasename;
+
+        // we don't need to do much here, with the tag generated here,
+        // the hint registry will automatically assign the right explanation
+        // text and severity to the issue.
+        res.addHint (cpt, asvTag, ["location": location,
+                                   "hint": issue.getHint]);
     }
 }

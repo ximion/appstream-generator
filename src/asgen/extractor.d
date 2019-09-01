@@ -187,7 +187,7 @@ public:
             // the user to disable this feature.
             if (conf.feature.validate) {
                 if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
-                    validateMetaInfoFile (gres, cpt, data);
+                    validateMetaInfoFile (gres, cpt, data, mfname.baseName);
             }
         }
 

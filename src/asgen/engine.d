@@ -132,8 +132,8 @@ public:
      */
     private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
-        auto localeh = scoped!LocaleHandler (pkgs);
-        auto mde = scoped!DataExtractor (dstore, iconh, localeh);
+        auto localeh = new LocaleHandler (pkgs);
+        auto mde = new DataExtractor (dstore, iconh, localeh);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
             if (dstore.packageExists (pkid))
@@ -470,6 +470,11 @@ public:
         auto hintsFileBytes = cast(ubyte[]) hintsFile.data;
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".gz", ArchiveType.GZIP);
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".xz", ArchiveType.XZ);
+
+        // save a copy of the hints registry we used
+        // (this mapping was automatically extended by the AppStream validator hints that we found)
+        auto hintTagRegistry = HintTagRegistry.get ();
+        hintTagRegistry.saveToFile (buildPath (hintsExportDir, "hint-definitions.json"));
     }
 
     private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)

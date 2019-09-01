@@ -18,6 +18,7 @@
  */
 
 module asgen.hint;
+@safe:
 
 import std.stdio;
 import std.string;
@@ -25,25 +26,27 @@ import std.json;
 
 import asgen.logging;
 import asgen.utils;
+import appstream.Validator : Validator;
 
 
 /**
  * Severity assigned with an issue hint.
- *
- * INFO:    Information, no immediate action needed (but will likely be an issue later).
+
+ * ERROR:   A fatal error which resulted in the component being excluded from the final metadata.
  * WARNING: An issue which did not prevent generating meaningful data, but which is still serious
  *          and should be fixed (warning of this kind usually result in less data).
- * ERROR:   A fatal error which resulted in the component being excluded from the final metadata.
+ * INFO:    Information, no immediate action needed (but will likely be an issue later).
+ * PEDANTIC: Information which may improve the data, but could also be ignored.
  */
 enum HintSeverity
 {
     UNKNOWN,
-    INFO,
+    ERROR,
     WARNING,
-    ERROR
+    INFO,
+    PEDANTIC
 }
 
-@safe
 private HintSeverity severityFromString (string str) pure
 {
     switch (str) {
@@ -53,8 +56,26 @@ private HintSeverity severityFromString (string str) pure
             return HintSeverity.WARNING;
         case "info":
             return HintSeverity.INFO;
+        case "pedantic":
+            return HintSeverity.INFO;
         default:
             return HintSeverity.UNKNOWN;
+    }
+}
+
+private string severityToString (HintSeverity severity) pure
+{
+    switch (severity) {
+        case HintSeverity.ERROR:
+            return "error";
+        case HintSeverity.WARNING:
+            return "warning";
+        case HintSeverity.INFO:
+            return "info";
+        case HintSeverity.PEDANTIC:
+            return "pedantic";
+        default:
+            return null;
     }
 }
 
@@ -80,7 +101,7 @@ public:
         this.tag = tag;
         this.cid = cid;
 
-        severity = HintsStorage.get.getSeverity (tag);
+        severity = HintTagRegistry.get.getSeverity (tag);
         if (severity == HintSeverity.UNKNOWN)
             logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
     }
@@ -110,20 +131,21 @@ public:
 /**
  * Singleton holding information about the hint tags we know about.
  **/
-final class HintsStorage
+final class HintTagRegistry
 {
     // Thread local
     private static bool instantiated_;
 
     // Thread global
-    private __gshared HintsStorage instance_;
+    private __gshared HintTagRegistry instance_;
 
-    static HintsStorage get()
+    @trusted
+    static HintTagRegistry get()
     {
         if (!instantiated_) {
-            synchronized (HintsStorage.classinfo) {
+            synchronized (HintTagRegistry.classinfo) {
                 if (!instance_)
-                    instance_ = new HintsStorage ();
+                    instance_ = new HintTagRegistry ();
 
                 instantiated_ = true;
             }
@@ -138,9 +160,11 @@ final class HintsStorage
         string text;
         HintSeverity severity;
         bool internal;
+        bool valid;
     }
 
     private HintDefinition[string] hintDefs;
+    private Validator validator;
 
     private this () @trusted
     {
@@ -154,6 +178,9 @@ final class HintsStorage
             return;
         }
 
+        // create an AppStream validator to fetch information about its hint tags from
+        validator = new Validator;
+
         // read the hints definition JSON file
         auto f = File (hintsDefFile, "r");
         string jsonData;
@@ -165,36 +192,114 @@ final class HintsStorage
 
         foreach (tag; hintDefsJSON.object.byKey ()) {
             auto j = hintDefsJSON[tag];
-            auto def = HintDefinition ();
+            HintDefinition hdef;
 
-            def.tag = tag;
-            def.severity = severityFromString (j["severity"].str);
+            hdef.tag = tag;
+            hdef.severity = severityFromString (j["severity"].str);
 
             if (j["text"].type == JSON_TYPE.ARRAY) {
                 foreach (l; j["text"].array)
-                    def.text ~= l.str ~ "\n";
+                    hdef.text ~= l.str ~ "\n";
             } else {
-                def.text = j["text"].str;
+                hdef.text = j["text"].str;
             }
 
             if ("internal" in j)
-                def.internal = j["internal"].type == JSON_TYPE.TRUE;
+                hdef.internal = j["internal"].type == JSON_TYPE.TRUE;
+            hdef.valid = true;
 
-            hintDefs[tag] = def;
+            hintDefs[tag] = hdef;
         }
     }
 
+    @trusted
+    void saveToFile (string fname)
+    {
+        // is this really the only way you can set a type for JSONValue?
+        auto map = JSONValue (["null": 0]);
+        map.object.remove ("null");
+
+        foreach (hdef; hintDefs.byValue) {
+
+            auto jval = JSONValue (["text": JSONValue (hdef.text),
+                                    "severity": JSONValue (severityToString (hdef.severity))]);
+            if (hdef.internal)
+                jval.object["internal"] = JSONValue (true);
+            map.object[hdef.tag] = jval;
+        }
+
+        File file = File(fname, "w");
+        file.writeln (map.toJSON (true));
+        file.close ();
+    }
+
+    private auto addHintDefForValidatorTag (const string tag) @trusted
+    {
+        import appstream.Validator : IssueSeverity;
+        HintDefinition hdef;
+        hdef.valid = false;
+
+        if (!tag.startsWith ("asv-"))
+            return hdef;
+        immutable asvTag = tag[4..$];
+        immutable explanation = validator.getTagExplanation (asvTag);
+        if (explanation.empty)
+            return hdef;
+        immutable asSeverity = validator.getTagSeverity (asvTag);
+
+        // Translate an AppStream validator hint severity to a generator
+        // severity. An error is just a warning here for now, as any error yields
+        // to an instant reject of the component (and as long as we extrcated *some*
+        // data, that seems a bit harsh)
+        HintSeverity severity;
+        switch (asSeverity) {
+            case IssueSeverity.ERROR:
+                severity = HintSeverity.WARNING;
+                break;
+            case IssueSeverity.WARNING:
+                severity = HintSeverity.WARNING;
+                break;
+            case IssueSeverity.INFO:
+                severity = HintSeverity.INFO;
+                break;
+            case IssueSeverity.PEDANTIC:
+                severity = HintSeverity.PEDANTIC;
+                break;
+            default:
+                severity = HintSeverity.UNKNOWN;
+        }
+
+        hdef.tag = tag;
+        hdef.severity = severity;
+        hdef.text = "<code>{{location}}</code> - <em>{{hint}}</em><br/>%s".format (explanation);
+        hdef.valid = true;
+
+        hintDefs[tag] = hdef;
+
+        return hdef;
+    }
+
     @safe
-    HintDefinition getHintDef (string tag) pure
+    HintDefinition getHintDef (string tag)
     {
         auto defP = (tag in hintDefs);
-        if (defP is null)
-            return HintDefinition ();
+        if (defP is null) {
+            HintDefinition hdef;
+            // we may modify internal structures here, so synchronize this code
+            // just in case.
+            synchronized (this)
+                hdef = addHintDefForValidatorTag (tag);
+
+            if (hdef.valid)
+                return hdef;
+            else
+                return HintDefinition ();
+        }
         return *defP;
     }
 
     @safe
-    HintSeverity getSeverity (string tag) pure
+    HintSeverity getSeverity (string tag)
     {
         auto hDef = getHintDef (tag);
         return hDef.severity;
@@ -211,5 +316,7 @@ unittest
 
     writeln (root.toJSON (true));
 
-    HintsStorage.get ();
+    auto registry = HintTagRegistry.get ();
+    registry.getHintDef ("asv-relation-item-invalid-vercmp");
+    registry.saveToFile ("/tmp/testsuite-asgen-hints.json");
 }
