@@ -471,10 +471,11 @@ public:
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".gz", ArchiveType.GZIP);
         compressAndSave (hintsFileBytes, hintsBaseFname ~ ".xz", ArchiveType.XZ);
 
-        // save a copy of the hints registry we used
-        // (this mapping was automatically extended by the AppStream validator hints that we found)
+        // save a copy of the hints registry to be used by other tools
+        // (this allows other apps to just resolve the hint tags to severities and explanations
+        // without loading either AppStream or AppStream-Generator code)
         auto hintTagRegistry = HintTagRegistry.get ();
-        hintTagRegistry.saveToFile (buildPath (hintsExportDir, "hint-definitions.json"));
+        hintTagRegistry.saveToFile (buildPath (conf.hintsExportDir, suite.name, "hint-definitions.json"));
     }
 
     private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)

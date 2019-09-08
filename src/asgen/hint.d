@@ -164,7 +164,6 @@ final class HintTagRegistry
     }
 
     private HintDefinition[string] hintDefs;
-    private Validator validator;
 
     private this () @trusted
     {
@@ -177,9 +176,6 @@ final class HintTagRegistry
             logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
             return;
         }
-
-        // create an AppStream validator to fetch information about its hint tags from
-        validator = new Validator;
 
         // read the hints definition JSON file
         auto f = File (hintsDefFile, "r");
@@ -210,6 +206,11 @@ final class HintTagRegistry
 
             hintDefs[tag] = hdef;
         }
+
+        // add AppStream validator hint tags to the registry
+        auto validator = new Validator;
+        foreach (ref tag; validator.getTags)
+            addHintDefForValidatorTag (validator, tag);
     }
 
     @trusted
@@ -233,19 +234,17 @@ final class HintTagRegistry
         file.close ();
     }
 
-    private auto addHintDefForValidatorTag (const string tag) @trusted
+    private auto addHintDefForValidatorTag (Validator validator, const string tag) @trusted
     {
         import appstream.Validator : IssueSeverity;
         HintDefinition hdef;
         hdef.valid = false;
 
-        if (!tag.startsWith ("asv-"))
-            return hdef;
-        immutable asvTag = tag[4..$];
-        immutable explanation = validator.getTagExplanation (asvTag);
+        immutable asgenTag = "asv-" ~ tag;
+        immutable explanation = validator.getTagExplanation (tag);
         if (explanation.empty)
             return hdef;
-        immutable asSeverity = validator.getTagSeverity (asvTag);
+        immutable asSeverity = validator.getTagSeverity (tag);
 
         // Translate an AppStream validator hint severity to a generator
         // severity. An error is just a warning here for now, as any error yields
@@ -269,37 +268,27 @@ final class HintTagRegistry
                 severity = HintSeverity.UNKNOWN;
         }
 
-        hdef.tag = tag;
+        hdef.tag = asgenTag;
         hdef.severity = severity;
         hdef.text = "<code>{{location}}</code> - <em>{{hint}}</em><br/>%s".format (explanation);
         hdef.valid = true;
 
-        hintDefs[tag] = hdef;
+        hintDefs[asgenTag] = hdef;
 
         return hdef;
     }
 
     @safe
-    HintDefinition getHintDef (string tag)
+    HintDefinition getHintDef (string tag) pure
     {
         auto defP = (tag in hintDefs);
-        if (defP is null) {
-            HintDefinition hdef;
-            // we may modify internal structures here, so synchronize this code
-            // just in case.
-            synchronized (this)
-                hdef = addHintDefForValidatorTag (tag);
-
-            if (hdef.valid)
-                return hdef;
-            else
+        if (defP is null)
                 return HintDefinition ();
-        }
         return *defP;
     }
 
     @safe
-    HintSeverity getSeverity (string tag)
+    HintSeverity getSeverity (string tag) pure
     {
         auto hDef = getHintDef (tag);
         return hDef.severity;
