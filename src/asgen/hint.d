@@ -193,7 +193,7 @@ final class HintTagRegistry
             hdef.tag = tag;
             hdef.severity = severityFromString (j["severity"].str);
 
-            if (j["text"].type == JSON_TYPE.ARRAY) {
+            if (j["text"].type == JSONType.array) {
                 foreach (l; j["text"].array)
                     hdef.text ~= l.str ~ "\n";
             } else {
@@ -201,7 +201,7 @@ final class HintTagRegistry
             }
 
             if ("internal" in j)
-                hdef.internal = j["internal"].type == JSON_TYPE.TRUE;
+                hdef.internal = j["internal"].type == JSONType.true_;
             hdef.valid = true;
 
             hintDefs[tag] = hdef;

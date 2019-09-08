@@ -409,7 +409,7 @@ public:
                 foreach (arch; sn["architectures"].array)
                     suite.architectures ~= arch.str;
             if ("immutable" in sn) {
-                suite.isImmutable = sn["immutable"].type == JSON_TYPE.TRUE;
+                suite.isImmutable = sn["immutable"].type == JSONType.true_;
                 if (suite.isImmutable)
                     hasImmutableSuites = true;
             }
@@ -448,9 +448,9 @@ public:
                 }
 
                 if ("remote" in iconObj)
-                    ipolicy.storeRemote = iconObj["remote"].type == JSON_TYPE.TRUE;
+                    ipolicy.storeRemote = iconObj["remote"].type == JSONType.true_;
                 if ("cached" in iconObj)
-                    ipolicy.storeCached = iconObj["cached"].type == JSON_TYPE.TRUE;
+                    ipolicy.storeCached = iconObj["cached"].type == JSONType.true_;
 
                 if (ipolicy.storeIcon)
                     iconSettings ~= ipolicy;
@@ -510,37 +510,37 @@ public:
             foreach (featureId; featuresObj.byKey ()) {
                 switch (featureId) {
                     case "validateMetainfo":
-                        feature.validate = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                        feature.validate = featuresObj[featureId].type == JSONType.true_;
                         break;
                     case "processDesktop":
-                        feature.processDesktop = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                        feature.processDesktop = featuresObj[featureId].type == JSONType.true_;
                         break;
                     case "noDownloads":
-                            feature.noDownloads = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.noDownloads = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "createScreenshotsStore":
-                            feature.storeScreenshots = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.storeScreenshots = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "optimizePNGSize":
-                            feature.optipng = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.optipng = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "metadataTimestamps":
-                            feature.metadataTimestamps = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.metadataTimestamps = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "immutableSuites":
-                            feature.immutableSuites = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.immutableSuites = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "processFonts":
-                            feature.processFonts = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.processFonts = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "allowIconUpscaling":
-                            feature.allowIconUpscale = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.allowIconUpscale = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "processGStreamer":
-                            feature.processGStreamer = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.processGStreamer = featuresObj[featureId].type == JSONType.true_;
                             break;
                     case "processLocale":
-                            feature.processLocale = featuresObj[featureId].type == JSON_TYPE.TRUE;
+                            feature.processLocale = featuresObj[featureId].type == JSONType.true_;
                             break;
                     default:
                         break;

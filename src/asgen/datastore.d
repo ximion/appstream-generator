@@ -684,7 +684,7 @@ public:
 
             // make the new JSON a list of the old and the new data, if it isn't one already
             JSONValue newJson;
-            if (existingJson.type == JSON_TYPE.ARRAY) {
+            if (existingJson.type == JSONType.array) {
                 newJson = existingJson;
                 newJson.array ~= stats;
             } else {

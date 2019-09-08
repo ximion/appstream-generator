@@ -661,7 +661,7 @@ public:
             auto js = entry.data;
             immutable timestamp = entry.time;
             JSONValue jstats;
-            if (js.type == JSON_TYPE.ARRAY)
+            if (js.type == JSONType.array)
                 jstats = js;
             else
                 jstats = JSONValue ([js]);
@@ -700,12 +700,12 @@ public:
         {
             size_t xv;
             size_t yv;
-            if (x.array[0].type == JSON_TYPE.UINTEGER)
+            if (x.array[0].type == JSONType.uinteger)
                 xv = to!size_t (x.array[0].uinteger);
             else
                 xv = to!size_t (x.array[0].integer);
 
-            if (y.array[0].type == JSON_TYPE.UINTEGER)
+            if (y.array[0].type == JSONType.uinteger)
                 yv = to!size_t (y.array[0].uinteger);
             else
                 yv = to!size_t (y.array[0].integer);

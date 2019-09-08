@@ -934,7 +934,7 @@ public:
         string[string] lastJData;
         size_t[string] lastTime;
         foreach (ref entry; allStats) {
-            if (entry.data.type == JSON_TYPE.ARRAY) {
+            if (entry.data.type == JSONType.array) {
                 // we don't clean up combined statistics entries, and therefore need to reset
                 // the last-data hashmaps as soon as we encounter one to not loose data.
                 lastJData = null;
