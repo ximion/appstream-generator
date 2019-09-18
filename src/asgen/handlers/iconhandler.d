@@ -226,6 +226,7 @@ private:
     IconPolicy defaultIconPolicy;
 
     bool allowIconUpscaling;
+    bool allowRemoteIcons;
 
 public:
 
@@ -251,6 +252,9 @@ public:
 
         auto conf = Config.get;
         allowIconUpscaling = conf.feature.allowIconUpscale;
+
+        // we assume that when screenshot storage is permitted, remote icons are also okay
+        allowRemoteIcons = conf.feature.storeScreenshots && !conf.mediaBaseUrl.empty;
 
         // Preseeded theme names.
         // * prioritize hicolor, because that's where apps often install their upstream icon
@@ -522,7 +526,7 @@ public:
                 icon.setName (iconName);
                 cpt.addIcon (icon);
             }
-            if (policy.storeRemote) {
+            if (policy.storeRemote && allowRemoteIcons) {
                 immutable gcid = gres.gcidForComponent (cpt);
                 if (gcid is null) {
                     gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
@@ -642,7 +646,7 @@ public:
             icon.setName (iconName);
             cpt.addIcon (icon);
         }
-        if (policy.storeRemote) {
+        if (policy.storeRemote && allowRemoteIcons) {
             immutable gcid = gres.gcidForComponent (cpt);
             if (gcid is null) {
                 gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
