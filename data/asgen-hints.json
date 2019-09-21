@@ -281,6 +281,6 @@
   "text": ["The video codec '{{codec}}' or container '{{container}}' of '{{fname}}' are not supported. Please encode the video",
            "as VP9 or AV1 using the WebM or Matroska container."],
   "severity": "warning"
-},
+}
 
 }
