@@ -38,7 +38,7 @@ RUN apt-get install -yq --no-install-recommends \
     libpango1.0-dev
 
 # Misc
-RUN apt-get install -yq --no-install-recommends curl gnupg
+RUN apt-get install -yq --no-install-recommends curl gnupg ffmpeg
 
 # Install dscanner
 RUN mkdir -p /usr/local/bin/
