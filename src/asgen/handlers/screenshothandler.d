@@ -25,16 +25,17 @@ import std.string : format, strip;
 import std.array : empty;
 import std.algorithm : startsWith;
 import std.conv : to;
-import gobject.ObjectG;
-import appstream.c.functions;
-import appstream.Component;
-import appstream.Screenshot;
-import appstream.Image;
+import gobject.ObjectG : ObjectG;
+import appstream.Component : Component;
+import appstream.Screenshot : AsScreenshot, Screenshot, ScreenshotMediaKind;
+import appstream.Image : AsImage, Image, ImageKind;
+import appstream.Video : AsVideo, Video, VideoContainerKind, VideoCodecKind;
 static import std.file;
 
 import asgen.config;
 import asgen.result;
 import asgen.utils;
+import asgen.logging;
 static import asgen.image;
 
 
@@ -50,7 +51,14 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
     for (uint i = 0; i < scrArr.len; i++) {
         // cast array data to D Screenshot and keep a reference to the C struct
         auto scr = new Screenshot (cast (AsScreenshot*) scrArr.index (i));
-        auto resScr = processScreenshot (gres, cpt, scr, mediaExportDir, i+1);
+        immutable mediaKind = scr.getMediaKind;
+
+        Screenshot resScr;
+        if (mediaKind == ScreenshotMediaKind.VIDEO)
+            resScr = processScreenshotVideos (gres, cpt, scr, mediaExportDir, i+1);
+        else
+            resScr = processScreenshotImages (gres, cpt, scr, mediaExportDir, i+1);
+
         if (resScr !is null)
             validScrs ~= resScr.ref_.to!Screenshot;
     }
@@ -64,11 +72,133 @@ void processScreenshots (GeneratorResult gres, Component cpt, string mediaExport
     }
 }
 
-private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
+/**
+ * Contains some basic information about the video
+ * we downloaded from an upstream site.
+ */
+private struct VideoInfo
+{
+    string codecName;
+    int width;
+    int height;
+    string formatName;
+    VideoContainerKind containerKind;
+    VideoCodecKind codecKind;
+    bool isAcceptable;
+}
+
+private VideoInfo checkVideoInfo (GeneratorResult gres, Component cpt, string vidFname)
+{
+    import glib.Spawn : Spawn, SpawnFlags;
+    import std.array : split;
+    import std.string : indexOf;
+    import std.algorithm : canFind, endsWith;
+
+    VideoInfo vinfo;
+
+    int exitStatus;
+    string ffStdout;
+    string ffStderr;
+
+    try {
+        // NOTE: Maybe add an option to run optipng with stronger optimization? (>= -o4)
+        Spawn.sync (null, // working directory
+                    ["/usr/bin/ffprobe",
+                     "-v", "quiet",
+                     "-show_entries", "stream=width,height,codec_name",
+                     "-show_entries", "format=format_name",
+                     "-of", "default=noprint_wrappers=1",
+                      vidFname],
+                    [], // envp
+                    SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
+                    null, // child setup
+                    null, // user data
+                    ffStdout, // out stdout
+                    ffStderr, // out stderr
+                    exitStatus);
+    } catch (Exception e) {
+        logError ("Failed to spawn ffprobe: %s", e.to!string);
+        gres.addHint (cpt, "metainfo-screenshot-but-no-media", ["fname": vidFname.baseName, "msg": e.to!string]);
+        return vinfo;
+    }
+
+    if (exitStatus != 0) {
+        if (!ffStdout.empty) {
+            if (ffStderr.empty)
+                ffStderr = ffStdout;
+            else
+                ffStderr = ffStderr ~ "\n" ~ ffStdout;
+        }
+        logWarning ("FFprobe on '%s' failed with error code %s: %s", vidFname, exitStatus, ffStderr);
+        gres.addHint (cpt, "metainfo-screenshot-but-no-media", ["fname": vidFname.baseName, "msg": "Code %s, %s".format (exitStatus, ffStderr)]);
+        return vinfo;
+    }
+
+    foreach (immutable entry; ffStdout.split("\n")) {
+        immutable sPos = entry.indexOf ('=');
+        if (sPos <= 0)
+            continue;
+        immutable value = entry[sPos+1..$];
+        switch (entry[0..sPos]) {
+            case "codec_name":
+                vinfo.codecName = value;
+                break;
+            case "format_name":
+                vinfo.formatName = value;
+                break;
+            case "width":
+                vinfo.width = value.to!int;
+                break;
+            case "height":
+                vinfo.height = value.to!int;
+                break;
+            default:
+                break;
+        }
+    }
+
+    // Check whether the video container is a supported format
+    // Since WebM is a subset of Matroska, FFmpeg lists them as one thing
+    // and us distinguishing by file extension here is a bit artificial.
+    if (vinfo.formatName.canFind ("webm")) {
+        if (vidFname.endsWith (".webm"))
+            vinfo.containerKind = VideoContainerKind.WEBM;
+    }
+    if (vinfo.formatName.canFind ("matroska"))
+        vinfo.containerKind = VideoContainerKind.MKV;
+
+    // Check codec
+    if (vinfo.codecName == "av1")
+        vinfo.codecKind = VideoCodecKind.AV1;
+    else if (vinfo.codecName == "vp9")
+        vinfo.codecKind = VideoCodecKind.VP9;
+
+    vinfo.isAcceptable = (vinfo.containerKind != VideoContainerKind.UNKNOWN) && (vinfo.codecKind != VideoCodecKind.UNKNOWN);
+    if (!vinfo.isAcceptable) {
+        gres.addHint (cpt, "screenshot-video-format-unsupported", ["fname": vidFname.baseName,
+                                                                   "codec": vinfo.codecName,
+                                                                   "container": vinfo.formatName]);
+    }
+
+    return vinfo;
+}
+
+private Screenshot processScreenshotVideos (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
+{
+    auto vidArr = scr.getVideos ();
+    if (vidArr.len == 0) {
+        gres.addHint (cpt, "metainfo-screenshot-but-no-media");
+        return null;
+    }
+
+    return null;
+}
+
+private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt, Screenshot scr, string mediaExportDir, uint scrNo)
 {
     auto imgArr = scr.getImages ();
     if (imgArr.len == 0) {
-        gres.addHint (cpt, "metainfo-screenshot-but-no-image");
+        gres.addHint (cpt, "metainfo-screenshot-but-no-media");
         return null;
     }
 
@@ -196,4 +326,27 @@ private Screenshot processScreenshot (GeneratorResult gres, Component cpt, Scree
         gres.addHint (cpt.getId (), "screenshot-no-thumbnails", ["url": origImgUrl]);
 
     return scr;
+}
+
+unittest {
+    import std.stdio : writeln;
+    import asgen.utils : getTestSamplesDir;
+    import asgen.backends.dummy.dummypkg : DummyPackage;
+    import appstream.Component : ComponentKind;
+
+    writeln ("TEST: ", "ScreenshotHandler");
+
+    auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
+    auto gres = new GeneratorResult (pkg);
+    auto cpt = new Component;
+    cpt.setKind (ComponentKind.GENERIC);
+    cpt.setId ("org.example.Test");
+
+    immutable sampleVidFname = buildPath (getTestSamplesDir, "sample-video.mkv");
+    auto vinfo = checkVideoInfo (gres, cpt, sampleVidFname);
+    assert (vinfo.width == 640);
+    assert (vinfo.height == 360);
+    assert (vinfo.codecKind == VideoCodecKind.AV1);
+    assert (vinfo.containerKind == VideoContainerKind.MKV);
+    assert (vinfo.isAcceptable);
 }

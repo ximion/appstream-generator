@@ -54,7 +54,7 @@ enum ImageFormat {
 
 private void optimizePNG (string fname)
 {
-    import glib.Spawn : Spawn;
+    import glib.Spawn : Spawn, SpawnFlags;
 
     auto conf = asgen.config.Config.get ();
     if (!conf.feature.optipng)
