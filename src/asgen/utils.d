@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -411,6 +411,11 @@ body
     import core.time : dur;
     import std.string : toLower;
     import std.net.curl : CurlException, HTTP, FTP, HTTPStatusException;
+    import asgen.config : Config;
+
+    static Config conf = null;
+    if (conf is null)
+        conf = Config.get ();
 
     Nullable!SysTime ret;
 
@@ -426,8 +431,10 @@ body
         if (url.startsWith ("http")) {
             immutable httpsUrl = url.startsWith ("https");
             auto downloader = HTTP (url);
-            HTTP.StatusLine statusLine;
+            if (!conf.caInfo.empty ())
+                downloader.caInfo = conf.caInfo;
 
+            HTTP.StatusLine statusLine;
             downloader.connectTimeout = dur!"seconds" (30);
             downloader.dataTimeout = dur!"seconds" (30);
             downloader.onReceive = (data) => onReceiveCb (dest, data);

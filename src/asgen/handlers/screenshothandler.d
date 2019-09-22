@@ -219,17 +219,7 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
 
     ubyte[] imgData;
     try {
-        import std.net.curl;
-        if (origImgUrl.startsWith ("ftp:")) {
-            // we have an FTP url
-            imgData = get!(AutoProtocol, ubyte) (origImgUrl);
-        } else {
-            // assume HTTP(S)
-            auto http = HTTP ();
-            if (!conf.caInfo.empty ())
-                http.caInfo = conf.caInfo;
-            imgData = get!(HTTP, ubyte) (origImgUrl, http);
-        }
+        imgData = getFileContents (origImgUrl);
     } catch (Exception e) {
         gres.addHint (cpt, "screenshot-download-error", ["url": origImgUrl, "error": e.msg]);
         return null;
@@ -349,4 +339,5 @@ unittest {
     assert (vinfo.codecKind == VideoCodecKind.AV1);
     assert (vinfo.containerKind == VideoContainerKind.MKV);
     assert (vinfo.isAcceptable);
+    assert (gres.hintsCount == 0);
 }
