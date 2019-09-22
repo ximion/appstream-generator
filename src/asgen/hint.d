@@ -270,7 +270,7 @@ final class HintTagRegistry
 
         hdef.tag = asgenTag;
         hdef.severity = severity;
-        hdef.text = "<code>{{location}}</code> - <em>{{hint}}</em><br/>%s".format (explanation);
+        hdef.text = "<code>{{location}}</code> - <em>{{hint}}</em><br/>%s".format (escapeXml (explanation));
         hdef.valid = true;
 
         hintDefs[asgenTag] = hdef;
