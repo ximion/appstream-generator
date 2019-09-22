@@ -497,12 +497,11 @@ string[] getTextFileContents (const string path, const uint retryCount = 5) @tru
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
 
-    char* ptr = null;
-    scope (exit) free (ptr);
-
-    size_t sz = 0;
-
     if (path.isRemote) {
+        char* ptr = null;
+        scope (exit) free (ptr);
+        size_t sz = 0;
+
         {
             auto f = open_memstream (&ptr, &sz);
             scope (exit) fclose (f);
@@ -532,12 +531,11 @@ ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
 
-    char* ptr = null;
-    scope (exit) free (ptr);
-
-    size_t sz = 0;
-
     if (path.isRemote) {
+        char* ptr = null;
+        scope (exit) free (ptr);
+        size_t sz = 0;
+
         {
             auto f = open_memstream (&ptr, &sz);
             scope (exit) fclose (f);
@@ -545,7 +543,7 @@ ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
             download (path, file, retryCount);
         }
 
-        return (cast(ubyte[]) ptr.fromStringz).dup;
+        return (cast(ubyte[]) ptr[0..sz]).dup;
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
