@@ -348,11 +348,16 @@ string getDataPath (string fname)
     immutable exeDirName = std.file.thisExePath.dirName;
 
     // useful for testing
-    auto resPath = buildNormalizedPath (exeDirName, "..", "..", "data", fname);
-    if (std.file.exists (resPath))
-        return resPath;
+    if (!exeDirName.startsWith ("/usr")) {
+        auto resPath = buildNormalizedPath (exeDirName, "..", "..", "data", fname);
+        if (std.file.exists (resPath))
+            return resPath;
+        resPath = buildNormalizedPath (exeDirName, "..", "..", "..", "data", fname);
+        if (std.file.exists (resPath))
+            return resPath;
+    }
 
-    resPath = buildPath (DATADIR, fname);
+    auto resPath = buildPath (DATADIR, fname);
     if (std.file.exists (resPath))
         return resPath;
 
