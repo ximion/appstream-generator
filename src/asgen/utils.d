@@ -348,7 +348,7 @@ string getDataPath (string fname)
     immutable exeDirName = std.file.thisExePath.dirName;
 
     // useful for testing
-    auto resPath = buildNormalizedPath (exeDirName, "..", "..", "..", "data", fname);
+    auto resPath = buildNormalizedPath (exeDirName, "..", "..", "data", fname);
     if (std.file.exists (resPath))
         return resPath;
 
