@@ -585,6 +585,9 @@ public:
             if (hasImmutableSuites)
                 logError ("Suites are defined as immutable, but the `immutableSuites` feature is disabled. Immutability will not work!");
         }
+
+        if (!feature.validate)
+            logWarning ("Metainfo validation has been disabled in configuration.");
     }
 
     bool isValid ()

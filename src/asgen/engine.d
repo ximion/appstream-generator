@@ -547,6 +547,7 @@ public:
         import std.path : baseName;
         import std.array : replace;
         import asgen.handlers.metainfoparser : parseMetaInfoData;
+        import asgen.handlers.metainfovalidator : validateMetaInfoFile;
         import asgen.handlers.screenshothandler : processScreenshots;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
@@ -565,10 +566,19 @@ public:
             gres.dropComponent (miBasename.replace (".metainfo.xml", ""));
 
             auto cpt = parseMetaInfoData (gres, data.data, miBasename);
+            if (cpt is null)
+                continue;
+
+            // Validate
+            if (conf.feature.validate)
+                    validateMetaInfoFile (gres, cpt, data.data, miFname.baseName);
+
+            // Get icon
             iconh.process (gres, cpt);
             if (gres.isIgnored (cpt))
                 continue;
 
+            // Handle Screenshots
             if (!conf.feature.noDownloads)
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
         }

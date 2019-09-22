@@ -183,7 +183,7 @@ public:
                 }
             }
 
-            // do a validation of the file. Validation is slow, so we allow
+            // do a validation of the file. Validation may be slow, so we allow
             // the user to disable this feature.
             if (conf.feature.validate) {
                 if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
