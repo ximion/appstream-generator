@@ -18,6 +18,5 @@ before_script:
   - docker build -t asgen -f tests/ci/Dockerfile .
 
 script:
-  - if [[ "$DC" == "gdc" ]]; then export DC="gdc-9"; fi
   - docker run -t -e DC=$DC -v `pwd`:/build asgen
     ./tests/ci/build_and_test.sh
