@@ -613,13 +613,15 @@ string getTestSamplesDir () @trusted
 @system
 Nullable!Icon componentGetStockIcon (ref Component cpt)
 {
+    import gobject.c.functions : g_object_ref;
+
     Nullable!Icon res;
     auto iconsArr = cpt.getIcons ();
 
     for (uint i = 0; i < iconsArr.len; i++) {
         // cast array data to D AsIcon and keep a reference to the C struct
-        auto icon = new Icon (cast (AsIcon*) iconsArr.index (i));
-        if (icon.getKind() == IconKind.STOCK) {
+        auto icon = new Icon (cast(AsIcon*) g_object_ref (iconsArr.index (i)), true);
+        if (icon.getKind == IconKind.STOCK) {
             res = icon;
             return res;
         }
@@ -664,6 +666,22 @@ bool UseGCRanges(Allocator, K, V, bool GCRangesAllowed)()
     return  !is(Allocator == GCAllocator) && (hasIndirections!K || hasIndirections!V ) && GCRangesAllowed;
 }
 
+string filenameFromURI (string uri)
+{
+    import std.path : baseName;
+    import std.string : indexOf;
+
+    auto bname = uri.baseName;
+    immutable qInd = bname.indexOf ("?");
+    if (qInd > 0)
+        bname = bname[0..qInd];
+    immutable hInd = bname.indexOf ("#");
+    if (hInd > 0)
+        bname = bname[0..hInd];
+
+    return bname;
+}
+
 @trusted
 unittest
 {
@@ -697,6 +715,11 @@ unittest
     assert (isRemote ("https://example.org"));
     assert (!isRemote ("/srv/mirror"));
     assert (!isRemote ("file:///srv/test"));
+
+    assert (filenameFromURI ("https://example.org/test/filename.txt") == "filename.txt");
+    assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true") == "video.mkv");
+    assert (filenameFromURI ("https://example.org/test/video.mkv#anchor") == "video.mkv");
+    assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true&aaa=bbb") == "video.mkv");
 
     auto networkEnabled = true;
     try {

@@ -186,7 +186,7 @@ final class HintTagRegistry
 
         auto hintDefsJSON = parseJSON (jsonData);
 
-        foreach (tag; hintDefsJSON.object.byKey ()) {
+        foreach (ref tag; hintDefsJSON.object.byKey) {
             auto j = hintDefsJSON[tag];
             HintDefinition hdef;
 

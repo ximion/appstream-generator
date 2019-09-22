@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -547,6 +547,7 @@ public:
         import std.path : baseName;
         import std.array : replace;
         import asgen.handlers.metainfoparser : parseMetaInfoData;
+        import asgen.handlers.screenshothandler : processScreenshots;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
             auto f = File (miFname, "r");
@@ -565,6 +566,11 @@ public:
 
             auto cpt = parseMetaInfoData (gres, data.data, miBasename);
             iconh.process (gres, cpt);
+            if (gres.isIgnored (cpt))
+                continue;
+
+            if (!conf.feature.noDownloads)
+                processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
         }
     }
 

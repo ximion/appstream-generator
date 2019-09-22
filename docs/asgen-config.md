@@ -60,6 +60,7 @@ ExportDirs | Set where to export data. The dictionary requires full paths set fo
 ExtraMetainfoDir | Path to a directory where additional injected metainfo files are located. If not set, the `extra-metainfo` directory in the project workspace is used.
 WorkspaceDir | Explicitly set the location of the workspace. Only makes sense if the generator is meant to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag.
 Icons | Customize the icon policy. See below for more details.
+MaxVideoFileSize | The maximum size of downloaded video files in MiB. `0` means unlimited. *Default: `14`*
 
 
 ### Suite fields
@@ -94,6 +95,7 @@ processFonts | Include font metadata and render fonts. *Default: `ON`*
 allowIconUpscaling | Allows upscaling of small 48x48px icons to 64x64px to make applications show up. Icons are only upscaled as a last resort. *Default: `ON`*
 processGStreamer | Synthesise `type=codec` metadata from available GStreamer packages. Requires support in the backend, currently only implemented for Debian. *Default: `ON`*
 processLocale | Try to extract the software's localization status from Gettext data. *Default: `ON`*
+screenshotVideos | Permit videos in screenshots and cache them if downloads are permitted. *Default: `ON`*
 
 ### Configuring icon policies
 

@@ -281,6 +281,22 @@
   "text": ["The video codec '{{codec}}' or container '{{container}}' of '{{fname}}' are not supported. Please encode the video",
            "as VP9 or AV1 using the WebM or Matroska container."],
   "severity": "warning"
+},
+
+"screenshot-video-has-audio": {
+  "text": ["The video '{{fname}}' contains an audio track. The audio may not be played by software centers, so ideally you should avoid using audio,",
+           "or at least make the audio non-essential for understanding the screencast."],
+  "severity": "info"
+},
+
+"screenshot-video-audio-codec-unsupported": {
+  "text": ["The video '{{fname}}' contains an audio track using the '{{codec}}' codec. The only permitted audio codec is <a href=\"https://opus-codec.org/\">Opus</a>."],
+  "severity": "warning"
+},
+
+"screenshot-video-too-big": {
+  "text": ["The video '{{fname}}' exceeds the maximum allowed file size of {{max_size}} (its size is {{size}}). Please try to make a shorter screencast."],
+  "severity": "warning"
 }
 
 }

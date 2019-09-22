@@ -88,6 +88,7 @@ struct GeneratorFeatures
     bool allowIconUpscale;
     bool processGStreamer;
     bool processLocale;
+    bool screenshotVideos;
 }
 
 /// Fake package name AppStream Generator uses internally to inject additional metainfo on users' request
@@ -160,6 +161,8 @@ public:
     string hintsExportDir;
     string mediaExportDir;
     string htmlExportDir;
+
+    long maxVideoFileSize;
 
     IconPolicy[] iconSettings;
 
@@ -488,6 +491,10 @@ public:
             iconSettings ~= IconPolicy (ImageSize (128, 128, 2), true, true);
         }
 
+        this.maxVideoFileSize = 14; // 14MiB is the default maximum size
+        if ("MaxVideoFileSize" in root)
+            this.maxVideoFileSize = root["MaxVideoFileSize"].integer;
+
         if ("AllowedCustomKeys" in root.object)
             foreach (ref key; root["AllowedCustomKeys"].array)
                 allowedCustomKeys[key.str] = true;
@@ -503,6 +510,7 @@ public:
         feature.allowIconUpscale = true;
         feature.processGStreamer = true;
         feature.processLocale = true;
+        feature.screenshotVideos = true;
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -542,6 +550,9 @@ public:
                     case "processLocale":
                             feature.processLocale = featuresObj[featureId].type == JSONType.true_;
                             break;
+                    case "screenshotVideos":
+                            feature.screenshotVideos = featuresObj[featureId].type == JSONType.true_;
+                            break;
                     default:
                         break;
                 }
@@ -553,6 +564,12 @@ public:
             if (!"/usr/bin/optipng".exists) {
                 feature.optipng = false;
                 logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
+            }
+        }
+        if (feature.screenshotVideos) {
+            if (!"/usr/bin/ffprobe".exists) {
+                feature.screenshotVideos = false;
+                logError ("Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
             }
         }
 
