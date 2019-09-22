@@ -569,16 +569,16 @@ public:
             if (cpt is null)
                 continue;
 
-            // Validate
+            // validate
             if (conf.feature.validate)
                     validateMetaInfoFile (gres, cpt, data.data, miFname.baseName);
 
-            // Get icon
+            // get icon
             iconh.process (gres, cpt);
             if (gres.isIgnored (cpt))
                 continue;
 
-            // Handle Screenshots
+            // handle screenshots
             if (!conf.feature.noDownloads)
                 processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
         }

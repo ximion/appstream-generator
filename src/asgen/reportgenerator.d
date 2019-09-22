@@ -591,6 +591,8 @@ public:
                         } else if (severity == HintSeverity.WARNING) {
                             he.warnings ~= HintTag (tag, msg);
                             pkgsummary.warningCount++;
+                        } else if (severity == HintSeverity.PEDANTIC) {
+                            // We ignore pedantic issues completely for now
                         } else {
                             he.errors ~= HintTag (tag, msg);
                             pkgsummary.errorCount++;
