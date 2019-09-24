@@ -1,3 +1,33 @@
+Version 0.8.0
+~~~~~~~~~~~~~~
+Released: 2019-09-24
+
+Notes:
+ * This release needs FFmpeg installed if video screenshots should
+   be permitted. No transcoding will be done. Check out the options
+   to modify this feature in the documentation.
+
+Features:
+ * Add Igor Khasilev's container implementations to the source
+ * Replace EMSI containers with built-in implementation
+ * Bump dependency on AppStream
+ * Fix build with latest AppStream
+ * Implement improved validation issue reporting
+ * Always build registry of all hint tags, instead of adding them on-demand
+ * Add AV1 video sample for video support tests
+ * Add video tag support, analyze and store videos
+ * Use generic download method for downloading screenshots as well
+
+Bugfixes:
+ * Make dscanner happy again
+ * Drop wrap files: We don't need them anymore
+ * debian: Don't check for bz2 compressed indices
+ * Only add remote icons if we have a mediaBaseUrl and are permitting image caches
+ * Validate injected metainfo files as well
+ * Ignore pedantic issues in HTML reports
+ * Fix getFileContents when acting on remote data
+ * XML-escape validator explanations
+
 Version 0.7.7
 ~~~~~~~~~~~~~~
 Released: 2019-02-24
