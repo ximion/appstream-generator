@@ -249,6 +249,9 @@ private:
             immutable locale = info.key;
             immutable nstrings = info.value;
 
+            if (maxNStrings <= 0)
+                continue;
+
             immutable int percentage = (nstrings * 100 / maxNStrings).to!int;
 
             // we only add languages if the translation is more than 25% complete
