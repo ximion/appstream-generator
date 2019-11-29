@@ -333,9 +333,19 @@ public:
                                 cpt.setDescription (desc, lang);
                                 desc_added = true;
                         }
-                        if (desc_added)
+                        if (desc_added) {
                             if (!addHint (cpt, "description-from-package"))
                                 continue;
+                        } else {
+                            import asgen.bindings.appstream_utils : componentKindToString;
+
+                            if ((ckind == ComponentKind.DESKTOP_APP) ||
+                                (ckind == ComponentKind.CONSOLE_APP) ||
+                                (ckind == ComponentKind.WEB_APP)) {
+                                    if (!addHint (cpt, "description-missing", ["kind": componentKindToString (ckind)]))
+                                    continue;
+                            }
+                        }
                     }
 
                     // check if we can add a launchable here

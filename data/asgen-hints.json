@@ -215,6 +215,11 @@
   "severity": "info"
 },
 
+"description-missing": {
+  "text": ["Software components of type '{{kind}}' require a long description. The metadata available for this components is missing a long description, please add it via a metainfo file."],
+  "severity": "error"
+},
+
 "metadata-serialization-failed": {
   "text": ["Could not create the final metadata. This could have many causes, including a generator bug, but the likeliest cause is an error in the input metadata.<br/>",
            "The error message was: {{msg}}"],

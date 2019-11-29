@@ -34,10 +34,12 @@ extern(C) {
     const(char*) as_format_version_to_string (FormatVersion ver);
     FormatVersion as_format_version_from_string (const(char)* version_str);
 
-    bool as_license_is_metadata_license (const(char)* license) pure;
-    char** as_spdx_license_tokenize (const(char)* license) pure;
+    private bool as_license_is_metadata_license (const(char)* license) pure;
+    private char** as_spdx_license_tokenize (const(char)* license) pure;
 
-    const(char*) as_get_appstream_version ();
+    const(char) *as_get_appstream_version () pure;
+
+    private const(char) *as_component_kind_to_string (AsComponentKind kind) pure;
 }
 
 auto spdxLicenseTokenize (const string license) pure
@@ -48,4 +50,9 @@ auto spdxLicenseTokenize (const string license) pure
 bool spdxLicenseIsMetadataLicense (const string license) pure
 {
     return as_license_is_metadata_license (license.toStringz);
+}
+
+auto componentKindToString (AsComponentKind kind) pure
+{
+    return Str.toString (as_component_kind_to_string (kind));
 }
