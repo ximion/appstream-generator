@@ -52,7 +52,7 @@ immutable (string) downloadIfNecessary (const string prefix,
     import std.net.curl : CurlException;
     import std.path : buildPath;
 
-    immutable exts = ["xz", "gz"];
+    immutable exts = ["xz", "bz2", "gz"];
     foreach (ref ext; exts) {
         immutable fileName = format (buildPath (prefix, suffix), ext);
         immutable destFileName = format (buildPath (destPrefix, suffix), ext);
