@@ -758,7 +758,7 @@ public:
         logInfo ("Updating HTML index pages and static data.");
         // render main overview
         auto context = new Mustache.Context;
-        foreach (suite; conf.suites.sort!("a.name < b.name")) {
+        foreach (suite; conf.suites.sort!("a.name > b.name")) {
             auto sub = context.addSubContext("suites");
             sub["suite"] = suite.name;
 
