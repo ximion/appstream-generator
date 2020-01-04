@@ -418,6 +418,7 @@ body
     import std.string : toLower;
     import std.net.curl : CurlException, HTTP, FTP, HTTPStatusException;
     import asgen.config : Config;
+    import std.typecons : Yes;
 
     static Config conf = null;
     if (conf is null)
@@ -452,22 +453,29 @@ body
                 if (key == "location" && value.toLower.startsWith ("http:"))
                     throw new CurlException ("HTTPS URL tried to redirect to a less secure HTTP URL.");
             };
-            downloader.perform();
+            downloader.perform(Yes.throwOnError);
             if ("last-modified" in downloader.responseHeaders) {
                     auto lastmodified = downloader.responseHeaders["last-modified"];
                     ret = parseRFC822DateTime(lastmodified);
             }
 
             if (statusLine.code != 200 && statusLine.code != 301) {
-                throw new HTTPStatusException (statusLine.code,
-                           "HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
+                if (statusLine.code == 0) {
+                    // with some recent update of the D runtime or Curl, the status line isn't set anymore
+                    // just to be safe, check whether we received data before assuming everything went fine
+                    if (dest.size == 0)
+                        throw new HTTPStatusException (statusLine.code, "No data was received from the remote end.");
+                } else {
+                    throw new HTTPStatusException (statusLine.code,
+                            "HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
+                }
             }
         } else {
             auto downloader = FTP (url);
             downloader.connectTimeout = dur!"seconds" (30);
             downloader.dataTimeout = dur!"seconds" (30);
             downloader.onReceive = (data) => onReceiveCb (dest, data);
-            downloader.perform();
+            downloader.perform(Yes.throwOnError);
         }
         logDebug ("Downloaded %s", url);
     } catch (Exception e) {
@@ -590,7 +598,7 @@ do
 
     f.close ();
     if (!time.isNull)
-        setTimes (dest, Clock.currTime, time);
+        setTimes (dest, Clock.currTime, time.get);
 }
 
 /**
