@@ -175,7 +175,7 @@ public:
 
             if (pkg.gst.isNull)
                 return false;
-            return pkg.gst.isNotEmpty;
+            return pkg.gst.get.isNotEmpty;
         }
 
         // check if the index has changed data, skip the update if there's nothing new

@@ -200,7 +200,7 @@ public:
                 gres.updateComponentGCID (cpt, ddata);
         }
 
-        if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.isNotEmpty) {
+        if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.get.isNotEmpty) {
             auto data = appender!string;
             data.reserve(512);
 
