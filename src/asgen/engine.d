@@ -1062,10 +1062,10 @@ public:
      */
     void removeHintsComponents (string suite_name)
     {
-        Suite suite;
-        foreach (ref s; conf.suites)
-            if (s.name == suite_name)
-                suite = s;
+        auto st = checkSuiteUsable (suite_name);
+        if (!st.suiteUsable)
+            return;
+        auto suite = st.suite;
 
         foreach (ref section; suite.sections) {
             foreach (ref arch; parallel (suite.architectures)) {
