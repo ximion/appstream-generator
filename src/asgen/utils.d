@@ -459,7 +459,7 @@ body
                     ret = parseRFC822DateTime(lastmodified);
             }
 
-            if (statusLine.code != 200 && statusLine.code != 301) {
+            if (statusLine.code != 200 && statusLine.code != 301 && statusLine.code != 302) {
                 if (statusLine.code == 0) {
                     // with some recent update of the D runtime or Curl, the status line isn't set anymore
                     // just to be safe, check whether we received data before assuming everything went fine
