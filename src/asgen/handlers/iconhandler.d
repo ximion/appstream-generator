@@ -831,7 +831,7 @@ public:
             }
 
             if (success) {
-                    logInfo ("Icon %s - %s found in XDG dirs", gres.pkid, iconName);
+                    logDebug ("Icon %s - %s found in XDG dirs", gres.pkid, iconName);
 
                     // we found a valid stock icon, so set that additionally to the cached one
                     auto icon = new Icon ();
@@ -841,7 +841,7 @@ public:
 
                     return true;
             } else {
-                logInfo ("Icon %s - %s not found in required size(s) in XDG dirs", gres.pkid, iconName);
+                logDebug ("Icon %s - %s not found in required size(s) in XDG dirs", gres.pkid, iconName);
 
                 if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
                     gres.addHint (cpt.getId, "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
