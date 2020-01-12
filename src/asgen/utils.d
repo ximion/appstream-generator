@@ -720,6 +720,7 @@ unittest
     assert (ImageSize ("128x128@2") == ImageSize (128, 128, 2));
     assertThrown!Exception(ImageSize ("48x48@"));
     assert (ImageSize ("x23@2").height == -1);
+    logInfo ("Size: %s", ImageSize ("64x64"));
 
     assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
 

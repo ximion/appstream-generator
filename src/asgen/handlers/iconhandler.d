@@ -730,13 +730,21 @@ public:
             return false;
         }
 
-        logDebug ("Looking for icon '%s' for '%s::%s'", iconName, gres.pkid, cpt.getId);
         auto cptMediaPath = buildPath (mediaExportPath, gcid);
 
         if (iconName.startsWith ("/")) {
+            logDebug ("Looking for icon '%s' for '%s::%s' (path)", iconName, gres.pkid, cpt.getId);
+
             if (gres.pkg.contents.canFind (iconName))
                 return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, defaultIconPolicy);
+
+            // we couldn't find the absolute icon path
+            gres.addHint (cpt.getId, "icon-not-found", ["icon_fname": iconName]);
+            return false;
+
         } else {
+            logDebug ("Looking for icon '%s' for '%s::%s' (XDG)", iconName, gres.pkid, cpt.getId);
+
             iconName  = baseName (iconName);
 
             // Small hack: Strip .png and other extensions from icon files to make the XDG and Pixmap finder
@@ -793,21 +801,25 @@ public:
                 // ensure we have stored a 64x64px icon, since this is mandated
                 // by the AppStream spec by downscaling a larger icon that we
                 // might have found.
-                if (ImageSize(64) !in iconsStored) {
+                if (ImageSize(64) in iconsStored) {
+                    logInfo ("Found icon %s - %s in XDG directories, 64x64px size is present", gres.pkid, iconName);
+                    return true;
+                } else {
                     foreach (size; iconPolicy.map!(a => a.iconSize)) {
                         if (size !in iconsStored)
                             continue;
                         if (size < ImageSize(64))
                             continue;
+                        logInfo ("Downscaling icon %s - %s from %s to %s", gres.pkid, iconName, size, defaultIconPolicy.iconSize);
                         auto info = iconsStored[size];
                         lastIconName = info.fname;
                         if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, defaultIconPolicy))
                             return true;
                     }
-                } else {
-                    return true;
                 }
 
+                // if we are here, we either didn't find an icon, or no icon is present
+                // in the default 64x64px size
                 return false;
             }
 
@@ -819,27 +831,31 @@ public:
             }
 
             if (success) {
+                    logInfo ("Icon %s - %s found in XDG dirs", gres.pkid, iconName);
+
                     // we found a valid stock icon, so set that additionally to the cached one
                     auto icon = new Icon ();
                     icon.setKind (IconKind.STOCK);
                     icon.setName (iconName);
                     cpt.addIcon (icon);
+
+                    return true;
             } else {
+                logInfo ("Icon %s - %s not found in required size(s) in XDG dirs", gres.pkid, iconName);
+
                 if ((lastIconName !is null) && (!iconAllowed (lastIconName))) {
                     gres.addHint (cpt.getId, "icon-format-unsupported", ["icon_fname": baseName (lastIconName)]);
                     return false;
                 }
-                if (lastIconName is null) {
-                    gres.addHint (cpt.getId, "icon-not-found", ["icon_fname": iconName]);
-                    return false;
-                }
+
+                gres.addHint (cpt.getId, "icon-not-found", ["icon_fname": iconName]);
+                return false;
             }
 
         }
-
-        return true;
     }
-}
+
+} // end of IconHandler class
 
 unittest
 {
