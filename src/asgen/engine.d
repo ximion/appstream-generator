@@ -338,7 +338,7 @@ public:
                 if (!ipolicy.storeCached)
                     continue; // we only want to create tarballs for cached icons
                 auto ia = appender!(string[]);
-                ia.reserve (8);
+                ia.reserve (256);
                 iconTarFiles[ipolicy.iconSize.toString] = ia;
             }
         }
@@ -391,9 +391,9 @@ public:
                             immutable iconDir = buildPath (mediaExportDir, gcid, "icons", ipolicy.iconSize.toString);
                             if (!std.file.exists (iconDir))
                                 continue;
-                            foreach (ref path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false)) {
-                                iconTarFiles[ipolicy.iconSize.toString] ~= path.idup;
-                            }
+                            foreach (string path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false))
+                                iconTarFiles[ipolicy.iconSize.toString] ~= path;
+
                         }
                     }
                 }
@@ -417,8 +417,6 @@ public:
         if (withIconTar) {
             logInfo ("Creating icon tarball.");
             foreach (ref ipolicy; conf.iconSettings) {
-                import std.conv : to;
-
                 if (!ipolicy.storeCached)
                     continue;
 
@@ -430,6 +428,8 @@ public:
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }
+
+                iconTar.close ();
             }
             logInfo ("Icon tarball(s) built.");
         }
