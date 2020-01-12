@@ -20,6 +20,7 @@ RUN apt-get install -yq --no-install-recommends \
     libstemmer-dev \
     libxml2-dev \
     libyaml-dev \
+    libsoup2.4-dev \
     gperf
 
 # install dependencies only for appstream-generator
