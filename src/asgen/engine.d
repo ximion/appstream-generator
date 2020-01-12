@@ -332,12 +332,12 @@ public:
         mkdirRecurse (hintsExportDir);
 
         // prepare icon-tarball array
-        HashMap!(string, Appender!(immutable(string)[])) iconTarFiles;
+        HashMap!(string, Appender!(string[])) iconTarFiles;
         if (withIconTar) {
             foreach (ref ipolicy; conf.iconSettings) {
                 if (!ipolicy.storeCached)
                     continue; // we only want to create tarballs for cached icons
-                auto ia = appender!(immutable(string)[]);
+                auto ia = appender!(string[]);
                 ia.reserve (8);
                 iconTarFiles[ipolicy.iconSize.toString] = ia;
             }
@@ -414,7 +414,6 @@ public:
         }
 
         // create the icon tarballs
-        gcCollect ();
         if (withIconTar) {
             logInfo ("Creating icon tarball.");
             foreach (ref ipolicy; conf.iconSettings) {
@@ -423,10 +422,11 @@ public:
                 if (!ipolicy.storeCached)
                     continue;
 
-                auto iconTar = scoped!ArchiveCompressor (ArchiveType.GZIP);
+                auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
                 iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (ipolicy.iconSize.toString)));
-                auto iconFiles = iconTarFiles[ipolicy.iconSize.toString].data;
-                sort!("a < b", SwapStrategy.stable) (to!(string[]) (iconFiles));
+                auto iconFiles = iconTarFiles[ipolicy.iconSize.toString]
+                                 .data
+                                 .sort!("a < b", SwapStrategy.stable);
                 foreach (fname; iconFiles) {
                     iconTar.addFile (fname);
                 }
