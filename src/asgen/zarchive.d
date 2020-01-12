@@ -246,7 +246,7 @@ public:
 
     void extractArchive (const string dest)
     in { assert (std.file.isDir (dest)); }
-    body
+    do
     {
         import std.path;
         archive_entry *en;
@@ -525,14 +525,14 @@ public:
         closed = true;
     }
 
-    void addFile (string fname, string dest = null)
+    void addFile (const string fname, const string dest = null)
     in {
         if (!std.file.exists (fname)) {
             logError ("File %s does not exist!", fname);
             assert (0);
         }
     }
-    body
+    do
     {
         import std.conv: octal;
         import std.path: baseName;
@@ -543,14 +543,15 @@ public:
         stat_t st;
         ubyte[BUFFER_SIZE] buff;
 
-        if (dest is null)
-            dest = baseName (fname);
+        string destName = dest;
+        if (destName is null)
+            destName = baseName (fname);
 
         lstat (fname.toStringz, &st);
         entry = archive_entry_new ();
         scope (exit) archive_entry_free (entry);
-        archive_entry_set_pathname (entry, toStringz (dest));
 
+        archive_entry_set_pathname (entry, destName.toStringz);
         archive_entry_set_size (entry, st.st_size);
         archive_entry_set_filetype (entry, S_IFREG);
         archive_entry_set_perm (entry, octal!755);

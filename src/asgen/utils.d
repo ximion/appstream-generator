@@ -186,7 +186,7 @@ bool isTopLevelDomain (const string value) pure
 @trusted
 string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false) pure
 in { assert (cid.length >= 2); }
-body
+do
 {
     if (cid is null)
         return null;
@@ -412,7 +412,7 @@ bool isRemote (const string uri)
 
 private immutable(Nullable!SysTime) download (const string url, ref File dest, const uint retryCount = 5) @trusted
 in { assert (url.isRemote); }
-body
+do
 {
     import core.time : dur;
     import std.string : toLower;
