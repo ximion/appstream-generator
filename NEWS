@@ -1,3 +1,18 @@
+Version 0.8.1
+~~~~~~~~~~~~~~
+Released: 2020-01-20
+
+Bugfixes:
+ * Don't crash if a gettext locale has no strings
+ * Reject packages which should have a long description but don't have one
+ * debian: Search for bz2 files again, i18n still uses those
+ * Work around some curl/D behavior changes and make HTTPS downloads work again
+ * Check suite status before removing hints/components
+ * Don't fail download on HTTP status code 302
+ * Properly fail icon search in all failure cases, add more debug logging
+ * Ensure icon tarballs are closed immediately after writing to them
+ * Flip around sorting of suites on HTML reports
+
 Version 0.8.0
 ~~~~~~~~~~~~~~
 Released: 2019-09-24
