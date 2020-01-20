@@ -6,8 +6,7 @@
 
 === Planned Features ===
 
- * Extract localization status for AppStream components and add them as
-   `Languages` field.
+ * Use feature from the upcoming libappstream-compose
 
 === Whishlist / Random Ideas ===
 
