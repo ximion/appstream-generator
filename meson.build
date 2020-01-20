@@ -22,7 +22,7 @@ endif
 src_dir = include_directories('src/')
 
 glibd_dep       = dependency('glibd-2.0')
-appstream_dep   = dependency('appstream', version : '>= 0.12.8')
+appstream_dep   = dependency('appstream', version : '>= 0.12.10')
 lmdb_dep        = dependency('lmdb', version : '>= 0.9')
 archive_dep     = dependency('libarchive', version : '>= 3.2')
 cairo_dep       = dependency('cairo', version : '>= 1.12')
