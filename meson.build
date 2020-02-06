@@ -46,7 +46,7 @@ girtod_gen = run_command(gir_to_d_prog,
                          '-o', gir_d_intf_dir,
                          '--print-files', 'relative,' + source_root)
 if girtod_gen.returncode() != 0
-    error('Unable to build D intefaces from GIR:\n' + girtod_gen.stderr())
+    error('Unable to build D interfaces from GIR:\n' + girtod_gen.stderr())
 endif
 
 gir_bind_dir = include_directories('girepo')
