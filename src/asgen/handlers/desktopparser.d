@@ -241,8 +241,8 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
             /* run backend specific hooks */
             auto translations = gres.pkg.getDesktopFileTranslations (df, val);
             translations[locale] = val;
-            foreach (key, value; translations)
-                cpt.setName (value, key);
+            foreach (const ref trkey, const ref trvalue; translations)
+                cpt.setName (trvalue, trkey);
         } else if (key.startsWith ("Comment")) {
             if (hasExistingSummary)
                 continue;
