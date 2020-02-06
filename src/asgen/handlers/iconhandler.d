@@ -446,7 +446,7 @@ public:
                     }
                 } else {
                     // global search in all packages
-                    auto pkg = iconFiles.get (fname, null);
+                    pkg = iconFiles.get (fname, null);
                     // continue if filename is not in map
                     if (pkg is null)
                         continue;
