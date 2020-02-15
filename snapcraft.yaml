@@ -1,0 +1,195 @@
+#
+# Copyright (C) 2020 Matthias Klumpp <matthias@tenstral.net>
+#
+# SPDX-License-Identifier: FSFAP
+#
+# This Snapcraft file and the resulting Snap is NOT OFFICIALLY SUPPORTED.
+# If you can, please use a provided native build for your distribution.
+# Patches to improve this file are very welcome though, and so is testing the Snap!
+#
+# The asgen tool can likely be confined - it needs read/write access to wherever the user
+# puts the workspace definition (could be anywhere, but most commonly it's in /srv,
+# in /home or in /var), access to a local archive mount (can be in /mnt), access to the
+# network, and that should be it (unless optipng and ffprobe have extra requirements).
+# Using classic confinement ensures the Snap won't run into trouble, so this is the easier
+# route for now until someone can actually do extensive testing of a confined Snap.
+#
+# This Snap is autobuilt, you can check its status at https://build.snapcraft.io/user/ximion/appstream-generator
+
+name: appstream-generator
+version: git
+license: LGPL-3.0
+base: core18
+adopt-info: appstream-generator
+
+confinement: classic
+grade: devel
+
+architectures:
+  - build-on: [amd64]
+    run-on: [amd64]
+
+apps:
+  appstream-generator:
+    command: usr/bin/appstream-generator
+    common-id: org.freedesktop.appstream.generator
+
+parts:
+  appstream-generator:
+    source: .
+    source-type: git
+    parse-info: [data/org.freedesktop.appstream.generator.metainfo.xml]
+
+    plugin: meson
+    override-build: |
+      # install yarn
+      apt-get install -y curl
+      curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+      echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+      apt-get update && apt-get install --no-install-recommends -y yarn nodejs
+
+      # adjust to an absolute path to help finding the GIR file from the AppStream part
+      sed -i 's|AppStream-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' contrib/girwrap/APILookupAppStream.txt
+
+      # actually build asgen - we need to run everything manually here,
+      # because snapcraft will kill the build if run with maximum amount of ninja jobs,
+      # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
+      meson --prefix=/usr --buildtype=release -Ddownload-js=true snapbuild
+      cd snapbuild
+      ninja -j1
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    build-packages:
+      - meson
+      - docbook-xsl
+      - docbook-xml
+      - xsltproc
+      - libgdk-pixbuf2.0-dev
+      - libarchive-dev
+      - librsvg2-dev
+      - liblmdb-dev
+      - libglib2.0-dev
+      - libcairo2-dev
+      - libcurl4-gnutls-dev
+      - libfreetype6-dev
+      - libfontconfig1-dev
+      - libpango1.0-dev
+    stage-packages:
+      - ffmpeg
+      - optipng
+      - libcurl3-gnutls
+      - libglu1-mesa
+      - freeglut3
+      - libslang2
+      - libarchive13
+      - libcairo2
+      - libcroco3
+      - libdatrie1
+      - libfontconfig1
+      - libfreetype6
+      - libgdk-pixbuf2.0-0
+      - libgraphite2-3
+      - libharfbuzz0b
+      - libpango-1.0-0
+      - libpangocairo-1.0-0
+      - libpangoft2-1.0-0
+      - libpixman-1-0
+      - libpng16-16
+      - librsvg2-2
+      - libthai0
+      - libx11-6
+      - libxau6
+      - libxcb-render0
+      - libxcb-shm0
+      - libxcb1
+      - libxdmcp6
+      - libxext6
+      - libxrender1
+    after:
+      - appstream
+      - ldc
+      - gir-to-d
+      - glibd
+
+  appstream:
+    source: https://github.com/ximion/appstream.git
+    source-type: git
+    source-tag: v0.12.10
+
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+      - -Dapidocs=false
+    override-build: |
+      # we can build with a slightly lower GLib version in this instance
+      sed -i 's|>=2.58|>=2.56|g' meson.build
+
+      # build AS
+      snapcraftctl build
+    build-packages:
+      - build-essential
+      - docbook-xsl
+      - docbook-xml
+      - gettext
+      - gobject-introspection
+      - gperf
+      - libgirepository1.0-dev
+      - libglib2.0-dev
+      - liblmdb-dev
+      - libsoup2.4-dev
+      - libstemmer-dev
+      - libxml2-dev
+      - libyaml-dev
+      - meson
+      - xsltproc
+    stage-packages:
+     - libicu60
+     - liblmdb0
+     - libsoup2.4-1
+     - libstemmer0d
+     - libxml2
+
+  gir-to-d:
+    source: https://github.com/gtkd-developers/gir-to-d.git
+    source-type: git
+    source-tag: v0.20.0
+
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+    build-packages:
+      - meson
+    after:
+      - ldc
+
+  glibd:
+    source: https://github.com/gtkd-developers/GlibD.git
+    source-type: git
+    source-tag: v2.1.0
+
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+    build-packages:
+      - meson
+      - gobject-introspection
+      - libgirepository1.0-dev
+      - libglib2.0-dev
+    after:
+      - gir-to-d
+      - ldc
+
+  ldc:
+    plugin: dump
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.20.0/ldc2-1.20.0-linux-x86_64.tar.xz
+
+    override-build: |
+      # link shared by default
+      sed -i 's|"-L--no-warn-search-mismatch",|"-L--no-warn-search-mismatch",\n    "-link-defaultlib-shared",|g' etc/ldc2.conf
+
+      # remove unneeded libs
+      rm -rf lib32
+
+      snapcraftctl build
