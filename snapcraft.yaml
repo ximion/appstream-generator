@@ -17,7 +17,6 @@
 # This Snap is autobuilt, you can check its status at https://build.snapcraft.io/user/ximion/appstream-generator
 
 name: appstream-generator
-version: git
 license: LGPL-3.0
 base: core18
 adopt-info: appstream-generator
@@ -39,6 +38,11 @@ parts:
     source: .
     source-type: git
     parse-info: [data/org.freedesktop.appstream.generator.metainfo.xml]
+
+    override-pull: |
+      snapcraftctl pull
+      # set version from Git
+      snapcraftctl set-version "$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')"
 
     plugin: meson
     override-build: |
