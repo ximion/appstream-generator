@@ -2,6 +2,7 @@
  * Copyright (C) 2011 Masahiro Nakagawa
  *
  * Licensed under the GNU Lesser General Public License Version 3
+ * or Boost Software License 1.0.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +20,7 @@
  * Mustache template engine for D
  *
  * Implemented according to [mustach(5)](http://mustache.github.com/mustache.5.html)
- * Originally BSL-1.0 licensed, source from https://github.com/repeatedly/mustache-d
+ * BSL-1.0 licensed source from https://github.com/repeatedly/mustache-d
  */
 
 module mustache;
@@ -184,29 +185,34 @@ if (isSomeString!(String))
                 Context[]               list;
             }
 
+            @trusted
             this(bool u) nothrow
             {
                 type = SectionType.use;
             }
 
+            @trusted
             this(String[String] v) nothrow
             {
                 type = SectionType.var;
                 var  = v;
             }
 
+            @trusted
             this(String delegate(String) f) nothrow
             {
                 type = SectionType.func;
                 func = f;
             }
 
+            @trusted
             this(Context c) nothrow
             {
                 type = SectionType.list;
                 list = [c];
             }
 
+            @trusted
             this(Context[] c) nothrow
             {
                 type = SectionType.list;
@@ -503,7 +509,7 @@ if (isSomeString!(String))
             try {
                 assert(context.fetch(["unknown"], error) == "");
                 assert(false);
-            } catch (const MustacheException e) { }
+            } catch (MustacheException e) { }
         }
         { // subcontext
             auto sub = new Context();
@@ -821,7 +827,7 @@ if (isSomeString!(String))
             try {
                 assert(render("Hello {{&unknown}}", context) == "Hello Ritsu & Mio");
                 assert(false);
-            } catch (const MustacheException e) {}
+            } catch (MustacheException e) {}
 
             m.handler = null;
         }
@@ -981,11 +987,11 @@ if (isSomeString!(String))
                 return key == m.key && nodes == m.nodes;
             }
 
-            size_t toHash() const nothrow @trusted
+            @trusted
+            size_t toHash() const nothrow
             {
                 return typeid(key).getHash(&key) + typeid(nodes).getHash(&nodes);
             }
-
         }
 
         Node[] result;
@@ -1257,7 +1263,7 @@ if (isSomeString!(String))
             try {
                 parseKey(src, "}}", end);
                 assert(false);
-            } catch (const MustacheException e) { }
+            } catch (MustacheException e) { }
         }
         {  // error: missing tag name
             size_t end;
@@ -1265,7 +1271,7 @@ if (isSomeString!(String))
             try {
                 parseKey(src, "}}", end);
                 assert(false);
-            } catch (const MustacheException e) { }
+            } catch (MustacheException e) { }
         }
         {  // error: missing ending tag name
             size_t end;
@@ -1273,7 +1279,7 @@ if (isSomeString!(String))
             try {
                 parseKey(src, "}}", end);
                 assert(false);
-            } catch (const MustacheException e) { }
+            } catch (MustacheException e) { }
         }
         {  // error: missing middle tag name
             size_t end;
@@ -1281,7 +1287,7 @@ if (isSomeString!(String))
             try {
                 parseKey(src, "}}", end);
                 assert(false);
-            } catch (const MustacheException e) { }
+            } catch (MustacheException e) { }
         }
     }
 
@@ -1343,6 +1349,7 @@ if (isSomeString!(String))
          * Params:
          *   t = raw text
          */
+        @trusted
         this(String t) nothrow
         {
             type = NodeType.text;
@@ -1357,6 +1364,7 @@ if (isSomeString!(String))
          *   k = key string of tag
          *   f = invert? or escape?
          */
+        @trusted
         this(NodeType t, String[] k, bool f = false) nothrow
         {
             type = t;
