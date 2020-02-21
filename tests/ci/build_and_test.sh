@@ -6,7 +6,8 @@
 set -e
 export LANG=C.UTF-8
 
-if [ "$DC" == "gdc" ]
+# prefer GDC 10 over the default for now
+if [ "$DC" = "gdc" ];
 then
   export DC="gdc-10"
 fi

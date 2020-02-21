@@ -7,14 +7,15 @@ FROM debian:testing
 RUN apt-get update -qq
 
 # install build essentials
-RUN apt-get install -yq git gcc gdc ldc gdc-10
+RUN apt-get install -yq eatmydata git gcc gdc ldc gdc-10
 
 # install dependencies used by both appstream and appstream-generator
-RUN apt-get install -yq --no-install-recommends \
+RUN eatmydata apt-get install -yq --no-install-recommends \
     meson \
     gettext \
     gobject-introspection \
-    gtk-doc-tools \
+    xsltproc \
+    docbook-xsl \
     libgirepository1.0-dev \
     libglib2.0-dev \
     libstemmer-dev \
@@ -24,7 +25,7 @@ RUN apt-get install -yq --no-install-recommends \
     gperf
 
 # install dependencies only for appstream-generator
-RUN apt-get install -yq --no-install-recommends \
+RUN eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
     libglibd-2.0-dev \
     libcurl4-gnutls-dev \
@@ -58,7 +59,11 @@ RUN cd /build-tmp && \
     git clone --depth=20 https://github.com/ximion/appstream.git
 RUN mkdir /build-tmp/appstream/build
 RUN cd /build-tmp/appstream/build && \
-    meson --prefix=/usr -Dmaintainer=true -Dapt-support=true ..
+    meson --prefix=/usr \
+        -Dmaintainer=true \
+        -Dapt-support=true \
+        -Dapidocs=false \
+        ..
 RUN cd /build-tmp/appstream/build && \
     ninja && ninja install
 
