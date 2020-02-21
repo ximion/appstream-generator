@@ -7,7 +7,7 @@ FROM debian:testing
 RUN apt-get update -qq
 
 # install build essentials
-RUN apt-get install -yq git gcc gdc ldc
+RUN apt-get install -yq git gcc gdc ldc gdc-10
 
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \

@@ -6,6 +6,11 @@
 set -e
 export LANG=C.UTF-8
 
+if [ "$DC" == "gdc" ]
+then
+  export DC="gdc-10"
+fi
+
 echo "D compiler: $DC"
 set -v
 $DC --version
