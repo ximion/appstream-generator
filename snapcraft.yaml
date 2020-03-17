@@ -7,12 +7,14 @@
 # If you can, please use a provided native build for your distribution.
 # Patches to improve this file are very welcome though, and so is testing the Snap!
 #
-# The asgen tool can likely be confined - it needs read/write access to wherever the user
-# puts the workspace definition (could be anywhere, but most commonly it's in /srv,
-# in /home or in /var), access to a local archive mount (can be in /mnt), access to the
-# network, and that should be it (unless optipng and ffprobe have extra requirements).
-# Using classic confinement ensures the Snap won't run into trouble, so this is the easier
-# route for now until someone can actually do extensive testing of a confined Snap.
+# This snap is strict, but it has an important limitation:
+# - it needs read/write access to wherever the user puts the workspace
+#   definition (could be anywhere, but most commonly it's in /srv, in /home or
+#   in /var), access to a local archive mount (can be in /mnt), and that should
+#   be it (unless optipng and ffprobe have extra requirements).
+#
+# Until that is overcome, this snap should be installed using `--devmode` to
+# effectively disable the confinement.
 #
 # This Snap is autobuilt, you can check its status at https://build.snapcraft.io/user/ximion/appstream-generator
 
@@ -21,7 +23,7 @@ license: LGPL-3.0
 base: core18
 adopt-info: appstream-generator
 
-confinement: classic
+confinement: strict
 grade: devel
 
 architectures:
@@ -32,6 +34,8 @@ apps:
   appstream-generator:
     command: usr/bin/appstream-generator
     common-id: org.freedesktop.appstream.generator
+    plugs:
+      - network
 
 parts:
   appstream-generator:
