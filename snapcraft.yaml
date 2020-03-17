@@ -195,7 +195,7 @@ parts:
 
     override-build: |
       # link shared by default
-      sed -i 's|"-L--no-warn-search-mismatch",|"-L--no-warn-search-mismatch",\n    "-link-defaultlib-shared",|g' etc/ldc2.conf
+      sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
 
       # remove unneeded libs
       rm -rf lib32
