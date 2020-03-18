@@ -38,6 +38,12 @@ apps:
       - network
       - home
 
+layout:
+  /usr/share/appsteam:
+    bind: $SNAP/usr/share/appstream
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
+
 parts:
   appstream-generator:
     source: .
@@ -67,6 +73,18 @@ parts:
       cd snapbuild
       ninja -j1
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    override-prime: |
+      set -eux
+      snapcraftctl prime
+      for dir in usr/lib/*/gdk-pixbuf-2.0; do
+        if [ -d "${dir}" ]; then
+          for subdir in "${dir}"/*; do
+            if [ -d "${subdir}" ]; then
+              GDK_PIXBUF_MODULEDIR="${subdir}" "${dir}/gdk-pixbuf-query-loaders" > "${subdir}/loaders.cache"
+            fi
+          done
+        fi
+      done
     build-packages:
       - meson
       - docbook-xsl
@@ -113,6 +131,7 @@ parts:
       - libxdmcp6
       - libxext6
       - libxrender1
+      - locales
     after:
       - appstream
       - ldc
