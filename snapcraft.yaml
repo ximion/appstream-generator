@@ -43,6 +43,8 @@ layout:
     bind: $SNAP/usr/share/appstream
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
+  /usr/share/i18n/charmaps:
+    bind: $SNAP/usr/share/i18n/charmaps
 
 parts:
   appstream-generator:
