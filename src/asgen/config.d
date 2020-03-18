@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -138,8 +138,18 @@ private:
     // Thread global
     __gshared Config instance_;
 
-    this () {
+    this ()
+    {
+        import glib.Util : Util;
+
+        // our default export format version
         formatVersion = FormatVersion.V0_12;
+
+        // find all the external binaries we (may) need
+        // we search for them unconditionally, because the unittests may rely on their absolute
+        // paths being set even if a particular feature flag that requires them isn't.
+        optipngBinary = Util.findProgramInPath ("optipng");
+        ffprobeBinary = Util.findProgramInPath ("ffprobe");
     }
 
 public:
@@ -154,6 +164,9 @@ public:
     string[] oldsuites;
     DataType metadataType;
     GeneratorFeatures feature; /// Set which features are enabled or disabled
+
+    string optipngBinary;
+    string ffprobeBinary;
 
     bool[string] allowedCustomKeys; // set of allowed keys in <custom/> tags
 
@@ -561,15 +574,19 @@ public:
 
         // check if we need to disable features because some prerequisites are not met
         if (feature.optipng) {
-            if (!"/usr/bin/optipng".exists) {
+            if (optipngBinary.empty) {
                 feature.optipng = false;
                 logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
+            } else {
+                logDebug ("Using `optipng`: %s", optipngBinary);
             }
         }
         if (feature.screenshotVideos) {
-            if (!"/usr/bin/ffprobe".exists) {
+            if (ffprobeBinary.empty) {
                 feature.screenshotVideos = false;
                 logError ("Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
+            } else {
+                logDebug ("Using `ffprobe`: %s", ffprobeBinary);
             }
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -106,7 +106,7 @@ private struct VideoInfo
     bool isAcceptable;
 }
 
-private VideoInfo checkVideoInfo (GeneratorResult gres, Component cpt, string vidFname)
+private VideoInfo checkVideoInfo (GeneratorResult gres, Component cpt, const Config conf, const string vidFname)
 {
     import glib.Spawn : Spawn, SpawnFlags;
     import std.array : split;
@@ -123,7 +123,7 @@ private VideoInfo checkVideoInfo (GeneratorResult gres, Component cpt, string vi
         // NOTE: We are currently extracting information from ffprobe's simple output, but it also has a JSON
         // mode. Parsing JSON is a bit slower, but if it is more reliable we should switch to that.
         Spawn.sync (null, // working directory
-                    ["/usr/bin/ffprobe",
+                    [conf.ffprobeBinary,
                      "-v", "quiet",
                      "-show_entries", "stream=width,height,codec_name,codec_type",
                      "-show_entries", "format=format_name",
@@ -267,7 +267,7 @@ private Screenshot processScreenshotVideos (GeneratorResult gres, Component cpt,
             return null;
         }
 
-        immutable vinfo = checkVideoInfo (gres, cpt, scrVidPath);
+        immutable vinfo = checkVideoInfo (gres, cpt, conf, scrVidPath);
         if (!vinfo.isAcceptable)
             continue; // we already marked the screenshot to be ignored at this point
 
@@ -448,7 +448,7 @@ unittest {
     cpt.setId ("org.example.Test");
 
     immutable sampleVidFname = buildPath (getTestSamplesDir, "sample-video.mkv");
-    auto vinfo = checkVideoInfo (gres, cpt, sampleVidFname);
+    auto vinfo = checkVideoInfo (gres, cpt, Config.get, sampleVidFname);
     assert (vinfo.width == 640);
     assert (vinfo.height == 360);
     assert (vinfo.codecKind == VideoCodecKind.AV1);

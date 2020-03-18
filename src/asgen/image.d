@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -66,7 +66,7 @@ private void optimizePNG (string fname)
     try {
         // NOTE: Maybe add an option to run optipng with stronger optimization? (>= -o4)
         Spawn.sync (null, // working directory
-                    ["/usr/bin/optipng", fname ], // argv
+                    [conf.optipngBinary, fname ], // argv
                     [], // envp
                     SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
                     null, // child setup
