@@ -39,7 +39,7 @@ apps:
       - home
 
 layout:
-  /usr/share/appsteam:
+  /usr/share/appstream:
     bind: $SNAP/usr/share/appstream
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
