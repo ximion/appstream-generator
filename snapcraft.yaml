@@ -36,6 +36,7 @@ apps:
     common-id: org.freedesktop.appstream.generator
     plugs:
       - network
+      - home
 
 parts:
   appstream-generator:
