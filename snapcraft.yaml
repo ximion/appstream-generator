@@ -133,6 +133,7 @@ parts:
       - libxdmcp6
       - libxext6
       - libxrender1
+      - locales
       - locales-all
     after:
       - appstream
