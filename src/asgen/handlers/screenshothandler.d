@@ -441,7 +441,6 @@ unittest {
 
     writeln ("TEST: ", "ScreenshotHandler");
     auto conf = Config.get;
-    assert (!conf.ffprobeBinary.empty, "Unable to find the `ffprobe` binary needed to run this test.");
 
     auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
     auto gres = new GeneratorResult (pkg);
@@ -449,12 +448,18 @@ unittest {
     cpt.setKind (ComponentKind.GENERIC);
     cpt.setId ("org.example.Test");
 
-    immutable sampleVidFname = buildPath (getTestSamplesDir, "sample-video.mkv");
-    auto vinfo = checkVideoInfo (gres, cpt, conf, sampleVidFname);
-    assert (vinfo.width == 640);
-    assert (vinfo.height == 360);
-    assert (vinfo.codecKind == VideoCodecKind.AV1);
-    assert (vinfo.containerKind == VideoContainerKind.MKV);
-    assert (vinfo.isAcceptable);
-    assert (gres.hintsCount == 0);
+    if (conf.ffprobeBinary.empty) {
+        // Fedora doesn't have FFmpeg in its repositories, so we don't fail tests here.
+        // appstream-generator is useful without FFmpeg.
+        logWarning ("Skipped video metadata tests due to missing `ffprobe` binary.");
+    } else {
+        immutable sampleVidFname = buildPath (getTestSamplesDir, "sample-video.mkv");
+        auto vinfo = checkVideoInfo (gres, cpt, conf, sampleVidFname);
+        assert (vinfo.width == 640);
+        assert (vinfo.height == 360);
+        assert (vinfo.codecKind == VideoCodecKind.AV1);
+        assert (vinfo.containerKind == VideoContainerKind.MKV);
+        assert (vinfo.isAcceptable);
+        assert (gres.hintsCount == 0);
+    }
 }
