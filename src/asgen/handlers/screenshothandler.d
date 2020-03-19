@@ -440,6 +440,8 @@ unittest {
     import appstream.Component : ComponentKind;
 
     writeln ("TEST: ", "ScreenshotHandler");
+    auto conf = Config.get;
+    assert (!conf.ffprobeBinary.empty, "Unable to find the `ffprobe` binary needed to run this test.");
 
     auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
     auto gres = new GeneratorResult (pkg);
@@ -448,7 +450,7 @@ unittest {
     cpt.setId ("org.example.Test");
 
     immutable sampleVidFname = buildPath (getTestSamplesDir, "sample-video.mkv");
-    auto vinfo = checkVideoInfo (gres, cpt, Config.get, sampleVidFname);
+    auto vinfo = checkVideoInfo (gres, cpt, conf, sampleVidFname);
     assert (vinfo.width == 640);
     assert (vinfo.height == 360);
     assert (vinfo.codecKind == VideoCodecKind.AV1);
