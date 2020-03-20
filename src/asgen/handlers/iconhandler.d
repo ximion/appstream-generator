@@ -802,7 +802,7 @@ public:
                 // by the AppStream spec by downscaling a larger icon that we
                 // might have found.
                 if (ImageSize(64) in iconsStored) {
-                    logInfo ("Found icon %s - %s in XDG directories, 64x64px size is present", gres.pkid, iconName);
+                    logDebug ("Found icon %s - %s in XDG directories, 64x64px size is present", gres.pkid, iconName);
                     return true;
                 } else {
                     foreach (size; iconPolicy.map!(a => a.iconSize)) {
@@ -831,15 +831,15 @@ public:
             }
 
             if (success) {
-                    logDebug ("Icon %s - %s found in XDG dirs", gres.pkid, iconName);
+                logDebug ("Icon %s - %s found in XDG dirs", gres.pkid, iconName);
 
-                    // we found a valid stock icon, so set that additionally to the cached one
-                    auto icon = new Icon ();
-                    icon.setKind (IconKind.STOCK);
-                    icon.setName (iconName);
-                    cpt.addIcon (icon);
+                // we found a valid stock icon, so set that additionally to the cached one
+                auto icon = new Icon;
+                icon.setKind (IconKind.STOCK);
+                icon.setName (iconName);
+                cpt.addIcon (icon);
 
-                    return true;
+                return true;
             } else {
                 logDebug ("Icon %s - %s not found in required size(s) in XDG dirs", gres.pkid, iconName);
 
