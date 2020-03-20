@@ -81,8 +81,8 @@ parts:
       for dir in usr/lib/*/gdk-pixbuf-2.0; do
         if [ -d "${dir}" ]; then
           for subdir in "${dir}"/*; do
-            if [ -d "${subdir}" ]; then
-              GDK_PIXBUF_MODULEDIR="${subdir}" "${dir}/gdk-pixbuf-query-loaders" > "${subdir}/loaders.cache"
+            if [ -d "${subdir}" ] && [ -d "${subdir}/loaders" ]; then
+              GDK_PIXBUF_MODULEDIR="${subdir}/loaders" "${dir}/gdk-pixbuf-query-loaders" > "${subdir}/loaders.cache"
             fi
           done
         fi
