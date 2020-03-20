@@ -73,7 +73,8 @@ parts:
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
       meson --prefix=/usr --buildtype=release -Ddownload-js=true snapbuild
       cd snapbuild
-      ninja -j1
+      ninja -j4
+      ninja test
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-prime: |
       set -eux
@@ -92,6 +93,7 @@ parts:
       - docbook-xsl
       - docbook-xml
       - xsltproc
+      - ffmpeg
       - libgdk-pixbuf2.0-dev
       - libarchive-dev
       - librsvg2-dev
