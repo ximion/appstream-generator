@@ -62,15 +62,13 @@ public auto gdkPixbufGetFormatNames () @trusted
     import glib.c.functions : g_slist_free;
 
     bool[string] res;
-    auto fmList = gdk_pixbuf_get_formats();
+    auto fmList = gdk_pixbuf_get_formats ();
     if(fmList is null)
         return res;
 
     auto list = fmList;
-    size_t count;
-
-    while(list !is null) {
-        immutable formatName = Str.toString(cast(char*) gdk_pixbuf_format_get_name(list.data));
+    while (list !is null) {
+        immutable formatName = Str.toString(cast(char*) gdk_pixbuf_format_get_name (list.data));
         res[formatName] = true;
         list = list.next;
     }
