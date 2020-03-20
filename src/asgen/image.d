@@ -455,6 +455,12 @@ unittest
     import asgen.utils : getTestSamplesDir;
     writeln ("TEST: ", "Image");
 
+    // check if our GdkPixbuf supports the minimum amount of image formats we need
+    const pixbufFormatNames = gdkPixbufGetFormatNames ();
+    assert ("png" in pixbufFormatNames);
+    assert ("svg" in pixbufFormatNames);
+    assert ("jpeg" in pixbufFormatNames);
+
     auto sampleImgPath = buildPath (getTestSamplesDir (), "appstream-logo.png");
     writeln ("Loading image (file)");
     auto img = new Image (sampleImgPath);

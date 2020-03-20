@@ -23,15 +23,14 @@ import glib.c.types;
 import gio.c.types;
 import asgen.bindings.cairo;
 
-extern(C):
-nothrow:
-@nogc:
+@nogc nothrow
+extern(C) {
 
 enum GdkInterpType {
-	NEAREST,
-	TILES,
-	BILINEAR,
-	HYPER
+    NEAREST,
+    TILES,
+    BILINEAR,
+    HYPER
 }
 
 struct _GdkPixbuf {}
@@ -47,3 +46,35 @@ GdkPixbuf gdk_pixbuf_scale_simple (const(GdkPixbuf) src, int dest_width, int des
 
 bool gdk_pixbuf_save_to_buffer (GdkPixbuf pixbuf, char **buffer, size_t *buffer_size, const(char) *type, GError **error, ...);
 bool gdk_pixbuf_save (GdkPixbuf pixbuf, const(char) *filename, const(char) *type, GError **error, ...);
+
+private GSList* gdk_pixbuf_get_formats ();
+private const(char) *gdk_pixbuf_format_get_name (void *);
+
+} // end of extern:C
+
+/**
+ * Get a set of image format names GdkPixbuf
+ * currently supports.
+ */
+public auto gdkPixbufGetFormatNames () @trusted
+{
+    import glib.Str : Str;
+    import glib.c.functions : g_slist_free;
+
+    bool[string] res;
+    auto fmList = gdk_pixbuf_get_formats();
+    if(fmList is null)
+        return res;
+
+    auto list = fmList;
+    size_t count;
+
+    while(list !is null) {
+        immutable formatName = Str.toString(cast(char*) gdk_pixbuf_format_get_name(list.data));
+        res[formatName] = true;
+        list = list.next;
+    }
+
+    g_slist_free (fmList);
+    return res;
+}
