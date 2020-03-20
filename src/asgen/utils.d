@@ -736,14 +736,15 @@ unittest
 
     auto networkEnabled = true;
     try {
-        getFileContents ("https://debian.org", 2);
+        getFileContents ("https://detectportal.firefox.com/", 2);
     } catch (Exception e) {
-        writeln ("INFO: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
+        writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
         networkEnabled = false;
     }
 
     if (networkEnabled) {
         import std.net.curl : HTTPStatusException;
+        writeln ("I: Running network-dependent tests.");
 
         // NOTE: These tests require an internet connection to be available
         downloadFile ("https://freedesktop.org", "/tmp/asgen-test.fdo" ~ randomString (4));
