@@ -796,6 +796,13 @@ public:
                             lastIconName = info.fname;
                         }
                     }
+
+                    if (gres.isIgnored (cpt)) {
+                        // running storeIcon() in this loop may lead to rejection
+                        // of this component, in case icons can't be saved.
+                        // we just give up in that case.
+                        return false;
+                    }
                 }
 
                 // ensure we have stored a 64x64px icon, since this is mandated
