@@ -44,3 +44,4 @@ includeComments: y
 srcDir: .
 
 lookup: APILookupAppStream.txt
+#lookup: APILookupSoup.txt

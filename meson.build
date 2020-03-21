@@ -21,17 +21,18 @@ endif
 #
 src_dir = include_directories('src/')
 
-glibd_dep       = dependency('glibd-2.0')
-appstream_dep   = dependency('appstream', version : '>= 0.12.10')
-lmdb_dep        = dependency('lmdb', version : '>= 0.9')
-archive_dep     = dependency('libarchive', version : '>= 3.2')
-cairo_dep       = dependency('cairo', version : '>= 1.12')
-gdkpixbuf_dep   = dependency('gdk-pixbuf-2.0')
-rsvg_dep        = dependency('librsvg-2.0')
-curl_dep        = dependency('libcurl')
-freetype_dep    = dependency('freetype2')
-pango_dep       = dependency('pango')
-fontconfig_dep  = dependency('fontconfig')
+glibd_dep      = dependency('glibd-2.0')
+appstream_dep  = dependency('appstream', version : '>= 0.12.10')
+lmdb_dep       = dependency('lmdb', version : '>= 0.9')
+archive_dep    = dependency('libarchive', version : '>= 3.2')
+soup_dep       = dependency('libsoup-2.4', version: '>= 2.56')
+cairo_dep      = dependency('cairo', version : '>= 1.12')
+gdkpixbuf_dep  = dependency('gdk-pixbuf-2.0')
+rsvg_dep       = dependency('librsvg-2.0')
+curl_dep       = dependency('libcurl')
+freetype_dep   = dependency('freetype2')
+pango_dep      = dependency('pango')
+fontconfig_dep = dependency('fontconfig')
 
 #
 # Build interfaces from GIR
