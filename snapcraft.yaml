@@ -45,6 +45,8 @@ layout:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
   /usr/share/i18n:
     bind: $SNAP/usr/share/i18n
+  /usr/share/mime:
+    bind: $SNAP/usr/share/mime
 
 parts:
   appstream-generator:
@@ -89,6 +91,7 @@ parts:
           done
         fi
       done
+      update-mime-database -V usr/share/mime/
     build-packages:
       - meson
       - docbook-xsl
@@ -139,6 +142,7 @@ parts:
       - libxrender1
       - locales
       - locales-all
+      - shared-mime-info
     after:
       - appstream
       - ldc
