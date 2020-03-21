@@ -127,6 +127,7 @@ parts:
       - libpixman-1-0
       - libpng16-16
       - librsvg2-2
+      - librsvg2-common
       - libthai0
       - libx11-6
       - libxau6
