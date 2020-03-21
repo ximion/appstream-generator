@@ -84,7 +84,7 @@ parts:
           for subdir in "${dir}"/*; do
             if [ -d "${subdir}" ] && [ -d "${subdir}/loaders" ]; then
               GDK_PIXBUF_MODULEDIR="$(pwd)/${subdir}/loaders" "${dir}/gdk-pixbuf-query-loaders" > "${subdir}/loaders.cache"
-              sed -i 's,/root/prime,,' "${subdir}/loaders.cache"
+              sed -i "s,$(pwd),," "${subdir}/loaders.cache"
             fi
           done
         fi
