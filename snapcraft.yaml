@@ -187,7 +187,7 @@ parts:
   gir-to-d:
     source: https://github.com/gtkd-developers/gir-to-d.git
     source-type: git
-    source-tag: v0.20.0
+    source-tag: v0.21.0
 
     plugin: meson
     meson-parameters:
