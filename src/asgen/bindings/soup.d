@@ -48,7 +48,7 @@ public enum SoupMessageHeadersType
     RESPONSE = 1,
     MULTIPART = 2,
 }
-alias SoupMessageHeadersType MessageHeadersType;
+alias MessageHeadersType = SoupMessageHeadersType;
 
 struct SoupMessageHeaders;
 
@@ -137,14 +137,14 @@ public enum SoupMessageFlags
     IGNORE_CONNECTION_LIMITS = 256,
     DO_NOT_USE_AUTH_CACHE = 512,
 }
-alias SoupMessageFlags MessageFlags;
+alias MessageFlags = SoupMessageFlags;
 
 public enum SoupHTTPVersion
 {
     HTTP_1_0 = 0,
     HTTP_1_1 = 1,
 }
-alias SoupHTTPVersion HTTPVersion;
+alias HTTPVersion = SoupHTTPVersion;
 
 public enum SoupMessagePriority
 {
@@ -154,7 +154,7 @@ public enum SoupMessagePriority
     HIGH = 3,
     VERY_HIGH = 4,
 }
-alias SoupMessagePriority MessagePriority;
+alias MessagePriority = SoupMessagePriority;
 
 struct SoupBuffer
 {
@@ -169,7 +169,7 @@ public enum SoupMemoryUse
     COPY = 2,
     TEMPORARY = 3,
 }
-alias SoupMemoryUse MemoryUse;
+alias MemoryUse = SoupMemoryUse;
 
 // constants
 
