@@ -94,8 +94,12 @@ public:
 
         // set custom SSL CA file, if we have one
         immutable caInfo = Config.get.caInfo;
-        if (!caInfo.empty)
-            g_object_set (session, SESSION_SSL_CA_FILE.toStringz, caInfo.toStringz);
+        if (!caInfo.empty) {
+            g_object_set (session,
+                          SOUP_SESSION_SSL_CA_FILE.toStringz,
+                          caInfo.toStringz,
+                          null);
+        }
 
         // set default proxy resolver
         soup_session_add_feature_by_type (session,
