@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -37,8 +37,9 @@ static import std.file;
 import appstream.Component;
 import appstream.Icon;
 
-import asgen.logging;
 import asgen.defines;
+import asgen.logging;
+import asgen.downloader : Downloader;
 
 public immutable DESKTOP_GROUP = "Desktop Entry";
 
@@ -410,89 +411,6 @@ bool isRemote (const string uri)
     return (!match.empty);
 }
 
-private immutable(Nullable!SysTime) download (const string url, ref File dest, const uint retryCount = 5) @trusted
-in { assert (url.isRemote); }
-do
-{
-    import core.time : dur;
-    import std.string : toLower;
-    import std.net.curl : CurlException, HTTP, FTP, HTTPStatusException;
-    import asgen.config : Config;
-    import std.typecons : Yes;
-
-    static Config conf = null;
-    if (conf is null)
-        conf = Config.get ();
-
-    Nullable!SysTime ret;
-
-    size_t onReceiveCb (File f, ubyte[] data)
-    {
-        f.rawWrite (data);
-        return data.length;
-    }
-
-    /* the curl library is stupid; you can't make an AutoProtocol to set timeouts */
-    logDebug ("Downloading %s", url);
-    try {
-        if (url.startsWith ("http")) {
-            immutable httpsUrl = url.startsWith ("https");
-            auto downloader = HTTP (url);
-            if (!conf.caInfo.empty ())
-                downloader.caInfo = conf.caInfo;
-
-            HTTP.StatusLine statusLine;
-            downloader.connectTimeout = dur!"seconds" (30);
-            downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (dest, data);
-            downloader.onReceiveStatusLine = (HTTP.StatusLine l) { statusLine = l; };
-            downloader.onReceiveHeader = (in char[] key, in char[] value) {
-                // we will not allow a HTTPS --> HTTP downgrade
-                if (!httpsUrl)
-                    return;
-                if (key == "location" && value.toLower.startsWith ("http:"))
-                    throw new CurlException ("HTTPS URL tried to redirect to a less secure HTTP URL.");
-            };
-            downloader.perform(Yes.throwOnError);
-            if ("last-modified" in downloader.responseHeaders) {
-                    auto lastmodified = downloader.responseHeaders["last-modified"];
-                    ret = parseRFC822DateTime(lastmodified);
-            }
-
-            if (statusLine.code != 200 && statusLine.code != 301 && statusLine.code != 302) {
-                if (statusLine.code == 0) {
-                    // with some recent update of the D runtime or Curl, the status line isn't set anymore
-                    // just to be safe, check whether we received data before assuming everything went fine
-                    if (dest.size == 0)
-                        throw new HTTPStatusException (statusLine.code, "No data was received from the remote end.");
-                } else {
-                    throw new HTTPStatusException (statusLine.code,
-                            "HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
-                }
-            }
-        } else {
-            auto downloader = FTP (url);
-            downloader.connectTimeout = dur!"seconds" (30);
-            downloader.dataTimeout = dur!"seconds" (30);
-            downloader.onReceive = (data) => onReceiveCb (dest, data);
-            downloader.perform(Yes.throwOnError);
-        }
-        logDebug ("Downloaded %s", url);
-    } catch (Exception e) {
-        if (retryCount > 0) {
-            logDebug ("Failed to download %s, will retry %d more %s",
-                      url,
-                      retryCount,
-                      retryCount > 1 ? "times" : "time");
-            download (url, dest, retryCount - 1);
-        } else {
-            throw e;
-        }
-    }
-
-    return ret;
-}
-
 /**
  * Download or open `path` and return it as a string array.
  *
@@ -501,24 +419,15 @@ do
  *
  * Returns: The data if successful.
  */
-string[] getTextFileContents (const string path, const uint retryCount = 5) @trusted
+string[] getTextFileContents (const string path, const uint retryCount = 4, Downloader downloader = null) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
 
     if (path.isRemote) {
-        char* ptr = null;
-        scope (exit) free (ptr);
-        size_t sz = 0;
-
-        {
-            auto f = open_memstream (&ptr, &sz);
-            scope (exit) fclose (f);
-            auto file = File.wrapFile (f);
-            download (path, file, retryCount);
-        }
-
-        return to!string (ptr.fromStringz).splitLines;
+        if (downloader is null)
+            downloader = Downloader.get;
+        return downloader.downloadTextLines (path, retryCount);
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
@@ -535,24 +444,15 @@ string[] getTextFileContents (const string path, const uint retryCount = 5) @tru
  *
  * Returns: The data if successful.
  */
-ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
+ubyte[] getFileContents (const string path, const uint retryCount = 4, Downloader downloader = null) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
 
     if (path.isRemote) {
-        char* ptr = null;
-        scope (exit) free (ptr);
-        size_t sz = 0;
-
-        {
-            auto f = open_memstream (&ptr, &sz);
-            scope (exit) fclose (f);
-            auto file = File.wrapFile (f);
-            download (path, file, retryCount);
-        }
-
-        return (cast(ubyte[]) ptr[0..sz]).dup;
+        if (downloader is null)
+            downloader = Downloader.get;
+        return downloader.download (path, retryCount);
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
@@ -566,39 +466,6 @@ ubyte[] getFileContents (const string path, const uint retryCount = 5) @trusted
 
         return data;
     }
-}
-
-/**
- * Download `url` to `dest`.
- *
- * Params:
- *      url = The URL to download.
- *      dest = The location for the downloaded file.
- *      retryCount = Number of times to retry on timeout.
- */
-void downloadFile (const string url, const string dest, const uint retryCount = 5) @trusted
-in  { assert (url.isRemote); }
-out { assert (std.file.exists (dest)); }
-do
-{
-    import std.file : exists, mkdirRecurse, setTimes, remove;
-    static import std.file;
-
-    if (dest.exists) {
-        logDebug ("Already downloaded '%s' into '%s', won't redownload", url, dest);
-        return;
-    }
-
-    mkdirRecurse (dest.dirName);
-
-    auto f = File (dest, "wb");
-    scope (failure) remove (dest);
-
-    auto time = download (url, f, retryCount);
-
-    f.close ();
-    if (!time.isNull)
-        setTimes (dest, Clock.currTime, time.get);
 }
 
 /**
@@ -733,25 +600,4 @@ unittest
     assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true") == "video.mkv");
     assert (filenameFromURI ("https://example.org/test/video.mkv#anchor") == "video.mkv");
     assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true&aaa=bbb") == "video.mkv");
-
-    auto networkEnabled = true;
-    try {
-        getFileContents ("https://detectportal.firefox.com/", 2);
-    } catch (Exception e) {
-        writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
-        networkEnabled = false;
-    }
-
-    if (networkEnabled) {
-        import std.net.curl : HTTPStatusException;
-        writeln ("I: Running network-dependent tests.");
-
-        // NOTE: These tests require an internet connection to be available
-        downloadFile ("https://freedesktop.org", "/tmp/asgen-test.fdo" ~ randomString (4));
-
-        assertThrown!HTTPStatusException (downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 1));
-
-        // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
-        downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
-    }
 }

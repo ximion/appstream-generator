@@ -35,7 +35,8 @@ static import std.file;
 
 import asgen.config : Config;
 import asgen.result : GeneratorResult;
-import asgen.utils : ImageSize, filenameFromURI, getFileContents, downloadFile;
+import asgen.downloader : Downloader;
+import asgen.utils : ImageSize, filenameFromURI, getFileContents;
 import asgen.logging;
 static import asgen.image;
 
@@ -238,7 +239,8 @@ private Screenshot processScreenshotVideos (GeneratorResult gres, Component cpt,
         return null;
     }
 
-    auto conf = Config.get ();
+    auto conf = Config.get;
+    auto downloader = Downloader.get;
 
     // ignore this screenshot if we aren't permitted to have video screencasts
     if (!conf.feature.screenshotVideos)
@@ -261,7 +263,7 @@ private Screenshot processScreenshotVideos (GeneratorResult gres, Component cpt,
         immutable srcVidUrl =  buildPath (scrBaseUrl, scrVidName);
 
         try {
-            downloadFile (origVidUrl, scrVidPath);
+            downloader.downloadFile (origVidUrl, scrVidPath);
         } catch (Exception e) {
             gres.addHint (cpt, "screenshot-download-error", ["url": origVidUrl, "error": e.msg]);
             return null;

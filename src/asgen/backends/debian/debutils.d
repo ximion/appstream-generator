@@ -26,7 +26,8 @@ import std.string;
 static import std.file;
 
 import asgen.logging;
-import asgen.utils : downloadFile, isRemote;
+import asgen.downloader : Downloader, DownloadException;
+import asgen.utils : isRemote;
 
 /**
  * If prefix is remote, download the first of (prefix + suffix).{xz,bz2,gz},
@@ -47,10 +48,13 @@ import asgen.utils : downloadFile, isRemote;
  */
 immutable (string) downloadIfNecessary (const string prefix,
                                         const string destPrefix,
-                                        const string suffix)
+                                        const string suffix,
+                                        Downloader downloader = null)
 {
-    import std.net.curl : CurlException;
     import std.path : buildPath;
+
+    if (downloader is null)
+        downloader = Downloader.get;
 
     immutable exts = ["xz", "bz2", "gz"];
     foreach (ref ext; exts) {
@@ -60,11 +64,11 @@ immutable (string) downloadIfNecessary (const string prefix,
         if (fileName.isRemote) {
             try {
                 /* This should use download(), but that doesn't throw errors */
-                downloadFile (fileName, destFileName);
+                downloader.downloadFile (fileName, destFileName);
 
                 return destFileName;
-            } catch (CurlException ex) {
-                logDebug ("Could not download: %s", ex.msg);
+            } catch (DownloadException e) {
+                logDebug ("Unable to download: %s", e.msg);
             }
         } else {
             if (std.file.exists (fileName))

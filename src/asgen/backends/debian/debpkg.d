@@ -28,10 +28,11 @@ import std.typecons : Nullable;
 static import std.file;
 
 import asgen.config;
+import asgen.logging;
 import asgen.zarchive;
 import asgen.backends.interfaces;
-import asgen.logging;
-import asgen.utils : isRemote, downloadFile;
+import asgen.downloader : Downloader;
+import asgen.utils : isRemote;
 
 
 /**
@@ -103,8 +104,9 @@ public:
 
         if (debFname.isRemote) {
             synchronized (this) {
+                auto dl = Downloader.get;
                 immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
-                downloadFile (debFname, path);
+                dl.downloadFile (debFname, path);
                 localDebFname = path;
                 return localDebFname;
             }

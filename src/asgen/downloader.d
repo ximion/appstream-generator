@@ -119,7 +119,10 @@ public:
         if ((spUri is null) ||
             (uriScheme != "http" && uriScheme != "https") ||
             ((spUri.host is null) || (spUri.path is null))) {
-                throw new DownloadException ("The URL `%s` is no valid HTTP(S) URL!".format (url));
+                if (uriScheme == "ftp")
+                    throw new DownloadException ("Downloads via FTP are not supported. Url `%s` is invalid.".format (url));
+                else
+                    throw new DownloadException ("The URL `%s` is no valid HTTP(S) URL!".format (url));
         }
 
         // set up message
@@ -290,6 +293,7 @@ unittest
         writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
         return;
     }
+    writeln ("I: Running network-dependent tests.");
     assert (detectPortalRes.startsWith ("success"));
 
     dl.downloadFile ("https://example.org", "/tmp/asgen-test.eo" ~ randomString (4));
