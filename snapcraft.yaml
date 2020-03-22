@@ -103,15 +103,14 @@ parts:
       - librsvg2-dev
       - liblmdb-dev
       - libglib2.0-dev
+      - libsoup2.4-dev
       - libcairo2-dev
-      - libcurl4-gnutls-dev
       - libfreetype6-dev
       - libfontconfig1-dev
       - libpango1.0-dev
     stage-packages:
       - ffmpeg
       - optipng
-      - libcurl3-gnutls
       - libglu1-mesa
       - freeglut3
       - libslang2
@@ -131,6 +130,7 @@ parts:
       - libpng16-16
       - librsvg2-2
       - librsvg2-common
+      - libsoup2.4-1
       - libthai0
       - libx11-6
       - libxau6

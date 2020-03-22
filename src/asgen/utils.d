@@ -31,7 +31,6 @@ import std.array : appender, empty;
 import std.path : buildPath, dirName, buildNormalizedPath;
 import std.typecons : Nullable, Rebindable;
 import std.traits : Unqual, hasIndirections;
-import std.datetime : Clock, parseRFC822DateTime, SysTime;
 static import std.file;
 
 import appstream.Component;

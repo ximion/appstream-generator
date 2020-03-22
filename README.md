@@ -41,9 +41,9 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
-sudo apt install meson ldc gir-to-d libappstream-dev libgdk-pixbuf2.0-dev libarchive-dev \
-    librsvg2-dev liblmdb-dev libcairo2-dev libcurl4-gnutls-dev libfreetype6-dev libfontconfig1-dev \
-    libpango1.0-dev libglibd-2.0-dev
+sudo apt install meson ldc gir-to-d libappstream-dev libsoup2.4-dev libarchive-dev \
+    libgdk-pixbuf2.0-dev librsvg2-dev libcairo2-dev libfreetype6-dev libfontconfig1-dev \
+    libpango1.0-dev liblmdb-dev libglibd-2.0-dev
 ```
 
 ### Build instructions
