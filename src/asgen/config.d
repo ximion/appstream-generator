@@ -132,10 +132,10 @@ private:
 
     string tmpDir;
 
-    // Thread local
+    // thread local
     static bool instantiated_;
 
-    // Thread global
+    // thread global
     __gshared Config instance_;
 
     this ()

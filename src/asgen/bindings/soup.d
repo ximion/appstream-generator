@@ -521,6 +521,8 @@ alias SOUP_SOCKET_USE_THREAD_CONTEXT = SOCKET_USE_THREAD_CONTEXT;
 enum VERSION_MIN_REQUIRED = 2;
 alias SOUP_VERSION_MIN_REQUIRED = VERSION_MIN_REQUIRED;
 
+enum SOUP_METHOD_GET = "GET";
+
 // soup.Session
 
 GType soup_session_get_type ();
@@ -649,3 +651,37 @@ int soup_uri_uses_default_port(SoupURI* uri);
 char* soup_uri_decode(const(char)* part);
 char* soup_uri_encode(const(char)* part, const(char)* escapeExtra);
 char* soup_uri_normalize(const(char)* part, const(char)* unescapeExtra);
+
+// soup.MessageHeaders
+
+GType soup_message_headers_get_type();
+SoupMessageHeaders* soup_message_headers_new(SoupMessageHeadersType type);
+void soup_message_headers_append(SoupMessageHeaders* hdrs, const(char)* name, const(char)* value);
+void soup_message_headers_clean_connection_headers(SoupMessageHeaders* hdrs);
+void soup_message_headers_clear(SoupMessageHeaders* hdrs);
+void soup_message_headers_free(SoupMessageHeaders* hdrs);
+const(char)* soup_message_headers_get(SoupMessageHeaders* hdrs, const(char)* name);
+int soup_message_headers_get_content_disposition(SoupMessageHeaders* hdrs, char** disposition, GHashTable** params);
+long soup_message_headers_get_content_length(SoupMessageHeaders* hdrs);
+int soup_message_headers_get_content_range(SoupMessageHeaders* hdrs, long* start, long* end, long* totalLength);
+const(char)* soup_message_headers_get_content_type(SoupMessageHeaders* hdrs, GHashTable** params);
+SoupMessageHeadersType soup_message_headers_get_headers_type(SoupMessageHeaders* hdrs);
+const(char)* soup_message_headers_get_list(SoupMessageHeaders* hdrs, const(char)* name);
+const(char)* soup_message_headers_get_one(SoupMessageHeaders* hdrs, const(char)* name);
+int soup_message_headers_header_contains(SoupMessageHeaders* hdrs, const(char)* name, const(char)* token);
+int soup_message_headers_header_equals(SoupMessageHeaders* hdrs, const(char)* name, const(char)* value);
+void soup_message_headers_remove(SoupMessageHeaders* hdrs, const(char)* name);
+void soup_message_headers_replace(SoupMessageHeaders* hdrs, const(char)* name, const(char)* value);
+void soup_message_headers_set_content_disposition(SoupMessageHeaders* hdrs, const(char)* disposition, GHashTable* params);
+void soup_message_headers_set_content_length(SoupMessageHeaders* hdrs, long contentLength);
+void soup_message_headers_set_content_range(SoupMessageHeaders* hdrs, long start, long end, long totalLength);
+void soup_message_headers_set_content_type(SoupMessageHeaders* hdrs, const(char)* contentType, GHashTable* params);
+void soup_message_headers_set_range(SoupMessageHeaders* hdrs, long start, long end);
+
+// soup.MessageHeadersIter
+
+int soup_message_headers_iter_next(SoupMessageHeadersIter* iter, char** name, char** value);
+void soup_message_headers_iter_init(SoupMessageHeadersIter* iter, SoupMessageHeaders* hdrs);
+
+// misc
+const(char)* soup_status_get_phrase(uint status_code);

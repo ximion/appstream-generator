@@ -33,6 +33,7 @@ asgen_sources = [
     'contentsstore.d',
     'datainjectpkg.d',
     'datastore.d',
+    'downloader.d',
     'engine.d',
     'extractor.d',
     'font.d',
