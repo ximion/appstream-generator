@@ -194,7 +194,7 @@ public:
 
             len = g_input_stream_read (stream, cast(void*)buffer.ptr, cast(size_t)buffer.length, null, null);
             if (len > 0)
-                dFile.rawWrite (buffer);
+                dFile.rawWrite (buffer[0..len]);
         } while (len > 0);
 
         return ret;
@@ -298,7 +298,7 @@ unittest
         return;
     }
     writeln ("I: Running network-dependent tests.");
-    assert (detectPortalRes.startsWith ("success"));
+    assert (detectPortalRes == "success\n");
 
     dl.downloadFile ("https://example.org", "/tmp/asgen-test.eo" ~ randomString (4));
 
