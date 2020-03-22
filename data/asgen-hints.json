@@ -216,7 +216,7 @@
 },
 
 "description-missing": {
-  "text": ["Software components of type '{{kind}}' require a long description. The metadata available for this components is missing a long description, please add it via a metainfo file."],
+  "text": ["Software components of type '{{kind}}' require a long description, and we were unable to find one. Please please add one via a metainfo file."],
   "severity": "error"
 },
 
