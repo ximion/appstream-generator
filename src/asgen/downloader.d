@@ -231,8 +231,7 @@ public:
     out { assert (std.file.exists (dest)); }
     do
     {
-        import std.file : exists, mkdirRecurse, setTimes, remove;
-        static import std.file;
+        import std.file : exists, remove, mkdirRecurse, setTimes;
 
         if (dest.exists) {
             logDebug ("File `%s` already exists, re-download of `%s` skipped.", dest, url);
@@ -285,14 +284,17 @@ unittest
 {
     import std.stdio : writeln;
     import std.exception : assertThrown;
+    import std.file : remove, readText;
     asgen.logging.setVerbose (true);
+
     writeln ("TEST: ", "Downloader");
 
-    auto dl = new Downloader;
+    immutable urlFirefoxDetectportal = "https://detectportal.firefox.com/";
 
+    auto dl = new Downloader;
     string detectPortalRes;
     try {
-        detectPortalRes = dl.downloadText ("https://detectportal.firefox.com/");
+        detectPortalRes = dl.downloadText (urlFirefoxDetectportal);
     } catch (Exception e) {
         writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
         return;
@@ -300,8 +302,19 @@ unittest
     writeln ("I: Running network-dependent tests.");
     assert (detectPortalRes == "success\n");
 
-    dl.downloadFile ("https://example.org", "/tmp/asgen-test.eo" ~ randomString (4));
+    // check if a downloaded file contains the right contents
+    immutable firefoxDetectportalFname = "/tmp/asgen-test.ffdp" ~ randomString (4);
+    scope(exit) firefoxDetectportalFname.remove ();
+    dl.downloadFile (urlFirefoxDetectportal, firefoxDetectportalFname);
+    assert (readText (firefoxDetectportalFname) == "success\n");
 
+
+    // download a bigger chunk of data without error
+    immutable debianOrgFname = "/tmp/asgen-test.do" ~ randomString (4);
+    scope(exit) debianOrgFname.remove ();
+    dl.downloadFile ("https://debian.org", debianOrgFname);
+
+    // fail when attempting to download a nonexistent file
     assertThrown!DownloadException (dl.downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 2));
 
     // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
