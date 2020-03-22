@@ -10,12 +10,6 @@ asgen_version = meson.project_version()
 source_root = meson.source_root()
 build_root = meson.build_root()
 
-# Set a few flags to work around compiler bugs
-if meson.get_compiler('d').get_id() == 'gcc'
-    add_global_arguments(['-Wl,--push-state,-no-as-needed -lcurl -Wl,--pop-state', '-no-pie'], language : 'd')
-    add_global_link_arguments('-no-pie', language : 'd')
-endif
-
 #
 # Dependencies
 #
