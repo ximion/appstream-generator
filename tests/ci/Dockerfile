@@ -28,7 +28,7 @@ RUN eatmydata apt-get install -yq --no-install-recommends \
 RUN eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
     libglibd-2.0-dev \
-    libcurl4-gnutls-dev \
+    libsoup2.4-dev \
     liblmdb-dev \
     libarchive-dev \
     libgdk-pixbuf2.0-dev \
