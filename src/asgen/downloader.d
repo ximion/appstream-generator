@@ -85,7 +85,7 @@ public:
         session = soup_session_new_with_options (SOUP_SESSION_USER_AGENT.toStringz,
                                                  "appstream-generator".toStringz,
                                                  SOUP_SESSION_TIMEOUT.toStringz,
-                                                 5000,
+                                                 90,
                                                  null);
         if (session is null) {
             throw new Exception ("Unable to set up networking support!");
@@ -111,7 +111,7 @@ public:
         g_object_unref (session);
     }
 
-    private auto downloadInternal (const string url, ref Nullable!SysTime lastModified, const uint retryCount = 3) @trusted
+    private auto downloadInternal (const string url, ref Nullable!SysTime lastModified, uint maxTryCount = 3) @trusted
     in { assert (url.isRemote); }
     do
     {
@@ -124,24 +124,27 @@ public:
             (uriScheme != "http" && uriScheme != "https") ||
             ((spUri.host is null) || (spUri.path is null))) {
                 if (uriScheme == "ftp")
-                    throw new DownloadException ("Downloads via FTP are not supported. Url `%s` is invalid.".format (url));
+                    throw new DownloadException ("Downloads via FTP are not supported. Url '%s' is invalid.".format (url));
                 else
-                    throw new DownloadException ("The URL `%s` is no valid HTTP(S) URL!".format (url));
+                    throw new DownloadException ("The URL '%s' is no valid HTTP(S) URL!".format (url));
         }
 
         // set up message
         auto msg = soup_message_new_from_uri (SOUP_METHOD_GET, spUri);
         if (msg is null)
-            throw new DownloadException ("Unable to set up GET request for URL `%s`".format (url));
+            throw new DownloadException ("Unable to set up GET request for URL '%s'".format (url));
         scope (exit) g_object_unref (msg);
+
+        if (maxTryCount == 0)
+            maxTryCount = 1;
 
         // send message, retry a few times
         GInputStream *stream;
-        for (int tryNo = 1; tryNo <= retryCount; tryNo++) {
+        for (int tryNo = 1; tryNo <= maxTryCount; tryNo++) {
             if (tryNo == 1)
-                logDebug ("Downloading `%s`", url);
+                logDebug ("Downloading '%s'", url);
             else
-                logDebug ("Retrying download of `%s` (try %s/%s)", url, tryNo, retryCount);
+                logDebug ("Retrying download of '%s' (try %s/%s)", url, tryNo, maxTryCount);
 
             stream = soup_session_send (session, msg, null, null);
             scope (failure) { if (stream !is null) g_object_unref (stream); }
@@ -150,20 +153,20 @@ public:
             if ((statusCode >  0) && (statusCode < 100)) {
                 // transport error
 
-                if (tryNo != retryCount) {
+                if (tryNo != maxTryCount) {
                     if (stream !is null)
                         g_object_unref (stream);
                     continue;
                 }
-                throw new DownloadException ("Connection failed to retrieve `%s` (Code: %s)".format (url, statusCode));
+                throw new DownloadException ("Connection failed to retrieve '%s' (Code: %s)".format (url, statusCode));
             } else if (statusCode != 200) {
                 // any other HTTP status that isn't OK
-                if (tryNo != retryCount) {
+                if (tryNo != maxTryCount) {
                     if (stream !is null)
                         g_object_unref (stream);
                     continue;
                 }
-                throw new DownloadException ("Unable to download `%s` (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
+                throw new DownloadException ("Unable to download '%s' (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
             }
 
             // everything was fine at this point, no need to retry download
@@ -171,7 +174,7 @@ public:
         }
 
         if (stream is null)
-            throw new DownloadException ("Unable to get data stream for `%s` download.".format (url));
+            throw new DownloadException ("Unable to get data stream for '%s' download.".format (url));
 
         const lastModifiedStr = soup_message_headers_get (msg.responseHeaders, "last-modified".toStringz).fromStringz;
         if (!lastModifiedStr.empty) {
@@ -181,11 +184,11 @@ public:
         return stream;
     }
 
-    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint retryCount = 3) @trusted
+    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 3) @trusted
     do
     {
         Nullable!SysTime ret;
-        auto stream = downloadInternal (url, ret, retryCount);
+        auto stream = downloadInternal (url, ret, maxTryCount);
         scope(exit) g_object_unref (stream);
 
         ptrdiff_t len;
@@ -200,11 +203,10 @@ public:
         return ret;
     }
 
-    ubyte[] download (const string url, const uint retryCount = 3) @trusted
-    do
+    ubyte[] download (const string url, const uint tryCount = 3) @trusted
     {
         Nullable!SysTime lastModifiedTime;
-        auto stream = downloadInternal (url, lastModifiedTime, retryCount);
+        auto stream = downloadInternal (url, lastModifiedTime, tryCount);
         scope(exit) g_object_unref (stream);
 
         auto result = appender!(ubyte[]);
@@ -225,16 +227,16 @@ public:
      * Params:
      *      url = The URL to download.
      *      dest = The location for the downloaded file.
-     *      retryCount = Number of times to retry on timeout.
+     *      maxTryCount = Number of times to attempt the download.
      */
-    void downloadFile (const string url, const string dest, const uint retryCount = 3) @trusted
+    void downloadFile (const string url, const string dest, const uint maxTryCount = 3) @trusted
     out { assert (std.file.exists (dest)); }
     do
     {
         import std.file : exists, remove, mkdirRecurse, setTimes;
 
         if (dest.exists) {
-            logDebug ("File `%s` already exists, re-download of `%s` skipped.", dest, url);
+            logDebug ("File '%s' already exists, re-download of '%s' skipped.", dest, url);
             return;
         }
 
@@ -243,7 +245,7 @@ public:
         auto f = File (dest, "wb");
         scope (failure) remove (dest);
 
-        auto time = download (url, f, retryCount);
+        auto time = download (url, f, maxTryCount);
 
         f.close ();
         if (!time.isNull)
@@ -255,12 +257,12 @@ public:
      *
      * Params:
      *      url = The URL to download.
-     *      retryCount = Number of times to retry on timeout.
+     *      maxTryCount = Number of times to retry on timeout.
      */
-    string downloadText (const string url, const uint retryCount = 3) @trusted
+    string downloadText (const string url, const uint maxTryCount = 3) @trusted
     {
         import std.conv : to;
-        const data = download (url, retryCount);
+        const data = download (url, maxTryCount);
         return (cast(char[])data).to!string;
     }
 
@@ -269,12 +271,12 @@ public:
      *
      * Params:
      *      url = The URL to download.
-     *      retryCount = Number of times to retry on timeout.
+     *      maxTryCount = Number of times to retry on timeout.
      */
-    string[] downloadTextLines (const string url, const uint retryCount = 3) @trusted
+    string[] downloadTextLines (const string url, const uint maxTryCount = 3) @trusted
     {
         import std.string : splitLines;
-        return downloadText (url, retryCount).splitLines;
+        return downloadText (url, maxTryCount).splitLines;
     }
 
 }

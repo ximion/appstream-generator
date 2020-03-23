@@ -418,7 +418,7 @@ bool isRemote (const string uri)
  *
  * Returns: The data if successful.
  */
-string[] getTextFileContents (const string path, const uint retryCount = 4, Downloader downloader = null) @trusted
+string[] getTextFileContents (const string path, const uint maxTryCount = 4, Downloader downloader = null) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
@@ -426,7 +426,7 @@ string[] getTextFileContents (const string path, const uint retryCount = 4, Down
     if (path.isRemote) {
         if (downloader is null)
             downloader = Downloader.get;
-        return downloader.downloadTextLines (path, retryCount);
+        return downloader.downloadTextLines (path, maxTryCount);
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
@@ -443,7 +443,7 @@ string[] getTextFileContents (const string path, const uint retryCount = 4, Down
  *
  * Returns: The data if successful.
  */
-ubyte[] getFileContents (const string path, const uint retryCount = 4, Downloader downloader = null) @trusted
+ubyte[] getFileContents (const string path, const uint maxTryCount = 4, Downloader downloader = null) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
@@ -451,7 +451,7 @@ ubyte[] getFileContents (const string path, const uint retryCount = 4, Downloade
     if (path.isRemote) {
         if (downloader is null)
             downloader = Downloader.get;
-        return downloader.download (path, retryCount);
+        return downloader.download (path, maxTryCount);
     } else {
         if (!std.file.exists (path))
             throw new Exception ("No such file '%s'", path);
