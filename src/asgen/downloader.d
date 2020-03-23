@@ -85,7 +85,7 @@ public:
         session = soup_session_new_with_options (SOUP_SESSION_USER_AGENT.toStringz,
                                                  "appstream-generator".toStringz,
                                                  SOUP_SESSION_TIMEOUT.toStringz,
-                                                 90,
+                                                 40,
                                                  null);
         if (session is null) {
             throw new Exception ("Unable to set up networking support!");
