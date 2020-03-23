@@ -22,7 +22,7 @@ module asgen.downloader;
 
 import std.stdio : File;
 import std.typecons : Nullable;
-import std.datetime : SysTime, Clock, parseRFC822DateTime;
+import std.datetime : SysTime, Clock, parseRFC822DateTime, DateTimeException;
 import std.array : appender, empty;
 import std.path : buildPath, dirName, buildNormalizedPath;
 import std.algorithm : startsWith;
@@ -178,7 +178,12 @@ public:
 
         const lastModifiedStr = soup_message_headers_get (msg.responseHeaders, "last-modified".toStringz).fromStringz;
         if (!lastModifiedStr.empty) {
-            lastModified = parseRFC822DateTime (lastModifiedStr);
+            try {
+                lastModified = parseRFC822DateTime (lastModifiedStr);
+            } catch (DateTimeException dtE) {
+                logDebug ("Received invalid `last-modified` time '%s' from '%s': %s", lastModifiedStr, url, dtE.msg);
+                lastModified.nullify ();
+            }
         }
 
         return stream;
