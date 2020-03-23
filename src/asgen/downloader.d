@@ -129,13 +129,9 @@ public:
             maxTryCount = 1;
 
         // send message, retry a few times
+        logDebug ("Downloading '%s'", url);
         GInputStream *stream;
         for (int tryNo = 1; tryNo <= maxTryCount; tryNo++) {
-            if (tryNo == 1)
-                logDebug ("Downloading '%s'", url);
-            else
-                logDebug ("Retrying download of '%s' (try %s/%s)", url, tryNo, maxTryCount);
-
             stream = soup_session_send (session, msg, null, null);
             scope (failure) { if (stream !is null) g_object_unref (stream); }
             immutable statusCode = msg.statusCode;
@@ -146,6 +142,8 @@ public:
                 if (tryNo != maxTryCount) {
                     if (stream !is null)
                         g_object_unref (stream);
+                    logDebug ("Download of '%s' failed: Connection issue (Code: %s), retrying (try %s/%s)",
+                              url, statusCode, tryNo + 1, maxTryCount);
                     continue;
                 }
                 throw new DownloadException ("Connection failed to retrieve '%s' (Code: %s)".format (url, statusCode));
@@ -154,6 +152,8 @@ public:
                 if (tryNo != maxTryCount) {
                     if (stream !is null)
                         g_object_unref (stream);
+                    logDebug ("Download of '%s' failed: HTTP %s (%s), retrying (try %s/%s)",
+                              url, statusCode, soup_status_get_phrase (statusCode).fromStringz, tryNo + 1, maxTryCount);
                     continue;
                 }
                 throw new DownloadException ("Unable to download '%s' (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
