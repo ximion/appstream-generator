@@ -159,6 +159,7 @@ public:
     string mediaBaseUrl;
     string htmlBaseUrl;
 
+    string backendName;
     Backend backend;
     Suite[] suites;
     string[] oldsuites;
@@ -372,29 +373,34 @@ public:
         }
 
         // we default to the Debian backend for now
-        auto backendName = "debian";
+        auto backendId = "debian";
         if ("Backend" in root)
-            backendName = root["Backend"].str.toLower;
-        switch (backendName) {
+            backendId = root["Backend"].str.toLower;
+        switch (backendId) {
             case "dummy":
+                this.backendName = "Dummy";
                 this.backend = Backend.Dummy;
                 this.metadataType = DataType.YAML;
                 break;
             case "debian":
+                this.backendName = "Debian";
                 this.backend = Backend.Debian;
                 this.metadataType = DataType.YAML;
                 break;
             case "ubuntu":
+                this.backendName = "Ubuntu";
                 this.backend = Backend.Ubuntu;
                 this.metadataType = DataType.YAML;
                 break;
             case "arch":
             case "archlinux":
+                this.backendName = "Arch Linux";
                 this.backend = Backend.Archlinux;
                 this.metadataType = DataType.XML;
                 break;
             case "mageia":
             case "rpmmd":
+                this.backendName = "RpmMd";
                 this.backend = Backend.RpmMd;
                 this.metadataType = DataType.XML;
                 break;

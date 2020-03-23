@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -124,6 +124,18 @@ public:
         static import core.memory;
         logDebug ("GC collection cycle triggered explicitly.");
         core.memory.GC.collect ();
+    }
+
+    private void logVersionInfo ()
+    {
+        import asgen.defines : ASGEN_VERSION;
+        import asgen.bindings.appstream_utils : as_get_appstream_version;
+        import std.string : fromStringz;
+
+        string backendInfo = "";
+        if (!conf.backendName.empty)
+            backendInfo = " [%s]".format (conf.backendName);
+        logInfo ("AppStream Generator %s, AS: %s%s", ASGEN_VERSION, as_get_appstream_version.fromStringz, backendInfo);
     }
 
     /**
@@ -807,6 +819,8 @@ public:
             return;
         auto suite = suiteTuple.suite;
 
+        logVersionInfo ();
+
         auto reportgen = new ReportGenerator (dstore);
 
         auto dataChanged = false;
@@ -834,6 +848,8 @@ public:
         if (!suiteTuple.suiteUsable)
             return;
         auto suite = suiteTuple.suite;
+
+        logVersionInfo ();
 
         bool sectionValid = false;
         foreach (ref section; suite.sections)
@@ -903,6 +919,8 @@ public:
             return;
         auto suite = suiteTuple.suite;
 
+        logVersionInfo ();
+
         auto reportgen = new ReportGenerator (dstore);
         foreach (ref section; suite.sections)
             publishMetadataForSuiteSection (suite, section, reportgen);
@@ -922,6 +940,8 @@ public:
         if (!suiteTuple.suiteUsable)
             return;
         auto suite = suiteTuple.suite;
+
+        logVersionInfo ();
 
         bool sectionValid = false;
         foreach (ref section; suite.sections)
@@ -978,6 +998,8 @@ public:
 
     void runCleanup ()
     {
+        logVersionInfo ();
+
         logInfo ("Cleaning up left over temporary data.");
         immutable tmpDir = buildPath (conf.cacheRootDir, "tmp");
         if (std.file.exists (tmpDir))
@@ -1066,6 +1088,8 @@ public:
         if (!st.suiteUsable)
             return;
         auto suite = st.suite;
+
+        logVersionInfo ();
 
         foreach (ref section; suite.sections) {
             foreach (ref arch; parallel (suite.architectures)) {
