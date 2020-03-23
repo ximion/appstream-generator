@@ -58,25 +58,15 @@ final class Downloader
 private:
     SoupSession *session;
 
-    // thread local
-    static bool instantiated_;
-
-    // thread global
-    __gshared Downloader instance_;
+    // thread local instance
+    static Downloader instance_;
 
 public:
 
     static Downloader get () @trusted
     {
-        if (!instantiated_) {
-            synchronized (Downloader.classinfo) {
-                if (!instance_)
-                    instance_ = new Downloader ();
-
-                instantiated_ = true;
-            }
-        }
-
+        if (instance_ is null)
+           instance_ = new Downloader;
         return instance_;
     }
 
