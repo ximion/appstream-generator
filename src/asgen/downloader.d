@@ -142,11 +142,11 @@ public:
                 if (tryNo != maxTryCount) {
                     if (stream !is null)
                         g_object_unref (stream);
-                    logDebug ("Download of '%s' failed: Connection issue (Code: %s), retrying (try %s/%s)",
-                              url, statusCode, tryNo + 1, maxTryCount);
+                    logDebug ("Download of '%s' failed: Connection issue %s (%s), retrying (try %s/%s)",
+                              url, statusCode, soup_status_get_phrase (statusCode).fromStringz, tryNo + 1, maxTryCount);
                     continue;
                 }
-                throw new DownloadException ("Connection failed to retrieve '%s' (Code: %s)".format (url, statusCode));
+                throw new DownloadException ("Failed to retrieve '%s': Connection issue %s (%s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
             } else if (statusCode != 200) {
                 // any other HTTP status that isn't OK
                 if (tryNo != maxTryCount) {
@@ -156,7 +156,7 @@ public:
                               url, statusCode, soup_status_get_phrase (statusCode).fromStringz, tryNo + 1, maxTryCount);
                     continue;
                 }
-                throw new DownloadException ("Unable to download '%s' (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
+                throw new DownloadException ("Failed to retrieve '%s' (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
             }
 
             // everything was fine at this point, no need to retry download
@@ -164,7 +164,7 @@ public:
         }
 
         if (stream is null)
-            throw new DownloadException ("Unable to get data stream for '%s' download.".format (url));
+            throw new DownloadException ("Unable to get data stream for download of '%s'.".format (url));
 
         const lastModifiedStr = soup_message_headers_get (msg.responseHeaders, "last-modified".toStringz).fromStringz;
         if (!lastModifiedStr.empty) {
