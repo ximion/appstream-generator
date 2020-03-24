@@ -37,6 +37,9 @@ apps:
     plugs:
       - network
       - home
+    environment:
+      GSETTINGS_SCHEMA_DIR: "$SNAP/usr/share/glib-2.0/schemas"
+      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gio/modules"
 
 layout:
   /usr/share/appstream:
@@ -92,6 +95,7 @@ parts:
         fi
       done
       update-mime-database -V usr/share/mime/
+      usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     build-packages:
       - meson
       - docbook-xsl
