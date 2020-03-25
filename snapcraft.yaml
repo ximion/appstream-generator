@@ -116,6 +116,7 @@ parts:
       - gdb
       - ffmpeg
       - optipng
+      - libc-bin
       - libglu1-mesa
       - freeglut3
       - libslang2

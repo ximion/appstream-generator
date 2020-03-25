@@ -106,7 +106,7 @@ public:
                             auto outdir = buildPath (localeDir, components[0]);
                             logDebug ("Generating locale in %s", outdir);
 
-                            auto pid = spawnProcess (["/usr/bin/localedef",
+                            auto pid = spawnProcess ([Util.findProgramInPath ("localedef"),
                                                       "--no-archive",
                                                       "-i",
                                                       localecharset[0],
