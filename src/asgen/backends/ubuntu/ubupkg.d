@@ -80,6 +80,7 @@ public:
         import std.path : baseName;
         import std.process : Pid, spawnProcess, wait;
         import std.string : splitLines, startsWith;
+        import glib.Util : Util;
 
         if (!langpackDir.exists) {
             bool[string] extracted;
