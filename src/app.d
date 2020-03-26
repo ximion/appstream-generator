@@ -59,6 +59,34 @@ version (unittest) {
 void main () {}
 } else {
 
+private void createXdgRuntimeDir ()
+{
+    // Ubuntu's Snappy package manager doesn't create the runtime
+    // data dir, and some of the libraries we depend on expect it
+    // to be available. Try to create the directory
+
+    import std.process : environment;
+    import std.array : empty;
+    import std.file : exists, mkdirRecurse, setAttributes;
+    import std.algorithm : startsWith;
+    import std.conv : octal;
+
+    immutable xdgRuntimeDir = environment.get("XDG_RUNTIME_DIR");
+    if (xdgRuntimeDir.empty || !xdgRuntimeDir.startsWith ("/"))
+        return; // nothing to do here
+    if (xdgRuntimeDir.exists)
+        return; // directory already exists
+
+    try {
+        mkdirRecurse (xdgRuntimeDir);
+        xdgRuntimeDir.setAttributes(octal!700);
+    } catch (Exception e) {
+        logDebug ("Unable to create XDG runtime dir: %s", e.msg);
+        return;
+    }
+    logDebug ("Created missing XDG runtime dir: %s", xdgRuntimeDir);
+}
+
 void main(string[] args)
 {
     string command;
@@ -98,6 +126,10 @@ void main(string[] args)
         return;
     }
 
+    // globally enable verbose mode, if requested
+    if (verbose)
+        asgen.logging.setVerbose (true);
+
     auto conf = Config.get ();
     if (configFname.empty) {
         // if we don't have an explicit config file set, and also no
@@ -120,10 +152,8 @@ void main(string[] args)
             rmdirRecurse (conf.getTmpDir ());
     }
 
-    // globally enable verbose mode, if requested
-    if (verbose) {
-        asgen.logging.setVerbose (true);
-    }
+    // ensure runtime dir exists, in case we are installed with Snappy
+    createXdgRuntimeDir ();
 
     auto engine = new Engine ();
     engine.forced = forceAction;
