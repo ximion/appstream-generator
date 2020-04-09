@@ -158,7 +158,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: v0.12.10
+    source-commit: 39322029c68d4f1afe4848baafccbc0435be443a
 
     plugin: meson
     meson-parameters:
