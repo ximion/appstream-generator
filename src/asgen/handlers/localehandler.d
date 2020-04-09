@@ -211,7 +211,10 @@ private:
             }
 
             foreach (ref fname; pkg.contents) {
-                if (!fname.globMatch ("/usr/share/locale/*/LC_MESSAGES/%s.mo".format (domain)))
+                // we are not putting the glob behind the `locale` folder here, because Ubuntu
+                // language packs install their translations into `/usr/share/locale-langpack`
+                // and we want to find those too.
+                if (!fname.globMatch ("/usr/share/locale*/LC_MESSAGES/%s.mo".format (domain)))
                     continue;
                 auto data = getDataForFile (gres, pkg, cpt, fname);
                 if (data.empty)

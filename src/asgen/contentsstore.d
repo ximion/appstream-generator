@@ -226,8 +226,13 @@ public:
                     continue;
                 }
 
-            if (f.startsWith ("/usr/share/locale/")) {
-                    localeInfo ~= f;
+            // we do not limit the list to just stuff in `/usr/share/locale/` (mind the trailing
+            // slash) but to anything starting with "locale", as Ubuntu
+            // language packs install their translations into `/usr/share/locale-langpack`
+            // and we want to find those too.
+            if (f.startsWith ("/usr/share/locale")) {
+                    if (f.endsWith (".mo") || f.endsWith (".qm") || f.endsWith (".pak"))
+                        localeInfo ~= f;
                     continue;
             }
         }
