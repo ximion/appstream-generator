@@ -47,6 +47,7 @@ import asgen.backends.debian;
 import asgen.backends.ubuntu;
 import asgen.backends.archlinux;
 import asgen.backends.rpmmd;
+import asgen.backends.alpinelinux;
 
 import asgen.handlers : IconHandler, LocaleHandler;
 
@@ -88,6 +89,9 @@ public:
                 break;
             case Backend.RpmMd:
                 pkgIndex = new RPMPackageIndex (conf.archiveRoot);
+                break;
+            case Backend.Alpinelinux:
+                pkgIndex = new AlpinePackageIndex (conf.archiveRoot);
                 break;
             default:
                 throw new Exception ("No backend specified, can not continue!");
