@@ -69,7 +69,8 @@ enum Backend
     Debian,
     Ubuntu,
     Archlinux,
-    RpmMd
+    RpmMd,
+    Alpinelinux
 }
 
 /**
@@ -402,6 +403,11 @@ public:
             case "rpmmd":
                 this.backendName = "RpmMd";
                 this.backend = Backend.RpmMd;
+                this.metadataType = DataType.XML;
+                break;
+            case "alpinelinux":
+                this.backendName = "Alpine Linux";
+                this.backend = Backend.Alpinelinux;
                 this.metadataType = DataType.XML;
                 break;
             default:

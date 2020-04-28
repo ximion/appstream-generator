@@ -63,6 +63,10 @@ backend_sources = [
     'backends/dummy/dummypkg.d',
     'backends/dummy/pkgindex.d',
 
+    'backends/alpinelinux/package.d',
+    'backends/alpinelinux/apkpkg.d',
+    'backends/alpinelinux/apkpkgindex.d',
+
     'backends/archlinux/package.d',
     'backends/archlinux/alpkg.d',
     'backends/archlinux/alpkgindex.d',
