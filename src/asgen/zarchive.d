@@ -296,10 +296,15 @@ public:
                     if (linkTarget is null)
                         throw new Exception (format ("Unable to read destination of symbolic link for '%s'.", fname));
 
-                    if (!isAbsolute (linkTarget))
-                        linkTarget = absolutePath (linkTarget, dirName (fnameAbs));
+                    try {
+                        if (!isAbsolute (linkTarget))
+                            linkTarget = absolutePath (linkTarget, dirName (fnameAbs));
 
-                    return this.readData (buildNormalizedPath (linkTarget));
+                        return readData (buildNormalizedPath (linkTarget));
+                    } catch (Exception e) {
+                        logError ("Unable to read destination data of symlink in archive: %s", e.msg);
+                        return null;
+                    }
                 }
 
                 if (filetype != S_IFREG) {
