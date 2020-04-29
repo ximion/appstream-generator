@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -141,7 +141,7 @@ private:
         }
 
         return res.data;
-	}
+    }
 
     void extractEntryTo (archive *ar, string fname)
     {
@@ -236,7 +236,7 @@ public:
             if (pathMatches (fname, to!string (pathname))) {
                 this.extractEntryTo (ar, fdest);
                 return true;
-		    } else {
+            } else {
                 archive_read_data_skip (ar);
             }
         }
@@ -278,7 +278,6 @@ public:
         auto ar = openArchive ();
         scope(exit) archive_read_free (ar);
 
-        auto fnameAbs = absolutePath (fname, "/");
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             immutable pathname = to!string (fromStringz (archive_entry_pathname (en)));
 
@@ -287,14 +286,15 @@ public:
 
                 if (filetype == S_IFDIR) {
                     /* we don't extract directories explicitly */
-                    throw new Exception (format ("Path %s is a directory and can not be extracted.", fname));
+                    throw new Exception (format ("Path '%s' is a directory and can not be extracted.", fname));
                 }
 
                 /* check if we are dealing with a symlink */
                 if (filetype == S_IFLNK) {
+                    immutable fnameAbs = absolutePath (fname, "/");
                     string linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
                     if (linkTarget is null)
-                        throw new Exception (format ("Unable to read destination of symbolic link for %s.", fname));
+                        throw new Exception (format ("Unable to read destination of symbolic link for '%s'.", fname));
 
                     if (!isAbsolute (linkTarget))
                         linkTarget = absolutePath (linkTarget, dirName (fnameAbs));
@@ -306,16 +306,17 @@ public:
                     // we really don't want to extract special files from a tarball - usually, those shouldn't
                     // be present anyway.
                     // This should probably be an error, but return nothing for now.
+                    logError ("Tried to extract non-regular file '%s' from the archive", fname);
                     return null;
-	            }
+                }
 
                 return this.readEntry (ar);
-		    } else {
+            } else {
                 archive_read_data_skip (ar);
             }
         }
 
-        throw new Exception (format ("File %s was not found in the archive.", fname));
+        throw new Exception (format ("File '%s' was not found in the archive.", fname));
     }
 
     string[] extractFilesByRegex (Regex!char re, string destdir)
@@ -335,7 +336,7 @@ public:
                 auto fdest = buildPath (destdir, baseName (pathname));
                 this.extractEntryTo (ar, fdest);
                 matches ~= fdest;
-		    } else {
+            } else {
                 archive_read_data_skip (ar);
             }
         }
@@ -400,7 +401,7 @@ public:
                 if (filetype == S_IFLNK) {
                     auto linkTarget = to!string (fromStringz (archive_entry_symlink (en)));
                     if (linkTarget is null)
-                        throw new Exception (format ("Unable to read destination of symbolic link for %s.", path));
+                        throw new Exception (format ("Unable to read destination of symbolic link for '%s'.", path));
 
                     // we cheat here and set the link target as data
                     // TODO: Proper handling of symlinks, e.g. by adding a filetype property to ArchiveEntry.
