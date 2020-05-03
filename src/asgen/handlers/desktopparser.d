@@ -123,6 +123,14 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
 {
     auto fnameBase = baseName (fname);
 
+    if (data.empty) {
+        gres.addHint (fnameBase,
+                     "desktop-file-error",
+                     format ("Desktop file '%s' was empty or nonexistent. " ~
+                             "Please ensure that it isn't a symbolic link to contents of a different package.", fname));
+        return null;
+	}
+
     auto df = scoped!KeyFile ();
     try {
         df.loadFromData (data, -1, GKeyFileFlags.KEEP_TRANSLATIONS);

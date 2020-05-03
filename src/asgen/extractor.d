@@ -93,6 +93,8 @@ public:
         // now process metainfo XML files
         foreach (ref const mfname; metadataFiles) {
             auto dataBytes = pkg.getFileData (mfname);
+            if (dataBytes.empty)
+                continue;
             auto data = cast(string) dataBytes;
 
             mdata.clearComponents ();
