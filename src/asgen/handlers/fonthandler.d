@@ -62,7 +62,6 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         }
 
         immutable fontBaseName = fname.baseName;
-        logDebug ("Reading font %s", fontBaseName);
 
         // the font class locks the global mutex internally when reading data with Fontconfig
         Font font;
@@ -74,6 +73,8 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
                                                     "error": e.msg]);
             return;
         }
+
+        logDebug ("Found font %s/%s", fontBaseName, font.fullName);
         allFonts[font.fullName.toLower] = font;
     }
 
@@ -142,8 +143,8 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
             }
         }
     } else {
-        // find fonts based on the hints we have
-        // the hint as well as the dictionary keys are all lowercased, so we
+        // Find fonts based on the hints we have.
+        // The hint as well as the dictionary keys are all lowercased, so we
         // can do case-insensitive matching here.
         selectedFonts.reserve (fontHints.data.length);
         foreach (ref fontHint; fontHints.data) {
