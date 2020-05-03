@@ -158,7 +158,12 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     // we have nothing to do if we did not select any font
     // (this is a bug, since we filtered for font metainfo previously)
     if (selectedFonts.data.length == 0) {
-        gres.addHint (cpt, "font-metainfo-but-no-font");
+        auto fontNamesStr = appender!string;
+        foreach (ref font; allFonts.byValue)
+            fontNamesStr ~= fontNamesStr.data.empty? font.fullName : ("; " ~ font.fullName);
+        if (fontNamesStr.data.empty)
+            fontNamesStr ~= "None";
+        gres.addHint (cpt, "font-metainfo-but-no-font", ["font_names": fontNamesStr.data]);
         return;
     }
 
