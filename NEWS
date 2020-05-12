@@ -1,3 +1,37 @@
+Version 0.8.2
+~~~~~~~~~~~~~~
+Released: 2020-05-12
+
+Features:
+ * Add experimental Snapcraft build definition
+ * snap: Move to strict confinement (Iain Lane)
+ * snap: Lots of debugging & integration work (Iain Lane)
+ * Find external binaries in PATH instead of hardcoding absolute paths to them
+ * Add static bindings for libsoup
+ * Switch to new libsoup-based downloader, drop Curl
+ * Always log the generator version for some operations
+ * Display more verbose debug messages when downloads are retried
+ * Better messages for network connection errors
+ * Support Ubuntu language packs for l10n status info extraction
+ * Make permalink anchors visible in HTML output
+ * alpine: Add new backend for Alpine Linux (Rasmus Thomsen)
+
+Bugfixes:
+ * Pull a few Mustache engine code improvements from upstream
+ * Throw a better error message in unit tests when ffprobe isn't found
+ * tests: Skip video metadata check if ffprobe can not be found
+ * Check if our GdkPixbuf is able to handle all essential image formats
+ * Slighty reduce default logging verbosity when finding icons
+ * Give up icon search when component was rejected in icon storage routine
+ * Swallow bad last-modified times from servers instead of freaking out
+ * Make downloader a thread-local singleton (instead of thread-global)
+ * Create XDG runtime dir in case it is missing
+ * Make a failure to read an archive symlink target non-fatal
+ * Print available font names in issue report if no matching font was found
+ * Handle unexpected NULL-byte files better
+ * Find Yarn, even when it was renamed
+ * Strip out release artifacts for components that have a package
+
 Version 0.8.1
 ~~~~~~~~~~~~~~
 Released: 2020-01-20
