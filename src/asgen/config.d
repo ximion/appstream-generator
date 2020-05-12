@@ -89,6 +89,7 @@ struct GeneratorFeatures
     bool processGStreamer;
     bool processLocale;
     bool screenshotVideos;
+    bool propagateMetainfoArtifacts;
 }
 
 /// Fake package name AppStream Generator uses internally to inject additional metainfo on users' request
@@ -573,6 +574,9 @@ public:
                             break;
                     case "screenshotVideos":
                             feature.screenshotVideos = featuresObj[featureId].type == JSONType.true_;
+                            break;
+                    case "propagateMetainfoArtifacts":
+                            feature.propagateMetainfoArtifacts = featuresObj[featureId].type == JSONType.true_;
                             break;
                     default:
                         break;

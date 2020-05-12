@@ -286,6 +286,19 @@ public:
                                 continue;
                         }
                     }
+
+                    // strip out any release artifact information of components that have a
+                    // distribution package association
+                    if (!conf.feature.propagateMetainfoArtifacts) {
+                        import appstream.c.functions : as_release_get_artifacts;
+                        import glib.c.functions : g_ptr_array_set_size;
+
+                        auto relArr = cpt.getReleases;
+                        for (uint i = 0; i < relArr.len; i++) {
+                            auto releasePtr = cast (AsRelease*) relArr.index (i);
+                            g_ptr_array_set_size (as_release_get_artifacts (releasePtr), 0);
+                        }
+                    }
                 }
 
                 if (cpt.getName.empty)
