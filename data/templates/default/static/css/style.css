@@ -236,3 +236,11 @@ code {
     position: absolute;
     width: 1px;
 }
+
+.permalink {
+    font-size: 75%;
+    color: #999;
+    line-height: 100%;
+    font-weight: normal;
+    text-decoration: none;
+}
