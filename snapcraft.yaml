@@ -20,7 +20,7 @@
 
 name: appstream-generator
 license: LGPL-3.0
-base: core20
+base: core18
 adopt-info: appstream-generator
 
 confinement: strict
@@ -158,13 +158,19 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-commit: 39322029c68d4f1afe4848baafccbc0435be443a
+    source-tag: v0.12.11
 
     plugin: meson
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
       - -Dapidocs=false
+    override-build: |
+      # we can build with a slightly lower GLib version in this instance
+      sed -i 's|>=2.58|>=2.56|g' meson.build
+
+      # build AS
+      snapcraftctl build
     build-packages:
       - build-essential
       - docbook-xsl
