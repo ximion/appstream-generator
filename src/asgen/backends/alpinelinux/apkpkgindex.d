@@ -67,8 +67,8 @@ public:
 
     private void setPkgValues (ref AlpinePackage pkg, string[] keyValueString)
     {
-        immutable key = keyValueString[0].strip ();
-        immutable value = keyValueString[1].strip ();
+        immutable key = keyValueString[0].strip;
+        immutable value = keyValueString[1].strip;
 
         switch (key) {
         case "pkgname":
@@ -114,8 +114,7 @@ public:
 
             try {
                 validate (pkgInfoData);
-            }
-            catch (UTFException e) {
+            } catch (UTFException e) {
                 logError ("PKGINFO file in archive %s contained invalid UTF-8, skipping!",
                         packageArchivePath);
                 continue;
@@ -127,7 +126,7 @@ public:
             string[] completePair;
             foreach (currentLine; lines) {
                 if (currentLine.canFind ("=")) {
-                    if (completePair.empty ()) {
+                    if (completePair.empty) {
                         completePair = [currentLine];
                         continue;
                     }
@@ -135,7 +134,7 @@ public:
                     this.setPkgValues (pkg, completePair.join (" ").split ("="));
                     completePair = [currentLine];
                 } else if (!currentLine.startsWith ("#")) {
-                    completePair ~= currentLine.strip ().split ("#")[0];
+                    completePair ~= currentLine.strip.split ("#")[0];
                 }
             }
             // We didn't process the last line yet

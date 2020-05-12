@@ -108,9 +108,9 @@ public:
     override const(ubyte)[] getFileData (string fname)
     {
         if (!this.archive.isOpen())
-            this.archive.open(this.getFilename);
+            this.archive.open (this.getFilename);
 
-        return this.archive.readData(fname);
+        return this.archive.readData (fname);
     }
 
     @property override string[] contents ()
