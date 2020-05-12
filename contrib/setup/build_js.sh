@@ -5,7 +5,13 @@ if [ -n "$MESON_SOURCE_ROOT" ]; then
     cd "$MESON_SOURCE_ROOT/contrib/setup/"
 fi
 
-yarn install --no-bin-links --prod --no-lockfile --non-interactive
+YARNPKG="yarn"
+if [ ! -z "$1" ]
+then
+    YARNPKG=$1
+fi
+
+$YARNPKG install --no-bin-links --prod --no-lockfile --non-interactive
 
 JS_TARGET=../../data/templates/default/static/js
 [ ! -d "$JS_TARGET" ] && mkdir $JS_TARGET
