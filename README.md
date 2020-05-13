@@ -22,6 +22,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * libarchive (>= 3.2) [5]
  * LMDB [6]
  * GirToD [7]
+ * LibSoup
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
