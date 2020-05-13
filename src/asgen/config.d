@@ -227,15 +227,15 @@ public:
         auto tdir = buildPath (workspaceDir, "templates");
         tdir = getVendorTemplateDir (tdir, true);
 
-        if (tdir is null) {
+        if (tdir.empty) {
             immutable exeDir = dirName (thisExePath ());
             tdir = buildNormalizedPath (exeDir, "..", "..", "..", "data", "templates");
             tdir = getVendorTemplateDir (tdir);
 
-            if (tdir is null) {
+            if (tdir.empty) {
                 tdir = getVendorTemplateDir (buildPath (DATADIR, "templates"));
 
-                if (tdir is null) {
+                if (tdir.empty) {
                     tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
                     tdir = getVendorTemplateDir (tdir);
                 }
@@ -251,8 +251,8 @@ public:
     private string getVendorTemplateDir (const string dir, bool allowRoot = false) @safe
     {
         string tdir;
-        if (projectName !is null) {
-            tdir = buildPath (dir, projectName.toLower ());
+        if (!projectName.empty) {
+            tdir = buildPath (dir, projectName.toLower);
             if (existsAndIsDir (tdir))
                 return tdir;
         }
