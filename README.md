@@ -28,6 +28,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
  * FreeType
  * Fontconfig
  * Pango
+ * libsoup
  * Yarn (optional) [8]
 
 [1]: https://github.com/ldc-developers/ldc/releases
