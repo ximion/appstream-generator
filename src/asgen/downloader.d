@@ -282,18 +282,23 @@ unittest
     import std.stdio : writeln;
     import std.exception : assertThrown;
     import std.file : remove, readText;
+    import std.process : environment;
     asgen.logging.setVerbose (true);
 
     writeln ("TEST: ", "Downloader");
 
-    immutable urlFirefoxDetectportal = "https://detectportal.firefox.com/";
+    if (environment.get("ASGEN_TESTS_NO_NET", "no") != "no") {
+        writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (explicitly disabled via `ASGEN_TESTS_NO_NET`)");
+        return;
+    }
 
+    immutable urlFirefoxDetectportal = "https://detectportal.firefox.com/";
     auto dl = new Downloader;
     string detectPortalRes;
     try {
         detectPortalRes = dl.downloadText (urlFirefoxDetectportal);
     } catch (Exception e) {
-        writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (", e.msg, ")");
+        writeln ("W: NETWORK DEPENDENT TESTS SKIPPED. (automatically, no network detected: ", e.msg, ")");
         return;
     }
     writeln ("I: Running network-dependent tests.");
