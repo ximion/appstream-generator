@@ -64,6 +64,7 @@ backend_sources = [
     'backends/dummy/pkgindex.d',
 
     'backends/alpinelinux/package.d',
+    'backends/alpinelinux/apkindexutils.d',
     'backends/alpinelinux/apkpkg.d',
     'backends/alpinelinux/apkpkgindex.d',
 

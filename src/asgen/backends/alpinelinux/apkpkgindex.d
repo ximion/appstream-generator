@@ -19,36 +19,41 @@
 
 module asgen.backends.alpinelinux.apkpkgindex;
 
-import std.algorithm : canFind, filter, endsWith, remove;
-import std.array : appender, join, split;
+import std.array : appender;
 import std.conv : to;
 import std.exception : enforce;
-import std.file : dirEntries, exists, SpanMode;
+import std.file : exists;
 import std.format : format;
 import std.path : baseName, buildPath;
-import std.range : empty;
-import std.string : splitLines, startsWith, strip;
-import std.utf : UTFException, validate;
+import std.utf : validate;
 
-import asgen.logging;
-import asgen.zarchive;
-import asgen.utils : escapeXml;
+import asgen.config : Config;
+import asgen.logging : logError;
+import asgen.zarchive : ArchiveDecompressor;
+import asgen.utils : escapeXml, isRemote;
 import asgen.backends.interfaces;
 import asgen.backends.alpinelinux.apkpkg;
+import asgen.backends.alpinelinux.apkindexutils;
 
 final class AlpinePackageIndex : PackageIndex
 {
 
 private:
     string rootDir;
+    string tmpDir;
     Package[][string] pkgCache;
 
 public:
 
     this (string dir)
     {
-        enforce (exists (dir), format ("Directory '%s' does not exist.", dir));
+        if (!dir.isRemote)
+            enforce (exists (dir), format ("Directory '%s' does not exist.", dir));
+
         this.rootDir = dir;
+
+        auto conf = Config.get ();
+        tmpDir = buildPath (conf.getTmpDir, dir.baseName);
     }
 
     override void release ()
@@ -65,81 +70,30 @@ public:
         pkg.setDescription (desc, "C");
     }
 
-    private void setPkgValues (ref AlpinePackage pkg, string[] keyValueString)
-    {
-        immutable key = keyValueString[0].strip;
-        immutable value = keyValueString[1].strip;
-
-        switch (key) {
-        case "pkgname":
-            pkg.name = value;
-            break;
-        case "pkgver":
-            pkg.ver = value;
-            break;
-        case "arch":
-            pkg.arch = value;
-            break;
-        case "maintainer":
-            pkg.maintainer = value;
-            break;
-        case "pkgdesc":
-            setPkgDescription(pkg, value);
-            break;
-        default:
-            // We don't care about other entries
-            break;
-        }
-    }
-
     private Package[] loadPackages (string suite, string section, string arch)
     {
         auto apkRootPath = buildPath (rootDir, suite, section, arch);
-        ArchiveDecompressor ad;
+        auto indexFPath = downloadIfNecessary(apkRootPath, tmpDir, "APKINDEX.tar.gz", format("APKINDEX-%s-%s-%s.tar.gz", suite, section, arch));
         AlpinePackage[string] pkgsMap;
+        ArchiveDecompressor ad;
+        ad.open (indexFPath);
+        auto indexString = cast(string) ad.readData ("APKINDEX");
+        validate (indexString);
+        auto range = ApkIndexBlockRange (indexString);
 
-        foreach (packageArchivePath; dirEntries (apkRootPath, SpanMode.shallow).filter!(
-                f => f.name.endsWith (".apk"))) {
-            auto fileName = packageArchivePath.baseName ();
+        foreach (pkgInfo; range) {
+            auto fileName = pkgInfo.archiveName;
             AlpinePackage pkg;
             if (fileName in pkgsMap) {
                 pkg = pkgsMap[fileName];
             } else {
-                pkg = new AlpinePackage ();
+                pkg = new AlpinePackage (pkgInfo.pkgname, pkgInfo.pkgversion, pkgInfo.arch);
                 pkgsMap[fileName] = pkg;
             }
 
-            ad.open (packageArchivePath);
-            auto pkgInfoData = cast(string) ad.readData (".PKGINFO");
-
-            try {
-                validate (pkgInfoData);
-            } catch (UTFException e) {
-                logError ("PKGINFO file in archive %s contained invalid UTF-8, skipping!",
-                        packageArchivePath);
-                continue;
-            }
-
-            pkg.filename = packageArchivePath;
-            auto lines = pkgInfoData.splitLines ();
-            // If the current line doesn't contain a = it's meant to extend the previous line
-            string[] completePair;
-            foreach (currentLine; lines) {
-                if (currentLine.canFind ("=")) {
-                    if (completePair.empty) {
-                        completePair = [currentLine];
-                        continue;
-                    }
-
-                    this.setPkgValues (pkg, completePair.join (" ").split ("="));
-                    completePair = [currentLine];
-                } else if (!currentLine.startsWith ("#")) {
-                    completePair ~= currentLine.strip.split ("#")[0];
-                }
-            }
-            // We didn't process the last line yet
-            this.setPkgValues (pkg, completePair.join (" ").split ("="));
-            pkg.contents = ad.readContents ().remove!("a == \".PKGINFO\" || a.startsWith (\".SIGN\")");
+            pkg.filename = buildPath(rootDir, suite, section, arch, fileName);
+            pkg.maintainer = pkgInfo.maintainer;
+            setPkgDescription(pkg, pkgInfo.pkgdesc);
         }
 
         // perform a sanity check, so we will never emit invalid packages

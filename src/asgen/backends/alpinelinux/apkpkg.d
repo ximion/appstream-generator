@@ -22,13 +22,15 @@
 
 module asgen.backends.alpinelinux.apkpkg;
 
-import std.stdio;
-import std.string;
 import std.array : empty;
+import std.format : format;
+import std.path : baseName, buildNormalizedPath, buildPath;
 
-import asgen.logging;
-import asgen.zarchive;
 import asgen.backends.interfaces;
+import asgen.config : Config;
+import asgen.downloader : Downloader;
+import asgen.utils : isRemote;
+import asgen.zarchive : ArchiveDecompressor;
 
 final class AlpinePackage : Package
 {
@@ -39,12 +41,24 @@ private:
     string pkgmaintainer;
     string[string] desc;
     string pkgFname;
+    string localPkgFName;
+    string tmpDir;
 
-    string[] contentsL;
+    string[] contentsL = null;
 
     ArchiveDecompressor archive;
 
 public:
+    this (string pkgname, string pkgver, string pkgarch)
+    {
+        this.pkgname = pkgname;
+        this.pkgver = pkgver;
+        this.pkgarch = pkgarch;
+
+        auto conf = Config.get ();
+        this.tmpDir = buildPath (conf.getTmpDir (), format ("%s-%s_%s", name, ver, arch));
+    }
+
     override @property string name () const
     {
         return this.pkgname;
@@ -85,9 +99,23 @@ public:
         this.pkgFname = fname;
     }
 
-    override @property string getFilename () const
+    override @property string getFilename ()
     {
-        return pkgFname;
+        if (!this.localPkgFName.empty)
+            return this.localPkgFName;
+
+        if (pkgFname.isRemote) {
+            synchronized (this) {
+                auto dl = Downloader.get;
+                immutable path = buildNormalizedPath (this.tmpDir, this.pkgFname.baseName);
+                dl.downloadFile (this.pkgFname, path);
+                this.localPkgFName = path;
+                return this.localPkgFName;
+            }
+        } else {
+            this.localPkgFName = pkgFname;
+            return this.localPkgFName;
+        }
     }
 
     override @property string maintainer () const
@@ -115,6 +143,13 @@ public:
 
     @property override string[] contents ()
     {
+        if (!this.contentsL.empty)
+            return this.contentsL;
+
+        ArchiveDecompressor ad;
+        ad.open (this.getFilename);
+        this.contentsL = ad.readContents ();
+
         return this.contentsL;
     }
 
