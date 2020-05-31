@@ -289,7 +289,7 @@ public:
 
                     // strip out any release artifact information of components that have a
                     // distribution package association
-                    if (!conf.feature.propagateMetainfoArtifacts) {
+                    if (!conf.feature.propagateMetaInfoArtifacts) {
                         import appstream.c.functions : as_release_get_artifacts;
                         import glib.c.functions : g_ptr_array_set_size;
 
@@ -346,9 +346,17 @@ public:
                                 cpt.setDescription (desc, lang);
                                 desc_added = true;
                         }
-                        if (desc_added) {
-                            if (!addHint (cpt, "description-from-package"))
+
+                        if (conf.feature.warnNoMetaInfo) {
+                            if (!addHint (cpt, "no-metainfo"))
                                 continue;
+                        }
+
+                        if (desc_added) {
+                            if (!conf.feature.warnNoMetaInfo) {
+                                if (!addHint (cpt, "description-from-package"))
+                                    continue;
+                            }
                         } else {
                             import asgen.bindings.appstream_utils : componentKindToString;
 

@@ -96,7 +96,8 @@ allowIconUpscaling | Allows upscaling of small 48x48px icons to 64x64px to make 
 processGStreamer | Synthesise `type=codec` metadata from available GStreamer packages. Requires support in the backend, currently only implemented for Debian. *Default: `ON`*
 processLocale | Try to extract the software's localization status from Gettext data. *Default: `ON`*
 screenshotVideos | Permit videos in screenshots and cache them if downloads are permitted. *Default: `ON`*
-propagateMetainfoArtifacts | Release artifact information is filtered out by default if a package is set for the selected metadata. Set this flag to propagate artifact information unconditionally. *Default: `OFF`*
+propagateMetaInfoArtifacts | Release artifact information is filtered out by default if a package is set for the selected metadata. Set this flag to propagate artifact information unconditionally. *Default: `OFF`*
+warnNoMetainfo | Make the fact that a metainfo file is missing a deprecation warning. *Default: `ON`*
 
 ### Configuring icon policies
 

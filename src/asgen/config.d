@@ -90,7 +90,8 @@ struct GeneratorFeatures
     bool processGStreamer;
     bool processLocale;
     bool screenshotVideos;
-    bool propagateMetainfoArtifacts;
+    bool propagateMetaInfoArtifacts;
+    bool warnNoMetaInfo;
 }
 
 /// Fake package name AppStream Generator uses internally to inject additional metainfo on users' request
@@ -539,6 +540,7 @@ public:
         feature.processGStreamer = true;
         feature.processLocale = true;
         feature.screenshotVideos = true;
+        feature.warnNoMetaInfo = true;
 
         // apply vendor feature settings
         if ("Features" in root.object) {
@@ -581,8 +583,11 @@ public:
                     case "screenshotVideos":
                             feature.screenshotVideos = featuresObj[featureId].type == JSONType.true_;
                             break;
-                    case "propagateMetainfoArtifacts":
-                            feature.propagateMetainfoArtifacts = featuresObj[featureId].type == JSONType.true_;
+                    case "propagateMetaInfoArtifacts":
+                            feature.propagateMetaInfoArtifacts = featuresObj[featureId].type == JSONType.true_;
+                            break;
+                    case "warnNoMetaInfo":
+                            feature.warnNoMetaInfo = featuresObj[featureId].type == JSONType.true_;
                             break;
                     default:
                         break;
@@ -622,7 +627,7 @@ public:
         }
 
         if (!feature.validate)
-            logWarning ("Metainfo validation has been disabled in configuration.");
+            logWarning ("MetaInfo validation has been disabled in configuration.");
 
         // sanity check to warn if our GdkPixbuf does not support the minimum amount
         // of image formats we need
