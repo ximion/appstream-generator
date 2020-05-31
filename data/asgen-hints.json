@@ -32,7 +32,7 @@
 },
 
 "metainfo-parsing-error": {
-  "text": "Unable to parse AppStream metainfo file '{{fname}}', the data is likely malformed.<br/>Error: {{error}}",
+  "text": "Unable to parse AppStream MetaInfo file '{{fname}}', the data is likely malformed.<br/>Error: {{error}}",
   "severity": "error"
 },
 
@@ -63,7 +63,7 @@
 },
 
 "web-app-without-icon": {
-  "text": [ "The component is a GUI web application, but it either has no icon set in its metainfo file,",
+  "text": [ "The component is a GUI web application, but it either has no icon set in its MetaInfo file,",
             "or we could not find a matching icon for this application."
           ],
   "severity": "error"
@@ -71,7 +71,7 @@
 
 "font-without-icon": {
   "text": [ "The component is a font, but somehow we failed to automatically generate an icon for it, and no custom icon was set explicitly.",
-            "Is there a font file in the analyzed package, and does the metainfo file set the right font name to look for?"
+            "Is there a font file in the analyzed package, and does the MetaInfo file set the right font name to look for?"
           ],
   "severity": "warning"
 },
@@ -111,13 +111,13 @@
 },
 
 "metainfo-no-id": {
-  "text": ["Could not determine an ID for the component in '{{fname}}'. The AppStream metainfo file likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
+  "text": ["Could not determine an ID for the component in '{{fname}}'. The AppStream MetaInfo file likely lacks an <code>&lt;id/&gt;</code> tag.<br/>",
            "The identifier tag is essential for AppStream metadata, and must not be missing."],
   "severity": "error"
 },
 
 "metainfo-validation-error": {
-  "text": "Validation of the metainfo file failed: {{msg}}",
+  "text": "Validation of the MetaInfo file failed: {{msg}}",
   "severity": "warning"
 },
 
@@ -128,8 +128,8 @@
 },
 
 "legacy-metainfo-directory": {
-  "text": ["The AppStream metainfo file '{{fname}}' was found in a legacy path.<br/>",
-           "Please install metainfo files into <code>/usr/share/metainfo</code>, as the old path will not be recognized anymore in the future."],
+  "text": ["The AppStream MetaInfo file '{{fname}}' was found in a legacy path.<br/>",
+           "Please install MetaInfo files into <code>/usr/share/metainfo</code>, as the old path will not be recognized anymore in the future."],
   "severity": "warning"
 },
 
@@ -167,17 +167,17 @@
 
 "metainfo-unknown-type": {
   "text": ["The component has an unknown type. Please make sure this component type is mentioned in the specification, and that the",
-           "<code>type=</code> property of the component root-node of the metainfo file does not contain a typing error."],
+           "<code>type=</code> property of the component root-node of the MetaInfo file does not contain a typing error."],
   "severity": "error"
 },
 
 "metainfo-no-name": {
-  "text": "Component has no name specified. Ensure that the AppStream metainfo file or the .desktop file (if there is any) specify a component name.",
+  "text": "Component has no name specified. Ensure that the AppStream MetaInfo file or the .desktop file (if there is any) specify a component name.",
   "severity": "error"
 },
 
 "metainfo-no-summary": {
-  "text": ["Component does not contain a short summary. Ensure that the components metainfo file has a <code>summary</code> tag, or that its .desktop file",
+  "text": ["Component does not contain a short summary. Ensure that the components MetaInfo file has a <code>summary</code> tag, or that its .desktop file",
            "has a <code>Comment=</code> field set.<br/>",
            "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>",
            "and the <a href=\"https://www.freedesktop.org/software/appstream/docs/sect-Metadata-Application.html#tag-dapp-summary\">MetaInfo specification</a>."],
@@ -192,8 +192,8 @@
 },
 
 "missing-desktop-file": {
-  "text": ["Found an AppStream metainfo XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
-           "<code>&lt;launchable type=\"desktop-id\"/&gt;</code> tag value of the AppStream metainfo file is not adapted as well, or if the metainfo file is located in a different package than the .desktop file.<br/>",
+  "text": ["Found an AppStream MetaInfo XML file, but the associated .desktop file is missing. This often happens when the .desktop file is renamed, but the",
+           "<code>&lt;launchable type=\"desktop-id\"/&gt;</code> tag value of the AppStream MetaInfo file is not adapted as well, or if the MetaInfo file is located in a different package than the .desktop file.<br/>",
            "Please fix the packaging or work with upstream to resolve this issue.<br/>",
            "<small>For older metadata, the desktop-id is inferred from the <code>&lt;id/&gt;</code> tag. If the component metadata has no <code>launchable</code> tag and no",
            "<code>icon</code> tag of type <i>stock</i>, check if a .desktop file named after the component-ID is located in the same package.</small>"],
@@ -201,22 +201,23 @@
 },
 
 "missing-launchable-desktop-file": {
-  "text": ["The metainfo file references a .desktop file with ID '{{desktop_id}}' in its <code>launchable</code> tag, but the file",
+  "text": ["The MetaInfo file references a .desktop file with ID '{{desktop_id}}' in its <code>launchable</code> tag, but the file",
            "was not found in the same package. In order to be able to launch the software once it was installed, please place the",
-           "metainfo file and its .desktop files in the same package."],
+           "MetaInfo file and its .desktop files in the same package."],
   "severity": "warning"
 },
 
 "description-from-package": {
-  "text": ["This component gets its description from the package it is located in.<br/>",
+  "text": ["This software component gets its description from the package it is located in.<br/>",
            "This has several disadvantages, like poor markup, too technical descriptions for users of software centers, different components having the same description, etc.<br/>",
-           "Please consider writing a metainfo file for this component to take the long description upstream. In future, components without metainfo file might be dropped from the metadata entirely.",
-           "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write a metainfo file."],
+           "Please consider to either hide this .desktop file from AppStream by adding a <code>X-AppStream-Ignore=true</code> field to its .desktop file, or to write a MetaInfo file for ",
+           "this component to take the long description upstream. In future, components without MetaInfo file might be dropped from the metadata entirely.",
+           "You can consult the <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">XML quickstart guides</a> for more information on how to write a MetaInfo file."],
   "severity": "info"
 },
 
 "description-missing": {
-  "text": ["Software components of type '{{kind}}' require a long description, and we were unable to find one. Please please add one via a metainfo file."],
+  "text": ["Software components of type '{{kind}}' require a long description, and we were unable to find one. Please please add one via a MetaInfo file."],
   "severity": "error"
 },
 
@@ -237,14 +238,14 @@
 },
 
 "metainfo-license-invalid": {
-  "text": ["The metainfo file does not seem to be licensed under a permissive license. Valid permissive licenses include FSFAP, CC0-1.0 or MIT.",
+  "text": ["The MetaInfo file does not seem to be licensed under a permissive license. Valid permissive licenses include FSFAP, CC0-1.0 or MIT.",
            "Permissive licenses are required to allow distributors to include the metadata in mixed data collections without the risk of license violations due to mutually incompatible licenses.",
            "If you think this message is an error and '{{license}}' is actually valid, please <a href=\"https://github.com/ximion/appstream/issues\">file a bug against AppStream</a>."],
   "severity": "error"
 },
 
 "font-metainfo-but-no-font": {
-  "text": ["A metainfo file with component-type <code>font</code> was found, but we could not find any matching font file (TrueType or OpenType) in the package.<br/>",
+  "text": ["A MetaInfo file with component-type <code>font</code> was found, but we could not find any matching font file (TrueType or OpenType) in the package.<br/>",
            "This can mean that the <code>&lt;provides&gt; - &lt;font&gt;</code> tags contain wrong values that we could not map to the actual fonts, or that the package simply contained no fonts at all.<br/>",
            "Fonts in this package: <em>{{font_names}}</em>"],
   "severity": "error"
@@ -272,7 +273,7 @@
 
 "no-translation-statistics": {
   "text": ["We could not extract any translation statitics, althout metadata hints were given that the data exists.",
-           "Please check the &lt;translation/&gt; metainfo tag for spelling mistakes.",
+           "Please check the &lt;translation/&gt; MetaInfo tag for spelling mistakes.",
            "It also makes sense to ensure all locale files are placed in the right directories (e.g. gettext .mo files in <code>/usr/share/locale/*/LC_MESSAGES/</code>"],
   "severity": "warning"
 },
