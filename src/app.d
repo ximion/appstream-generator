@@ -53,7 +53,8 @@ Application Options:
   --verbose        Show extra debugging information.
   --force          Force action.
   -w|--workspace   Define the workspace location.
-  -c|--config      Use the given configuration file.";
+  -c|--config      Use the given configuration file.
+  -e|--exportDir   Directory to export data to.";
 
 version (unittest) {
 void main () {}
@@ -95,6 +96,7 @@ void main(string[] args)
     bool showVersion;
     bool forceAction;
     string wdir;
+    string edir;
     string configFname;
 
     // parse command-line options
@@ -105,7 +107,8 @@ void main(string[] args)
             "version", &showVersion,
             "force", &forceAction,
             "workspace|w", &wdir,
-            "config|c", &configFname);
+            "config|c", &configFname,
+            "exportDir|e", &edir);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
@@ -140,7 +143,7 @@ void main(string[] args)
     }
 
     try {
-        conf.loadFromFile (configFname, wdir);
+        conf.loadFromFile (configFname, wdir, edir);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);

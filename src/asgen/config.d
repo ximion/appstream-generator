@@ -267,7 +267,7 @@ public:
         return null;
     }
 
-    void loadFromFile (string fname, string enforcedWorkspaceDir = null)
+    void loadFromFile (string fname, string enforcedWorkspaceDir = null, string enforcedExportDir = null)
     {
         // read the configuration JSON file
         auto f = File (fname, "r");
@@ -306,6 +306,11 @@ public:
 
         // set the default export directory locations, allow people to override them in the config
         exportDir      = buildPath (workspaceDir, "export");
+
+        // allow overriding the export  location
+        if (!enforcedExportDir.empty)
+            exportDir = enforcedExportDir;
+
         mediaExportDir = buildPath (exportDir, "media");
         dataExportDir  = buildPath (exportDir, "data");
         hintsExportDir = buildPath (exportDir, "hints");
