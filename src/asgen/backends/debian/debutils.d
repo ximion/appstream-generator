@@ -63,9 +63,7 @@ immutable (string) downloadIfNecessary (const string prefix,
 
         if (fileName.isRemote) {
             try {
-                /* This should use download(), but that doesn't throw errors */
                 downloader.downloadFile (fileName, destFileName);
-
                 return destFileName;
             } catch (DownloadException e) {
                 logDebug ("Unable to download: %s", e.msg);
