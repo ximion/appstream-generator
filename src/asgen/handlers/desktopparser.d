@@ -179,11 +179,14 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
 
     try {
         immutable onlyShowIn = df.getString (DESKTOP_GROUP, "OnlyShowIn");
-        if (onlyShowIn.empty) {
+        if (onlyShowIn.empty)
             gres.addHint (fnameBase, "desktop-file-empty-onlyshowin");
-            if (!ignoreNoDisplay)
-                return null; // we ignore this .desktop file
-        }
+
+        // We want to ignore all desktop-entry files which were made desktop-exclusive
+        // via OnlyShowIn (those are usually configuration apps and control center modules)
+        // Only exception is if a metainfo file was present.
+        if (!ignoreNoDisplay)
+            return null; // we ignore this .desktop file
     } catch (GException) {}
 
     /* check this is a valid desktop file */
