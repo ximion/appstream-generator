@@ -1,4 +1,4 @@
-# AppStream Generator
+# AppStream Generator Command
 
 AppStream is an effort to provide additional metadata and unique IDs for all software available in a Linux system.
 This repository contains the server-side of the AppStream infrastructure, a tool to generate metadata from distribution packages. You can find out more about AppStream collection metadata at [Freedesktop](https://www.freedesktop.org/software/appstream/docs/chap-CollectionData.html).
