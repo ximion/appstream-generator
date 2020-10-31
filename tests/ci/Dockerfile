@@ -62,6 +62,7 @@ RUN cd /build-tmp/appstream/build && \
     meson --prefix=/usr \
         -Dmaintainer=true \
         -Dapt-support=true \
+        -Dcompose=true \
         -Dapidocs=false \
         ..
 RUN cd /build-tmp/appstream/build && \

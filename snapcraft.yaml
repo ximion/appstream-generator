@@ -164,6 +164,7 @@ parts:
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
+      - -Dcompose=true
       - -Dapidocs=false
     override-build: |
       # we can build with a slightly lower GLib version in this instance
