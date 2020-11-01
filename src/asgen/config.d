@@ -270,8 +270,6 @@ public:
 
     void loadFromFile (string fname, string enforcedWorkspaceDir = null)
     {
-        import bindings.gdkpixbuf : gdkPixbufGetFormatNames;
-
         // read the configuration JSON file
         auto f = File (fname, "r");
         string jsonData;
@@ -631,8 +629,12 @@ public:
 
         // sanity check to warn if our GdkPixbuf does not support the minimum amount
         // of image formats we need
-        const pixbufFormatNames = gdkPixbufGetFormatNames ();
-        if (("png" !in pixbufFormatNames) || ("svg" !in pixbufFormatNames) || ("jpeg" !in pixbufFormatNames)) {
+        import appstream_compose.Image : Image;
+        import std.string : toStringz;
+        auto pbFormatNames = Image.supportedFormatNames ();
+        if (!pbFormatNames.contains(cast(char*) "png".toStringz) ||
+            !pbFormatNames.contains(cast(char*) "svg".toStringz) ||
+            !pbFormatNames.contains(cast(char*) "jpeg".toStringz)) {
             logError ("The currently used GdkPixbuf does not seem to support all image formats we require to run normally (png/svg/jpeg). " ~
                       "This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
         }

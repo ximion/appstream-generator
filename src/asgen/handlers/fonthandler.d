@@ -29,12 +29,13 @@ import appstream.Icon;
 import appstream.Screenshot;
 static import appstream.Image;
 static import std.file;
+import appstream_compose.Font : Font;
+import appstream_compose.Canvas : Canvas;
+import appstream_compose.c.types : ImageFormat;
 
 import asgen.utils;
 import asgen.logging;
 import asgen.result;
-import asgen.image : Canvas;
-import asgen.font : Font;
 import asgen.config : Config, IconPolicy;
 
 
@@ -66,7 +67,7 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         // the font class locks the global mutex internally when reading data with Fontconfig
         Font font;
         try {
-            font = new Font (fdata, fontBaseName);
+            font = new Font ((cast(ubyte[]) fdata).ptr, cast(ptrdiff_t)fdata.length, fontBaseName);
         } catch (Exception e) {
             gres.addHint (null, "font-load-error", ["fname": fontBaseName,
                                                     "pkg_fname": gres.pkg.getFilename.baseName,
@@ -74,8 +75,8 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
             return;
         }
 
-        logDebug ("Found font %s/%s", fontBaseName, font.fullName);
-        allFonts[font.fullName.toLower] = font;
+        logDebug ("Found font %s/%s", fontBaseName, font.getFullname);
+        allFonts[font.getFullname.toLower] = font;
     }
 
     foreach (ref cpt; gres.getComponents ()) {
@@ -126,8 +127,8 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         // also ensure that the font style list is sorted for more
         // deterministic results
         auto regularFound = false;
-        foreach (ref font; allFonts.byValue.array.sort!"a.fullName < b.fullName") {
-            immutable fontStyleId = font.style.toLower;
+        foreach (ref font; allFonts.byValue.array.sort!"a.getFullname < b.getFullname") {
+            immutable fontStyleId = font.getStyle.toLower;
             if (!regularFound && fontStyleId.canFind ("regular")) {
                 auto tmp = selectedFonts.data.dup;
                 selectedFonts.clear ();
@@ -160,7 +161,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     if (selectedFonts.data.length == 0) {
         auto fontNamesStr = appender!string;
         foreach (ref font; allFonts.byValue)
-            fontNamesStr ~= fontNamesStr.data.empty? font.fullName : ("; " ~ font.fullName);
+            fontNamesStr ~= fontNamesStr.data.empty? font.getFullname : ("; " ~ font.getFullname);
         if (fontNamesStr.data.empty)
             fontNamesStr ~= "None";
         gres.addHint (cpt, "font-metainfo-but-no-font", ["font_names": fontNamesStr.data]);
@@ -174,7 +175,7 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
         auto firstLang = (cast(char*) cptLanguages.first.data).fromStringz;
 
         foreach (ref font; selectedFonts.data)
-            font.preferredLanguage = firstLang.to!string;
+            font.setPreferredLanguage (firstLang.to!string);
 
         // add languages mentioned in the metainfo file to list of supported languages
         // of the respective font
@@ -193,10 +194,12 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
     // process font files
     auto hasIcon = false;
     foreach (ref font; selectedFonts.data) {
-        logDebug ("Processing font '%s'", font.id);
+        import glib.Str;
+        logDebug ("Processing font '%s'", font.getId);
 
         // add language information
-        foreach (ref lang; font.getLanguageList ()) {
+        for (auto l = font.getLanguageList; l !is null; l = l.next) {
+            immutable lang = Str.toString (cast(char*)l.data);
             // we have no idea how well the font supports the language's script,
             // but since it adverties support in its metadata, we just assume 100% here
             cpt.addLanguage (lang, 100);
@@ -212,11 +215,11 @@ void processFontDataForComponent (GeneratorResult gres, Component cpt, ref Font[
 
         // set additional metadata. The font metadata might be terrible, but if the data is bad
         // it hopefully motivates people to write proper metainfo files.
-        if (cpt.getDescription.empty && !font.description.empty) {
-            cpt.setDescription (font.description, "C");
+        if (cpt.getDescription.empty && !font.getDescription.empty) {
+            cpt.setDescription (font.getDescription, "C");
         }
-        if (cpt.getUrl (UrlKind.HOMEPAGE).empty && !font.homepage.empty) {
-            cpt.addUrl (UrlKind.HOMEPAGE, font.homepage);
+        if (cpt.getUrl (UrlKind.HOMEPAGE).empty && !font.getHomepage.empty) {
+            cpt.addUrl (UrlKind.HOMEPAGE, font.getHomepage);
         }
     }
 
@@ -244,16 +247,16 @@ private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font
         // check if we have a custom icon text value (useful for symbolic fonts)
         immutable customIconText = cpt.getCustomValue ("FontIconText");
         if (!customIconText.empty)
-            font.sampleIconText = customIconText; // Font will ensure that the value does not exceed 3 chars
+            font.setSampleIconText (customIconText); // Font will ensure that the value does not exceed 3 chars
 
-        immutable fid = font.id;
+        immutable fid = font.getId;
         immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
 
         if (!std.file.exists (iconStoreLocation)) {
             // we didn't create an icon yet - render it
             auto cv = new Canvas (size.width, size.height);
-            cv.drawTextLine (font, font.sampleIconText);
+            cv.drawTextLine (font, font.getSampleIconText, -1);
             cv.savePng (iconStoreLocation);
         }
 
@@ -296,7 +299,7 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
 
     auto first = true;
     foreach (ref font; fonts) {
-        immutable fid = font.id;
+        immutable fid = font.getId;
         if (fid is null) {
             logWarning ("%s: Ignored font screenshot rendering due to missing ID:", cpt.getId ());
             continue;
@@ -307,7 +310,7 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
             scr.setKind (ScreenshotKind.DEFAULT);
         else
             scr.setKind (ScreenshotKind.EXTRA);
-        scr.setCaption ("%s %s".format (font.family, font.style), "C");
+        scr.setCaption ("%s %s".format (font.getFamily, font.getStyle), "C");
 
         if (first)
             first = false;
@@ -319,7 +322,7 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
         // be used, this should not be an issue.
         immutable customSampleText = cpt.getCustomValue ("FontSampleText");
         if (!customSampleText.empty)
-            font.sampleIconText = customSampleText;
+            font.setSampleIconText (customSampleText);
 
         auto cptScreenshotsUrl = buildPath (gres.gcidForComponent (cpt), "screenshots");
         foreach (ref size; fontScreenshotSizes) {
@@ -331,7 +334,7 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
             if (!std.file.exists (imgFileName)) {
                 // we didn't create s screenshot yet - render it
                 auto cv = new Canvas (size.width, size.height);
-                cv.drawTextLine (font, font.sampleText);
+                cv.drawTextLine (font, font.getSampleText, -1);
                 cv.savePng (imgFileName);
             }
 

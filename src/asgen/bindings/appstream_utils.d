@@ -22,6 +22,7 @@ module asgen.bindings.appstream_utils;
 private import appstream.c.types;
 private import glib.Str;
 private import std.string : toStringz;
+private import appstream_compose.c.types : ImageFormat;
 
 extern(C) {
     nothrow:
@@ -40,6 +41,8 @@ extern(C) {
     const(char) *as_get_appstream_version () pure;
 
     private const(char) *as_component_kind_to_string (AsComponentKind kind) pure;
+
+    private ImageFormat asc_image_format_from_filename (const(char)* fname) pure;
 }
 
 auto spdxLicenseTokenize (const string license) pure
@@ -55,4 +58,9 @@ bool spdxLicenseIsMetadataLicense (const string license) pure
 auto componentKindToString (AsComponentKind kind) pure
 {
     return Str.toString (as_component_kind_to_string (kind));
+}
+
+auto imageFormatFromFilename (const string fname) pure
+{
+    return asc_image_format_from_filename (fname.toStringz);
 }

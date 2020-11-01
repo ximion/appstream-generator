@@ -31,6 +31,8 @@ import appstream.Component : Component;
 import appstream.Screenshot : AsScreenshot, Screenshot, ScreenshotMediaKind;
 import appstream.Image : AsImage, Image, ImageKind;
 import appstream.Video : AsVideo, Video, VideoContainerKind, VideoCodecKind;
+import appstream_compose.c.types : ImageFormat;
+static import appstream_compose.Image;
 static import std.file;
 
 import asgen.config : Config;
@@ -38,7 +40,6 @@ import asgen.result : GeneratorResult;
 import asgen.downloader : Downloader;
 import asgen.utils : ImageSize, filenameFromURI, getFileContents;
 import asgen.logging;
-static import asgen.image;
 
 
 private immutable screenshotSizes = [ImageSize (1248, 702), ImageSize (752, 423), ImageSize (624, 351), ImageSize (224, 126)];
@@ -358,15 +359,15 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
         immutable srcImgUrl =  buildPath (scrBaseUrl, srcImgName);
 
         // save the source screenshot as PNG image
-        auto srcImg = new asgen.image.Image (imgData, asgen.image.ImageFormat.PNG);
+        auto srcImg = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length);
         srcImg.savePng (srcImgPath);
 
         auto img = new Image ();
         img.setKind (ImageKind.SOURCE);
         img.setLocale (origImageLocale);
 
-        sourceScrWidth = srcImg.width;
-        sourceScrHeight = srcImg.height;
+        sourceScrWidth = srcImg.getWidth;
+        sourceScrHeight = srcImg.getHeight;
         img.setWidth (sourceScrWidth);
         img.setHeight (sourceScrHeight);
 
@@ -399,14 +400,14 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
             continue;
 
         try {
-            auto thumb = new asgen.image.Image (imgData, asgen.image.ImageFormat.PNG);
+            auto thumb = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length);
             if (size.width > size.height)
                 thumb.scaleToWidth (size.width);
             else
                 thumb.scaleToHeight (size.height);
 
             // create thumbnail storage path and URL component
-            auto thumbImgName = "image-%s_%sx%s.png".format (scrNo, thumb.width, thumb.height);
+            auto thumbImgName = "image-%s_%sx%s.png".format (scrNo, thumb.getWidth, thumb.getHeight);
             auto thumbImgPath = buildPath (scrExportDir, thumbImgName);
             auto thumbImgUrl =  buildPath (scrBaseUrl, thumbImgName);
 
@@ -417,8 +418,8 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
             auto img = new Image ();
             img.setLocale (origImageLocale);
             img.setKind (ImageKind.THUMBNAIL);
-            img.setWidth (thumb.width);
-            img.setHeight (thumb.height);
+            img.setWidth (thumb.getWidth);
+            img.setHeight (thumb.getHeight);
             img.setUrl (thumbImgUrl);
             scr.addImage (img);
         } catch (Exception e) {

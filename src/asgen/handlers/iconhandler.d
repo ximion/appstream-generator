@@ -34,13 +34,16 @@ import glib.KeyFile : KeyFile;
 import glib.GException : GException;
 import appstream.Component;
 import appstream.Icon;
+import appstream_compose.Image : Image;
+import appstream_compose.Canvas : Canvas;
+import appstream_compose.c.types : ImageFormat;
 static import std.file;
 
+import asgen.bindings.appstream_utils : imageFormatFromFilename;
 import asgen.containers : HashMap;
 import asgen.utils;
 import asgen.logging;
 import asgen.result;
-import asgen.image;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
 import asgen.config : Config, IconPolicy;
@@ -371,21 +374,6 @@ public:
         return false;
     }
 
-    private ImageFormat imageKindFromFile (string fname)
-    {
-        if (fname.endsWith (".png"))
-            return ImageFormat.PNG;
-        if ((fname.endsWith (".jpg")) || (fname.endsWith (".jpeg")))
-            return ImageFormat.JPEG;
-        if (fname.endsWith (".svg"))
-            return ImageFormat.SVG;
-        if (fname.endsWith (".svgz"))
-            return ImageFormat.SVGZ;
-        if (fname.endsWith (".xpm"))
-            return ImageFormat.XPM;
-        return ImageFormat.UNKNOWN;
-    }
-
     /**
      * Generates potential filenames of the icon that is searched for in the
      * given size.
@@ -496,7 +484,7 @@ public:
                             IconPolicy policy)
     {
         immutable size = policy.iconSize;
-        auto iformat = imageKindFromFile (iconPath);
+        auto iformat = imageFormatFromFilename (iconPath);
         if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
             return false;
@@ -571,8 +559,10 @@ public:
             mkdirRecurse (path);
 
             try {
+                import gio.MemoryInputStream : MemoryInputStream;
+                auto stream = new MemoryInputStream (cast(ubyte[]) iconData, null);
                 auto cv = scoped!Canvas (scaled_width, scaled_height);
-                cv.renderSvg (iconData);
+                cv.renderSvg (stream);
                 cv.savePng (iconStoreLocation);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
@@ -583,7 +573,7 @@ public:
         } else {
             Image img;
             try {
-                img = new Image (iconData, iformat);
+                img = new Image ((cast(ubyte[]) iconData).ptr, cast(ptrdiff_t)iconData.length);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
                                                                  "pkg_fname": baseName (sourcePkg.getFilename),
@@ -598,10 +588,10 @@ public:
                     // the icon is not too small
                     if (size != ImageSize (64))
                         return false;
-                    if ((img.width < 48) || (img.height < 48))
+                    if ((img.getWidth < 48) || (img.getHeight < 48))
                         return false;
                 } else {
-                    if ((img.width < scaled_width) || (img.height < scaled_height))
+                    if ((img.getWidth < scaled_width) || (img.getHeight < scaled_height))
                         return false;
                 }
             }
@@ -609,17 +599,17 @@ public:
             // ensure that we don't try to make an application visible that has a really tiny icon
             // by upscaling it to a blurry mess
             if (size.scale == 1 && size.width == 64) {
-                if ((img.width < 48) || (img.height < 48)) {
+                if ((img.getWidth < 48) || (img.getHeight < 48)) {
                     gres.addHint (cpt, "icon-too-small", ["icon_name": iconName,
-                                                          "icon_size": "%ux%u".format (img.width, img.height)]);
+                                                          "icon_size": "%ux%u".format (img.getWidth, img.getHeight)]);
                     return false;
                 }
             }
 
             // warn about icon upscaling, it looks ugly
-            if (scaled_width > img.width) {
+            if (scaled_width > img.getWidth) {
                 gres.addHint (cpt, "icon-scaled-up", ["icon_name": iconName,
-                                                      "icon_size": "%ux%u".format (img.width, img.height),
+                                                      "icon_size": "%ux%u".format (img.getWidth, img.getHeight),
                                                       "scale_size": size.toString]);
             }
 

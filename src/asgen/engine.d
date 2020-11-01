@@ -104,11 +104,6 @@ public:
         // open package contents cache
         cstore = new ContentsStore ();
         cstore.open (conf);
-
-        // for Cairo/Fontconfig issues with multithreading
-        import asgen.image : setupFontconfigMutex;
-        if (conf.feature.processFonts)
-            setupFontconfigMutex ();
     }
 
     @property
