@@ -36,7 +36,7 @@ import appstream.Component;
 import appstream.Icon;
 import appstream_compose.Image : Image;
 import appstream_compose.Canvas : Canvas;
-import appstream_compose.c.types : ImageFormat;
+import appstream_compose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import std.file;
 
 import asgen.bindings.appstream_utils : imageFormatFromFilename;
@@ -573,7 +573,8 @@ public:
         } else {
             Image img;
             try {
-                img = new Image ((cast(ubyte[]) iconData).ptr, cast(ptrdiff_t)iconData.length);
+                img = new Image ((cast(ubyte[]) iconData).ptr, cast(ptrdiff_t)iconData.length,
+                                 0, ImageLoadFlags.NONE);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
                                                                  "pkg_fname": baseName (sourcePkg.getFilename),
@@ -618,7 +619,9 @@ public:
 
             try {
                 img.scale (scaled_width, scaled_height);
-                img.savePng (iconStoreLocation);
+                img.saveFilename (iconStoreLocation,
+                                  0, 0,
+                                  ImageSaveFlags.OPTIMIZE);
             } catch (Exception e) {
                 gres.addHint (cpt, "image-write-error", ["fname": baseName (iconPath),
                                                          "pkg_fname": baseName (sourcePkg.getFilename),

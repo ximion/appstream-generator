@@ -31,7 +31,7 @@ import appstream.Component : Component;
 import appstream.Screenshot : AsScreenshot, Screenshot, ScreenshotMediaKind;
 import appstream.Image : AsImage, Image, ImageKind;
 import appstream.Video : AsVideo, Video, VideoContainerKind, VideoCodecKind;
-import appstream_compose.c.types : ImageFormat;
+import appstream_compose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import appstream_compose.Image;
 static import std.file;
 
@@ -359,8 +359,11 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
         immutable srcImgUrl =  buildPath (scrBaseUrl, srcImgName);
 
         // save the source screenshot as PNG image
-        auto srcImg = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length);
-        srcImg.savePng (srcImgPath);
+        auto srcImg = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
+                                                         0, ImageLoadFlags.NONE);
+        srcImg.saveFilename (srcImgPath,
+                             0, 0,
+                             ImageSaveFlags.OPTIMIZE);
 
         auto img = new Image ();
         img.setKind (ImageKind.SOURCE);
@@ -400,7 +403,8 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
             continue;
 
         try {
-            auto thumb = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length);
+            auto thumb = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
+                                                            0, ImageLoadFlags.NONE);
             if (size.width > size.height)
                 thumb.scaleToWidth (size.width);
             else
@@ -412,7 +416,9 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
             auto thumbImgUrl =  buildPath (scrBaseUrl, thumbImgName);
 
             // store the thumbnail image on disk
-            thumb.savePng (thumbImgPath);
+            thumb.saveFilename(thumbImgPath,
+                               0, 0,
+                               ImageSaveFlags.OPTIMIZE);
 
             // finally prepare the thumbnail definition and add it to the metadata
             auto img = new Image ();

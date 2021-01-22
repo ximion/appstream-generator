@@ -43,6 +43,6 @@ includeComments: y
 
 srcDir: .
 
+lookup: APILookupGdkPixbuf.txt
 lookup: APILookupAppStream.txt
 lookup: APILookupAppStreamCompose.txt
-#lookup: APILookupSoup.txt
