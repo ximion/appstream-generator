@@ -11,7 +11,7 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 
 
 ## Development
-[![Build Status](https://travis-ci.org/ximion/appstream-generator.svg?branch=master)](https://travis-ci.org/ximion/appstream-generator)
+![Build Test](https://github.com/ximion/appstream-generator/workflows/Build%20Test/badge.svg)
 
 ### Build dependencies
 

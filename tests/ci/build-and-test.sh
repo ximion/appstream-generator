@@ -6,10 +6,9 @@
 set -e
 export LANG=C.UTF-8
 
-# prefer GDC 10 over the default for now
-if [ "$DC" = "gdc" ];
+if [ "$DC" = "ldc" ];
 then
-  export DC="gdc-10"
+  export DC=ldc2
 fi
 
 echo "D compiler: $DC"
