@@ -45,7 +45,7 @@ RUN apt-get install -yq --no-install-recommends \
 
 # Install dscanner
 RUN mkdir -p /usr/local/bin/
-RUN curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.5.11/dscanner-v0.5.11-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
+RUN curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.11.0/dscanner-v0.11.0-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
 RUN tar -xzf /tmp/dscanner.tar.gz -C /usr/local/bin/
 RUN rm /tmp/dscanner.tar.gz
 RUN dscanner --version
