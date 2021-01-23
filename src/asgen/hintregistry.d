@@ -28,6 +28,7 @@ import std.conv : to;
 import appstream.Validator : Validator;
 import appstream.c.types : IssueSeverity;
 import ascompose.Hint : Hint;
+import ascompose.Globals : Globals;
 static import appstream.Utils;
 alias AsUtils = appstream.Utils.Utils;
 
@@ -36,7 +37,7 @@ import asgen.utils;
 
 
 /**
- * Severity assigned with an issue hint.
+ * Each issue hint type has a severity assigned to it:
 
  * ERROR:   A fatal error which resulted in the component being excluded from the final metadata.
  * WARNING: An issue which did not prevent generating meaningful data, but which is still serious
@@ -46,186 +47,97 @@ import asgen.utils;
  */
 
 /**
- * Singleton holding information about the hint tags we know about.
- **/
-final class HintTagRegistry
+ * Definition of a issue hint.
+ */
+struct HintDefinition
 {
-    // Thread local
-    private static bool instantiated_;
+    string tag;             /// Unique issue tag
+    IssueSeverity severity; /// Issue severity
+    string explanation;     /// Explanation template
+};
 
-    // Thread global
-    private __gshared HintTagRegistry instance_;
+/**
+ * Load all issue hints from file and register them globally.
+ */
+void loadHintsRegistry () @trusted
+{
+    import std.path;
+    static import std.file;
 
-    @trusted
-    static HintTagRegistry get()
-    {
-        if (!instantiated_) {
-            synchronized (HintTagRegistry.classinfo) {
-                if (!instance_)
-                    instance_ = new HintTagRegistry ();
+    // find the hint definition file
+    auto hintsDefFile = getDataPath ("asgen-hints.json");
+    if (!std.file.exists (hintsDefFile)) {
+        logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
+        return;
+    }
 
-                instantiated_ = true;
+    // read the hints definition JSON file
+    auto f = File (hintsDefFile, "r");
+    string jsonData;
+    string line;
+    while ((line = f.readln ()) !is null)
+        jsonData ~= line;
+
+    auto hintDefsJSON = parseJSON (jsonData);
+
+    bool checkAlreadyLoaded = true;
+    foreach (ref tag; hintDefsJSON.object.byKey) {
+        auto j = hintDefsJSON[tag];
+        immutable severity = AsUtils.severityFromString (j["severity"].str);
+
+        if (checkAlreadyLoaded) {
+            if (Globals.hintTagSeverity (tag) != IssueSeverity.UNKNOWN) {
+                logDebug ("Global hints registry already loaded.");
+                break;
             }
+            checkAlreadyLoaded = false;
         }
 
-        return instance_;
-    }
-
-    struct HintDefinition
-    {
-        string tag;
-        string text;
-        IssueSeverity severity;
-        bool internal;
-        bool valid;
-    }
-
-    private HintDefinition[string] hintDefs;
-
-    private this () @trusted
-    {
-        import std.path;
-        static import std.file;
-
-        // find the hint definition file
-        auto hintsDefFile = getDataPath ("asgen-hints.json");
-        if (!std.file.exists (hintsDefFile)) {
-            logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
-            return;
+        string explanation = "";
+        if (j["text"].type == JSONType.array) {
+            foreach (l; j["text"].array)
+                explanation ~= l.str ~ "\n";
+        } else {
+            explanation = j["text"].str;
         }
 
-        // read the hints definition JSON file
-        auto f = File (hintsDefFile, "r");
-        string jsonData;
-        string line;
-        while ((line = f.readln ()) !is null)
-            jsonData ~= line;
-
-        auto hintDefsJSON = parseJSON (jsonData);
-
-        foreach (ref tag; hintDefsJSON.object.byKey) {
-            auto j = hintDefsJSON[tag];
-            HintDefinition hdef;
-
-            hdef.tag = tag;
-            hdef.severity = AsUtils.severityFromString (j["severity"].str);
-
-            if (j["text"].type == JSONType.array) {
-                foreach (l; j["text"].array)
-                    hdef.text ~= l.str ~ "\n";
-            } else {
-                hdef.text = j["text"].str;
-            }
-
-            if ("internal" in j)
-                hdef.internal = j["internal"].type == JSONType.true_;
-            hdef.valid = true;
-
-            hintDefs[tag] = hdef;
-        }
-
-        // add AppStream validator hint tags to the registry
-        auto validator = new Validator;
-        foreach (ref tag; validator.getTags)
-            addHintDefForValidatorTag (validator, tag);
-    }
-
-    @trusted
-    void saveToFile (string fname)
-    {
-        // is this really the only way you can set a type for JSONValue?
-        auto map = JSONValue (["null": 0]);
-        map.object.remove ("null");
-
-        foreach (hdef; hintDefs.byValue) {
-
-            auto jval = JSONValue (["text": JSONValue (hdef.text),
-                                    "severity": JSONValue (AsUtils.severityToString (hdef.severity))]);
-            if (hdef.internal)
-                jval.object["internal"] = JSONValue (true);
-            map.object[hdef.tag] = jval;
-        }
-
-        File file = File(fname, "w");
-        file.writeln (map.toJSON (true));
-        file.close ();
-    }
-
-    private auto addHintDefForValidatorTag (Validator validator, const string tag) @trusted
-    {
-        import appstream.Validator : IssueSeverity;
-        HintDefinition hdef;
-        hdef.valid = false;
-
-        immutable asgenTag = "asv-" ~ tag;
-        immutable explanation = validator.getTagExplanation (tag);
-        if (explanation.empty)
-            return hdef;
-        immutable asSeverity = validator.getTagSeverity (tag);
-
-        // Translate an AppStream validator hint severity to a generator
-        // severity. An error is just a warning here for now, as any error yields
-        // to an instant reject of the component (and as long as we extrcated *some*
-        // data, that seems a bit harsh)
-        IssueSeverity severity;
-        switch (asSeverity) {
-            case IssueSeverity.ERROR:
-                severity = IssueSeverity.WARNING;
-                break;
-            case IssueSeverity.WARNING:
-                severity = IssueSeverity.WARNING;
-                break;
-            case IssueSeverity.INFO:
-                severity = IssueSeverity.INFO;
-                break;
-            case IssueSeverity.PEDANTIC:
-                severity = IssueSeverity.PEDANTIC;
-                break;
-            default:
-                severity = IssueSeverity.UNKNOWN;
-        }
-
-        hdef.tag = asgenTag;
-        hdef.severity = severity;
-        hdef.text = "<code>{{location}}</code> - <em>{{hint}}</em><br/>%s".format (escapeXml (explanation));
-        hdef.valid = true;
-
-        hintDefs[asgenTag] = hdef;
-
-        return hdef;
-    }
-
-    @safe
-    HintDefinition getHintDef (string tag) pure
-    {
-        auto defP = (tag in hintDefs);
-        if (defP is null)
-                return HintDefinition ();
-        return *defP;
-    }
-
-    @safe
-    IssueSeverity getSeverity (string tag) pure
-    {
-        auto hDef = getHintDef (tag);
-        return hDef.severity;
+        Globals.addHintTag (tag, severity, explanation);
     }
 }
 
-public Hint createHint (const string tag, const string cid) @trusted
+/**
+ * Save information about all hint templates we know about to a JSON file.
+ */
+void saveHintsRegistryToJsonFile (const string fname) @trusted
 {
-    auto h = new Hint;
-    h.setTag (tag);
+    // FIXME: is this really the only way you can set a type for JSONValue?
+    auto map = JSONValue (["null": 0]);
+    map.object.remove ("null");
 
-    const severity = HintTagRegistry.get.getSeverity (tag);
-    if (severity == IssueSeverity.UNKNOWN)
-        logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
-    h.setSeverity (severity);
+    foreach (const htag; Globals.getHintTags) {
+        const hdef = retrieveHintDef (htag);
+        auto jval = JSONValue (["text": JSONValue (hdef.explanation),
+                                "severity": JSONValue (AsUtils.severityToString (hdef.severity))]);
+        map.object[hdef.tag] = jval;
+    }
 
-    return h;
+    File file = File(fname, "w");
+    file.writeln (map.toJSON (true));
+    file.close ();
 }
 
-public auto toJsonValue (Hint hint) @trusted
+HintDefinition retrieveHintDef (string tag) @trusted
+{
+    HintDefinition hdef;
+    hdef.tag = tag;
+    hdef.severity = Globals.hintTagSeverity (tag);
+    if (hdef.severity == IssueSeverity.UNKNOWN)
+        return HintDefinition ();
+    hdef.explanation = Globals.hintTagExplanation (tag);
+    return hdef;
+}
+
+auto toJsonValue (Hint hint) @trusted
 {
     auto hintList = hint.getExplanationVarsList;
     string[string] vars;
@@ -244,16 +156,20 @@ public auto toJsonValue (Hint hint) @trusted
 @trusted
 unittest
 {
+    import std.exception : assertThrown;
+    import glib.GException : GException;
     writeln ("TEST: ", "Issue Hints");
 
-    auto hint = createHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
+    assertThrown!GException (new Hint ("desktop-file-error"));
+
+    loadHintsRegistry ();
+    auto hint = new Hint ("desktop-file-error");
+
     foreach (k, v; ["rainbows": "yes", "unicorns": "no", "storage": "towel"])
         hint.addExplanationVar (k, v);
     auto root = hint.toJsonValue ();
-
     writeln (root.toJSON (true));
 
-    auto registry = HintTagRegistry.get ();
-    registry.getHintDef ("asv-relation-item-invalid-vercmp");
-    registry.saveToFile ("/tmp/testsuite-asgen-hints.json");
+    assert (retrieveHintDef ("asv-relation-item-invalid-vercmp").severity != IssueSeverity.UNKNOWN);
+    saveHintsRegistryToJsonFile ("/tmp/testsuite-asgen-hints.json");
 }

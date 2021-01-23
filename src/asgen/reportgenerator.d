@@ -451,7 +451,6 @@ public:
         DataSummary dsum;
 
         logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
-        auto hintTagRegistry = HintTagRegistry.get ();
 
         auto dtype = conf.metadataType;
         auto mdata = scoped!Metadata ();
@@ -568,25 +567,26 @@ public:
 
                     foreach (jhint; jhints.array) {
                         auto tag = jhint["tag"].str;
-                        auto hdef = hintTagRegistry.getHintDef (tag);
-                        if (hdef.tag is null) {
+
+                        Hint hint;
+                        try {
+                            hint = new Hint (tag);
+                        } catch (Exception e) {
                             logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
 
                             // emit an internal error, invalid tags shouldn't happen
-                            hdef = hintTagRegistry.getHintDef ("internal-unknown-tag");
-                            assert (hdef.tag !is null);
+                            tag = "internal-unknown-tag";
+                            hint = new Hint (tag);
                             jhint["vars"] = ["tag": tag];
                         }
 
                         // render the full message using the static template and data from the hint
-                        auto context = new Mustache.Context;
-                        foreach (var; jhint["vars"].object.byKey ()) {
-                            context[var] = jhint["vars"][var].str;
-                        }
-                        auto msg = mustache.renderString (hdef.text, context);
+                        foreach (var; jhint["vars"].object.byKey ())
+                            hint.addExplanationVar (var, jhint["vars"][var].str);
+                        const msg = hint.formatExplanation ();
 
                         // add the new hint to the right category
-                        auto severity = hintTagRegistry.getSeverity (tag);
+                        const severity = hint.getSeverity;
                         if (severity == IssueSeverity.INFO) {
                             he.infos ~= HintTag (tag, msg);
                             pkgsummary.infoCount++;

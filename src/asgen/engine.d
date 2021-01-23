@@ -97,6 +97,9 @@ public:
                 throw new Exception ("No backend specified, can not continue!");
         }
 
+        // load global registry of issue hint templates
+        loadHintsRegistry ();
+
         // create cache in cache directory on workspace
         dstore = new DataStore ();
         dstore.open (conf);
@@ -485,8 +488,7 @@ public:
         // save a copy of the hints registry to be used by other tools
         // (this allows other apps to just resolve the hint tags to severities and explanations
         // without loading either AppStream or AppStream-Generator code)
-        auto hintTagRegistry = HintTagRegistry.get ();
-        hintTagRegistry.saveToFile (buildPath (conf.hintsExportDir, suite.name, "hint-definitions.json"));
+        saveHintsRegistryToJsonFile (buildPath (conf.hintsExportDir, suite.name, "hint-definitions.json"));
     }
 
     private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)

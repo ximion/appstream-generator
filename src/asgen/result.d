@@ -182,7 +182,7 @@ public:
                 immutable cid = id.getId ();
         }
 
-        auto hint = createHint (tag, cid);
+        auto hint = new Hint (tag);
         foreach (const ref varName, ref varValue; params)
             hint.addExplanationVar (varName, varValue);
         if (cid in hints)
@@ -441,14 +441,15 @@ unittest
 {
     import asgen.backends.dummy.dummypkg;
     writeln ("TEST: ", "GeneratorResult");
+    loadHintsRegistry ();
 
     auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
     auto res = new GeneratorResult (pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    res.addHint ("org.freedesktop.foobar.desktop", "just-a-unittest", vars);
-    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-chocolate-missing", "Nothing is good without chocolate. Add some.");
-    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-does-not-frobnicate", "Frobnicate functionality is missing.");
+    res.addHint ("org.freedesktop.foobar.desktop", "desktop-file-hidden-set", vars);
+    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-validation-error", "Nothing is good without chocolate. Add some.");
+    res.addHint ("org.freedesktop.awesome-bar.desktop", "screenshot-video-check-failed", "Frobnicate functionality is missing.");
 
     writeln (res.hintsToJson ());
 }

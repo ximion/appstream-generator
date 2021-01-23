@@ -32,14 +32,14 @@ addAliases: end
 move: image_format_from_filename Utils
 
 struct: Globals
-move: globals_get_tmp_dir Globals
-move: globals_get_tmp_dir_create Globals
-move: globals_set_tmp_dir Globals
-move: globals_get_use_optipng Globals
-move: globals_set_use_optipng Globals
-move: globals_get_optipng_binary Globals
-move: globals_set_optipng_binary Globals
-move: globals_add_hint_tag Globals
-move: globals_get_hint_tags Globals
-move: globals_hint_tag_severity Globals
-move: globals_hint_tag_explanation Globals
+move: globals_get_tmp_dir Globals getTmpDir
+move: globals_get_tmp_dir_create Globals getTmpDirCreate
+move: globals_set_tmp_dir Globals setTmpDir
+move: globals_get_use_optipng Globals useOptipng
+move: globals_set_use_optipng Globals setUseOptipng
+move: globals_get_optipng_binary Globals optipngBinary
+move: globals_set_optipng_binary Globals setOptipngBinary
+move: globals_add_hint_tag Globals addHintTag
+move: globals_get_hint_tags Globals getHintTags
+move: globals_hint_tag_severity Globals hintTagSeverity
+move: globals_hint_tag_explanation Globals hintTagExplanation
