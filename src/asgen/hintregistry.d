@@ -54,7 +54,7 @@ struct HintDefinition
     string tag;             /// Unique issue tag
     IssueSeverity severity; /// Issue severity
     string explanation;     /// Explanation template
-};
+}
 
 /**
  * Load all issue hints from file and register them globally.
