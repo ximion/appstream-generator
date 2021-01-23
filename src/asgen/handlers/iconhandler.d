@@ -34,12 +34,14 @@ import glib.KeyFile : KeyFile;
 import glib.GException : GException;
 import appstream.Component;
 import appstream.Icon;
+static import ascompose.Utils;
+alias AscUtils = ascompose.Utils.Utils;
+
 import ascompose.Image : Image;
 import ascompose.Canvas : Canvas;
 import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import std.file;
 
-import asgen.bindings.asutils : imageFormatFromFilename;
 import asgen.containers : HashMap;
 import asgen.utils;
 import asgen.logging;
@@ -484,7 +486,7 @@ public:
                             IconPolicy policy)
     {
         immutable size = policy.iconSize;
-        auto iformat = imageFormatFromFilename (iconPath);
+        auto iformat = AscUtils.imageFormatFromFilename (iconPath);
         if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
             return false;

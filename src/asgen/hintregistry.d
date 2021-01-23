@@ -28,10 +28,11 @@ import std.conv : to;
 import appstream.Validator : Validator;
 import appstream.c.types : IssueSeverity;
 import ascompose.Hint : Hint;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 
 import asgen.logging;
 import asgen.utils;
-import asgen.bindings.asutils : severityFromString, severityToString;
 
 
 /**
@@ -107,7 +108,7 @@ final class HintTagRegistry
             HintDefinition hdef;
 
             hdef.tag = tag;
-            hdef.severity = severityFromString (j["severity"].str);
+            hdef.severity = AsUtils.severityFromString (j["severity"].str);
 
             if (j["text"].type == JSONType.array) {
                 foreach (l; j["text"].array)
@@ -139,7 +140,7 @@ final class HintTagRegistry
         foreach (hdef; hintDefs.byValue) {
 
             auto jval = JSONValue (["text": JSONValue (hdef.text),
-                                    "severity": JSONValue (severityToString (hdef.severity))]);
+                                    "severity": JSONValue (AsUtils.severityToString (hdef.severity))]);
             if (hdef.internal)
                 jval.object["internal"] = JSONValue (true);
             map.object[hdef.tag] = jval;

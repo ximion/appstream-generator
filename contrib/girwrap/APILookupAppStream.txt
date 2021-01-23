@@ -26,3 +26,19 @@ addAliases: start
 	public import core.stdc.stdio;
 	public import core.stdc.string;
 addAliases: end
+
+move: version_string Utils appstreamVersion
+
+move: issue_severity_to_string Utils severityToString
+move: issue_severity_from_string Utils severityFromString
+
+move: utils_is_tld Utils isTld
+move: utils_is_category_name Utils isCategoryName
+
+move: format_version_to_string Utils
+move: format_version_from_string Utils
+
+move: license_is_metadata_license Utils
+move: spdx_license_tokenize Utils
+
+move: component_kind_to_string Utils

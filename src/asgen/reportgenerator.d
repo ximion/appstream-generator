@@ -34,6 +34,8 @@ import mustache;
 import appstream.Metadata;
 import appstream.c.types : IssueSeverity;
 import ascompose.Hint : Hint;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 
 import asgen.defines : ASGEN_VERSION;
 import asgen.utils;
@@ -130,9 +132,7 @@ public:
         mustache.ext = "html";
 
         // create version information to display on every page
-        import asgen.bindings.asutils : appstreamVersion;
-        import std.string : fromStringz;
-        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, appstreamVersion);
+        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, AsUtils.appstreamVersion);
     }
 
     private string[] splitBlockData (string str, string blockType)

@@ -128,13 +128,13 @@ public:
     private void logVersionInfo ()
     {
         import asgen.defines : ASGEN_VERSION;
-        import asgen.bindings.asutils : appstreamVersion;
-        import std.string : fromStringz;
+        static import appstream.Utils;
+        alias AsUtils = appstream.Utils.Utils;
 
         string backendInfo = "";
         if (!conf.backendName.empty)
             backendInfo = " [%s]".format (conf.backendName);
-        logInfo ("AppStream Generator %s, AS: %s%s", ASGEN_VERSION, appstreamVersion, backendInfo);
+        logInfo ("AppStream Generator %s, AS: %s%s", ASGEN_VERSION, AsUtils.appstreamVersion, backendInfo);
     }
 
     /**

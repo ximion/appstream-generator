@@ -26,6 +26,8 @@ import std.array : empty;
 import std.stdio;
 import appstream.Metadata;
 import appstream.Component;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 
 import asgen.result;
 import asgen.utils;
@@ -33,15 +35,13 @@ import asgen.utils;
 
 immutable MAX_RELEASE_INFO_COUNT = 6; /// Maximum amount of releases present in output data
 
-private bool isAcceptableMetainfoLicense (string licenseExpression) pure
+private bool isAcceptableMetainfoLicense (string licenseExpression)
 {
-    import asgen.bindings.asutils : spdxLicenseTokenize, spdxLicenseIsMetadataLicense;
-
     bool requiresAllTokens = true;
     uint licenseGoodCnt = 0;
     uint licenseBadCnt = 0;
 
-	auto tokens = spdxLicenseTokenize (licenseExpression);
+	auto tokens = AsUtils.spdxLicenseTokenize (licenseExpression);
 	if (tokens.length == 0)
 		return false;
 
@@ -64,7 +64,7 @@ private bool isAcceptableMetainfoLicense (string licenseExpression) pure
             continue;
         }
 
-        if (spdxLicenseIsMetadataLicense (t))
+        if (AsUtils.licenseIsMetadataLicense (t))
             licenseGoodCnt++;
         else
             licenseBadCnt++;

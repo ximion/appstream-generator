@@ -35,6 +35,8 @@ static import std.file;
 
 import appstream.Component;
 import appstream.Icon;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 
 import asgen.defines;
 import asgen.logging;
@@ -166,13 +168,12 @@ bool localeValid (string locale) pure
  * (in a short check on Debian, it covered all TLDs in use there)
  */
 @trusted
-bool isTopLevelDomain (const string value) pure
+bool isTopLevelDomain (const string value)
 {
-    import asgen.bindings.asutils : as_utils_is_tld;
     if (value.empty)
         return false;
 
-    return as_utils_is_tld (value.toStringz);
+    return AsUtils.isTld (value);
 }
 
 /**
@@ -184,7 +185,7 @@ bool isTopLevelDomain (const string value) pure
  * associated with this component.
  **/
 @trusted
-string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false) pure
+string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false)
 in { assert (cid.length >= 2); }
 do
 {
@@ -218,7 +219,7 @@ do
  * Get the component-id back from a global component-id.
  */
 @trusted
-string getCidFromGlobalID (string gcid) pure
+string getCidFromGlobalID (string gcid)
 {
     auto parts = gcid.split ("/");
     if (parts.length != 4)

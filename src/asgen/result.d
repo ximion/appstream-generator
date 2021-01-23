@@ -27,6 +27,8 @@ import std.algorithm : endsWith;
 import std.json;
 import appstream.Component;
 import ascompose.Hint : Hint;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 
 import asgen.containers : HashMap;
 import asgen.hintregistry;
@@ -360,12 +362,10 @@ public:
                                     continue;
                             }
                         } else {
-                            import asgen.bindings.asutils : componentKindToString;
-
                             if ((ckind == ComponentKind.DESKTOP_APP) ||
                                 (ckind == ComponentKind.CONSOLE_APP) ||
                                 (ckind == ComponentKind.WEB_APP)) {
-                                    if (!addHint (cpt, "description-missing", ["kind": componentKindToString (ckind)]))
+                                    if (!addHint (cpt, "description-missing", ["kind": AsUtils.componentKindToString (ckind)]))
                                     continue;
                             }
                         }

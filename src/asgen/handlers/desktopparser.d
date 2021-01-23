@@ -33,6 +33,8 @@ import appstream.Component;
 import appstream.Provided;
 import appstream.Icon;
 import appstream.Launchable : Launchable, LaunchableKind;
+static import appstream.Utils;
+alias AsUtils = appstream.Utils.Utils;
 static import std.regex;
 
 import asgen.result;
@@ -92,8 +94,6 @@ private string getValue (KeyFile kf, string key)
  */
 private auto filterCategories (Component cpt, GeneratorResult gres, ref string[] cats)
 {
-    import asgen.bindings.asutils : as_utils_is_category_name;
-
     auto res = appender!(string[]);
     res.reserve (cats.length / 2);
     foreach (const cat; cats) {
@@ -107,7 +107,7 @@ private auto filterCategories (Component cpt, GeneratorResult gres, ref string[]
                 break;
             default:
                 if (!cat.empty && !cat.toLower.startsWith ("x-")) {
-                    if (as_utils_is_category_name (cat.toStringz))
+                    if (AsUtils.isCategoryName(cat))
                         res ~= cat;
                     else
                         gres.addHint (cpt, "category-name-invalid", ["category": cat]);

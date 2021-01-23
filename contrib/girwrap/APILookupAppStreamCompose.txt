@@ -28,3 +28,18 @@ addAliases: start
 	public import core.stdc.stdio;
 	public import core.stdc.string;
 addAliases: end
+
+move: image_format_from_filename Utils
+
+struct: Globals
+move: globals_get_tmp_dir Globals
+move: globals_get_tmp_dir_create Globals
+move: globals_set_tmp_dir Globals
+move: globals_get_use_optipng Globals
+move: globals_set_use_optipng Globals
+move: globals_get_optipng_binary Globals
+move: globals_set_optipng_binary Globals
+move: globals_add_hint_tag Globals
+move: globals_get_hint_tags Globals
+move: globals_hint_tag_severity Globals
+move: globals_hint_tag_explanation Globals
