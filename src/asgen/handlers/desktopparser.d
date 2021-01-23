@@ -92,7 +92,7 @@ private string getValue (KeyFile kf, string key)
  */
 private auto filterCategories (Component cpt, GeneratorResult gres, ref string[] cats)
 {
-    import asgen.bindings.appstream_utils : as_utils_is_category_name;
+    import asgen.bindings.asutils : as_utils_is_category_name;
 
     auto res = appender!(string[]);
     res.reserve (cats.length / 2);

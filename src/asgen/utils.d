@@ -168,7 +168,7 @@ bool localeValid (string locale) pure
 @trusted
 bool isTopLevelDomain (const string value) pure
 {
-    import asgen.bindings.appstream_utils : as_utils_is_tld;
+    import asgen.bindings.asutils : as_utils_is_tld;
     if (value.empty)
         return false;
 

@@ -20,14 +20,16 @@
 module asgen.result;
 
 import std.stdio;
-import std.string;
+import std.string : format, fromStringz, toStringz;
 import std.array : empty;
 import std.conv : to;
+import std.algorithm : endsWith;
 import std.json;
 import appstream.Component;
+import ascompose.Hint : Hint;
 
 import asgen.containers : HashMap;
-import asgen.hint;
+import asgen.hintregistry;
 import asgen.utils : buildCptGlobalID;
 import asgen.backends.interfaces;
 import asgen.config : Config;
@@ -60,7 +62,7 @@ private:
     Component[string] cpts;
     string[Component] cptGCID;
     HashMap!(string, string) mdataHashes;
-    HashMap!(string, GeneratorHint[]) hints;
+    HashMap!(string, Hint[]) hints;
 
 public:
     immutable string pkid;
@@ -178,8 +180,9 @@ public:
                 immutable cid = id.getId ();
         }
 
-        auto hint = GeneratorHint (tag, cid);
-        hint.setVars (params);
+        auto hint = createHint (tag, cid);
+        foreach (const ref varName, ref varValue; params)
+            hint.addExplanationVar (varName, varValue);
         if (cid in hints)
             hints[cid] ~= hint;
         else
@@ -230,9 +233,8 @@ public:
             auto cptHints = hints[cid];
             auto hintNodes = JSONValue ([0, 0]);
             hintNodes.array = [];
-            foreach (ref hint; cptHints) {
-                hintNodes.array ~= hint.toJsonNode ();
-            }
+            foreach (ref hint; cptHints)
+                hintNodes.array ~= hint.toJsonValue;
 
             map.object[cid] = hintNodes;
         }
@@ -358,7 +360,7 @@ public:
                                     continue;
                             }
                         } else {
-                            import asgen.bindings.appstream_utils : componentKindToString;
+                            import asgen.bindings.asutils : componentKindToString;
 
                             if ((ckind == ComponentKind.DESKTOP_APP) ||
                                 (ckind == ComponentKind.CONSOLE_APP) ||

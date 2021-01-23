@@ -15,7 +15,7 @@
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 # must start with wrap
-wrap: appstream_compose
+wrap: ascompose
 file: AppStreamCompose-1.0.gir
 
 addAliases: start

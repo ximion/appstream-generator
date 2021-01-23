@@ -27,11 +27,11 @@ import std.conv : to;
 import appstream.Component;
 import appstream.Icon;
 import appstream.Screenshot;
-static import appstream.Image;
+static import asImage = appstream.Image;
 static import std.file;
-import appstream_compose.Font : Font;
-import appstream_compose.Canvas : Canvas;
-import appstream_compose.c.types : ImageFormat;
+import ascompose.Font : Font;
+import ascompose.Canvas : Canvas;
+import ascompose.c.types : ImageFormat;
 
 import asgen.utils;
 import asgen.logging;
@@ -338,7 +338,7 @@ private bool renderFontScreenshots (GeneratorResult gres, Font[] fonts, immutabl
                 cv.savePng (imgFileName);
             }
 
-            auto img = new appstream.Image.Image ();
+            auto img = new asImage.Image ();
             img.setKind (ImageKind.THUMBNAIL);
             img.setWidth (size.width);
             img.setHeight (size.height);

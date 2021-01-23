@@ -202,7 +202,7 @@ public:
     @property
     string formatVersionStr ()
     {
-        import asgen.bindings.appstream_utils : as_format_version_to_string;
+        import asgen.bindings.asutils : as_format_version_to_string;
         import std.string : fromStringz;
 
         auto ver = fromStringz (as_format_version_to_string (formatVersion));
@@ -629,7 +629,7 @@ public:
 
         // sanity check to warn if our GdkPixbuf does not support the minimum amount
         // of image formats we need
-        import appstream_compose.Image : Image;
+        import ascompose.Image : Image;
         import std.string : toStringz;
         auto pbFormatNames = Image.supportedFormatNames ();
         if (!pbFormatNames.contains(cast(char*) "png".toStringz) ||

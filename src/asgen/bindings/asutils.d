@@ -17,32 +17,49 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module asgen.bindings.appstream_utils;
+module asgen.bindings.asutils;
 
 private import appstream.c.types;
 private import glib.Str;
-private import std.string : toStringz;
-private import appstream_compose.c.types : ImageFormat;
+private import std.string : fromStringz, toStringz;
+private import ascompose.c.types : ImageFormat, IssueSeverity;
 
 extern(C) {
+    private:
     nothrow:
     @nogc:
     @system:
 
-    bool as_utils_is_tld (const(char)* tld) pure;
-    bool as_utils_is_category_name (const(char)* category_name);
+    IssueSeverity as_issue_severity_from_string (const(char)* str) pure;
+    const(char*) as_issue_severity_to_string (IssueSeverity severity) pure;
 
-    const(char*) as_format_version_to_string (FormatVersion ver);
-    FormatVersion as_format_version_from_string (const(char)* version_str);
+    public bool as_utils_is_tld (const(char)* tld) pure;
+    public bool as_utils_is_category_name (const(char)* category_name) pure;
 
-    private bool as_license_is_metadata_license (const(char)* license) pure;
-    private char** as_spdx_license_tokenize (const(char)* license) pure;
+    public const(char*) as_format_version_to_string (FormatVersion ver) pure;
+    public FormatVersion as_format_version_from_string (const(char)* version_str) pure;
 
-    const(char) *as_get_appstream_version () pure;
+    bool as_license_is_metadata_license (const(char)* license) pure;
+    char** as_spdx_license_tokenize (const(char)* license) pure;
 
-    private const(char) *as_component_kind_to_string (AsComponentKind kind) pure;
+    const(char) *as_version_string () pure;
 
-    private ImageFormat asc_image_format_from_filename (const(char)* fname) pure;
+    const(char) *as_component_kind_to_string (AsComponentKind kind) pure;
+
+    ImageFormat asc_image_format_from_filename (const(char)* fname) pure;
+}
+
+public:
+@trusted:
+
+auto severityFromString (const string str) pure
+{
+    return as_issue_severity_from_string (str.toStringz);
+}
+
+auto severityToString (IssueSeverity severity) pure
+{
+    return fromStringz (as_issue_severity_to_string (severity));
 }
 
 auto spdxLicenseTokenize (const string license) pure
@@ -63,4 +80,9 @@ auto componentKindToString (AsComponentKind kind) pure
 auto imageFormatFromFilename (const string fname) pure
 {
     return asc_image_format_from_filename (fname.toStringz);
+}
+
+auto appstreamVersion () pure
+{
+    return fromStringz (as_version_string ());
 }

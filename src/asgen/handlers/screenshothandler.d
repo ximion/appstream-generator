@@ -31,8 +31,8 @@ import appstream.Component : Component;
 import appstream.Screenshot : AsScreenshot, Screenshot, ScreenshotMediaKind;
 import appstream.Image : AsImage, Image, ImageKind;
 import appstream.Video : AsVideo, Video, VideoContainerKind, VideoCodecKind;
-import appstream_compose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
-static import appstream_compose.Image;
+import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
+static import ascompose.Image;
 static import std.file;
 
 import asgen.config : Config;
@@ -359,7 +359,7 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
         immutable srcImgUrl =  buildPath (scrBaseUrl, srcImgName);
 
         // save the source screenshot as PNG image
-        auto srcImg = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
+        auto srcImg = new ascompose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
                                                          0, ImageLoadFlags.NONE);
         srcImg.saveFilename (srcImgPath,
                              0, 0,
@@ -403,7 +403,7 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
             continue;
 
         try {
-            auto thumb = new appstream_compose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
+            auto thumb = new ascompose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
                                                             0, ImageLoadFlags.NONE);
             if (size.width > size.height)
                 thumb.scaleToWidth (size.width);

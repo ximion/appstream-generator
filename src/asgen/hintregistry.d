@@ -23,10 +23,15 @@ module asgen.hint;
 import std.stdio;
 import std.string;
 import std.json;
+import std.conv : to;
+
+import appstream.Validator : Validator;
+import appstream.c.types : IssueSeverity;
+import ascompose.Hint : Hint;
 
 import asgen.logging;
 import asgen.utils;
-import appstream.Validator : Validator;
+import asgen.bindings.asutils : severityFromString, severityToString;
 
 
 /**
@@ -38,95 +43,6 @@ import appstream.Validator : Validator;
  * INFO:    Information, no immediate action needed (but will likely be an issue later).
  * PEDANTIC: Information which may improve the data, but could also be ignored.
  */
-enum HintSeverity
-{
-    UNKNOWN,
-    ERROR,
-    WARNING,
-    INFO,
-    PEDANTIC
-}
-
-private HintSeverity severityFromString (string str) pure
-{
-    switch (str) {
-        case "error":
-            return HintSeverity.ERROR;
-        case "warning":
-            return HintSeverity.WARNING;
-        case "info":
-            return HintSeverity.INFO;
-        case "pedantic":
-            return HintSeverity.INFO;
-        default:
-            return HintSeverity.UNKNOWN;
-    }
-}
-
-private string severityToString (HintSeverity severity) pure
-{
-    switch (severity) {
-        case HintSeverity.ERROR:
-            return "error";
-        case HintSeverity.WARNING:
-            return "warning";
-        case HintSeverity.INFO:
-            return "info";
-        case HintSeverity.PEDANTIC:
-            return "pedantic";
-        default:
-            return null;
-    }
-}
-
-/**
- * Information about issues that occurred during the
- * metadata generation process.
- */
-struct GeneratorHint
-{
-
-private:
-    string tag;
-    string cid;
-
-    string[string] vars;
-
-    HintSeverity severity;
-
-public:
-
-    this (string tag, string cid) @trusted
-    {
-        this.tag = tag;
-        this.cid = cid;
-
-        severity = HintTagRegistry.get.getSeverity (tag);
-        if (severity == HintSeverity.UNKNOWN)
-            logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
-    }
-
-    @safe
-    bool isError () pure
-    {
-        return severity == HintSeverity.ERROR;
-    }
-
-    @safe
-    void setVars (string[string] vars) pure
-    {
-        this.vars = vars;
-    }
-
-    @safe
-    auto toJsonNode () pure
-    {
-        JSONValue json = JSONValue(["tag":  JSONValue (tag),
-                                    "vars": JSONValue (vars)
-                                   ]);
-        return json;
-    }
-}
 
 /**
  * Singleton holding information about the hint tags we know about.
@@ -158,7 +74,7 @@ final class HintTagRegistry
     {
         string tag;
         string text;
-        HintSeverity severity;
+        IssueSeverity severity;
         bool internal;
         bool valid;
     }
@@ -250,22 +166,22 @@ final class HintTagRegistry
         // severity. An error is just a warning here for now, as any error yields
         // to an instant reject of the component (and as long as we extrcated *some*
         // data, that seems a bit harsh)
-        HintSeverity severity;
+        IssueSeverity severity;
         switch (asSeverity) {
             case IssueSeverity.ERROR:
-                severity = HintSeverity.WARNING;
+                severity = IssueSeverity.WARNING;
                 break;
             case IssueSeverity.WARNING:
-                severity = HintSeverity.WARNING;
+                severity = IssueSeverity.WARNING;
                 break;
             case IssueSeverity.INFO:
-                severity = HintSeverity.INFO;
+                severity = IssueSeverity.INFO;
                 break;
             case IssueSeverity.PEDANTIC:
-                severity = HintSeverity.PEDANTIC;
+                severity = IssueSeverity.PEDANTIC;
                 break;
             default:
-                severity = HintSeverity.UNKNOWN;
+                severity = IssueSeverity.UNKNOWN;
         }
 
         hdef.tag = asgenTag;
@@ -288,20 +204,51 @@ final class HintTagRegistry
     }
 
     @safe
-    HintSeverity getSeverity (string tag) pure
+    IssueSeverity getSeverity (string tag) pure
     {
         auto hDef = getHintDef (tag);
         return hDef.severity;
     }
 }
 
+public Hint createHint (const string tag, const string cid) @trusted
+{
+    auto h = new Hint;
+    h.setTag (tag);
+
+    const severity = HintTagRegistry.get.getSeverity (tag);
+    if (severity == IssueSeverity.UNKNOWN)
+        logWarning ("Severity of hint tag '%s' is unknown. This likely means that this tag is not registered and should not be emitted.", tag);
+    h.setSeverity (severity);
+
+    return h;
+}
+
+public auto toJsonValue (Hint hint) @trusted
+{
+    auto hintList = hint.getExplanationVarsList;
+    string[string] vars;
+    for (uint i = 0; i < hintList.len; i++) {
+        if (i % 2 != 0)
+            continue;
+        const auto key = fromStringz (cast(char*) hintList.index (i)).to!string;
+        const auto value = fromStringz (cast(char*) hintList.index (i + 1)).to!string;
+        vars[key] = value;
+    }
+
+    return JSONValue(["tag":  JSONValue (hint.getTag),
+                      "vars": JSONValue (vars)]);
+}
+
+@trusted
 unittest
 {
     writeln ("TEST: ", "Issue Hints");
 
-    auto hint = GeneratorHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
-    hint.vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    auto root = hint.toJsonNode ();
+    auto hint = createHint ("just-a-unittest", "org.freedesktop.foobar.desktop");
+    foreach (k, v; ["rainbows": "yes", "unicorns": "no", "storage": "towel"])
+        hint.addExplanationVar (k, v);
+    auto root = hint.toJsonValue ();
 
     writeln (root.toJSON (true));
 

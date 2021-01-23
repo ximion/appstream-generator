@@ -34,12 +34,12 @@ import glib.KeyFile : KeyFile;
 import glib.GException : GException;
 import appstream.Component;
 import appstream.Icon;
-import appstream_compose.Image : Image;
-import appstream_compose.Canvas : Canvas;
-import appstream_compose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
+import ascompose.Image : Image;
+import ascompose.Canvas : Canvas;
+import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import std.file;
 
-import asgen.bindings.appstream_utils : imageFormatFromFilename;
+import asgen.bindings.asutils : imageFormatFromFilename;
 import asgen.containers : HashMap;
 import asgen.utils;
 import asgen.logging;

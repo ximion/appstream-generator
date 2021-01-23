@@ -27,10 +27,11 @@ import std.algorithm : canFind;
 import std.typecons : scoped;
 import appstream.Component;
 import appstream.Metadata;
+import ascompose.Hint : Hint;
 
 import asgen.containers : HashMap, SList;
 import asgen.config;
-import asgen.hint;
+import asgen.hintregistry;
 import asgen.result;
 import asgen.backends.interfaces;
 import asgen.datastore;
@@ -43,7 +44,7 @@ final class DataExtractor
 
 private:
     Component[] cpts;
-    GeneratorHint[] hints;
+    Hint[] hints;
 
     DataStore dstore;
     IconHandler iconh;

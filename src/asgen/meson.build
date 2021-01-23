@@ -14,7 +14,7 @@ data_import_dirs = include_directories('../../data')
 #
 asgen_sources = [
     '../app.d',
-    'bindings/appstream_utils.d',
+    'bindings/asutils.d',
     'bindings/libarchive.d',
     'bindings/lmdb.d',
     'bindings/soup.d',
@@ -37,7 +37,7 @@ asgen_sources = [
     'handlers/metainfovalidator.d',
     'handlers/package.d',
     'handlers/screenshothandler.d',
-    'hint.d',
+    'hintregistry.d',
     'logging.d',
     'mustache.d',
     'reportgenerator.d',

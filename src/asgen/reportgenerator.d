@@ -32,12 +32,14 @@ static import std.file;
 
 import mustache;
 import appstream.Metadata;
+import appstream.c.types : IssueSeverity;
+import ascompose.Hint : Hint;
 
 import asgen.defines : ASGEN_VERSION;
 import asgen.utils;
 import asgen.config;
 import asgen.logging;
-import asgen.hint;
+import asgen.hintregistry;
 import asgen.backends.interfaces;
 import asgen.datastore;
 
@@ -128,9 +130,9 @@ public:
         mustache.ext = "html";
 
         // create version information to display on every page
-        import asgen.bindings.appstream_utils : as_get_appstream_version;
+        import asgen.bindings.asutils : appstreamVersion;
         import std.string : fromStringz;
-        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, as_get_appstream_version.fromStringz);
+        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, appstreamVersion);
     }
 
     private string[] splitBlockData (string str, string blockType)
@@ -585,13 +587,13 @@ public:
 
                         // add the new hint to the right category
                         auto severity = hintTagRegistry.getSeverity (tag);
-                        if (severity == HintSeverity.INFO) {
+                        if (severity == IssueSeverity.INFO) {
                             he.infos ~= HintTag (tag, msg);
                             pkgsummary.infoCount++;
-                        } else if (severity == HintSeverity.WARNING) {
+                        } else if (severity == IssueSeverity.WARNING) {
                             he.warnings ~= HintTag (tag, msg);
                             pkgsummary.warningCount++;
-                        } else if (severity == HintSeverity.PEDANTIC) {
+                        } else if (severity == IssueSeverity.PEDANTIC) {
                             // We ignore pedantic issues completely for now
                         } else {
                             he.errors ~= HintTag (tag, msg);
