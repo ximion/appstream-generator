@@ -20,7 +20,7 @@
 
 name: appstream-generator
 license: LGPL-3.0
-base: core18
+base: core20
 adopt-info: appstream-generator
 
 confinement: strict
@@ -158,7 +158,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-commit: 3a0a0c977b7e9b2286349530e997d91a895ac122
+    source-branch: master
 
     plugin: meson
     meson-parameters:
@@ -166,12 +166,6 @@ parts:
       - --buildtype=release
       - -Dcompose=true
       - -Dapidocs=false
-    override-build: |
-      # we can build with a slightly lower GLib version in this instance
-      sed -i 's|>=2.58|>=2.56|g' meson.build
-
-      # build AS
-      snapcraftctl build
     build-packages:
       - build-essential
       - docbook-xsl
@@ -198,7 +192,7 @@ parts:
   gir-to-d:
     source: https://github.com/gtkd-developers/gir-to-d.git
     source-type: git
-    source-tag: v0.21.0
+    source-tag: v0.22.0
 
     plugin: meson
     meson-parameters:
@@ -229,7 +223,7 @@ parts:
 
   ldc:
     plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.21.0/ldc2-1.21.0-linux-x86_64.tar.xz
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.24.0/ldc2-1.24.0-linux-x86_64.tar.xz
 
     override-build: |
       # link shared by default
