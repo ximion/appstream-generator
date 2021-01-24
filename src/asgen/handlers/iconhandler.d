@@ -235,7 +235,7 @@ private:
 
 public:
 
-    this (string mediaPath, IconPolicy[] iconPolicy, HashMap!(string, Package) pkgMap, string iconTheme = null)
+    this (ContentsStore ccache, string mediaPath, IconPolicy[] iconPolicy, HashMap!(string, Package) pkgMap, string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
 
@@ -281,10 +281,6 @@ public:
                 return null;
             return pkgMap.get (pkid, null);
         }
-
-        // open package contents cache
-        auto ccache = scoped!ContentsStore ();
-        ccache.open (conf);
 
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,

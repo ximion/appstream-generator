@@ -146,7 +146,7 @@ public:
      */
     private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
-        auto localeh = new LocaleHandler (pkgs);
+        auto localeh = new LocaleHandler (cstore, pkgs);
         auto mde = new DataExtractor (dstore, iconh, localeh);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
@@ -664,7 +664,8 @@ public:
 
             // process new packages
             auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
-            auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+            auto iconh = new IconHandler (cstore,
+                                          dstore.mediaExportPoolDir,
                                           conf.iconSettings,
                                           getIconCandidatePackages (suite, section, arch),
                                           suite.iconTheme);
@@ -796,7 +797,8 @@ public:
             }
 
             // process new packages
-            auto iconh = new IconHandler (dstore.mediaExportPoolDir,
+            auto iconh = new IconHandler (cstore,
+                                          dstore.mediaExportPoolDir,
                                           conf.iconSettings,
                                           getIconCandidatePackages (suite, sectionName, arch),
                                           suite.iconTheme);

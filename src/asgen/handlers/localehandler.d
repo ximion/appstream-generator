@@ -31,6 +31,7 @@ import appstream.Translation : Translation, TranslationKind;
 import asgen.containers: HashMap;
 import asgen.logging;
 import asgen.result : GeneratorResult;
+import asgen.contentsstore : ContentsStore;
 import asgen.backends.interfaces : Package;
 
 
@@ -109,11 +110,10 @@ public final class LocaleHandler
 private:
     HashMap!(string, Package) localeIdPkgMap;
 
-    public this (Package[] pkgList)
+    public this (ContentsStore cstore, Package[] pkgList)
     {
         import std.array : array;
         import std.typecons : scoped;
-        import asgen.contentsstore : ContentsStore;
         import asgen.config : Config;
 
         logDebug ("Creating new LocaleHandler.");
@@ -131,15 +131,11 @@ private:
         if (!conf.feature.processLocale)
             return; // don't load the expensive locale<->package mapping if we don't need it
 
-        // open package contents cache
-        auto ccache = scoped!ContentsStore ();
-        ccache.open (conf);
-
         // we make the assumption here that all locale for a given domain are in one package.
         // otherwise this global search will get even more insane.
         // the key of the map returned by getLocaleMap will therefore contain only the locale
         // file basename instead of a full path
-        auto dbLocaleMap = ccache.getLocaleMap (array(pkgMap.byKey));
+        auto dbLocaleMap = cstore.getLocaleMap (array(pkgMap.byKey));
         foreach (info; dbLocaleMap.byPair) {
             immutable id = info.key;
             immutable pkgid = info.value;

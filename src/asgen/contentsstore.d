@@ -56,8 +56,7 @@ public:
 
     ~this ()
     {
-        if (opened)
-            dbEnv.mdb_env_close ();
+        close ();
     }
 
     private void checkError (int rc, string msg)
@@ -133,7 +132,17 @@ public:
         this.open (buildPath (conf.databaseDir, "contents"));
     }
 
-    private MDB_val makeDbValue (string data)
+    void close ()
+    {
+        synchronized (this) {
+            if (opened)
+                dbEnv.mdb_env_close ();
+            opened = false;
+            dbEnv = null;
+        }
+    }
+
+    private MDB_val makeDbValue (const string data)
     {
         import core.stdc.string : strlen;
         MDB_val mval;
@@ -144,6 +153,8 @@ public:
     }
 
     private MDB_txnp newTransaction (uint flags = 0)
+    in { assert (opened); }
+    do
     {
         int rc;
         MDB_txnp txn;
@@ -192,7 +203,7 @@ public:
             checkError (res, "mdb_del (locale)");
     }
 
-    bool packageExists (string pkid)
+    bool packageExists (const string pkid)
     {
         MDB_val dkey;
         MDB_cursorp cur;
@@ -302,7 +313,7 @@ public:
             auto data = fromStringz (cast(char*) cval.mv_data);
             auto contents = to!string (data);
 
-            foreach (ref c; contents.split ("\n")) {
+            foreach (const ref c; contents.split ("\n")) {
                 if (useBaseName)
                     pkgCMap[c.baseName] = pkid;
                 else
@@ -414,6 +425,8 @@ public:
     }
 
     void sync ()
+    in { assert (opened); }
+    do
     {
         dbEnv.mdb_env_sync (1);
     }

@@ -81,8 +81,7 @@ public:
 
     ~this ()
     {
-        if (opened)
-            dbEnv.mdb_env_close ();
+        close ();
     }
 
     @property
@@ -112,7 +111,7 @@ public:
         static import std.math;
 
         int rc;
-        assert (opened == false);
+        assert (!opened);
 
         // add LMDB version we are using to the debug output
         printVersionDbg ();
@@ -174,6 +173,16 @@ public:
         mkdirRecurse (this.mediaDir);
     }
 
+    void close ()
+    {
+        synchronized (this) {
+            if (opened)
+                dbEnv.mdb_env_close ();
+            opened = false;
+            dbEnv = null;
+        }
+    }
+
     void open (Config conf)
     {
         this.open (buildPath (conf.databaseDir, "main"), conf.mediaExportDir);
@@ -190,6 +199,8 @@ public:
     }
 
     private MDB_txnp newTransaction (uint flags = 0)
+    in { assert (opened); }
+    do
     {
         int rc;
         MDB_txnp txn;
