@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -26,7 +26,10 @@ import std.conv : to;
 import std.algorithm : endsWith;
 import std.json;
 import appstream.Component;
+import appstream.c.types : BundleKind;
 import ascompose.Hint : Hint;
+import ascompose.Result : Result;
+import ascompose.c.types : AscHint;
 static import appstream.Utils;
 alias AsUtils = appstream.Utils.Utils;
 
@@ -57,107 +60,30 @@ int evaluateCustomEntry (void *keyPtr, void *value, void *userData)
  * Holds metadata generator result(s) and issue hints
  * for a single package.
  */
-final class GeneratorResult
+final class GeneratorResult : Result
 {
 
-private:
-    Component[string] cpts;
-    string[Component] cptGCID;
-    HashMap!(string, string) mdataHashes;
-    HashMap!(string, Hint[]) hints;
-
 public:
-    immutable string pkid;
-    immutable string pkgname;
     Package pkg;
-
 
     this (Package pkg)
     {
-        this.pkid = pkg.id;
-        this.pkgname = pkg.name;
+        super();
+        setBundleKind (BundleKind.PACKAGE);
+        setBundleId (pkg.name);
         this.pkg = pkg;
     }
 
-    @safe
-    bool packageIsIgnored () pure
+    @property
+    string pkid ()
     {
-        return (cpts.length == 0) && (hints.length == 0);
-    }
-
-    @safe
-    Component getComponent (string id) pure
-    {
-        auto ptr = (id in cpts);
-        if (ptr is null)
-            return null;
-        return *ptr;
-    }
-
-    @trusted
-    Component[] getComponents () pure
-    {
-        return cpts.values ();
+        return pkg.id;
     }
 
     @trusted
     bool isIgnored (Component cpt)
     {
-        return getComponent (cpt.getId ()) is null;
-    }
-
-    @trusted
-    void updateComponentGCID (Component cpt, string data)
-    {
-        import std.digest.md;
-
-        auto cid = cpt.getId ();
-        if (data.empty) {
-            cptGCID[cpt] = buildCptGlobalID (cid, "???-NO_CHECKSUM-???");
-            return;
-        }
-
-        auto oldHashP = (cid in mdataHashes);
-        string oldHash = "";
-        if (oldHashP !is null)
-            oldHash = *oldHashP;
-
-        auto hash = md5Of (oldHash ~ data);
-        auto checksum = toHexString (hash);
-        auto newHash = to!string (checksum);
-
-        mdataHashes[cid] = newHash;
-        cptGCID[cpt] = buildCptGlobalID (cid, newHash);
-    }
-
-    @trusted
-    void addComponent (Component cpt, string data = "")
-    {
-        string cid = cpt.getId;
-        if (cid.empty)
-            throw new Exception ("Can not add component from '%s' without ID to results set: %s".format (this.pkid, cpt.toString));
-
-        // web applications, operating systems, repositories
-        // and component-removal merges don't (need to) have a package name set
-        if (cpt.getKind != ComponentKind.WEB_APP &&
-            cpt.getKind != ComponentKind.OPERATING_SYSTEM &&
-            cpt.getMergeKind != MergeKind.REMOVE_COMPONENT) {
-            if (pkg.kind != PackageKind.FAKE)
-                cpt.setPkgnames ([this.pkgname]);
-        }
-
-        cpts[cid] = cpt;
-        updateComponentGCID (cpt, data);
-    }
-
-    @safe
-    void dropComponent (string cid) pure
-    {
-        auto cpt = getComponent (cid);
-        if (cpt is null)
-            return;
-        cpts.remove (cid);
-        cptGCID.remove (cpt);
+        return getComponent (cpt.getId) is null;
     }
 
     /**
@@ -182,22 +108,11 @@ public:
                 immutable cid = id.getId ();
         }
 
-        auto hint = new Hint (tag);
+        string[] paramsFlat;
         foreach (const ref varName, ref varValue; params)
-            hint.addExplanationVar (varName, varValue);
-        if (cid in hints)
-            hints[cid] ~= hint;
-        else
-            hints[cid] = [hint];
+            paramsFlat ~= [varName, varValue];
 
-        // we stop dealing with this component when we encounter a fatal
-        // error.
-        if (hint.isError) {
-            dropComponent (cid);
-            return false;
-        }
-
-        return true;
+        return addHintByCid (cid, tag, paramsFlat);
     }
 
     /**
@@ -224,20 +139,22 @@ public:
      */
     string hintsToJson ()
     {
-        if (hints.length == 0)
+        if (hintsCount () == 0)
             return null;
 
-        // is this really the only way you can set a type for JSONValue?
+        // FIXME: is this really the only way you can set a type for JSONValue?
         auto map = JSONValue (["null": 0]);
         map.object.remove ("null");
 
-        foreach (cid; hints.byKey) {
-            auto cptHints = hints[cid];
+        foreach (ref cid; getComponentIdsWithHints ()) {
+            auto cptHints = getHints (cid);
             auto hintNodes = JSONValue ([0, 0]);
             hintNodes.array = [];
-            foreach (ref hint; cptHints)
-                hintNodes.array ~= hint.toJsonValue;
 
+            for (uint i = 0; i < cptHints.len; i++) {
+                auto hint = new Hint (cast (AscHint*) cptHints.index (i));
+                hintNodes.array ~= hint.toJsonValue;
+            }
             map.object[cid] = hintNodes;
         }
 
@@ -252,9 +169,11 @@ public:
     {
         auto conf = Config.get ();
 
-        // we need to duplicate the associative array, because the addHint() function
-        // may remove entries from "cpts", breaking our foreach loop.
-        foreach (cpt; cpts.dup.byValue) {
+        // the fetchComponents() method creates a new PtrArray with references to the #AsComponent instances.
+        // so we are free to call addHint & Co. which may remove components from the pool.
+        auto cptsPtrArray = fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
             immutable ckind = cpt.getKind;
             cpt.setActiveLocale ("C");
 
@@ -298,8 +217,8 @@ public:
                         import glib.c.functions : g_ptr_array_set_size;
 
                         auto relArr = cpt.getReleases;
-                        for (uint i = 0; i < relArr.len; i++) {
-                            auto releasePtr = cast (AsRelease*) relArr.index (i);
+                        for (uint j = 0; j < relArr.len; j++) {
+                            auto releasePtr = cast (AsRelease*) relArr.index (j);
                             g_ptr_array_set_size (as_release_get_artifacts (releasePtr), 0);
                         }
                     }
@@ -401,40 +320,6 @@ public:
 
         } // end of components loop
     }
-
-    /**
-     * Return the number of components we've found.
-     **/
-    @safe
-    ulong componentsCount () pure
-    {
-        return cpts.length;
-    }
-
-    /**
-     * Return the number of hints that have been emitted.
-     **/
-    @safe
-    ulong hintsCount () pure
-    {
-        return hints.length;
-    }
-
-    @safe
-    string gcidForComponent (Component cpt) pure
-    {
-        auto cgp = (cpt in cptGCID);
-        if (cgp is null)
-            return null;
-        return *cgp;
-    }
-
-    @trusted
-    string[] getGCIDs () pure
-    {
-        return cptGCID.values ();
-    }
-
 }
 
 unittest

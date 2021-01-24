@@ -322,12 +322,14 @@ public:
     {
         // if the package has no components or hints,
         // mark it as always-ignore
-        if (gres.packageIsIgnored ()) {
+        if (gres.unitIgnored) {
             setPackageIgnore (gres.pkid);
             return;
         }
 
-        foreach (ref cpt; gres.getComponents ()) {
+        auto cptsPtrArray = gres.fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
             auto gcid = gres.gcidForComponent (cpt);
             if (metadataExists (dtype, gcid) && !alwaysRegenerate) {
                 // we already have seen this exact metadata - only adjust the reference,
@@ -347,7 +349,7 @@ public:
                     data = mdata.componentsToCollection (FormatKind.YAML);
                 }
             } catch (Exception e) {
-                gres.addHint (cpt.getId (), "metadata-serialization-failed", e.msg);
+                gres.addHint (cpt, "metadata-serialization-failed", e.msg);
                 continue;
             }
             // remove trailing whitespaces and linebreaks
@@ -364,7 +366,7 @@ public:
                 setHints (gres.pkid, hintsJson);
         }
 
-        auto gcids = gres.getGCIDs ();
+        auto gcids = gres.getComponentGcids ();
         if (gcids.empty) {
             // no global components, and we're not ignoring this component.
             // this means we likely have hints stored for this one. Mark it
@@ -374,7 +376,6 @@ public:
             import std.array : join;
             // store global component IDs for this package as newline-separated list
             auto gcidVal = join (gcids, "\n");
-
             putKeyValue (dbPackages, gres.pkid, gcidVal);
         }
     }

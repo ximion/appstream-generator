@@ -79,7 +79,9 @@ void processFontData (GeneratorResult gres, string mediaExportDir)
         allFonts[font.getFullname.toLower] = font;
     }
 
-    foreach (ref cpt; gres.getComponents ()) {
+    auto cptsPtrArray = gres.fetchComponents ();
+    for (uint i = 0; i < cptsPtrArray.len; i++) {
+        auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
         if (cpt.getKind () != ComponentKind.FONT)
             continue;
 
@@ -250,7 +252,7 @@ private bool renderFontIcon (GeneratorResult gres, IconPolicy[] iconPolicy, Font
             font.setSampleIconText (customIconText); // Font will ensure that the value does not exceed 3 chars
 
         immutable fid = font.getId;
-        immutable iconName = format ("%s_%s.png", gres.pkgname,  fid);
+        immutable iconName = format ("%s_%s.png", gres.pkg.name,  fid);
         immutable iconStoreLocation = buildPath (path, iconName);
 
         if (!std.file.exists (iconStoreLocation)) {

@@ -493,7 +493,7 @@ public:
         }
 
         auto path = buildPath (cptExportPath, "icons", size.toString);
-        auto iconName = (gres.pkg.kind == PackageKind.FAKE)? baseName (iconPath) : "%s_%s".format (gres.pkgname,  baseName (iconPath));
+        auto iconName = (gres.pkg.kind == PackageKind.FAKE)? baseName (iconPath) : "%s_%s".format (gres.pkg.name, baseName (iconPath));
 
         if (iconName.endsWith (".svgz"))
             iconName = iconName.replace (".svgz", ".png");

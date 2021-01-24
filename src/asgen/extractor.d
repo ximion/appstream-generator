@@ -113,7 +113,7 @@ public:
 
             // we need to add the version to re-download screenshot on every new upload.
             // otherwise, screenshots would only get updated if the actual metadata file was touched.
-            gres.updateComponentGCID (cpt, pkg.ver);
+            gres.updateComponentGcid (cpt, pkg.ver);
 
             // validate the desktop-id launchables and merge the desktop file data
             // in case we find it.
@@ -140,7 +140,7 @@ public:
                         parseDesktopFile (gres, cpt, dfname, ddata, true);
 
                         // update GCID checksum
-                        gres.updateComponentGCID (cpt, ddata);
+                        gres.updateComponentGcid (cpt, ddata);
 
                         // drop the .desktop file from the list, it has been handled
                         desktopFiles.remove (desktopId);
@@ -166,7 +166,7 @@ public:
                     // Otherwise we take the data and see how far we get.
 
                     // finalize GCID checksum and continue
-                    gres.updateComponentGCID (cpt, data);
+                    gres.updateComponentGcid (cpt, data);
 
                     gres.addHint (cpt, "missing-desktop-file");
                     // we have a desktop-application component, but no .desktop file.
@@ -179,7 +179,7 @@ public:
                     parseDesktopFile (gres, cpt, dfname, ddata, true);
 
                     // update GCID checksum
-                    gres.updateComponentGCID (cpt, ddata);
+                    gres.updateComponentGcid (cpt, ddata);
 
                     // drop the .desktop file from the list, it has been handled
                     desktopFiles.remove (cid);
@@ -200,7 +200,7 @@ public:
             auto ddata = cast(string) ddataBytes;
             auto cpt = parseDesktopFile (gres, null, dfname, ddata, false);
             if (cpt !is null)
-                gres.updateComponentGCID (cpt, ddata);
+                gres.updateComponentGcid (cpt, ddata);
         }
 
         if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.get.isNotEmpty) {
@@ -216,12 +216,13 @@ public:
                 data ~= desc;
             }
 
-            gres.addComponent (cpt);
-            gres.updateComponentGCID (cpt, data.data);
+            gres.addComponent (cpt, data.data);
         }
 
         auto hasFontComponent = false;
-        foreach (ref cpt; gres.getComponents ()) {
+        auto cptsPtrArray = gres.fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
             auto gcid = gres.gcidForComponent (cpt);
 
             // don't run expensive operations if the metadata already exists

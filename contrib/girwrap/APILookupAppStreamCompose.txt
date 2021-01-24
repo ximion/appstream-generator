@@ -43,3 +43,8 @@ move: globals_add_hint_tag Globals addHintTag
 move: globals_get_hint_tags Globals getHintTags
 move: globals_hint_tag_severity Globals hintTagSeverity
 move: globals_hint_tag_explanation Globals hintTagExplanation
+
+struct: Result
+class: Result
+move: add_hint_v Result addHint
+move: add_hint_by_cid_v Result addHintByCid

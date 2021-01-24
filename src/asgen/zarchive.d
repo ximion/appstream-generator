@@ -336,7 +336,7 @@ public:
         while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
             auto pathname = fromStringz (archive_entry_pathname (en));
 
-            auto m = matchFirst (pathname, re);
+            const m = matchFirst (pathname, re);
             if (!m.empty) {
                 auto fdest = buildPath (destdir, baseName (pathname));
                 this.extractEntryTo (ar, fdest);

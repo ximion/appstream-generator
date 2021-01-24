@@ -100,7 +100,7 @@ Component parseMetaInfoData (Metadata mdata, GeneratorResult gres, const string 
         gres.addHint (null, "metainfo-no-id", ["fname": mfname]);
         return null;
     }
-    gres.addComponent (cpt);
+    gres.addComponent (cpt, data);
 
     // check if we can actually legally use this metadata
     if (!isAcceptableMetainfoLicense (cpt.getMetadataLicense())) {
@@ -131,9 +131,7 @@ Component parseMetaInfoData (GeneratorResult gres, const string data, const stri
     mdata.setLocale ("ALL");
     mdata.setFormatStyle (FormatStyle.METAINFO);
 
-    auto cpt = parseMetaInfoData (mdata, gres, data, mfname);
-    gres.updateComponentGCID (cpt, data);
-    return cpt;
+    return parseMetaInfoData (mdata, gres, data, mfname);
 }
 
 unittest {

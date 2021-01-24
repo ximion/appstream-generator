@@ -218,7 +218,7 @@ Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, s
                 cpt.setId (fnameBase);
 
             cpt.setKind (ComponentKind.DESKTOP_APP);
-            gres.addComponent (cpt);
+            gres.addComponent (cpt, null);
         }
     }
 
@@ -371,7 +371,7 @@ unittest
     ecpt.setId ("org.example.foobar");
     ecpt.setName ("TestX", "C");
     ecpt.setSummary ("Summary of TestX", "C");
-    res.addComponent (ecpt);
+    res.addComponent (ecpt, null);
 
     cpt = parseDesktopFile (res, null, "org.example.foobar.desktop", data, false);
     assert (cpt !is null);

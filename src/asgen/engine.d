@@ -576,7 +576,7 @@ public:
             // we want some replacement logic for arch-specific injected metainfo files,
             // so arch-specific xml files can replace generic ones. To archieve that we assume
             // the metainfo file is named after the component-ID it contains and do some cheap replacement here.
-            gres.dropComponent (miBasename.replace (".metainfo.xml", ""));
+            gres.removeComponentById (miBasename.replace (".metainfo.xml", ""));
 
             auto cpt = parseMetaInfoData (gres, data.data, miBasename);
             if (cpt is null)

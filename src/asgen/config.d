@@ -28,6 +28,7 @@ import std.json;
 import std.typecons;
 import std.file : getcwd, thisExePath, exists;
 
+import ascompose.Globals : Globals;
 public import appstream.c.types : FormatVersion;
 
 import asgen.utils : existsAndIsDir, randomString, ImageSize;
@@ -151,7 +152,7 @@ private:
         // find all the external binaries we (may) need
         // we search for them unconditionally, because the unittests may rely on their absolute
         // paths being set even if a particular feature flag that requires them isn't.
-        optipngBinary = Util.findProgramInPath ("optipng");
+        optipngBinary = Globals.optipngBinary;
         ffprobeBinary = Util.findProgramInPath ("ffprobe");
     }
 
@@ -592,6 +593,7 @@ public:
         }
 
         // check if we need to disable features because some prerequisites are not met
+        Globals.setUseOptipng (feature.optipng);
         if (feature.optipng) {
             if (optipngBinary.empty) {
                 feature.optipng = false;
@@ -648,8 +650,8 @@ public:
      */
     string getTmpDir ()
     {
-        if (tmpDir.empty) {
-            synchronized (this) {
+        synchronized (this) {
+            if (tmpDir.empty) {
                 string root;
                 if (cacheRootDir.empty)
                     root = "/tmp/";
@@ -657,9 +659,11 @@ public:
                     root = cacheRootDir;
 
                 tmpDir = buildPath (root, "tmp", format ("asgen-%s", randomString (8)));
+
+                // make appstream-compose internal functions aware of the new temp dir
+                Globals.setTmpDir (tmpDir);
             }
         }
-
         return tmpDir;
     }
 }
