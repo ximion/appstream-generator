@@ -138,7 +138,7 @@ public:
 
         // open database
         rc = dbEnv.mdb_env_open (dir.toStringz (),
-                                 MDB_NOMETASYNC | MDB_NOTLS,
+                                 MDB_NOMETASYNC,
                                  octal!755);
         checkError (rc, "mdb_env_open");
 
