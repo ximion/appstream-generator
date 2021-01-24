@@ -16,9 +16,9 @@ build_root = meson.build_root()
 src_dir = include_directories('src/')
 
 glibd_dep      = dependency('glibd-2.0')
-appstream_dep  = dependency('appstream', version : '>= 0.12.12')
-ascompose_dep  = dependency('appstream-compose', version : '>= 0.12.12')
-lmdb_dep       = dependency('lmdb', version : '>= 0.9')
+appstream_dep  = dependency('appstream', version : '>= 0.14.0')
+ascompose_dep  = dependency('appstream-compose', version : '>= 0.14.0')
+lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
 archive_dep    = dependency('libarchive', version : '>= 3.2')
 soup_dep       = dependency('libsoup-2.4', version: '>= 2.56')
 
