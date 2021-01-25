@@ -28,6 +28,8 @@ import std.typecons : scoped;
 import appstream.Component;
 import appstream.Metadata;
 import ascompose.Hint : Hint;
+import ascompose.MetaInfoUtils : MetaInfoUtils;
+import glib.Bytes : Bytes;
 
 import asgen.containers : HashMap, SList;
 import asgen.config;
@@ -61,6 +63,24 @@ public:
         localeh = localeHandler;
         conf = Config.get ();
         dtype = conf.metadataType;
+    }
+
+    static void validateMetaInfoData (GeneratorResult gres, Component cpt,
+                                      const(ubyte)[] data, const string miBasename)
+    {
+        import appstream.Validator : Validator;
+        import glib.c.types : GDestroyNotify;
+
+        // create thread-local validator for efficiency
+        static Validator validator = null;
+        if (validator is null)
+            validator = new Validator;
+
+        MetaInfoUtils.validateMetainfoDataForComponent(gres, validator, cpt,
+                                                       new Bytes (cast(ubyte[]) data,
+                                                                  cast(GDestroyNotify) null,
+                                                                  null),
+                                                       miBasename);
     }
 
     GeneratorResult processPackage (Package pkg)
@@ -190,7 +210,7 @@ public:
             // the user to disable this feature.
             if (conf.feature.validate) {
                 if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
-                    validateMetaInfoFile (gres, cpt, data, mfname.baseName);
+                    validateMetaInfoData (gres, cpt, dataBytes, mfname.baseName);
             }
         }
 

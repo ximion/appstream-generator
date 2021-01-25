@@ -48,3 +48,6 @@ struct: Result
 class: Result
 move: add_hint_v Result addHint
 move: add_hint_by_cid_v Result addHintByCid
+
+struct: MetaInfoUtils
+move: validate_metainfo_data_for_component MetaInfoUtils

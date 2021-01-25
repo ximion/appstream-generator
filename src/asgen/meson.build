@@ -33,7 +33,6 @@ asgen_sources = [
     'handlers/iconhandler.d',
     'handlers/localehandler.d',
     'handlers/metainfoparser.d',
-    'handlers/metainfovalidator.d',
     'handlers/package.d',
     'handlers/screenshothandler.d',
     'hintregistry.d',

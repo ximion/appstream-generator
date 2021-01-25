@@ -121,12 +121,6 @@
   "severity": "warning"
 },
 
-"ancient-metadata": {
-  "text": ["The AppStream metadata should be updated to follow a more recent version of the specification.<br/>",
-           "Please consult <a href=\"http://freedesktop.org/software/appstream/docs/chap-Quickstart.html\">the XML quickstart guide</a> for more information."],
-  "severity": "warning"
-},
-
 "legacy-metainfo-directory": {
   "text": ["The AppStream MetaInfo file '{{fname}}' was found in a legacy path.<br/>",
            "Please install MetaInfo files into <code>/usr/share/metainfo</code>, as the old path will not be recognized anymore in the future."],

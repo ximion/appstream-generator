@@ -560,7 +560,6 @@ public:
         import std.path : baseName;
         import std.array : replace;
         import asgen.handlers.metainfoparser : parseMetaInfoData;
-        import asgen.handlers.metainfovalidator : validateMetaInfoFile;
         import asgen.handlers.screenshothandler : processScreenshots;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
@@ -583,8 +582,11 @@ public:
                 continue;
 
             // validate
-            if (conf.feature.validate)
-                    validateMetaInfoFile (gres, cpt, data.data, miFname.baseName);
+            if (conf.feature.validate) {
+                    DataExtractor.validateMetaInfoData (gres, cpt,
+                                                        data.data.to!(ubyte[]),
+                                                        miBasename);
+            }
 
             // get icon
             iconh.process (gres, cpt);
