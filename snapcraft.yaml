@@ -183,7 +183,7 @@ parts:
       - meson
       - xsltproc
     stage-packages:
-     - libicu60
+     - libicu66
      - liblmdb0
      - libsoup2.4-1
      - libstemmer0d
