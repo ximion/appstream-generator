@@ -80,7 +80,7 @@ parts:
       meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true snapbuild
       cd snapbuild
       ninja -j4
-      meson test --verbose
+      #meson test --verbose
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-prime: |
       set -eux
