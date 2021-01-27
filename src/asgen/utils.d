@@ -579,7 +579,7 @@ auto toStaticGBytes (ubyte[] data) @trusted
 
 auto toStaticGBytes (const string data) @trusted
 {
-    return toStaticGBytes (data.to!(ubyte[]));
+    return toStaticGBytes (cast(immutable(ubyte)[]) data.representation);
 }
 
 @trusted
