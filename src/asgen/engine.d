@@ -546,7 +546,7 @@ public:
             cpt.setMergeKind (MergeKind.REMOVE_COMPONENT);
             cpt.setId (cid);
 
-            gres.addComponent (cpt, metainfoDir ~ "/-" ~ cid);
+            gres.addComponentWithString (cpt, metainfoDir ~ "/-" ~ cid);
         }
     }
 
@@ -559,7 +559,8 @@ public:
         import std.stdio : File;
         import std.path : baseName;
         import std.array : replace;
-        import asgen.handlers.metainfoparser : parseMetaInfoData;
+        import ascompose.MetaInfoUtils : MetaInfoUtils;
+        import asgen.utils : toStaticGBytes;
         import asgen.handlers.screenshothandler : processScreenshots;
 
         foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
@@ -577,15 +578,15 @@ public:
             // the metainfo file is named after the component-ID it contains and do some cheap replacement here.
             gres.removeComponentById (miBasename.replace (".metainfo.xml", ""));
 
-            auto cpt = parseMetaInfoData (gres, data.data, miBasename);
+            auto dataBytes = data.data.toStaticGBytes;
+
+            auto cpt = MetaInfoUtils.parseMetainfoDataSimple (gres, dataBytes, miBasename);
             if (cpt is null)
                 continue;
 
             // validate
             if (conf.feature.validate) {
-                    DataExtractor.validateMetaInfoData (gres, cpt,
-                                                        data.data.to!(ubyte[]),
-                                                        miBasename);
+                    DataExtractor.validateMetaInfoData (gres, cpt, dataBytes, miBasename);
             }
 
             // get icon

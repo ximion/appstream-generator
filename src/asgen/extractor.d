@@ -38,7 +38,7 @@ import asgen.result;
 import asgen.backends.interfaces;
 import asgen.datastore;
 import asgen.handlers;
-import asgen.utils : componentGetStockIcon;
+import asgen.utils : componentGetStockIcon, toStaticGBytes;
 
 
 final class DataExtractor
@@ -66,7 +66,7 @@ public:
     }
 
     static void validateMetaInfoData (GeneratorResult gres, Component cpt,
-                                      const(ubyte)[] data, const string miBasename)
+                                      Bytes bytes, const string miBasename)
     {
         import appstream.Validator : Validator;
         import glib.c.types : GDestroyNotify;
@@ -77,9 +77,7 @@ public:
             validator = new Validator;
 
         MetaInfoUtils.validateMetainfoDataForComponent(gres, validator, cpt,
-                                                       new Bytes (cast(ubyte[]) data,
-                                                                  cast(GDestroyNotify) null,
-                                                                  null),
+                                                       bytes,
                                                        miBasename);
     }
 
@@ -113,13 +111,13 @@ public:
 
         // now process metainfo XML files
         foreach (ref const mfname; metadataFiles) {
-            auto dataBytes = pkg.getFileData (mfname);
-            if (dataBytes.empty)
+            auto dataBytesRaw = pkg.getFileData (mfname);
+            if (dataBytesRaw.empty)
                 continue;
-            auto data = cast(string) dataBytes;
+            auto dataBytes = dataBytesRaw.toStaticGBytes;
 
             mdata.clearComponents ();
-            auto cpt = parseMetaInfoData (mdata, gres, data, mfname);
+            auto cpt = MetaInfoUtils.parseMetainfoData (gres, mdata, dataBytes, mfname);
             if (cpt is null)
                 continue;
 
@@ -133,7 +131,7 @@ public:
 
             // we need to add the version to re-download screenshot on every new upload.
             // otherwise, screenshots would only get updated if the actual metadata file was touched.
-            gres.updateComponentGcid (cpt, pkg.ver);
+            gres.updateComponentGcidWithString (cpt, pkg.ver);
 
             // validate the desktop-id launchables and merge the desktop file data
             // in case we find it.
@@ -160,7 +158,7 @@ public:
                         parseDesktopFile (gres, cpt, dfname, ddata, true);
 
                         // update GCID checksum
-                        gres.updateComponentGcid (cpt, ddata);
+                        gres.updateComponentGcid (cpt, ddataBytes.toStaticGBytes);
 
                         // drop the .desktop file from the list, it has been handled
                         desktopFiles.remove (desktopId);
@@ -186,7 +184,7 @@ public:
                     // Otherwise we take the data and see how far we get.
 
                     // finalize GCID checksum and continue
-                    gres.updateComponentGcid (cpt, data);
+                    gres.updateComponentGcid (cpt, dataBytes);
 
                     gres.addHint (cpt, "missing-desktop-file");
                     // we have a desktop-application component, but no .desktop file.
@@ -194,12 +192,12 @@ public:
                     continue;
                 } else {
                     // update component with .desktop file data, ignoring NoDisplay field
-                    const ddataBytes = pkg.getFileData (dfname);
-                    auto ddata = cast(string) ddataBytes;
-                    parseDesktopFile (gres, cpt, dfname, ddata, true);
+                    const ddataBytesRaw = pkg.getFileData (dfname);
+                    auto ddataBytes = ddataBytesRaw.toStaticGBytes;
+                    parseDesktopFile (gres, cpt, dfname, cast(string) ddataBytesRaw, true);
 
                     // update GCID checksum
-                    gres.updateComponentGcid (cpt, ddata);
+                    gres.updateComponentGcid (cpt, ddataBytes);
 
                     // drop the .desktop file from the list, it has been handled
                     desktopFiles.remove (cid);
@@ -216,11 +214,11 @@ public:
 
         // process the remaining .desktop files
         foreach (ref dfname; desktopFiles.byValue) {
-            auto ddataBytes = pkg.getFileData (dfname);
-            auto ddata = cast(string) ddataBytes;
-            auto cpt = parseDesktopFile (gres, null, dfname, ddata, false);
+            auto ddataBytesRaw = pkg.getFileData (dfname);
+            auto ddataBytes = ddataBytesRaw.toStaticGBytes;
+            auto cpt = parseDesktopFile (gres, null, dfname, cast(string) ddataBytesRaw, false);
             if (cpt !is null)
-                gres.updateComponentGcid (cpt, ddata);
+                gres.updateComponentGcid (cpt, ddataBytes);
         }
 
         if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.get.isNotEmpty) {
@@ -236,7 +234,7 @@ public:
                 data ~= desc;
             }
 
-            gres.addComponent (cpt, data.data);
+            gres.addComponent (cpt, data.data.toStaticGBytes);
         }
 
         auto hasFontComponent = false;

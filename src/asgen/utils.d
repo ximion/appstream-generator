@@ -33,6 +33,7 @@ import std.typecons : Nullable, Rebindable;
 import std.traits : Unqual, hasIndirections;
 static import std.file;
 
+import glib.Bytes : Bytes;
 import appstream.Component;
 import appstream.Icon;
 static import appstream.Utils;
@@ -559,6 +560,26 @@ string filenameFromURI (string uri)
         bname = bname[0..hInd];
 
     return bname;
+}
+
+auto toStaticGBytes (const(ubyte)[] data) @trusted
+{
+    import glib.c.functions : g_bytes_new_static;
+    auto nc = cast(ubyte[]) data;
+    auto gBytes = g_bytes_new_static (nc.ptr, cast(size_t) nc.length);
+    return new Bytes (gBytes, true);
+}
+
+auto toStaticGBytes (ubyte[] data) @trusted
+{
+    import glib.c.functions : g_bytes_new_static;
+    auto gBytes = g_bytes_new_static (data.ptr, cast(size_t) data.length);
+    return new Bytes (gBytes, true);
+}
+
+auto toStaticGBytes (const string data) @trusted
+{
+    return toStaticGBytes (data.to!(ubyte[]));
 }
 
 @trusted
