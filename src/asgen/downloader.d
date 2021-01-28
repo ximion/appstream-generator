@@ -187,9 +187,8 @@ public:
         scope(exit) g_object_unref (stream);
 
         ptrdiff_t len;
+        ubyte[GENERIC_BUFFER_SIZE] buffer;
         do {
-            ubyte[GENERIC_BUFFER_SIZE] buffer;
-
             len = g_input_stream_read (stream, cast(void*)buffer.ptr, cast(size_t)buffer.length, null, null);
             if (len > 0)
                 dFile.rawWrite (buffer[0..len]);
@@ -206,11 +205,11 @@ public:
 
         auto result = appender!(ubyte[]);
         ptrdiff_t len;
+        ubyte[GENERIC_BUFFER_SIZE] buffer;
         do {
-            ubyte[GENERIC_BUFFER_SIZE] buffer;
-
             len = g_input_stream_read (stream, cast(void*)buffer.ptr, cast(size_t)buffer.length, null, null);
-            result ~= buffer[0..len];
+            if (len > 0)
+                result ~= buffer[0..len];
         } while (len > 0);
 
         return result.data;
