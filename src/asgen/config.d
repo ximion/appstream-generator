@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -22,7 +22,7 @@ module asgen.config;
 import std.stdio;
 import std.array;
 import std.string : format, toLower;
-import std.path : dirName, buildPath, buildNormalizedPath;
+import std.path : dirName, buildPath, buildNormalizedPath, isAbsolute, absolutePath;
 import std.conv : to;
 import std.json;
 import std.typecons;
@@ -289,6 +289,8 @@ public:
         // allow overriding the workspace location
         if (!enforcedWorkspaceDir.empty)
             workspaceDir = enforcedWorkspaceDir;
+        if (!workspaceDir.isAbsolute)
+            workspaceDir = workspaceDir.absolutePath;
 
         this.projectName = "Unknown";
         if ("ProjectName" in root)
@@ -304,18 +306,22 @@ public:
         if ("HtmlBaseUrl" in root)
             this.htmlBaseUrl = root["HtmlBaseUrl"].str;
 
-        // set the default export directory locations, allow people to override them in the config
-        exportDir      = buildPath (workspaceDir, "export");
-
-        // allow overriding the export  location
-        if (!enforcedExportDir.empty)
+        // set root export directory
+        if (enforcedExportDir.empty) {
+            exportDir = buildPath (workspaceDir, "export");
+        } else {
             exportDir = enforcedExportDir;
+            logInfo ("Using data export directory root from the command-line: %s", exportDir);
+        }
+        if (!exportDir.isAbsolute)
+            exportDir = exportDir.absolutePath;
 
-        mediaExportDir = buildPath (exportDir, "media");
-        dataExportDir  = buildPath (exportDir, "data");
-        hintsExportDir = buildPath (exportDir, "hints");
-        htmlExportDir  = buildPath (exportDir, "html");
-        auto extraMetainfoDir = buildPath (workspaceDir, "extra-metainfo");
+        // set the default export directory locations, allow people to override them in the config
+        // (we convert the relative to absolute paths later)
+        mediaExportDir = "media";
+        dataExportDir  = "data";
+        hintsExportDir = "hints";
+        htmlExportDir  = "html";
 
         if ("ExportDirs" in root) {
             auto edirs = root["ExportDirs"].object;
@@ -339,7 +345,14 @@ public:
             }
         }
 
+        // convert export directory paths to absolute paths if necessary
+        mediaExportDir = mediaExportDir.isAbsolute? mediaExportDir : buildNormalizedPath (exportDir, mediaExportDir);
+        dataExportDir  = dataExportDir.isAbsolute? dataExportDir : buildNormalizedPath (exportDir, dataExportDir);
+        hintsExportDir = hintsExportDir.isAbsolute? hintsExportDir : buildNormalizedPath (exportDir, hintsExportDir);
+        htmlExportDir  = htmlExportDir.isAbsolute? htmlExportDir : buildNormalizedPath (exportDir, htmlExportDir);
+
         // a place where external metainfo data can be injected
+        auto extraMetainfoDir = buildPath (workspaceDir, "extra-metainfo");
         if ("ExtraMetainfoDir" in root)
             extraMetainfoDir = root["ExtraMetainfoDir"].str;
 

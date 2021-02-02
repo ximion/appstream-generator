@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -54,7 +54,7 @@ Application Options:
   --force          Force action.
   -w|--workspace   Define the workspace location.
   -c|--config      Use the given configuration file.
-  -e|--exportDir   Directory to export data to.";
+  --export-dir     Override the workspace root export directory.";
 
 version (unittest) {
 void main () {}
@@ -96,7 +96,7 @@ void main(string[] args)
     bool showVersion;
     bool forceAction;
     string wdir;
-    string edir;
+    string exportDir;
     string configFname;
 
     // parse command-line options
@@ -108,7 +108,7 @@ void main(string[] args)
             "force", &forceAction,
             "workspace|w", &wdir,
             "config|c", &configFname,
-            "exportDir|e", &edir);
+            "export-dir", &exportDir);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
@@ -143,7 +143,7 @@ void main(string[] args)
     }
 
     try {
-        conf.loadFromFile (configFname, wdir, edir);
+        conf.loadFromFile (configFname, wdir, exportDir);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
