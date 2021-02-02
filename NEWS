@@ -1,3 +1,34 @@
+Version 0.8.3
+~~~~~~~~~~~~~~
+Released: 2021-02-02
+
+Notes:
+ * This release requires libappstream-compose from the AppStream project to build.
+   The library is still in progress and currently has an unstable API, but
+   is developed in sync with appstream-generator, so asgen can safely
+   depend on it.
+
+Features:
+ * Elevate no-metainfo presence to a warning by default (Matthias Klumpp)
+ * Ignore all apps with only desktop-entry files using OnlyShowIn (Matthias Klumpp)
+ * Make use of the helper classes provided by appstream-compose (Matthias Klumpp)
+ * Add editorconfig (Matthias Klumpp)
+ * Use ascompose result type as base for the generator result container (Matthias Klumpp)
+ * Use the validator helper function from appstream-compose (Matthias Klumpp)
+ * Use metainfo parsing helper from appstream-compose (Matthias Klumpp)
+ * alpine: add capabilities to download packages via HTTP (Rasmus Thomsen)
+ * config: allow overriding export dir via --export-dir (Rasmus Thomsen)
+
+Bugfixes:
+ * Add explicit option to disable network-dependent tests (Matthias Klumpp)
+ * Add missing CSS styling for permalinks to Debian template (Matthias Klumpp)
+ * Captialize "MetaInfo" the same everywhere in hint messages (Matthias Klumpp)
+ * Use binding generator to create the missing AppStream Utils functions (Matthias Klumpp)
+ * Never open contents cache DB env more than once in the same thread (Matthias Klumpp)
+ * Re-enable LMDB TLS support (Matthias Klumpp)
+ * downloader: Check read byte count before appending to buffer (Matthias Klumpp)
+ * Ensure export directory paths are sane, absolute paths all the time (Matthias Klumpp)
+
 Version 0.8.2
 ~~~~~~~~~~~~~~
 Released: 2020-05-12
