@@ -67,7 +67,6 @@ parts:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/
     override-build: |
       # install yarn
-      apt-get install -y curl
       curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
       echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
       apt-get update && apt-get install --no-install-recommends -y yarn nodejs
@@ -100,6 +99,7 @@ parts:
       update-mime-database -V usr/share/mime/
       usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     build-packages:
+      - curl
       - meson
       - docbook-xsl
       - docbook-xml
