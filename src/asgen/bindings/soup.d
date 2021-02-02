@@ -685,3 +685,6 @@ void soup_message_headers_iter_init(SoupMessageHeadersIter* iter, SoupMessageHea
 
 // misc
 const(char)* soup_status_get_phrase(uint status_code);
+
+uint soup_get_major_version();
+uint soup_get_minor_version();

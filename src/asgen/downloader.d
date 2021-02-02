@@ -319,5 +319,9 @@ unittest
     assertThrown!DownloadException (dl.downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 2));
 
     // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
-    dl.downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
+    if (soup_get_major_version () >= 2 && soup_get_minor_version () >= 71) {
+        dl.downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
+    } else {
+        logWarning ("Can not test HTTP -> HTTPS redirection as Soup version is too old (need at least 2.71.x)");
+    }
 }
