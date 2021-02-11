@@ -19,6 +19,7 @@
 
 module asgen.zarchive;
 
+import core.stdc.string : strerror;
 import std.stdio;
 import std.string;
 import std.regex;
@@ -97,8 +98,15 @@ string decompressFile (string fname)
     archive_read_support_filter_all (ar);
 
     ret = archive_read_open_filename (ar, toStringz (fname), DEFAULT_BLOCK_SIZE);
-    if (ret != ARCHIVE_OK)
-        throw new Exception (format ("Unable to open compressed file '%s': %s", fname, getArchiveErrorMessage (ar)));
+    if (ret != ARCHIVE_OK) {
+        auto ret_errno = archive_errno (ar);
+        auto ret_strerr = fromStringz (strerror(ret_errno));
+        throw new Exception (format ("Unable to open compressed file '%s': %s. error: %s (%d)",
+                                     fname,
+                                     getArchiveErrorMessage (ar),
+                                     ret_strerr,
+                                     ret_errno));
+    }
 
     return readArchiveData (ar, fname);
 }
@@ -177,10 +185,15 @@ private:
         archive_read_support_format_all (ar);
 
         auto ret = archive_read_open_filename (ar, archive_fname.toStringz, DEFAULT_BLOCK_SIZE);
-        if (ret != ARCHIVE_OK)
-            throw new Exception (format ("Unable to open compressed file '%s': %s",
-                                 archive_fname,
-                                 getArchiveErrorMessage (ar)));
+        if (ret != ARCHIVE_OK) {
+            auto ret_errno = archive_errno (ar);
+            auto ret_strerr = fromStringz (strerror(ret_errno));
+            throw new Exception (format ("Unable to open compressed file '%s': %s. error: %s (%d)",
+                                         archive_fname,
+                                         getArchiveErrorMessage (ar),
+                                         ret_strerr,
+                                         ret_errno));
+        }
 
         return ar;
     }
