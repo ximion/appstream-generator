@@ -174,21 +174,23 @@ public:
     {
         import std.regex : ctRegex;
 
-        if (dataArchive.isOpen)
-            return dataArchive;
+        synchronized(this) {
+                if (dataArchive.isOpen)
+                    return dataArchive;
 
-        ArchiveDecompressor ad;
-        // extract the payload to a temporary location first
-        ad.open (this.getFilename);
-        mkdirRecurse (tmpDir);
+                ArchiveDecompressor ad;
+                // extract the payload to a temporary location first
+                ad.open (this.getFilename);
+                mkdirRecurse (tmpDir);
 
-        auto files = ad.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
-        if (files.length == 0)
-            throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.getFilename));
-        immutable dataArchiveFname = files[0];
+                auto files = ad.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
+                if (files.length == 0)
+                    throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.getFilename));
+                immutable dataArchiveFname = files[0];
 
-        dataArchive.open (dataArchiveFname);
-        return dataArchive;
+                dataArchive.open (dataArchiveFname);
+                return dataArchive;
+        }
     }
 
     final void extractPackage (const string dest = buildPath (tmpDir, name))
@@ -196,32 +198,36 @@ public:
         import std.file : exists;
         import std.regex : ctRegex;
 
-        if (!dest.exists)
-            mkdirRecurse (dest);
+        synchronized(this) {
+            if (!dest.exists)
+                mkdirRecurse (dest);
 
-        auto pa = openPayloadArchive ();
-        pa.extractArchive (dest);
+            auto pa = openPayloadArchive ();
+            pa.extractArchive (dest);
+        }
     }
 
     private final auto openControlArchive ()
     {
         import std.regex : ctRegex;
 
-        if (controlArchive.isOpen)
-            return controlArchive;
+        synchronized(this) {
+                if (controlArchive.isOpen)
+                    return controlArchive;
 
-        ArchiveDecompressor ad;
-        // extract the payload to a temporary location first
-        ad.open (this.getFilename);
-        mkdirRecurse (tmpDir);
+                ArchiveDecompressor ad;
+                // extract the payload to a temporary location first
+                ad.open (this.getFilename);
+                mkdirRecurse (tmpDir);
 
-        auto files = ad.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
-        if (files.empty)
-            throw new Exception ("Unable to find control data in Debian package: %s".format (this.getFilename));
-        immutable controlArchiveFname = files[0];
+                auto files = ad.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
+                if (files.empty)
+                    throw new Exception ("Unable to find control data in Debian package: %s".format (this.getFilename));
+                immutable controlArchiveFname = files[0];
 
-        controlArchive.open (controlArchiveFname);
-        return controlArchive;
+                controlArchive.open (controlArchiveFname);
+                return controlArchive;
+        }
     }
 
     override final
@@ -323,20 +329,25 @@ public:
     override final
     void cleanupTemp ()
     {
-        controlArchive.close ();
-        dataArchive.close ();
+        synchronized(this) {
+            if (controlArchive.isOpen)
+                controlArchive.close ();
+            if (dataArchive.isOpen)
+                dataArchive.close ();
 
-        try {
-            if (std.file.exists (tmpDir)) {
-                /* Whenever we delete the temporary directory, we need to
-                 * forget about the local file too, since (if it's remote) that
-                 * was downloaded into there. */
-                logDebug ("Deleting temporary directory %s", tmpDir);
-                localDebFname = null;
-                rmdirRecurse (tmpDir);
-        } catch (Exception e) {
-            // we ignore any error
-            logDebug ("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
+            try {
+                if (std.file.exists (tmpDir)) {
+                    /* Whenever we delete the temporary directory, we need to
+                     * forget about the local file too, since (if it's remote) that
+                     * was downloaded into there. */
+                    logDebug ("Deleting temporary directory %s", tmpDir);
+                    localDebFname = null;
+                    rmdirRecurse (tmpDir);
+                }
+            } catch (Exception e) {
+                // we ignore any error
+                logDebug ("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
+            }
         }
     }
 
