@@ -10,6 +10,7 @@ if [ "$DC" = "ldc" ];
 then
   export DC=ldc2
 fi
+ROOT_DIR=$(pwd)
 
 echo "D compiler: $DC"
 set -v
@@ -24,11 +25,11 @@ meson -Ddownload-js=true ..
 ninja -j8
 
 # Run tests
-ninja test -v
+meson test -v --print-errorlogs
 
 # Test install
 DESTDIR=/tmp/install-ninja ninja install
-cd ..
+cd $ROOT_DIR
 
 #
 # Other checks

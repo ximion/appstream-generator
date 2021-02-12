@@ -16,7 +16,7 @@ dscanner --version
 mkdir /tmp/build
 
 cd /tmp/build && \
-    git clone --depth=20 https://github.com/ximion/appstream.git
+    git clone --depth=10 https://github.com/ximion/appstream.git
 mkdir /tmp/build/appstream/build
 cd /tmp/build/appstream/build && \
     meson --prefix=/usr \
