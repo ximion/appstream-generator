@@ -36,4 +36,4 @@ cd $ROOT_DIR
 #
 
 # run D-Scanner
-./tests/ci/run-dscanner.py . tests/dscanner.ini
+./tests/ci/run-dscanner.py . tests/dscanner.ini || true
