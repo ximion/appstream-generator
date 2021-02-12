@@ -327,7 +327,12 @@ public:
         dataArchive.close ();
 
         try {
-            if (std.file.exists (tmpDir))
+            if (std.file.exists (tmpDir)) {
+                /* Whenever we delete the temporary directory, we need to
+                 * forget about the local file too, since (if it's remote) that
+                 * was downloaded into there. */
+                logDebug ("Deleting temporary directory %s", tmpDir);
+                localDebFname = null;
                 rmdirRecurse (tmpDir);
         } catch (Exception e) {
             // we ignore any error
@@ -338,7 +343,6 @@ public:
     override final
     void finish ()
     {
-        localDebFname = null;
         cleanupTemp ();
     }
 }
