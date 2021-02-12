@@ -368,6 +368,10 @@ string getDataPath (string fname)
     if (std.file.exists (resPath))
         return resPath;
 
+    resPath = buildPath ("data", fname);
+    if (std.file.exists (resPath))
+        return resPath;
+
     // Uh, let's just give up
     return buildPath ("/usr", "share", "appstream", fname);
 }

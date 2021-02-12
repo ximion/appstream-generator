@@ -55,12 +55,17 @@ parts:
   appstream-generator:
     source: .
     source-type: git
-    parse-info: [data/org.freedesktop.appstream.generator.metainfo.xml]
+    parse-info: [usr/share/metainfo/org.freedesktop.appstream.generator.metainfo.xml]
 
     override-pull: |
       snapcraftctl pull
       # set version from Git
       snapcraftctl set-version "$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')"
+
+      # adjust to an absolute path to help finding the GIR file from the AppStream part
+      sed -i 's|AppStream-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' ${SNAPCRAFT_PART_SRC}/contrib/girwrap/APILookupAppStream.txt
+      sed -i 's|AppStreamCompose-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' ${SNAPCRAFT_PART_SRC}/contrib/girwrap/APILookupAppStreamCompose.txt
+
 
     plugin: meson
     build-environment:
@@ -71,18 +76,13 @@ parts:
       echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
       apt-get update && apt-get install --no-install-recommends -y yarn nodejs
 
-      # adjust to an absolute path to help finding the GIR file from the AppStream part
-      sed -i 's|AppStream-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' contrib/girwrap/APILookupAppStream.txt
-      sed -i 's|AppStreamCompose-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' contrib/girwrap/APILookupAppStreamCompose.txt
-
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
-      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true snapbuild
-      cd snapbuild
-      ninja -j1
-      meson test --verbose
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${SNAPCRAFT_PART_BUILD} ${SNAPCRAFT_PART_SRC}
+      ninja -C "${SNAPCRAFT_PART_BUILD}" -j4
+      meson test -C "${SNAPCRAFT_PART_BUILD}" --verbose
+      DESTDIR=${SNAPCRAFT_PART_INSTALL} ninja -C "${SNAPCRAFT_PART_BUILD}" install
     override-prime: |
       set -eux
       snapcraftctl prime

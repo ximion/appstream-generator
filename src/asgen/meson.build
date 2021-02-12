@@ -110,4 +110,6 @@ asgen_test_exe = executable('asgen_test',
     d_import_dirs: [data_import_dirs],
     d_unittest: true
 )
-test('asgen_tests', asgen_test_exe)
+test('asgen_tests',
+      asgen_test_exe,
+      workdir: meson.source_root())
