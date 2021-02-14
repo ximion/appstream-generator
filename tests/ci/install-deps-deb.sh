@@ -34,7 +34,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     libstemmer-dev \
     libxml2-dev \
     libyaml-dev \
-    libsoup2.4-dev \
+    libcurl4-gnutls-dev \
     gperf
 
 eatmydata apt-get install -yq --no-install-recommends \
