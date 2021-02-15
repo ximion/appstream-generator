@@ -179,7 +179,7 @@ parts:
       - libgirepository1.0-dev
       - libglib2.0-dev
       - liblmdb-dev
-      - libsoup2.4-dev
+      - libcurl4-gnutls-dev
       - libstemmer-dev
       - libxml2-dev
       - libyaml-dev
@@ -188,7 +188,7 @@ parts:
     stage-packages:
      - libicu66
      - liblmdb0
-     - libsoup2.4-1
+     - libcurl3-gnutls
      - libstemmer0d
      - libxml2
 
