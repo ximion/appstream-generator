@@ -25,7 +25,6 @@ import std.conv : to, octal;
 import std.file : mkdirRecurse;
 import std.array : appender, join, split, empty;
 
-import asgen.containers : HashMap;
 import asgen.bindings.lmdb;
 import asgen.config;
 import asgen.logging;
@@ -287,7 +286,7 @@ public:
         }
     }
 
-    private HashMap!(string, string) getFilesMap (string[] pkids, MDB_dbi dbi, bool useBaseName = false)
+    private string[string] getFilesMap (string[] pkids, MDB_dbi dbi, bool useBaseName = false)
     {
         import std.path : baseName;
 
@@ -300,7 +299,7 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open");
 
-        HashMap!(string, string) pkgCMap;
+        string[string] pkgCMap;
         foreach (ref pkid; pkids) {
             MDB_val pkey = makeDbValue (pkid);
             MDB_val cval;
@@ -382,7 +381,7 @@ public:
         return getContentsList (pkid, dbLocale);
     }
 
-    HashMap!(immutable string, bool) getPackageIdSet ()
+    bool[immutable string] getPackageIdSet ()
     {
         MDB_cursorp cur;
 
@@ -393,17 +392,17 @@ public:
         scope (exit) cur.mdb_cursor_close ();
         checkError (res, "mdb_cursor_open (getPackageIdSet)");
 
-        HashMap!(immutable string, bool) pkgSet;
+        bool[immutable string] pkgSet;
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
             immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
-            pkgSet.put (pkid, true);
+            pkgSet[pkid] = true;
         }
 
         return pkgSet;
     }
 
-    void removePackages (ref HashMap!(immutable string, bool) pkidSet)
+    void removePackages (ref bool[immutable string] pkidSet)
     {
         auto txn = newTransaction ();
         scope (success) commitTransaction (txn);

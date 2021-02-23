@@ -28,7 +28,6 @@ import std.parallelism : parallel;
 import appstream.Component : Component, ComponentKind;
 import appstream.Translation : Translation, TranslationKind;
 
-import asgen.containers: HashMap;
 import asgen.logging;
 import asgen.result : GeneratorResult;
 import asgen.contentsstore : ContentsStore;
@@ -108,7 +107,7 @@ public final class LocaleHandler
 {
 
 private:
-    HashMap!(string, Package) localeIdPkgMap;
+    Package[string] localeIdPkgMap;
 
     public this (ContentsStore cstore, Package[] pkgList)
     {
@@ -118,12 +117,13 @@ private:
 
         logDebug ("Creating new LocaleHandler.");
 
-        // convert the list into a HashMap for faster lookups
-        HashMap!(string, Package) pkgMap;
+        // convert the list into an associative array for faster lookups
+        Package[string] pkgMap;
         foreach (ref pkg; pkgList) {
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
         }
+        pkgMap.rehash ();
 
         localeIdPkgMap.clear ();
 
@@ -136,7 +136,7 @@ private:
         // the key of the map returned by getLocaleMap will therefore contain only the locale
         // file basename instead of a full path
         auto dbLocaleMap = cstore.getLocaleMap (array(pkgMap.byKey));
-        foreach (info; dbLocaleMap.byPair) {
+        foreach (ref info; dbLocaleMap.byKeyValue) {
             immutable id = info.key;
             immutable pkgid = info.value;
 
@@ -196,7 +196,7 @@ private:
             return;
 
         ulong maxNStrings = 0;
-        HashMap!(string, ulong) localeMap;
+        ulong[string] localeMap;
 
         // Process Gettext .mo files for information
         foreach (ref domain; gettextDomains) {
@@ -244,7 +244,7 @@ private:
             return;
         }
 
-        foreach (ref info; localeMap.byPair) {
+        foreach (ref info; localeMap.byKeyValue) {
             immutable locale = info.key;
             immutable nstrings = info.value;
 

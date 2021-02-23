@@ -33,7 +33,6 @@ import ascompose.c.types : AscHint;
 static import appstream.Utils;
 alias AsUtils = appstream.Utils.Utils;
 
-import asgen.containers : HashMap;
 import asgen.hintregistry;
 import asgen.utils : buildCptGlobalID;
 import asgen.backends.interfaces;

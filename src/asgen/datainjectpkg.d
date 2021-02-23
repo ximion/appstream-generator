@@ -21,7 +21,6 @@ import std.stdio : File;
 import std.array : empty;
 import std.path : buildPath, relativePath;
 
-import asgen.containers : HashMap;
 import asgen.backends.interfaces;
 import asgen.utils : GENERIC_BUFFER_SIZE;
 import asgen.logging;
@@ -38,7 +37,7 @@ private:
     string pkgarch;
     string pkgmaintainer;
     string[string] desc;
-    HashMap!(string, string) _contents;
+    string[string] _contents;
     string _dataLocation;
 
 public:

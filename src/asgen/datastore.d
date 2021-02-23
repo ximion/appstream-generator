@@ -33,7 +33,6 @@ import appstream.Metadata;
 import appstream.Component;
 
 import asgen.config;
-import asgen.containers : HashMap;
 import asgen.logging;
 import asgen.config : DataType;
 import asgen.result;
@@ -587,14 +586,14 @@ public:
 
     }
 
-    HashMap!(immutable string, bool) getPackageIdSet ()
+    bool[immutable string] getPackageIdSet ()
     {
         MDB_cursorp cur;
 
         auto txn = newTransaction ();
         scope (exit) quitTransaction (txn);
 
-        HashMap!(immutable string, bool) pkgSet;
+        bool[immutable string] pkgSet;
 
         auto res = txn.mdb_cursor_open (dbPackages, &cur);
         scope (exit) cur.mdb_cursor_close ();
@@ -603,13 +602,13 @@ public:
         MDB_val pkey;
         while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
             immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
-            pkgSet.put (pkid, true);
+            pkgSet[pkid] = true;
         }
 
         return pkgSet;
     }
 
-    void removePackages (ref HashMap!(immutable string, bool) pkidSet)
+    void removePackages (ref bool[immutable string] pkidSet)
     {
         auto txn = newTransaction ();
         scope (success) commitTransaction (txn);

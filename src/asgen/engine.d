@@ -31,7 +31,6 @@ static import std.file;
 import appstream.Component;
 
 import asgen.config;
-import asgen.containers : HashMap;
 import asgen.logging;
 import asgen.extractor;
 import asgen.datastore;
@@ -346,7 +345,7 @@ public:
         mkdirRecurse (hintsExportDir);
 
         // prepare icon-tarball array
-        HashMap!(string, Appender!(string[])) iconTarFiles;
+        Appender!(string[])[string] iconTarFiles;
         if (withIconTar) {
             foreach (ref ipolicy; conf.iconSettings) {
                 if (!ipolicy.storeCached)
@@ -491,7 +490,7 @@ public:
         saveHintsRegistryToJsonFile (buildPath (conf.hintsExportDir, suite.name, "hint-definitions.json"));
     }
 
-    private HashMap!(string, Package) getIconCandidatePackages (Suite suite, string section, string arch)
+    private Package[string] getIconCandidatePackages (Suite suite, string section, string arch)
     {
         // always load the "main" and "universe" components, which contain most of the icon data
         // on Debian and Ubuntu. Load the "core" and "extra" components for Arch Linux.
@@ -509,7 +508,7 @@ public:
             pkgs ~= pkgIndex.packagesFor (suite.baseSuite, section, arch);
         pkgs ~= pkgIndex.packagesFor (suite.name, section, arch);
 
-        HashMap!(string, Package) pkgMap;
+        Package[string] pkgMap;
         foreach (ref pkg; pkgs.data) {
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
@@ -772,7 +771,7 @@ public:
             return false;
         }
 
-        HashMap!(string, Appender!(Package[])) pkgByArch;
+        Appender!(Package[])[string] pkgByArch;
         foreach (fname; files) {
             auto pkg = pkgIndex.packageForFile (fname, suiteName, sectionName);
             if (pkg is null) {
@@ -1014,8 +1013,8 @@ public:
         logInfo ("Collecting information.");
 
         // get sets of all packages registered in the database
-        HashMap!(immutable string, bool) pkidsContents;
-        HashMap!(immutable string, bool) pkidsData;
+        bool[immutable string] pkidsContents;
+        bool[immutable string] pkidsData;
         foreach (i; parallel ([1, 2])) {
             if (i == 1)
                 pkidsContents = cstore.getPackageIdSet ();

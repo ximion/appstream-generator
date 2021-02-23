@@ -42,7 +42,6 @@ import ascompose.Canvas : Canvas;
 import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import std.file;
 
-import asgen.containers : HashMap;
 import asgen.utils;
 import asgen.logging;
 import asgen.result;
@@ -224,7 +223,7 @@ private:
     string mediaExportPath;
 
     Theme[] themes;
-    HashMap!(string, Package) iconFiles;
+    Package[string] iconFiles;
     string[] themeNames;
 
     IconPolicy[] iconPolicy;
@@ -235,7 +234,7 @@ private:
 
 public:
 
-    this (ContentsStore ccache, string mediaPath, IconPolicy[] iconPolicy, HashMap!(string, Package) pkgMap, string iconTheme = null)
+    this (ContentsStore ccache, string mediaPath, IconPolicy[] iconPolicy, Package[string] pkgMap, string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
 
@@ -285,9 +284,9 @@ public:
         // load data from the contents index.
         // we don't show mercy to memory here, we just want the icon lookup to be fast,
         // so we have to cache the data.
-        HashMap!(string, Theme) tmpThemes;
+        Theme[string] tmpThemes;
         auto filesPkids = ccache.getIconFilesMap (array(pkgMap.byKey));
-        foreach (info; parallel (filesPkids.byPair, 100)) {
+        foreach (info; parallel (filesPkids.byKeyValue, 100)) {
             immutable fname = info.key;
             immutable pkgid = info.value;
             if (fname.startsWith ("/usr/share/pixmaps/")) {
@@ -419,7 +418,7 @@ public:
      **/
     private auto findIcons (string iconName, const ImageSize[] sizes, Package pkg = null)
     {
-        HashMap!(ImageSize, IconFindResult) sizeMap;
+        IconFindResult[ImageSize] sizeMap;
 
         foreach (size; sizes) {
             // search for possible icon filenames, using relaxed scaling rules by default
@@ -660,7 +659,7 @@ public:
     /**
      * Helper function to try to find an icon that we can up- or downscale to the desired size.
      */
-    private auto findIconScalableToSize (ref HashMap!(ImageSize, IconFindResult) possibleIcons, const ref ImageSize size)
+    private auto findIconScalableToSize (ref IconFindResult[ImageSize] possibleIcons, const ref ImageSize size)
     {
         IconFindResult info;
         info.pkg = null;
@@ -752,7 +751,7 @@ public:
                 if (iconRes.empty)
                     return false;
 
-                HashMap!(ImageSize, IconFindResult) iconsStored;
+                IconFindResult[ImageSize] iconsStored;
                 foreach (ref policy; iconPolicy) {
                     immutable size = policy.iconSize;
                     auto infoP = (size in iconRes);

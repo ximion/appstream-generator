@@ -24,7 +24,6 @@ import std.string : format;
 import std.array : appender;
 import std.conv : to;
 
-import asgen.containers : HashMap;
 import asgen.backends.debian;
 import asgen.backends.interfaces;
 import asgen.backends.ubuntu.ubupkg;
@@ -36,7 +35,7 @@ private:
     LanguagePackProvider langpacks;
 
     // holds the IDs of suite/section/arch combinations where we scanned language packs
-    HashMap!(string, bool) checkedLangPacks;
+    bool[string] checkedLangPacks;
 
 public:
     this (string dir)
@@ -75,7 +74,7 @@ public:
         auto pkgs = super.packagesFor (suite, section, arch, withLongDescs);
 
         immutable ssaId = "%s/%s/%s".format (suite, section, arch);
-        if (checkedLangPacks.contains (ssaId))
+        if (ssaId in checkedLangPacks)
             return pkgs; // no need to scan for language packs, we already did that
 
         // scan for language packs and add them to the data provider
@@ -89,7 +88,7 @@ public:
             }
 
             langpacks.addLanguagePacks (pkgslangpacks.data);
-            checkedLangPacks.put (ssaId, true);
+            checkedLangPacks[ssaId] = true;
         }
 
         return pkgs;

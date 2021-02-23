@@ -29,7 +29,6 @@ import std.typecons : scoped;
 static import std.file;
 
 import asgen.logging;
-import asgen.containers : HashMap;
 import asgen.backends.interfaces;
 import asgen.backends.debian.tagfile;
 import asgen.backends.debian.debpkg;
@@ -43,10 +42,10 @@ class DebianPackageIndex : PackageIndex
 
 private:
     string rootDir;
-    HashMap!(string, Package[]) pkgCache;
+    Package[][string] pkgCache;
 
     // index of localized text for a specific package name
-    HashMap!(string, DebPackageLocaleTexts) l10nTextIndex;
+    DebPackageLocaleTexts[string] l10nTextIndex;
     bool[string] indexChanged;
 
 protected:
@@ -78,8 +77,8 @@ public:
 
         immutable inRelease = buildPath (rootDir, "dists", suite, "InRelease");
         auto translationregex = r"%s/i18n/Translation-(\w+)$".format (section).regex;
-        HashMap!(string, bool) ret;
 
+        bool[string] ret;
         try {
             synchronized (this) {
                 const inReleaseContents = getTextFileContents (inRelease);
@@ -90,7 +89,7 @@ public:
                     if (match.empty)
                         continue;
 
-                    ret.put (match[1], true);
+                    ret[match[1]] = true;
                 }
             }
         } catch (Exception ex) {
@@ -132,7 +131,7 @@ public:
         return description.data;
     }
 
-    private void loadPackageLongDescs (ref HashMap!(string, DebPackage) pkgs, string suite, string section)
+    private void loadPackageLongDescs (ref DebPackage[string] pkgs, string suite, string section)
     {
         immutable langs = findTranslations (suite, section);
 
@@ -240,7 +239,7 @@ public:
         tagf.open (indexFname);
         logDebug ("Opened: %s", indexFname);
 
-        HashMap!(string, DebPackage) pkgs;
+        DebPackage[string] pkgs;
         do {
             import std.algorithm : map;
             import std.array : array;

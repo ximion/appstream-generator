@@ -31,7 +31,6 @@ import ascompose.Hint : Hint;
 import ascompose.MetaInfoUtils : MetaInfoUtils;
 import glib.Bytes : Bytes;
 
-import asgen.containers : HashMap, SList;
 import asgen.config;
 import asgen.hintregistry;
 import asgen.result;
@@ -87,7 +86,7 @@ public:
         auto gres = new GeneratorResult (pkg);
 
         // prepare a list of metadata files which interest us
-        HashMap!(string, string) desktopFiles;
+        string[string] desktopFiles;
         string[] metadataFiles;
         foreach (ref fname; pkg.contents) {
             if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {

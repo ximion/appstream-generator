@@ -26,7 +26,6 @@ import std.array : appender, empty;
 import std.conv : to;
 import std.path : buildPath;
 
-import asgen.containers : HashMap;
 import asgen.zarchive;
 import asgen.logging;
 
@@ -40,7 +39,7 @@ final class TagFile
 private:
     string[] content;
     uint pos;
-    HashMap!(string, string) currentBlock;
+    string[string] currentBlock;
 
     string _fname;
 
