@@ -20,7 +20,7 @@ appstream_dep  = dependency('appstream', version : '>= 0.14.0')
 ascompose_dep  = dependency('appstream-compose', version : '>= 0.14.0')
 lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
 archive_dep    = dependency('libarchive', version : '>= 3.2')
-soup_dep       = dependency('libsoup-2.4', version: '>= 2.56')
+curl_dep       = dependency('libcurl')
 
 #
 # Build interfaces from GIR

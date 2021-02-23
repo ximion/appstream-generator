@@ -26,22 +26,20 @@ import std.datetime : SysTime, Clock, parseRFC822DateTime, DateTimeException;
 import std.array : appender, empty;
 import std.path : buildPath, dirName, buildNormalizedPath;
 import std.algorithm : startsWith;
+import std.format : format;
+import std.conv : to;
 import asgen.logging;
 static import std.file;
 
-private import asgen.bindings.soup;
-private import asgen.utils;
-private import asgen.config : Config;
-private import gobject.c.functions;
-private import gio.InputStream : GInputStream;
-private import gio.c.functions : g_input_stream_read;
-private import std.string : format, toStringz, fromStringz;
+import asgen.config : Config;
+import asgen.defines : ASGEN_VERSION;
+import asgen.utils : isRemote, randomString;
 
 class DownloadException : Exception
 {
     @safe pure nothrow
-    this(string msg,
-         string file = __FILE__,
+    this(const string msg,
+         const string file = __FILE__,
          size_t line = __LINE__,
          Throwable next = null)
     {
@@ -50,13 +48,14 @@ class DownloadException : Exception
 }
 
 /**
- * Download data via HTTP. Based on libsoup.
+ * Download data via HTTP. Based on cURL.
  */
 final class Downloader
 {
 
 private:
-    SoupSession *session;
+    immutable string caInfo;
+    immutable string userAgent;
 
     // thread local instance
     static Downloader instance_;
@@ -72,147 +71,117 @@ public:
 
     this () @trusted
     {
-        session = soup_session_new_with_options (SOUP_SESSION_USER_AGENT.toStringz,
-                                                 "appstream-generator".toStringz,
-                                                 SOUP_SESSION_TIMEOUT.toStringz,
-                                                 40,
-                                                 null);
-        if (session is null) {
-            throw new Exception ("Unable to set up networking support!");
-            assert (0);
-        }
+        userAgent = "appstream-generator/" ~ ASGEN_VERSION;
 
         // set custom SSL CA file, if we have one
-        immutable caInfo = Config.get.caInfo;
-        if (!caInfo.empty) {
-            g_object_set (session,
-                          SOUP_SESSION_SSL_CA_FILE.toStringz,
-                          caInfo.toStringz,
-                          null);
-        }
-
-        // set default proxy resolver
-        soup_session_add_feature_by_type (session,
-                                          soup_proxy_resolver_default_get_type ());
+        caInfo = Config.get.caInfo;
     }
 
-    ~this () @trusted
-    {
-        g_object_unref (session);
-    }
-
-    private auto downloadInternal (const string url, ref Nullable!SysTime lastModified, uint maxTryCount = 3) @trusted
+    private immutable(Nullable!SysTime) downloadInternal (const string url, ref File dest, const uint maxTryCount = 5) @trusted
     in { assert (url.isRemote); }
     do
     {
-        auto spUri = soup_uri_new (url.toStringz);
-        scope (exit) soup_uri_free (spUri);
+        import core.time : dur;
+        import std.string : toLower;
+        import std.net.curl : HTTP, FTP;
+        import asgen.config : Config;
+        import std.typecons : Yes;
 
-        // check if our URI is valid for HTTP(S)
-        const uriScheme = soup_uri_get_scheme (spUri).fromStringz;
-        if ((spUri is null) ||
-            (uriScheme != "http" && uriScheme != "https") ||
-            ((spUri.host is null) || (spUri.path is null))) {
-                if (uriScheme == "ftp")
-                    throw new DownloadException ("Downloads via FTP are not supported. Url '%s' is invalid.".format (url));
-                else
-                    throw new DownloadException ("The URL '%s' is no valid HTTP(S) URL!".format (url));
-        }
+        static Config conf = null;
+        if (conf is null)
+            conf = Config.get ();
 
-        // set up message
-        auto msg = soup_message_new_from_uri (SOUP_METHOD_GET, spUri);
-        if (msg is null)
-            throw new DownloadException ("Unable to set up GET request for URL '%s'".format (url));
-        scope (exit) g_object_unref (msg);
-
-        if (maxTryCount == 0)
-            maxTryCount = 1;
-
-        // send message, retry a few times
-        logDebug ("Downloading '%s'", url);
-        GInputStream *stream;
-        for (int tryNo = 1; tryNo <= maxTryCount; tryNo++) {
-            stream = soup_session_send (session, msg, null, null);
-            scope (failure) { if (stream !is null) g_object_unref (stream); }
-            immutable statusCode = msg.statusCode;
-
-            if ((statusCode >  0) && (statusCode < 100)) {
-                // transport error
-
-                if (tryNo != maxTryCount) {
-                    if (stream !is null)
-                        g_object_unref (stream);
-                    logDebug ("Download of '%s' failed: Connection issue %s (%s), retrying (try %s/%s)",
-                              url, statusCode, soup_status_get_phrase (statusCode).fromStringz, tryNo + 1, maxTryCount);
-                    continue;
-                }
-                throw new DownloadException ("Failed to retrieve '%s': Connection issue %s (%s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
-            } else if (statusCode != 200) {
-                // any other HTTP status that isn't OK
-                if (tryNo != maxTryCount) {
-                    if (stream !is null)
-                        g_object_unref (stream);
-                    logDebug ("Download of '%s' failed: HTTP %s (%s), retrying (try %s/%s)",
-                              url, statusCode, soup_status_get_phrase (statusCode).fromStringz, tryNo + 1, maxTryCount);
-                    continue;
-                }
-                throw new DownloadException ("Failed to retrieve '%s' (HTTP %s: %s)".format (url, statusCode, soup_status_get_phrase (statusCode).fromStringz));
-            }
-
-            // everything was fine at this point, no need to retry download
-            break;
-        }
-
-        if (stream is null)
-            throw new DownloadException ("Unable to get data stream for download of '%s'.".format (url));
-
-        const lastModifiedStr = soup_message_headers_get (msg.responseHeaders, "last-modified".toStringz).fromStringz;
-        if (!lastModifiedStr.empty) {
-            try {
-                lastModified = parseRFC822DateTime (lastModifiedStr);
-            } catch (DateTimeException dtE) {
-                logDebug ("Received invalid `last-modified` time '%s' from '%s': %s", lastModifiedStr, url, dtE.msg);
-                lastModified.nullify ();
-            }
-        }
-
-        return stream;
-    }
-
-    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 3) @trusted
-    do
-    {
         Nullable!SysTime ret;
-        auto stream = downloadInternal (url, ret, maxTryCount);
-        scope(exit) g_object_unref (stream);
 
-        ptrdiff_t len;
-        ubyte[GENERIC_BUFFER_SIZE] buffer;
-        do {
-            len = g_input_stream_read (stream, cast(void*)buffer.ptr, cast(size_t)buffer.length, null, null);
-            if (len > 0)
-                dFile.rawWrite (buffer[0..len]);
-        } while (len > 0);
+        size_t onReceiveCb (File f, ubyte[] data)
+        {
+            f.rawWrite (data);
+            return data.length;
+        }
+
+        /* the curl library is stupid; you can't make an AutoProtocol set timeouts */
+        logDebug ("Downloading %s", url);
+        try {
+            if (url.startsWith ("http")) {
+                immutable httpsUrl = url.startsWith ("https");
+                auto curlHttp = HTTP (url);
+                if (!conf.caInfo.empty ())
+                    curlHttp.caInfo = conf.caInfo;
+                curlHttp.setUserAgent (userAgent);
+
+                HTTP.StatusLine statusLine;
+                curlHttp.connectTimeout = dur!"seconds" (30);
+                curlHttp.dataTimeout = dur!"seconds" (30);
+                curlHttp.onReceive = (data) => onReceiveCb (dest, data);
+                curlHttp.onReceiveStatusLine = (HTTP.StatusLine l) { statusLine = l; };
+                curlHttp.onReceiveHeader = (in char[] key, in char[] value) {
+                    // we will not allow a HTTPS --> HTTP downgrade
+                    if (!httpsUrl)
+                        return;
+                    if (key == "location" && value.toLower.startsWith ("http:"))
+                        throw new DownloadException ("HTTPS URL tried to redirect to a less secure HTTP URL.");
+                };
+                curlHttp.perform(Yes.throwOnError);
+                if ("last-modified" in curlHttp.responseHeaders) {
+                        auto lastmodified = curlHttp.responseHeaders["last-modified"];
+                        ret = parseRFC822DateTime(lastmodified);
+                }
+
+                if (statusLine.code != 200 && statusLine.code != 301 && statusLine.code != 302) {
+                    if (statusLine.code == 0) {
+                        // with some recent update of the D runtime or Curl, the status line isn't set anymore
+                        // just to be safe, check whether we received data before assuming everything went fine
+                        if (dest.size == 0)
+                            throw new DownloadException ("No data was received from the remote end (Code: %d).".format (statusLine.code));
+                    } else {
+                        throw new DownloadException ("HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
+                    }
+                }
+            } else {
+                auto curlFtp = FTP (url);
+                curlFtp.connectTimeout = dur!"seconds" (30);
+                curlFtp.dataTimeout = dur!"seconds" (30);
+                curlFtp.onReceive = (data) => onReceiveCb (dest, data);
+                curlFtp.perform(Yes.throwOnError);
+            }
+            logDebug ("Downloaded %s", url);
+        } catch (Exception e) {
+            if (maxTryCount > 0) {
+                logDebug ("Failed to download %s, will retry %d more %s",
+                        url,
+                        maxTryCount,
+                        maxTryCount > 1 ? "times" : "time");
+                download (url, dest, maxTryCount - 1);
+            } else {
+                throw new DownloadException (e.message.to!string);
+            }
+        }
 
         return ret;
     }
 
-    ubyte[] download (const string url, const uint tryCount = 3) @trusted
+    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 3) @trusted
     {
-        Nullable!SysTime lastModifiedTime;
-        auto stream = downloadInternal (url, lastModifiedTime, tryCount);
-        scope(exit) g_object_unref (stream);
+        return downloadInternal (url, dFile, maxTryCount);
+    }
 
-        auto result = appender!(ubyte[]);
-        ptrdiff_t len;
-        ubyte[GENERIC_BUFFER_SIZE] buffer;
-        do {
-            len = g_input_stream_read (stream, cast(void*)buffer.ptr, cast(size_t)buffer.length, null, null);
-            if (len > 0)
-                result ~= buffer[0..len];
-        } while (len > 0);
+    immutable(ubyte[]) download (const string url, const uint maxTryCount = 3) @trusted
+    {
+        import core.stdc.stdlib : free;
+        import core.sys.posix.stdio : fclose, open_memstream;
 
-        return result.data;
+        char* ptr = null;
+        scope (exit) free (ptr);
+        size_t sz = 0;
+
+        {
+            auto f = open_memstream (&ptr, &sz);
+            scope (exit) fclose (f);
+            auto file = File.wrapFile (f);
+            downloadInternal (url, file, maxTryCount);
+        }
+
+        return ptr[0..sz].to!(immutable(ubyte[]));
     }
 
     /**
@@ -224,10 +193,12 @@ public:
      *      maxTryCount = Number of times to attempt the download.
      */
     void downloadFile (const string url, const string dest, const uint maxTryCount = 3) @trusted
+    in  { assert (url.isRemote); }
     out { assert (std.file.exists (dest)); }
     do
     {
-        import std.file : exists, remove, mkdirRecurse, setTimes;
+        import std.file : exists, mkdirRecurse, setTimes, remove;
+        static import std.file;
 
         if (dest.exists) {
             logDebug ("File '%s' already exists, re-download of '%s' skipped.", dest, url);
@@ -239,7 +210,7 @@ public:
         auto f = File (dest, "wb");
         scope (failure) remove (dest);
 
-        auto time = download (url, f, maxTryCount);
+        auto time = downloadInternal (url, f, maxTryCount);
 
         f.close ();
         if (!time.isNull)
@@ -255,7 +226,6 @@ public:
      */
     string downloadText (const string url, const uint maxTryCount = 3) @trusted
     {
-        import std.conv : to;
         const data = download (url, maxTryCount);
         return (cast(char[])data).to!string;
     }
@@ -319,9 +289,5 @@ unittest
     assertThrown!DownloadException (dl.downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 2));
 
     // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
-    if (soup_get_major_version () >= 2 && soup_get_minor_version () >= 71) {
-        dl.downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
-    } else {
-        logWarning ("Can not test HTTP -> HTTPS redirection as Soup version is too old (need at least 2.71.x)");
-    }
+    dl.downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
 }

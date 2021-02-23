@@ -449,7 +449,7 @@ string[] getTextFileContents (const string path, const uint maxTryCount = 4, Dow
  *
  * Returns: The data if successful.
  */
-ubyte[] getFileContents (const string path, const uint maxTryCount = 4, Downloader downloader = null) @trusted
+immutable(ubyte[]) getFileContents (const string path, const uint maxTryCount = 4, Downloader downloader = null) @trusted
 {
     import core.stdc.stdlib : free;
     import core.sys.posix.stdio : fclose, open_memstream;
@@ -469,7 +469,7 @@ ubyte[] getFileContents (const string path, const uint maxTryCount = 4, Download
             data ~= f.rawRead (buf);
         }
 
-        return data;
+        return cast(immutable ubyte[]) data;
     }
 }
 

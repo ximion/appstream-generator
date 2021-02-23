@@ -40,7 +40,6 @@ eatmydata apt-get install -yq --no-install-recommends \
 eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
     libglibd-2.0-dev \
-    libsoup2.4-dev \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev

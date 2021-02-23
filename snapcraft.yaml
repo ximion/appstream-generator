@@ -110,7 +110,7 @@ parts:
       - librsvg2-dev
       - liblmdb-dev
       - libglib2.0-dev
-      - libsoup2.4-dev
+      - libcurl4-gnutls-dev
       - libcairo2-dev
       - libfreetype6-dev
       - libfontconfig1-dev
@@ -139,7 +139,7 @@ parts:
       - libpng16-16
       - librsvg2-2
       - librsvg2-common
-      - libsoup2.4-1
+      - libcurl3-gnutls
       - libthai0
       - libx11-6
       - libxau6

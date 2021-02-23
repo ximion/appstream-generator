@@ -272,12 +272,12 @@ unittest {
     auto gres = new GeneratorResult (pkg);
 
     immutable moFile1 = buildPath (getTestSamplesDir (), "mo", "de", "appstream.mo");
-    auto data = getFileContents (moFile1);
-    auto nstrings = nstringsForGettextData (gres, "de", data);
+    auto data1 = getFileContents (moFile1);
+    auto nstrings = nstringsForGettextData (gres, "de", data1);
     assert (nstrings == 196);
 
     immutable moFile2 = buildPath (getTestSamplesDir (), "mo", "ja", "appstream.mo");
-    data = getFileContents (moFile2);
-    nstrings = nstringsForGettextData (gres, "ja", data);
+    auto data2 = getFileContents (moFile2);
+    nstrings = nstringsForGettextData (gres, "ja", data2);
     assert (nstrings == 156);
 }

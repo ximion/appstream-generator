@@ -336,7 +336,8 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
 
     ubyte[] imgData;
     try {
-        imgData = getFileContents (origImgUrl);
+        // FIXME: We cast away immutability here - is there really no better way to do this?
+        imgData = cast(ubyte[]) getFileContents (origImgUrl);
     } catch (Exception e) {
         gres.addHint (cpt, "screenshot-download-error", ["url": origImgUrl, "error": e.msg]);
         return null;
