@@ -84,12 +84,7 @@ public:
         import core.time : dur;
         import std.string : toLower;
         import std.net.curl : HTTP, FTP;
-        import asgen.config : Config;
         import std.typecons : Yes;
-
-        static Config conf = null;
-        if (conf is null)
-            conf = Config.get ();
 
         Nullable!SysTime ret;
 
@@ -105,8 +100,8 @@ public:
             if (url.startsWith ("http")) {
                 immutable httpsUrl = url.startsWith ("https");
                 auto curlHttp = HTTP (url);
-                if (!conf.caInfo.empty ())
-                    curlHttp.caInfo = conf.caInfo;
+                if (!caInfo.empty)
+                    curlHttp.caInfo = caInfo;
                 curlHttp.setUserAgent (userAgent);
 
                 HTTP.StatusLine statusLine;
