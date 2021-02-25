@@ -64,14 +64,14 @@ private final class Theme
 {
 
 private:
-    string name;
-    Algebraic!(int, string)[string][] directories;
+    string _name;
+    Algebraic!(int, string)[string][] _directories;
 
 public:
 
     this (const string name, const(ubyte)[] indexData)
     {
-        this.name = name;
+        this._name = name;
 
         auto index = new KeyFile ();
         auto indexText = cast(string) indexData;
@@ -135,12 +135,12 @@ public:
                 "threshold": Algebraic!(int, string) (threshold),
                 "scale": Algebraic!(int, string) (scale)
             ];
-            directories ~= themedir;
+            _directories ~= themedir;
         }
 
         // sort our directory list, so the smallest size is at the top
         import std.algorithm : sort;
-        directories.sort!("a[\"size\"].get!int < b[\"size\"].get!int");
+        _directories.sort!("a[\"size\"].get!int < b[\"size\"].get!int");
     }
 
     this (const string name, Package pkg)
@@ -149,13 +149,25 @@ public:
         this (name, indexData);
     }
 
+    @property
+    string name () const
+    {
+        return this._name;
+    }
+
+    @property
+    auto directories () const
+    {
+        return this._directories;
+    }
+
     /**
      * Check if a directory is suitable for the selected size.
      * If @assumeThresholdScalable is set to true, we will allow
      * downscaling of any higher-than-requested icon size, even if the
      * section is of "Threshold" type and would usually prohibit the scaling.
      */
-    private bool directoryMatchesSize (Algebraic!(int, string)[string] themedir, ImageSize size, bool assumeThresholdScalable = false)
+    package bool directoryMatchesSize (const Algebraic!(int, string)[string] themedir, ImageSize size, bool assumeThresholdScalable = false)
     {
         immutable scale = themedir["scale"].get!int;
         if (scale != size.scale)
@@ -196,18 +208,59 @@ public:
      **/
     auto matchingIconFilenames (string iname, ImageSize size, bool relaxedScalingRules = false)
     {
-        auto gen = new Generator!string (
+        struct IconFilenamesRange
         {
-            foreach (themedir; this.directories) {
-                if (directoryMatchesSize (themedir, size, relaxedScalingRules)) {
-                    // best filetype needs to come first to be preferred, only types allowed by the spec are handled at all
-                    foreach (extension; ["png", "svgz", "svg", "xpm"])
-                        yield ("/usr/share/icons/%s/%s/%s.%s".format (this.name, themedir["path"].get!(string), iname, extension));
-                }
-            }
-        });
+            // state
+            int idxThemeDir = 0;
+            int idxExt = 0;
+            bool isEmpty = false;
 
-        return gen;
+            // extensions to check for
+            immutable extensions = ["png", "svgz", "svg", "xpm"];
+            // reference to the theme
+            Theme theme;
+
+            this (Theme theme)
+            {
+                this.theme = theme;
+
+                // get initial matching icon, as
+                // front() is called before popFront()
+                idxExt = -1;
+                popFront ();
+            }
+
+            bool empty () @property
+            {
+                return idxThemeDir >= theme.directories.length;
+            }
+
+            string front () const @property
+            {
+                return "/usr/share/icons/%s/%s/%s.%s".format (theme.name,
+                                                              theme.directories[idxThemeDir]["path"].get!(string),
+                                                              iname,
+                                                              extensions[idxExt]);
+            }
+
+            void popFront ()
+            {
+                do {
+                    idxExt++;
+                    if (idxExt >= extensions.length) {
+                        idxExt = 0;
+                        idxThemeDir++;
+                    }
+                    if (idxThemeDir >= theme.directories.length)
+                        return; // end of range reached
+
+                    if (theme.directoryMatchesSize (theme.directories[idxThemeDir], size, relaxedScalingRules))
+                        return;
+                } while (true);
+            }
+        }
+
+        return IconFilenamesRange(this);
     }
 }
 
