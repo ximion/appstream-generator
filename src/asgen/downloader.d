@@ -176,7 +176,7 @@ public:
             downloadInternal (url, file, maxTryCount);
         }
 
-        return ptr[0..sz].to!(immutable(ubyte[]));
+        return cast(immutable ubyte[]) ptr[0..sz].idup;
     }
 
     /**
@@ -261,7 +261,7 @@ unittest
     string detectPortalRes;
     try {
         detectPortalRes = dl.downloadText (urlFirefoxDetectportal);
-    } catch (Exception e) {
+    } catch (DownloadException e) {
         writeln ("W: NETWORK DEPENDENT TESTS SKIPPED. (automatically, no network detected: ", e.msg, ")");
         return;
     }
