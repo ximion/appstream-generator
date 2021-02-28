@@ -30,6 +30,7 @@ import appstream.Metadata;
 import ascompose.Hint : Hint;
 import ascompose.MetaInfoUtils : MetaInfoUtils;
 import glib.Bytes : Bytes;
+import glib.c.types : GPtrArray;
 
 import asgen.config;
 import asgen.hintregistry;
@@ -78,6 +79,45 @@ public:
         MetaInfoUtils.validateMetainfoDataForComponent(gres, validator, cpt,
                                                        bytes,
                                                        miBasename);
+    }
+
+    /**
+     * Helper function for DataExtractor.parseDesktopFile
+     */
+    extern(C)
+    static GPtrArray *translateDesktopTextCallback (GKeyFile *dePtr, const(char) *text, void *userData)
+    {
+        import glib.KeyFile : KeyFile;
+        import glib.c.functions;
+        import std.string : fromStringz, toStringz;
+
+        auto pkg = *cast(Package*) userData;
+        auto de = new KeyFile (dePtr, false);
+        auto res = g_ptr_array_new_with_free_func (&g_free);
+
+        auto translations = pkg.getDesktopFileTranslations (de, cast(string) text.fromStringz);
+        foreach (ref key, ref value; translations) {
+            g_ptr_array_add (res, g_strdup (key.toStringz));
+            g_ptr_array_add (res, g_strdup (value.toStringz));
+        }
+
+        return res;
+    }
+
+    Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, Bytes bytes, bool ignoreNoDisplay = false)
+    {
+        const fnameBase = baseName (fname);
+        const pkg = gres.pkg;
+        const externalL10n = pkg.hasDesktopFileTranslations;
+
+        return MetaInfoUtils.parseDesktopEntryData (gres,
+                                                    cpt,
+                                                    bytes,
+                                                    fnameBase,
+                                                    ignoreNoDisplay,
+                                                    conf.formatVersion,
+                                                    externalL10n? &translateDesktopTextCallback : null,
+                                                    externalL10n? &gres.pkg : null);
     }
 
     GeneratorResult processPackage (Package pkg)
@@ -152,12 +192,12 @@ public:
                         // single .desktop file anyway.
 
                         // update component with .desktop file data, ignoring NoDisplay field
-                        const ddataBytes = pkg.getFileData (dfname);
-                        auto ddata = cast(string) ddataBytes;
-                        parseDesktopFile (gres, cpt, dfname, ddata, true);
+                        const deDataBytesRaw = pkg.getFileData (dfname);
+                        auto deDataBytes = deDataBytesRaw.toStaticGBytes;
+                        parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
 
                         // update GCID checksum
-                        gres.updateComponentGcid (cpt, ddataBytes.toStaticGBytes);
+                        gres.updateComponentGcid (cpt, deDataBytes);
 
                         // drop the .desktop file from the list, it has been handled
                         desktopFiles.remove (desktopId);
@@ -191,12 +231,12 @@ public:
                     continue;
                 } else {
                     // update component with .desktop file data, ignoring NoDisplay field
-                    const ddataBytesRaw = pkg.getFileData (dfname);
-                    auto ddataBytes = ddataBytesRaw.toStaticGBytes;
-                    parseDesktopFile (gres, cpt, dfname, cast(string) ddataBytesRaw, true);
+                    const deDataBytesRaw = pkg.getFileData (dfname);
+                    auto deDataBytes = deDataBytesRaw.toStaticGBytes;
+                    parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
 
                     // update GCID checksum
-                    gres.updateComponentGcid (cpt, ddataBytes);
+                    gres.updateComponentGcid (cpt, deDataBytes);
 
                     // drop the .desktop file from the list, it has been handled
                     desktopFiles.remove (cid);
@@ -213,11 +253,11 @@ public:
 
         // process the remaining .desktop files
         foreach (ref dfname; desktopFiles.byValue) {
-            auto ddataBytesRaw = pkg.getFileData (dfname);
-            auto ddataBytes = ddataBytesRaw.toStaticGBytes;
-            auto cpt = parseDesktopFile (gres, null, dfname, cast(string) ddataBytesRaw, false);
+            const deDataBytesRaw = pkg.getFileData (dfname);
+            auto deDataBytes = deDataBytesRaw.toStaticGBytes;
+            auto cpt = parseDesktopFile (gres, null, dfname, deDataBytes, false);
             if (cpt !is null)
-                gres.updateComponentGcid (cpt, ddataBytes);
+                gres.updateComponentGcid (cpt, deDataBytes);
         }
 
         if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.get.isNotEmpty) {

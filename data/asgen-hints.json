@@ -12,25 +12,6 @@
   "severity": "warning"
 },
 
-"desktop-file-error": {
-  "text": "Unable to read data from .desktop file: {{msg}}",
-  "severity": "error"
-},
-
-"desktop-file-hidden-set": {
-  "text": ["This .desktop file has the 'Hidden' property set. This is wrong for vendor-installed .desktop files, and",
-           "nullifies all effects this .desktop file has (including MIME associations), which most certainly is not intentional.",
-           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s06.html\">the specification</a> for details."],
-  "severity": "warning"
-},
-
-"desktop-file-empty-onlyshowin": {
-  "text": ["This .desktop file has the 'OnlyShowIn' property set with an empty value. This might not be intended, as this will hide",
-           "the application from all desktops. If you do want to hide the application from all desktops, using 'NoDisplay=true' is more explicit.",
-           "See <a href=\"https://standards.freedesktop.org/desktop-entry-spec/latest/ar01s06.html\">the specification</a> for details."],
-  "severity": "warning"
-},
-
 "metainfo-parsing-error": {
   "text": "Unable to parse AppStream MetaInfo file '{{fname}}', the data is likely malformed.<br/>Error: {{error}}",
   "severity": "error"
@@ -148,11 +129,6 @@
   "severity": "error"
 },
 
-"metainfo-quoted-value": {
-  "text": "The value {{value}} in '{{field}}' is quoted, which is likely unintentional.",
-  "severity": "info"
-},
-
 "metainfo-no-name": {
   "text": "Component has no name specified. Ensure that the AppStream MetaInfo file or the .desktop file (if there is any) specify a component name.",
   "severity": "error"
@@ -218,11 +194,6 @@
   "text": ["Could not create the final metadata. This could have many causes, including a generator bug, but the likeliest cause is an error in the input metadata.<br/>",
            "The error message was: {{msg}}"],
   "severity": "error"
-},
-
-"category-name-invalid": {
-  "text": ["The category name {{category}} is invalid. The software can not be shown in this category."],
-  "severity": "warning"
 },
 
 "no-valid-category": {

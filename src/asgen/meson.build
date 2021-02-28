@@ -23,7 +23,6 @@ asgen_sources = [
     'downloader.d',
     'engine.d',
     'extractor.d',
-    'handlers/desktopparser.d',
     'handlers/fonthandler.d',
     'handlers/iconhandler.d',
     'handlers/localehandler.d',

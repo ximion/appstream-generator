@@ -208,6 +208,9 @@ public:
         updateTmpDirPath ();
     }
 
+    @property override
+    bool hasDesktopFileTranslations () const { return true; }
+
     override
     string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
     {

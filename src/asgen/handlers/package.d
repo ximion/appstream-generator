@@ -19,7 +19,6 @@
 
 module asgen.handlers;
 
-public import asgen.handlers.desktopparser;
 public import asgen.handlers.fonthandler;
 public import asgen.handlers.iconhandler;
 public import asgen.handlers.screenshothandler;

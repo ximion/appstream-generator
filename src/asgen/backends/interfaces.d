@@ -150,6 +150,7 @@ abstract class Package
      * (currently only used by the Ubuntu backend)
      */
     string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
+    @property bool hasDesktopFileTranslations () const { return false; }
 
     private string pkid;
     /**
