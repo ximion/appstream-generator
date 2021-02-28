@@ -405,9 +405,13 @@ public:
 
         // a not-processed icon name is stored as "1x1px" icon, so we can
         // quickly identify it here.
-        auto icon = componentGetStockIcon (cpt);
-        if (!icon.isNull)
-            name = icon.get.getName ();
+        auto icon = componentGetRawIcon (cpt);
+        if (!icon.isNull) {
+            if (icon.getKind == IconKind.LOCAL)
+                name = icon.get.getFilename ();
+            else
+                name = icon.get.getName ();
+        }
 
         // clear the list of icons in this component
         auto iconsArray = cpt.getIcons ();

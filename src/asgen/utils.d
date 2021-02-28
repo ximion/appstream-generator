@@ -491,27 +491,31 @@ string getTestSamplesDir () @trusted
 }
 
 /**
- * Return stock icon for this component, or null if it does not
- * have one.
+ * Return a suitable, "raw" icon name (either a stock icon name or local icon)
+ * for this component that can be processed further by the generator.
+ * Return null if this component does not have a suitable icon.
  */
 @system
-Nullable!Icon componentGetStockIcon (ref Component cpt)
+Nullable!Icon componentGetRawIcon (ref Component cpt)
 {
     import gobject.c.functions : g_object_ref;
 
-    Nullable!Icon res;
+    Nullable!Icon iconLocal;
     auto iconsArr = cpt.getIcons ();
 
     for (uint i = 0; i < iconsArr.len; i++) {
         // cast array data to D AsIcon and keep a reference to the C struct
         auto icon = new Icon (cast(AsIcon*) g_object_ref (iconsArr.index (i)), true);
         if (icon.getKind == IconKind.STOCK) {
-            res = icon;
-            return res;
+            Nullable!Icon iconStock = icon;
+            return iconStock;
         }
+        if (icon.getKind == IconKind.LOCAL)
+            iconLocal = icon;
     }
 
-    return res;
+    // only return local icon if we had no stock icon
+    return iconLocal;
 }
 
 template StoredType(T)

@@ -38,7 +38,7 @@ import asgen.result;
 import asgen.backends.interfaces;
 import asgen.datastore;
 import asgen.handlers;
-import asgen.utils : componentGetStockIcon, toStaticGBytes;
+import asgen.utils : componentGetRawIcon, toStaticGBytes;
 
 
 final class DataExtractor
@@ -211,7 +211,7 @@ public:
             // if the metainfo file defines an icon (which is commonly provided by the .desktop
             // file instead of the metainfo file).
             // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
-            if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetStockIcon (cpt).isNull)) {
+            if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetRawIcon (cpt).isNull)) {
                 auto dfname = desktopFiles.get (cid, null);
 
                 if (dfname.empty)
