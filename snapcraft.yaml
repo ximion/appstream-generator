@@ -166,7 +166,7 @@ parts:
     plugin: meson
     meson-parameters:
       - --prefix=/usr
-      - --buildtype=release
+      - --buildtype=debugoptimized
       - -Dcompose=true
       - -Dapidocs=false
     build-packages:
