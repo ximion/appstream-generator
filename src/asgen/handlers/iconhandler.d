@@ -441,11 +441,17 @@ public:
                     yield (fname);
             }
 
-            // check pixmaps directory for icons
-            // we only ever use the pixmap directory contents to satisfy the minimum 64x64px icon
-            // requirement. Otherwise we get weird upscaling to higher sizes or HiDPI sizes happening,
-            // as later code tries to downscale "bigger" sizes.
             if (size.scale == 1 && size.width == 64) {
+                // Check icons root directory for icon files
+                // this is "wrong", but we support it for compatibility reasons.
+                // However, we only ever use it to satisfy the 64x64px requirement
+                foreach (extension; possibleIconExts)
+                    yield ("/usr/share/icons/%s%s".format (iconName, extension));
+
+                // check pixmaps directory for icons
+                // we only ever use the pixmap directory contents to satisfy the minimum 64x64px icon
+                // requirement. Otherwise we get weird upscaling to higher sizes or HiDPI sizes happening,
+                // as later code tries to downscale "bigger" sizes.
                 foreach (extension; possibleIconExts)
                     yield ("/usr/share/pixmaps/%s%s".format (iconName, extension));
             }
