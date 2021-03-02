@@ -1,3 +1,28 @@
+Version 0.8.4
+~~~~~~~~~~~~~~
+Released: 2021-03-02
+
+Features:
+ * Replace our HashMap with native associative arrays
+ * Switch back to using the curl-based downloader again
+ * Use the desktop-entry parsing code from appstream-compose
+ * Try finding icons in /usr/share/icons root directory as well
+ * Update our own metainfo file and validate it
+
+Bugfixes:
+ * snap: Set LD_LIBRARY_PATH to the stage dir for asgen's build
+ * snap: Install curl as a normal build-package
+ * snap: Build with -j1
+ * debian: Forget a package's filename when removing its temporary dir
+ * debian: Add more synchronization
+ * zarchive: Log the error when we can't open an archive
+ * various: Improve builddir != srcdir builds and build the snap like this
+ * Replace theme icon generator concurrency with a range
+ * snap: Build AppStream in debugoptimized mode instead of release mode
+
+Contributors:
+ Iain Lane, Matthias Klumpp
+
 Version 0.8.3
 ~~~~~~~~~~~~~~
 Released: 2021-02-02
