@@ -10,10 +10,11 @@
 
   <description>
     <p>
-      AppStream is a cross-distribution specification to provide metadata about software components.
+      AppStream is a metadata specification which permits software components to provide information about themselves
+      to automated systems and end-users before the software is actually installed.
     </p>
     <p>
-      The appstream-generator tool generates AppStream metadata from the repositories of a software distribution.
+      The <em>appstream-generator</em> tool generates AppStream metadata from the repositories of a software distribution.
       It currently supports the following repository formats / distributions: Debian, Ubuntu, Arch Linux, RPM-MD (Fedora, Mageia).
     </p>
     <p>
@@ -21,17 +22,20 @@
       to users, as well as a detailed HTML report about found components and HTML and JSON reports on issues detected
       with the scanned metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
       screenshots etc. to produce high-quality metadata for AppStream based software centers to consume.
-      Usually, appstream-generator is integrated with the existing software build &amp; delivery workflow of
+      Usually, <em>appstream-generator</em> is integrated with the existing software build &amp; packaging workflow of
       a distribution.
     </p>
   </description>
 
   <url type="homepage">https://github.com/ximion/appstream-generator</url>
   <url type="help">https://github.com/ximion/appstream-generator/blob/master/docs/index.md</url>
+  <url type="bugtracker">https://github.com/ximion/appstream-generator/issues</url>
 
   <project_group>Freedesktop</project_group>
 
   <provides>
     <binary>appstream-generator</binary>
   </provides>
+
+  <content_rating type="oars-1.0"/>
 </component>
