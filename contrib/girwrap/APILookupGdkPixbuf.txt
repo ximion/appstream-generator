@@ -224,3 +224,13 @@ struct: Pixdata
 noProperty: pixel_data
 
 move: pixbuf_from_pixdata Pixbuf from_pixdata
+
+# Gir-to-d tries to handle the return value of 'gdk_pixdata_from_pixbuf' as if it is zero-terminated.
+# Which causes it to try to use 'getArrayLength' on a void*, causing a compilation error.
+# Temporary fix for now is to just not export that function.
+noCode: from_pixbuf
+
+# Add missing include for FILE* that GdkPixbufModule needs inside 'girepo/gdkpixbuf/c/types.d'.
+addAliases: start
+private import core.stdc.stdio : FILE;
+addAliases: end
