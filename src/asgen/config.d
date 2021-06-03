@@ -611,7 +611,6 @@ public:
         }
 
         // check if we need to disable features because some prerequisites are not met
-        Globals.setUseOptipng (feature.optipng);
         if (feature.optipng) {
             if (optipngBinary.empty) {
                 feature.optipng = false;
@@ -620,6 +619,7 @@ public:
                 logDebug ("Using `optipng`: %s", optipngBinary);
             }
         }
+        Globals.setUseOptipng (feature.optipng);
         if (feature.screenshotVideos) {
             if (ffprobeBinary.empty) {
                 feature.screenshotVideos = false;
