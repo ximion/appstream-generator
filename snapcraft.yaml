@@ -117,6 +117,7 @@ parts:
       - libpango1.0-dev
     stage-packages:
       - gdb
+      - glib-networking
       - ffmpeg
       - optipng
       - libc-bin
@@ -130,6 +131,8 @@ parts:
       - libfontconfig1
       - libfreetype6
       - libgdk-pixbuf2.0-0
+      - libglib2.0-0
+      - libglib2.0-bin
       - libgraphite2-3
       - libharfbuzz0b
       - libpango-1.0-0
