@@ -239,7 +239,7 @@ public:
                     gres.updateComponentGcid (cpt, deDataBytes);
 
                     // drop the .desktop file from the list, it has been handled
-                    desktopFiles.remove (cid);
+                    desktopFiles.remove (dfname);
                 }
             }
 
