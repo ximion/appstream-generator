@@ -24,7 +24,7 @@ base: core20
 adopt-info: appstream-generator
 
 confinement: strict
-grade: devel
+grade: stable
 
 architectures:
   - build-on: [amd64]
