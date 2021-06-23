@@ -152,6 +152,7 @@ parts:
       - libxdmcp6
       - libxext6
       - libxrender1
+      - libzstd1
       - locales
       - locales-all
       - shared-mime-info
