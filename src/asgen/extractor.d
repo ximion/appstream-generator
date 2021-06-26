@@ -212,10 +212,13 @@ public:
             // file instead of the metainfo file).
             // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
             if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetRawIcon (cpt).isNull)) {
-                auto dfname = desktopFiles.get (cid, null);
+                auto dfKey = cid;
+                auto dfname = desktopFiles.get (dfKey, null);
+                if (dfname.empty) {
+                    dfKey = cid ~ ".desktop";
+                    dfname = desktopFiles.get (dfKey, null);
+                }
 
-                if (dfname.empty)
-                    dfname = desktopFiles.get (cid ~ ".desktop", null);
                 if (dfname.empty) {
                     // no .desktop file was found and this component does not
                     // define an icon - this means that a .desktop file is required
@@ -229,18 +232,18 @@ public:
                     // we have a desktop-application component, but no .desktop file.
                     // This is an error we can not recover from.
                     continue;
-                } else {
-                    // update component with .desktop file data, ignoring NoDisplay field
-                    const deDataBytesRaw = pkg.getFileData (dfname);
-                    auto deDataBytes = deDataBytesRaw.toStaticGBytes;
-                    parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
-
-                    // update GCID checksum
-                    gres.updateComponentGcid (cpt, deDataBytes);
-
-                    // drop the .desktop file from the list, it has been handled
-                    desktopFiles.remove (dfname);
                 }
+
+                // update component with .desktop file data, ignoring NoDisplay field
+                const deDataBytesRaw = pkg.getFileData (dfname);
+                auto deDataBytes = deDataBytesRaw.toStaticGBytes;
+                parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
+
+                // update GCID checksum
+                gres.updateComponentGcid (cpt, deDataBytes);
+
+                // drop the .desktop file from the list, it has been handled
+                desktopFiles.remove (dfKey);
             }
 
             // do a validation of the file. Validation may be slow, so we allow
