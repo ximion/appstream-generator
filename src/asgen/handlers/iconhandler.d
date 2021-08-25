@@ -407,7 +407,7 @@ public:
         // quickly identify it here.
         auto icon = componentGetRawIcon (cpt);
         if (!icon.isNull) {
-            if (icon.getKind == IconKind.LOCAL)
+            if (icon.get.getKind == IconKind.LOCAL)
                 name = icon.get.getFilename ();
             else
                 name = icon.get.getName ();
@@ -634,7 +634,7 @@ public:
             Image img;
             try {
                 img = new Image ((cast(ubyte[]) iconData).ptr, cast(ptrdiff_t)iconData.length,
-                                 0, ImageLoadFlags.NONE);
+                                 0, iconPath.endsWith (".svgz"), ImageLoadFlags.NONE);
             } catch (Exception e) {
                 gres.addHint(cpt.getId (), "image-write-error", ["fname": baseName (iconPath),
                                                                  "pkg_fname": baseName (sourcePkg.getFilename),

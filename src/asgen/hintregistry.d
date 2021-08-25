@@ -101,7 +101,12 @@ void loadHintsRegistry () @trusted
             explanation = j["text"].str;
         }
 
-        Globals.addHintTag (tag, severity, explanation);
+        bool overrideExisting = false;
+        if (tag == "icon-not-found")
+            overrideExisting = true;
+
+        if (!Globals.addHintTag (tag, severity, explanation, overrideExisting))
+            logError ("Unable to override existing hint tag %s.", tag);
     }
 }
 

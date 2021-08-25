@@ -361,7 +361,9 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
 
         // save the source screenshot as PNG image
         auto srcImg = new ascompose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
-                                                         0, ImageLoadFlags.NONE);
+                                                 0,
+                                                 false,
+                                                 ImageLoadFlags.NONE);
         srcImg.saveFilename (srcImgPath,
                              0, 0,
                              ImageSaveFlags.OPTIMIZE);
@@ -405,7 +407,9 @@ private Screenshot processScreenshotImages (GeneratorResult gres, Component cpt,
 
         try {
             auto thumb = new ascompose.Image.Image (imgData.ptr, cast(ptrdiff_t)imgData.length,
-                                                            0, ImageLoadFlags.NONE);
+                                                    0,
+                                                    false,
+                                                    ImageLoadFlags.NONE);
             if (size.width > size.height)
                 thumb.scaleToWidth (size.width);
             else
