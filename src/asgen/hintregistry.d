@@ -165,10 +165,10 @@ unittest
     import glib.GException : GException;
     writeln ("TEST: ", "Issue Hints");
 
-    assertThrown!GException (new Hint ("icon-not-found"));
+    assertThrown!GException (new Hint ("description-from-package"));
 
     loadHintsRegistry ();
-    auto hint = new Hint ("icon-not-found");
+    auto hint = new Hint ("description-from-package");
 
     foreach (k, v; ["rainbows": "yes", "unicorns": "no", "storage": "towel"])
         hint.addExplanationVar (k, v);
