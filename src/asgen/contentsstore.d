@@ -236,13 +236,9 @@ public:
                     continue;
                 }
 
-            // we do not limit the list to just stuff in `/usr/share/locale/` (mind the trailing
-            // slash) but to anything starting with "locale", as Ubuntu
-            // language packs install their translations into `/usr/share/locale-langpack`
-            // and we want to find those too.
-            if (f.startsWith ("/usr/share/locale")) {
-                    if (f.endsWith (".mo") || f.endsWith (".qm") || f.endsWith (".pak"))
-                        localeInfo ~= f;
+            // create a huge index of all Gettext and Qt translation filenames
+            if (f.endsWith (".mo") || f.endsWith (".qm")) {
+                    localeInfo ~= f;
                     continue;
             }
         }
@@ -337,8 +333,7 @@ public:
     {
         // we make the assumption here that all locale for a given domain are in one package.
         // otherwise this global search will get even more insane.
-        // (that's why useBaseName is set to "true" - this could maybe change in future though
-        return getFilesMap (pkids, dbLocale, true);
+        return getFilesMap (pkids, dbLocale);
     }
 
     private string[] getContentsList (string pkid, MDB_dbi dbi)

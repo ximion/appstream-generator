@@ -570,6 +570,16 @@ string filenameFromURI (string uri)
     return bname;
 }
 
+auto toGBytesCopy (const(ubyte)[] data) @trusted
+{
+    import glib.c.functions : g_bytes_new_take, g_memdup;
+    auto nc = cast(ubyte[]) data;
+    // FIXME: We should use g_memdup2 here, once we can bump the GLib version!
+    void *ncCopy = g_memdup (nc.ptr, cast(uint) nc.length);
+    auto gBytes = g_bytes_new_take (ncCopy, cast(size_t) nc.length);
+    return new Bytes (gBytes, true);
+}
+
 auto toStaticGBytes (const(ubyte)[] data) @trusted
 {
     import glib.c.functions : g_bytes_new_static;

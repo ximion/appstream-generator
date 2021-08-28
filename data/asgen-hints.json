@@ -211,23 +211,6 @@
   "severity": "error"
 },
 
-"mo-file-error": {
-  "text": "Unable to process Gettext *.mo file for locale '{{locale}}'. The file is probably invalid, and no language information could be extracted.",
-  "severity": "warning"
-},
-
-"gettext-data-not-found": {
-  "text": "Unable to find any translation data for specified Gettext domain '{{domain}}'.",
-  "severity": "warning"
-},
-
-"no-translation-statistics": {
-  "text": ["We could not extract any translation statistics, although metadata hints were given that the data exists.",
-           "Please check the &lt;translation/&gt; MetaInfo tag for spelling mistakes.",
-           "It also makes sense to ensure all locale files are placed in the right directories (e.g. gettext .mo files in <code>/usr/share/locale/*/LC_MESSAGES/</code>"],
-  "severity": "warning"
-},
-
 "screenshot-video-check-failed": {
   "text": ["Unable to inspect video file '{{fname}}'. This may have been caused by a configuration or network issue, or the supplied video file was faulty.",
            "The error message was: {{msg}}"],

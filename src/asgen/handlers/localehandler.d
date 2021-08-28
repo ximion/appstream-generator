@@ -20,102 +20,48 @@
 module asgen.handlers.localehandler;
 private:
 
-import std.path : baseName, buildPath;
-import std.string : format, strip, startsWith;
-import std.array : empty;
+import std.string : format;
 import std.conv : to;
-import std.parallelism : parallel;
+
+import glib.PtrArray : PtrArray;
+import glib.c.types : GQuark, GError, GBytes;
+
 import appstream.Component : Component, ComponentKind;
 import appstream.Translation : Translation, TranslationKind;
 
+import ascompose.Unit : Unit;
+import ascompose.TranslationUtils : TranslationUtils;
+import ascompose.c.types : AscUnit;
+
 import asgen.logging;
+import asgen.config : Config;
 import asgen.result : GeneratorResult;
 import asgen.contentsstore : ContentsStore;
 import asgen.backends.interfaces : Package;
 
 
-/**
- * The header of GetText .mo files.
- * NOTE: uint is unsigned 32bits in D
- */
-extern(C) struct GettextHeader {
-    uint magic;
-	uint revision;
-	uint nstrings;
-	uint orig_tab_offset;
-	uint trans_tab_offset;
-	uint hash_tab_size;
-	uint hash_tab_offset;
-	uint n_sysdep_segments;
-	uint sysdep_segments_offset;
-	uint n_sysdep_strings;
-	uint orig_sysdep_tab_offset;
-	uint trans_sysdep_tab_offset;
-}
+private __gshared extern(C) GQuark asc_compose_error_quark ();
 
-auto getDataForFile (GeneratorResult gres, Package pkg, Component cpt, const string fname)
+private final class LocaleHandlerUnit : Unit
 {
-    if (pkg is null)
-        pkg = gres.pkg;
-    const(ubyte)[] fdata;
-    try {
-        fdata = pkg.getFileData (fname);
-    } catch (Exception e) {
-        gres.addHint (cpt, "pkg-extract-error", ["fname": fname.baseName,
-                                                  "pkg_fname": pkg.getFilename.baseName,
-                                                  "error": e.msg]);
-        return null;
+    package Package[string] localeFilePkgMap;
+
+    auto getClass ()
+    {
+        import gobject.c.types : GTypeInstance;
+        import ascompose.c.types : AscUnitClass;
+        return cast(AscUnitClass*) (cast(GTypeInstance*) ascUnit).gClass;
     }
-
-    return fdata;
-}
-
-long nstringsForGettextData (GeneratorResult gres, const string locale, const(ubyte)[] moData)
-{
-    import core.stdc.string : memcpy;
-    import std.bitmanip : swapEndian;
-
-    GettextHeader header;
-    memcpy (&header, cast(void*) moData, GettextHeader.sizeof);
-
-    bool swapped;
-    if (header.magic == 0x950412de)
-        swapped = false;
-    else if (header.magic == 0xde120495)
-        swapped = true;
-    else {
-        gres.addHint (null, "mo-file-error", ["locale": locale]);
-        return -1;
-    }
-
-    long nstrings;
-    if (swapped)
-        nstrings = header.nstrings.swapEndian;
-    else
-        nstrings = header.nstrings;
-
-    if (nstrings > 0)
-        return nstrings -1;
-    return 0;
-}
-
-/**
- * Finds localization in a set of packages and allows extracting
- * translation statistics from locale.
- */
-public final class LocaleHandler
-{
-
-private:
-    Package[string] localeIdPkgMap;
 
     public this (ContentsStore cstore, Package[] pkgList)
     {
         import std.array : array;
         import std.typecons : scoped;
-        import asgen.config : Config;
+        import std.string : toStringz;
+        import glib.c.functions : g_strdup, g_free;
 
-        logDebug ("Creating new LocaleHandler.");
+        // helper for function override callbacks
+        setUserData (cast(void*) this);
 
         // convert the list into an associative array for faster lookups
         Package[string] pkgMap;
@@ -124,8 +70,6 @@ private:
             pkgMap[pkid] = pkg;
         }
         pkgMap.rehash ();
-
-        localeIdPkgMap.clear ();
 
         auto conf = Config.get;
         if (!conf.feature.processLocale)
@@ -143,7 +87,7 @@ private:
             // check if we already have a package - lookups in this HashMap are faster
             // due to its smaller size and (most of the time) outweight the following additional
             // lookup for the right package entity.
-            if (localeIdPkgMap.get (id, null) !is null)
+            if (localeFilePkgMap.get (id, null) !is null)
                 continue;
 
             Package pkg;
@@ -151,9 +95,103 @@ private:
                 pkg = pkgMap.get (pkgid, null);
 
             if (pkg !is null)
-                localeIdPkgMap[id] = pkg;
+                localeFilePkgMap[id] = pkg;
         }
 
+        auto contents = new PtrArray (&g_free);
+        foreach (ref fname; localeFilePkgMap.byKey)
+            contents.add (cast(void*) g_strdup (fname.toStringz));
+        setContents (contents);
+
+        auto klass = getClass ();
+        klass.open = &LocaleHandlerUnit.c_open;
+        klass.close = &LocaleHandlerUnit.c_close;
+        klass.fileExists = &LocaleHandlerUnit.c_fileExists;
+        klass.dirExists = &LocaleHandlerUnit.c_dirExists;
+        klass.readData = &LocaleHandlerUnit.readData;
+    }
+
+    public override bool open ()
+    {
+        // we already opened everything in the constructor
+        // (this enables us to reuse this fake unit multiple times)
+        return c_open (ascUnit, null) > 0;
+    }
+
+    public override void close ()
+    {
+        c_close (ascUnit);
+    }
+
+	private static extern(C) int c_open (AscUnit* unit, GError** err)
+	{
+	    return 1;
+    }
+
+	private static extern(C) void c_close (AscUnit* unit)
+	{
+	    //  noop
+	}
+
+	private static extern(C) int c_fileExists (AscUnit* unit, const(char)* filename)
+	{
+	    import std.string : fromStringz;
+	    import ascompose.c.functions : asc_unit_get_user_data;
+
+	    auto self = cast(LocaleHandlerUnit) asc_unit_get_user_data (unit);
+	    return ((filename.fromStringz in self.localeFilePkgMap) is null)? 0 : 1;
+	}
+
+	private static extern(C) int c_dirExists (AscUnit* unit, const(char)* dirname)
+	{
+	    // not implemented yet, as it's not needed for locale finding (yet?)
+		return 0;
+    }
+
+	private static extern(C) GBytes *readData (AscUnit* unit, const(char)* filename, GError** err)
+	{
+	    import glib.c.functions : g_bytes_new_take, g_memdup, g_set_error_literal;
+	    import ascompose.c.types : ComposeError;
+	    import ascompose.c.functions : asc_unit_get_user_data;
+	    import ascompose.ErrorQ : ErrorQ;
+	    import std.string : toStringz, fromStringz;
+
+	    auto self = cast(LocaleHandlerUnit) asc_unit_get_user_data (unit);
+	    const fname = filename.fromStringz.to!string;
+
+	    auto pkgP = fname in self.localeFilePkgMap;
+		if (pkgP is null) {
+		    g_set_error_literal (err,
+                                 asc_compose_error_quark,
+                                 ComposeError.FAILED,
+                                 toStringz ("File '%s' does not exist in a known package!".format(fname)));
+			return null;
+        }
+		const data = cast(ubyte[]) (*pkgP).getFileData (fname);
+
+        // FIXME: We should use g_memdup2 here, once we can bump the GLib version!
+        void *ncCopy = g_memdup (cast(void*) data.ptr, cast(uint) data.length);
+        return g_bytes_new_take (ncCopy, cast(size_t) data.length);
+	}
+}
+
+/**
+ * Finds localization in a set of packages and allows extracting
+ * translation statistics from locale.
+ */
+public final class LocaleHandler
+{
+
+private:
+    LocaleHandlerUnit lhUnit;
+    Config config;
+
+    public this (ContentsStore cstore, Package[] pkgList)
+    {
+        logDebug ("Creating new LocaleHandler.");
+        config = Config.get;
+        lhUnit = new LocaleHandlerUnit (cstore, pkgList);
+        lhUnit.open();
         logDebug ("Created new LocaleHandler.");
     }
 
@@ -162,122 +200,11 @@ private:
     */
     public void processLocaleInfoForComponent (GeneratorResult gres, Component cpt)
     {
-        import std.path : globMatch;
-        import std.array : split;
-
-        immutable ckind = cpt.getKind;
-
-        // we only can extract locale for a set of component types
-        // (others either don't store files or have to manually set which locale they support)
-        if (ckind != ComponentKind.DESKTOP_APP &&
-            ckind != ComponentKind.CONSOLE_APP &&
-            ckind != ComponentKind.SERVICE)
+        if (!config.feature.processLocale)
             return;
-
-
-        // read translation domain hints from metainfo data
-        string[] gettextDomains;
-        auto translationsArr = cpt.getTranslations;
-        if (translationsArr.len > 0) {
-            import appstream.c.types : AsTranslation;
-
-            for (uint i = 0; i < translationsArr.len; i++) {
-                // cast array data to D Screenshot and keep a reference to the C struct
-                auto tr = new Translation (cast (AsTranslation*) translationsArr.index (i));
-                if (tr.getKind == TranslationKind.GETTEXT)
-                    gettextDomains ~= tr.getId.strip;
-            }
-
-            translationsArr.removeRange (0, translationsArr.len);
-        }
-
-        // exit if we have no Gettext domains specified
-        if (gettextDomains.empty)
-            return;
-
-        ulong maxNStrings = 0;
-        ulong[string] localeMap;
-
-        // Process Gettext .mo files for information
-        foreach (ref domain; gettextDomains) {
-            auto pkg = localeIdPkgMap.get ("%s.mo".format (domain), null);
-            if (pkg is null) {
-                gres.addHint (cpt, "gettext-data-not-found", ["domain": domain]);
-                continue;
-            }
-
-            foreach (ref fname; pkg.contents) {
-                // we are not putting the glob behind the `locale` folder here, because Ubuntu
-                // language packs install their translations into `/usr/share/locale-langpack`
-                // and we want to find those too.
-                if (!fname.globMatch ("/usr/share/locale*/LC_MESSAGES/%s.mo".format (domain)))
-                    continue;
-                auto data = getDataForFile (gres, pkg, cpt, fname);
-                if (data.empty)
-                    continue;
-                immutable locale = fname.split ("/")[4];
-                auto nstrings = nstringsForGettextData (gres, locale, data);
-                // check if there was an error
-                if (nstrings < 0)
-                    continue;
-
-                // we sum up all string counts from all translation domains
-                if (localeMap.get (locale, 0) != 0)
-                    nstrings += localeMap[locale];
-
-                localeMap[locale] = nstrings;
-                if (nstrings > maxNStrings)
-                    maxNStrings = nstrings;
-            }
-
-            // remove the packages' temporary data if it isn't our primary package.
-            // extracting locale potentially opens lots of huge packages, and we can conserve
-            // disk space this way.
-            if (pkg != gres.pkg)
-                pkg.cleanupTemp ();
-        }
-
-        // by this point we should have at least some locale information.
-        // if that is not the case, warn about it.
-        if (localeMap.empty) {
-            gres.addHint (cpt, "no-translation-statistics");
-            return;
-        }
-
-        foreach (ref info; localeMap.byKeyValue) {
-            immutable locale = info.key;
-            immutable nstrings = info.value;
-
-            if (maxNStrings <= 0)
-                continue;
-
-            immutable int percentage = (nstrings * 100 / maxNStrings).to!int;
-
-            // we only add languages if the translation is more than 25% complete
-            if (percentage > 25)
-                cpt.addLanguage (locale, percentage);
-        }
+        TranslationUtils.readTranslationStatus(gres,
+                                               lhUnit,
+                                               "/usr",
+                                               25);
     }
-
-}
-
-unittest {
-    import std.stdio : writeln;
-    import asgen.utils : getFileContents, getTestSamplesDir;
-    import asgen.backends.dummy.dummypkg;
-
-    writeln ("TEST: ", "Locale Handler");
-
-    auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
-    auto gres = new GeneratorResult (pkg);
-
-    immutable moFile1 = buildPath (getTestSamplesDir (), "mo", "de", "appstream.mo");
-    auto data1 = getFileContents (moFile1);
-    auto nstrings = nstringsForGettextData (gres, "de", data1);
-    assert (nstrings == 196);
-
-    immutable moFile2 = buildPath (getTestSamplesDir (), "mo", "ja", "appstream.mo");
-    auto data2 = getFileContents (moFile2);
-    nstrings = nstringsForGettextData (gres, "ja", data2);
-    assert (nstrings == 156);
 }
