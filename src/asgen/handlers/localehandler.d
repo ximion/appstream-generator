@@ -153,7 +153,6 @@ private final class LocaleHandlerUnit : Unit
 	    import glib.c.functions : g_bytes_new_take, g_memdup, g_set_error_literal;
 	    import ascompose.c.types : ComposeError;
 	    import ascompose.c.functions : asc_unit_get_user_data;
-	    import ascompose.ErrorQ : ErrorQ;
 	    import std.string : toStringz, fromStringz;
 
 	    auto self = cast(LocaleHandlerUnit) asc_unit_get_user_data (unit);
