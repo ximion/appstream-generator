@@ -1,3 +1,23 @@
+Version 0.8.5
+~~~~~~~~~~~~~~
+Released: 2021-08-28
+
+Features:
+ * snap: Set `grade` to `stable`
+ * Improve metainfo/desktop deduplication code
+ * Use ascompose for adding translation status data
+
+Bugfixes:
+ * Always mark desktop-file as handled when handling its metainfo file (#91)
+ * Fix compilation due to broken generated GdkPixbuf code
+ * config: Move setUseOptipng call after we determine if optipng is available
+ * snap: Add glib{,-networking} to asgen's stage-packages
+ * snap: Build libas from a tag
+ * Adjust for compose API changes
+
+Contributors:
+ Balló György, Dan Printzell, Iain Lane and Matthias Klumpp
+
 Version 0.8.4
 ~~~~~~~~~~~~~~
 Released: 2021-03-02
