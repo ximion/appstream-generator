@@ -224,7 +224,6 @@ void main(string[] args)
         default:
             writeln (format ("The command '%s' is unknown.", command));
             exit (1);
-            break;
     }
 }
 

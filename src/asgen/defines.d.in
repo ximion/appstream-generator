@@ -25,3 +25,6 @@ public enum DATADIR = "@datadir@";
 
 // current version of the tool
 public enum ASGEN_VERSION = "@asgen_version@";
+
+// Used for GLib/GLibD API change tests
+public enum GLIB_GE_2_69 = @glib_ge_2_29@;

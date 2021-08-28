@@ -35,6 +35,7 @@ import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
 static import ascompose.Image;
 static import std.file;
 
+import asgen.defines : GLIB_GE_2_69;
 import asgen.config : Config;
 import asgen.result : GeneratorResult;
 import asgen.downloader : Downloader;
@@ -124,20 +125,37 @@ private VideoInfo checkVideoInfo (GeneratorResult gres, Component cpt, const Con
     try {
         // NOTE: We are currently extracting information from ffprobe's simple output, but it also has a JSON
         // mode. Parsing JSON is a bit slower, but if it is more reliable we should switch to that.
-        Spawn.sync (null, // working directory
-                    [conf.ffprobeBinary,
-                     "-v", "quiet",
-                     "-show_entries", "stream=width,height,codec_name,codec_type",
-                     "-show_entries", "format=format_name",
-                     "-of", "default=noprint_wrappers=1",
-                      vidFname],
-                    [], // envp
-                    SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
-                    null, // child setup
-                    null, // user data
-                    ffStdout, // out stdout
-                    ffStderr, // out stderr
-                    exitStatus);
+        static if (GLIB_GE_2_69) {
+            Spawn.sync (null, // working directory
+                        [conf.ffprobeBinary,
+                        "-v", "quiet",
+                        "-show_entries", "stream=width,height,codec_name,codec_type",
+                        "-show_entries", "format=format_name",
+                        "-of", "default=noprint_wrappers=1",
+                        vidFname],
+                        [], // envp
+                        SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
+                        null, // child setup
+                        null, // user data
+                        ffStdout, // out stdout
+                        ffStderr, // out stderr
+                        &exitStatus);
+        } else {
+            Spawn.sync (null, // working directory
+                        [conf.ffprobeBinary,
+                        "-v", "quiet",
+                        "-show_entries", "stream=width,height,codec_name,codec_type",
+                        "-show_entries", "format=format_name",
+                        "-of", "default=noprint_wrappers=1",
+                        vidFname],
+                        [], // envp
+                        SpawnFlags.LEAVE_DESCRIPTORS_OPEN,
+                        null, // child setup
+                        null, // user data
+                        ffStdout, // out stdout
+                        ffStderr, // out stderr
+                        exitStatus);
+        }
     } catch (Exception e) {
         logError ("Failed to spawn ffprobe: %s", e.to!string);
         gres.addHint (cpt, "metainfo-screenshot-but-no-media", ["fname": vidFname.baseName, "msg": e.to!string]);
