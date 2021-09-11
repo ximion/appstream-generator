@@ -368,7 +368,7 @@ public:
         string[string] cidGcidMap;
         bool firstHintEntry = true;
         logDebug ("Building final metadata and hints files.");
-        foreach (ref pkg; parallel (pkgs, 40)) {
+        foreach (ref pkg; parallel (pkgs, 100)) {
             immutable pkid = pkg.id;
             auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids !is null) {
@@ -405,7 +405,7 @@ public:
                             if (!std.file.exists (iconDir))
                                 continue;
                             foreach (string path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false))
-                                iconTarFiles[ipolicy.iconSize.toString] ~= path;
+                                synchronized (this) iconTarFiles[ipolicy.iconSize.toString] ~= path;
 
                         }
                     }
