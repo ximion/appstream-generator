@@ -102,7 +102,7 @@ void loadHintsRegistry () @trusted
         }
 
         bool overrideExisting = false;
-        if (tag == "icon-not-found")
+        if ((tag == "icon-not-found") || (tag == "internal-unknown-tag"))
             overrideExisting = true;
 
         if (!Globals.addHintTag (tag, severity, explanation, overrideExisting))

@@ -12,11 +12,6 @@
   "severity": "warning"
 },
 
-"metainfo-parsing-error": {
-  "text": "Unable to parse AppStream MetaInfo file '{{fname}}', the data is likely malformed.<br/>Error: {{error}}",
-  "severity": "error"
-},
-
 "icon-format-unsupported": {
   "text": "Icon file '{{icon_fname}}' uses an unsupported image file format.",
   "severity": "error"
