@@ -229,7 +229,7 @@ parts:
 
   ldc:
     plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.24.0/ldc2-1.24.0-linux-x86_64.tar.xz
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.28.0/ldc2-1.28.0-linux-x86_64.tar.xz
 
     override-build: |
       # link shared by default
