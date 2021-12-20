@@ -85,8 +85,15 @@ void loadHintsRegistry () @trusted
         auto j = hintDefsJSON[tag];
         immutable severity = AsUtils.severityFromString (j["severity"].str);
 
+        bool overrideExisting = false;
+        if ((tag == "icon-not-found") ||
+            (tag == "internal-unknown-tag") ||
+            (tag == "internal-error") ||
+            (tag == "no-metainfo"))
+            overrideExisting = true;
+
         if (checkAlreadyLoaded) {
-            if (Globals.hintTagSeverity (tag) != IssueSeverity.UNKNOWN) {
+            if (!overrideExisting && Globals.hintTagSeverity (tag) != IssueSeverity.UNKNOWN) {
                 logDebug ("Global hints registry already loaded.");
                 break;
             }
@@ -100,10 +107,6 @@ void loadHintsRegistry () @trusted
         } else {
             explanation = j["text"].str;
         }
-
-        bool overrideExisting = false;
-        if ((tag == "icon-not-found") || (tag == "internal-unknown-tag"))
-            overrideExisting = true;
 
         if (!Globals.addHintTag (tag, severity, explanation, overrideExisting))
             logError ("Unable to override existing hint tag %s.", tag);

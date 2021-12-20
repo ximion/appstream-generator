@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -35,9 +35,10 @@ import asgen.logging;
 import asgen.extractor;
 import asgen.datastore;
 import asgen.contentsstore;
-import asgen.result;
+import asgen.resultutils;
 import asgen.hint;
 import asgen.reportgenerator;
+import asgen.localeunit : LocaleUnit;
 import asgen.utils : copyDir, stringArrayToByteArray, getCidFromGlobalID;
 
 import asgen.backends.interfaces;
@@ -48,7 +49,7 @@ import asgen.backends.archlinux;
 import asgen.backends.rpmmd;
 import asgen.backends.alpinelinux;
 
-import asgen.handlers : IconHandler, LocaleHandler;
+import asgen.handlers : IconHandler;
 
 
 /**
@@ -145,19 +146,20 @@ public:
      */
     private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
-        auto localeh = new LocaleHandler (cstore, pkgs);
-        auto mde = new DataExtractor (dstore, iconh, localeh);
+        auto localeUnit = new LocaleUnit (cstore, pkgs);
         foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
             if (dstore.packageExists (pkid))
                 continue;
 
+            auto mde = new DataExtractor (dstore, iconh, localeUnit);
             auto res = mde.processPackage (pkg);
             synchronized (dstore) {
                 // write resulting data into the database
                 dstore.addGeneratorResult (this.conf.metadataType, res);
 
-                logInfo ("Processed %s, components: %s, hints: %s", res.pkid, res.componentsCount (), res.hintsCount ());
+                logInfo ("Processed %s, components: %s, hints: %s",
+                         res.pkid, res.componentsCount (), res.hintsCount ());
             }
 
             // we don't need content data from this package anymore
@@ -617,7 +619,7 @@ public:
         auto pkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
         pkg.dataLocation = buildPath (extraMIDir, "icons");
         pkg.maintainer = "AppStream Generator Maintainer";
-        auto gres = new GeneratorResult (pkg);
+        auto gres = GeneratorResult (pkg);
 
         logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
 

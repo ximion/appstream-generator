@@ -35,7 +35,7 @@ import appstream.Component;
 import asgen.config;
 import asgen.logging;
 import asgen.config : DataType;
-import asgen.result;
+import asgen.resultutils;
 
 
 /**

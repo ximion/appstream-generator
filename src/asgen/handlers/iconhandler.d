@@ -44,7 +44,7 @@ static import std.file;
 
 import asgen.utils;
 import asgen.logging;
-import asgen.result;
+import asgen.resultutils;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
 import asgen.config : Config, IconPolicy;

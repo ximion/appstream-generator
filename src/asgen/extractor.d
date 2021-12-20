@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -29,40 +29,86 @@ import appstream.Component;
 import appstream.Metadata;
 import ascompose.Hint : Hint;
 import ascompose.MetaInfoUtils : MetaInfoUtils;
+import ascompose.Compose : Compose;
+import ascompose.Unit : Unit;
+import ascompose.c.types : ComposeFlags, AscResult, AscUnit;
 import glib.Bytes : Bytes;
 import glib.c.types : GPtrArray;
 
 import asgen.config;
+import asgen.logging;
 import asgen.hintregistry;
-import asgen.result;
+import asgen.resultutils;
 import asgen.backends.interfaces;
 import asgen.datastore;
 import asgen.handlers;
 import asgen.utils : componentGetRawIcon, toStaticGBytes;
+import asgen.packageunit : PackageUnit;
+import asgen.localeunit : LocaleUnit;
 
 
 final class DataExtractor
 {
 
 private:
-    Component[] cpts;
-    Hint[] hints;
+    Compose compose;
 
-    DataStore dstore;
+    package DataType dtype;
+    package DataStore dstore;
+    package Config conf;
+
     IconHandler iconh;
-    LocaleHandler localeh;
-    Config conf;
-    DataType dtype;
+    LocaleUnit l10nUnit;
+    PackageUnit unitHolder;
 
 public:
 
-    this (DataStore db, IconHandler iconHandler, LocaleHandler localeHandler)
+    this (DataStore db, IconHandler iconHandler, LocaleUnit localeUnit)
     {
         dstore = db;
         iconh = iconHandler;
-        localeh = localeHandler;
         conf = Config.get ();
         dtype = conf.metadataType;
+        l10nUnit = localeUnit;
+
+        compose = new Compose;
+        compose.setPrefix ("/usr");
+        compose.setLocaleUnit (l10nUnit);
+        compose.setMediaResultDir (db.mediaExportPoolDir);
+        compose.setMediaBaseurl ("");
+        compose.setCheckMetadataEarlyFunc (&checkMetadataIntermediate, cast(void*) this);
+        compose.addFlags (ComposeFlags.IGNORE_ICONS |  // we do custom icon processing
+                          ComposeFlags.PROCESS_UNPAIRED_DESKTOP | // handle desktop-entry files without metainfo data
+                          ComposeFlags.NO_FINAL_CHECK // we trigger the final check manually
+                          );
+        // we handle all threading, so the compose process doesn't also have to be threaded
+        compose.removeFlags (ComposeFlags.USE_THREADS);
+
+
+        // enable or disable user-defined features
+        if (conf.feature.validate)
+            compose.addFlags (ComposeFlags.VALIDATE);
+        else
+            compose.removeFlags (ComposeFlags.VALIDATE);
+
+        if (conf.feature.noDownloads)
+            compose.removeFlags (ComposeFlags.ALLOW_NET);
+        else
+            compose.addFlags (ComposeFlags.ALLOW_NET);
+
+        if (conf.feature.processLocale)
+            compose.addFlags (ComposeFlags.PROCESS_TRANSLATIONS);
+        else
+            compose.removeFlags (ComposeFlags.PROCESS_TRANSLATIONS);
+
+        if (conf.feature.processFonts)
+            compose.addFlags (ComposeFlags.PROCESS_FONTS);
+        else
+            compose.removeFlags (ComposeFlags.PROCESS_FONTS);
+
+        // register allowed custom keys with the composer
+        foreach (const ref key; conf.allowedCustomKeys.byKey)
+            compose.addCustomAllowed (key);
     }
 
     static void validateMetaInfoData (GeneratorResult gres, Component cpt,
@@ -79,6 +125,69 @@ public:
         MetaInfoUtils.validateMetainfoDataForComponent(gres, validator, cpt,
                                                        bytes,
                                                        miBasename);
+    }
+
+    /**
+     * Helper function for DataExtractor.parseDesktopFile
+     */
+    extern(C)
+    static void checkMetadataIntermediate (AscResult *cres, AscUnit *cunit, void *userData)
+    {
+        import ascompose.Result : Result;
+        auto self = cast(DataExtractor) userData;
+        auto result = new Result (cres);
+
+        auto cptsPtrArray = result.fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
+            auto gcid = result.gcidForComponent (cpt);
+
+            // don't run expensive operations if the metadata already exists
+            auto existingMData = self.dstore.getMetadata (self.dtype, gcid);
+            if (existingMData is null)
+                continue;
+
+            // To account for packages which change their package name, we
+            // also need to check if the package this component is associated
+            // with matches ours.
+            // If it doesn't, we can't just link the package to the component.
+            bool samePkg = false;
+            if (self.dtype == DataType.YAML) {
+                if (existingMData.canFind (format ("Package: %s\n", result.getBundleId)))
+                    samePkg = true;
+            } else {
+                if (existingMData.canFind (format ("<pkgname>%s</pkgname>", result.getBundleId)))
+                    samePkg = true;
+            }
+
+            if ((!samePkg) && (cpt.getKind != ComponentKind.WEB_APP)) {
+                // The exact same metadata exists in a different package already, we emit an error hint.
+                // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
+                // but with the *same ID* exists.
+                // We only catch that kind of problem later.
+
+                auto cdata = new Metadata ();
+                cdata.setFormatStyle (FormatStyle.COLLECTION);
+                cdata.setFormatVersion (self.conf.formatVersion);
+
+                if (self.dtype == DataType.YAML)
+                    cdata.parse (existingMData, FormatKind.YAML);
+                else
+                    cdata.parse (existingMData, FormatKind.XML);
+                auto ecpt = cdata.getComponent ();
+
+                const pkgNames = ecpt.getPkgnames;
+                string pkgName = "(none)";
+                if (!pkgNames.empty)
+                    pkgName = pkgNames[0];
+                result.addHint (cpt, "metainfo-duplicate-id", ["cid", cpt.getId,
+                                                               "pkgname", pkgName]);
+            }
+
+            // drop the component as we already have processed it, but keep its
+            // global ID so we can still register the ID with this package.
+            result.removeComponentFull(cpt, false);
+        }
     }
 
     /**
@@ -122,150 +231,80 @@ public:
 
     GeneratorResult processPackage (Package pkg)
     {
-        // create a new result container
-        auto gres = new GeneratorResult (pkg);
+        import ascompose.Result : Result;
 
-        // prepare a list of metadata files which interest us
-        string[string] desktopFiles;
-        string[] metadataFiles;
-        foreach (ref fname; pkg.contents) {
-            if ((fname.startsWith ("/usr/share/applications")) && (fname.endsWith (".desktop"))) {
-                desktopFiles[baseName (fname)] = fname;
-                continue;
-            }
-            if ((fname.startsWith ("/usr/share/metainfo/")) && (fname.endsWith (".xml"))) {
-                metadataFiles ~= fname;
-                continue;
-            }
-            if ((fname.startsWith ("/usr/share/appdata/")) && (fname.endsWith (".xml"))) {
-                metadataFiles ~= fname;
-                continue;
-            }
+        // reset compose instance to clear data from any previous invocation
+        compose.reset ();
+
+        // set external desktop-entry translation function, if needed
+        immutable externalL10n = pkg.hasDesktopFileTranslations;
+        compose.setDesktopEntryL10nFunc (externalL10n? &translateDesktopTextCallback : null,
+                                         externalL10n? &pkg : null);
+
+        // wrap package into unit, so AppStream Compose can work with it
+        auto unit = new PackageUnit (pkg);
+        compose.addUnit (unit);
+        unitHolder = unit;
+
+        // process all data
+        compose.run (null);
+        auto resultsArray = compose.getResults ();
+
+        // we processed one unit, so should always generate one result
+        if (resultsArray.len != 1) {
+            logError ("Expected %s result for data extraction, but retrieved %s.", 1, resultsArray.len);
+            assert (resultsArray.len == 1);
         }
 
-        // create new AppStream metadata parser
-        auto mdata = scoped!Metadata ();
-        mdata.setLocale ("ALL");
-        mdata.setFormatStyle (FormatStyle.METAINFO);
+        // create result wrapper
+        auto gres = GeneratorResult (new Result (cast (AscResult*) resultsArray.index (0)),
+                                     pkg);
 
-        // now process metainfo XML files
-        foreach (ref const mfname; metadataFiles) {
-            auto dataBytesRaw = pkg.getFileData (mfname);
-            if (dataBytesRaw.empty)
-                continue;
-            auto dataBytes = dataBytesRaw.toStaticGBytes;
+        // process icons and perform additional refinements
+        auto cptsPtrArray = gres.fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
+            immutable ckind = cpt.getKind;
 
-            mdata.clearComponents ();
-            auto cpt = MetaInfoUtils.parseMetainfoData (gres, mdata, dataBytes, mfname);
-            if (cpt is null)
+            // find & store icons
+            iconh.process (gres, cpt);
+            if (gres.isIgnored (cpt))
                 continue;
 
-            // get component ID (it must exist and not be empty, as validated by the metainfo parser)
-            auto cid = cpt.getId;
+            // add fallback long descriptions only for desktop apps, console apps and web apps
+            if (cpt.getMergeKind != MergeKind.NONE)
+                continue;
+            if (ckind != ComponentKind.DESKTOP_APP && ckind != ComponentKind.CONSOLE_APP && ckind != ComponentKind.WEB_APP)
+                continue;
 
-            // check for legacy path
-            if (mfname.startsWith ("/usr/share/appdata/")) {
-                gres.addHint (null, "legacy-metainfo-directory", ["fname": mfname.baseName]);
+            // inject package descriptions, if needed
+            auto flags = cpt.getValueFlags;
+            cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+
+            cpt.setActiveLocale ("C");
+            if (!cpt.getDescription.empty)
+                continue;
+
+            // component doesn't have a long description, add one from the packaging.
+            auto desc_added = false;
+            foreach (ref lang, ref desc; pkg.description) {
+                    cpt.setDescription (desc, lang);
+                    desc_added = true;
             }
 
-            // we need to add the version to re-download screenshot on every new upload.
-            // otherwise, screenshots would only get updated if the actual metadata file was touched.
-            gres.updateComponentGcidWithString (cpt, pkg.ver);
-
-            // validate the desktop-id launchables and merge the desktop file data
-            // in case we find it.
-            auto launch = cpt.getLaunchable (LaunchableKind.DESKTOP_ID);
-            if (launch !is null) {
-                auto entries = launch.getEntries ();
-
-                for (uint i = 0; i < entries.len; i++) {
-                    import std.string : fromStringz;
-                    import std.conv : to;
-                    immutable desktopId = to!string ((cast(char*) entries.index (i)).fromStringz);
-
-                    immutable dfname = desktopFiles.get (desktopId, null);
-                    if (dfname.empty) {
-                        gres.addHint (cpt, "missing-launchable-desktop-file", ["desktop_id": desktopId]);
-                    } else if (i == 0) {
-                        // always only try to merge in the first .desktop-ID, because if there are multiple
-                        // launchables defined, the component *must* not depend on the data in one
-                        // single .desktop file anyway.
-
-                        // update component with .desktop file data, ignoring NoDisplay field
-                        const deDataBytesRaw = pkg.getFileData (dfname);
-                        auto deDataBytes = deDataBytesRaw.toStaticGBytes;
-                        parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
-
-                        // update GCID checksum
-                        gres.updateComponentGcid (cpt, deDataBytes);
-
-                        // drop the .desktop file from the list, it has been handled
-                        desktopFiles.remove (desktopId);
-                    }
-                }
-            }
-
-            // For compatibility, we try other methods than using the "launchable"
-            // tag to merge in .desktop files, but only if we actually need to do that.
-            // At the moment we determine whether a .desktop file is needed by checking
-            // if the metainfo file defines an icon (which is commonly provided by the .desktop
-            // file instead of the metainfo file).
-            // This heuristic is, of course, not ideal, which is why everything should have a launchable tag.
-            if ((cpt.getKind == ComponentKind.DESKTOP_APP) && (componentGetRawIcon (cpt).isNull)) {
-                auto dfKey = cid;
-                auto dfname = desktopFiles.get (dfKey, null);
-                if (dfname.empty) {
-                    dfKey = cid ~ ".desktop";
-                    dfname = desktopFiles.get (dfKey, null);
-                }
-
-                if (dfname.empty) {
-                    // no .desktop file was found and this component does not
-                    // define an icon - this means that a .desktop file is required
-                    // and can not be omitted, so we stop processing here.
-                    // Otherwise we take the data and see how far we get.
-
-                    // finalize GCID checksum and continue
-                    gres.updateComponentGcid (cpt, dataBytes);
-
-                    gres.addHint (cpt, "missing-desktop-file");
-                    // we have a desktop-application component, but no .desktop file.
-                    // This is an error we can not recover from.
+            if (desc_added) {
+                if (!gres.addHint (cpt, "description-from-package"))
                     continue;
-                }
-
-                // update component with .desktop file data, ignoring NoDisplay field
-                const deDataBytesRaw = pkg.getFileData (dfname);
-                auto deDataBytes = deDataBytesRaw.toStaticGBytes;
-                parseDesktopFile (gres, cpt, dfname, deDataBytes, true);
-
-                // update GCID checksum
-                gres.updateComponentGcid (cpt, deDataBytes);
-
-                // drop the .desktop file from the list, it has been handled
-                desktopFiles.remove (dfKey);
-            }
-
-            // do a validation of the file. Validation may be slow, so we allow
-            // the user to disable this feature.
-            if (conf.feature.validate) {
-                if (!dstore.metadataExists (dtype, gres.gcidForComponent (cpt)))
-                    validateMetaInfoData (gres, cpt, dataBytes, mfname.baseName);
+            } else {
+                if (!gres.addHint (cpt, "description-missing", ["kind": AsUtils.componentKindToString (ckind)]))
+                    continue;
             }
         }
 
-        // process the remaining .desktop files
-        foreach (ref dfname; desktopFiles.byValue) {
-            const deDataBytesRaw = pkg.getFileData (dfname);
-            auto deDataBytes = deDataBytesRaw.toStaticGBytes;
-            auto cpt = parseDesktopFile (gres, null, dfname, deDataBytes, false);
-            if (cpt !is null)
-                gres.updateComponentGcid (cpt, deDataBytes);
-        }
-
+        // handle GStreamer integration (usually for Ubuntu)
         if (conf.feature.processGStreamer && !pkg.gst.isNull && pkg.gst.get.isNotEmpty) {
             auto data = appender!string;
-            data.reserve(512);
+            data.reserve(200);
 
             auto cpt = new Component ();
             cpt.setId (pkg.name);
@@ -279,87 +318,12 @@ public:
             gres.addComponent (cpt, data.data.toStaticGBytes);
         }
 
-        auto hasFontComponent = false;
-        auto cptsPtrArray = gres.fetchComponents ();
-        for (uint i = 0; i < cptsPtrArray.len; i++) {
-            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
-            auto gcid = gres.gcidForComponent (cpt);
+        // perform final checks
+        compose.finalizeResults ();
 
-            // don't run expensive operations if the metadata already exists
-            auto existingMData = dstore.getMetadata (dtype, gcid);
-            if (existingMData !is null) {
-                // To account for packages which change their package name, we
-                // also need to check if the package this component is associated
-                // with matches ours.
-                // If it doesn't, we can't just link the package to the component.
-                bool samePkg = false;
-                if (dtype == DataType.YAML) {
-                    if (existingMData.canFind (format ("Package: %s\n", pkg.name)))
-                        samePkg = true;
-                } else {
-                    if (existingMData.canFind (format ("<pkgname>%s</pkgname>", pkg.name)))
-                        samePkg = true;
-                }
-
-                if ((!samePkg) && (cpt.getKind != ComponentKind.WEB_APP)) {
-                    // The exact same metadata exists in a different package already, we emit an error hint.
-                    // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
-                    // but with the *same ID* exists.
-                    // We only catch that kind of problem later.
-
-                    auto cdata = new Metadata ();
-                    cdata.setFormatStyle (FormatStyle.COLLECTION);
-                    cdata.setFormatVersion (conf.formatVersion);
-
-                    if (dtype == DataType.YAML)
-                        cdata.parse (existingMData, FormatKind.YAML);
-                    else
-                        cdata.parse (existingMData, FormatKind.XML);
-                    auto ecpt = cdata.getComponent ();
-
-                    const pkgNames = ecpt.getPkgnames;
-                    string pkgName = "(none)";
-                    if (!pkgNames.empty)
-                        pkgName = pkgNames[0];
-                    gres.addHint (cpt, "metainfo-duplicate-id", ["cid": cpt.getId (), "pkgname": pkgName]);
-                }
-
-                continue;
-            }
-
-            // find & store icons
-            iconh.process (gres, cpt);
-            if (gres.isIgnored (cpt))
-                continue;
-
-            // download and resize screenshots.
-            // we don't even need to call this if no downloads are allowed.
-            if (!conf.feature.noDownloads)
-                processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
-
-            // process locale information.
-            if (conf.feature.processLocale)
-                localeh.processLocaleInfoForComponent (gres, cpt);
-
-            // we don't want to run expensive font processing if we don't have a font component.
-            // since the font handler needs to load all font data prior to processing the component,
-            // for efficiency we only record whether we need to process fonts here and then handle
-            // them at a later step.
-            // This improves performance for a package that contains multiple font components.
-            if (cpt.getKind () == ComponentKind.FONT)
-                hasFontComponent = true;
-        }
-
-        // render font previews and extract font metadata (if any of the components is a font)
-        if (conf.feature.processFonts) {
-            if (hasFontComponent)
-                processFontData (gres, dstore.mediaExportPoolDir);
-        }
-
-        // this removes invalid components and cleans up the result
+        // do our own final validation
         gres.finalize ();
         pkg.finish ();
-
         return gres;
     }
 }

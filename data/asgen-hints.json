@@ -31,32 +31,6 @@
   "severity": "error"
 },
 
-"gui-app-without-icon": {
-  "text": [ "The component is a GUI application (application which has a .desktop file for the XDG menu and <code>Type=Application</code>),",
-            "but we could not find a matching icon for this application."
-          ],
-  "severity": "error"
-},
-
-"web-app-without-icon": {
-  "text": [ "The component is a GUI web application, but it either has no icon set in its MetaInfo file,",
-            "or we could not find a matching icon for this application."
-          ],
-  "severity": "error"
-},
-
-"font-without-icon": {
-  "text": [ "The component is a font, but somehow we failed to automatically generate an icon for it, and no custom icon was set explicitly.",
-            "Is there a font file in the analyzed package, and does the MetaInfo file set the right font name to look for?"
-          ],
-  "severity": "warning"
-},
-
-"os-without-icon": {
-  "text": "The component is an operating system, but no icon was found for it. Setting an icon would improve the look of this component in GUIs.",
-  "severity": "info"
-},
-
 "icon-scaled-up": {
   "text": "Icon file '{{icon_name}}' was scaled up from {{icon_size}}px to {{scale_size}}px. Please try to supply a bigger icon.",
   "severity": "warning"
@@ -91,49 +65,8 @@
   "severity": "warning"
 },
 
-"legacy-metainfo-directory": {
-  "text": ["The AppStream MetaInfo file '{{fname}}' was found in a legacy path.<br/>",
-           "Please install MetaInfo files into <code>/usr/share/metainfo</code>, as the old path will not be recognized anymore in the future."],
-  "severity": "warning"
-},
-
-"metainfo-screenshot-but-no-media": {
-  "text": ["A screenshot has been found for this component, but apparently it does not have any images or videos defined."],
-  "severity": "warning"
-},
-
-"screenshot-download-error": {
-  "text": ["Error while downloading screenshot from '{{url}}': {{error}}<br/>",
-           "This might be a temporary server issue."],
-  "severity": "warning"
-},
-
-"screenshot-save-error": {
-  "text": "Unable to store screenshot for '{{url}}': {{error}}",
-  "severity": "warning"
-},
-
-"screenshot-no-thumbnails": {
-  "text": ["No thumbnails have been generated for screenshot '{{url}}'.<br/>",
-           "This could be a sign of the original screenshot being too small."],
-  "severity": "info"
-},
-
 "no-install-candidate": {
   "text": "Component has no install candidate defined. A package must be associated with a package or bundle providing it.",
-  "severity": "error"
-},
-
-"metainfo-no-name": {
-  "text": "Component has no name specified. Ensure that the AppStream MetaInfo file or the .desktop file (if there is any) specify a component name.",
-  "severity": "error"
-},
-
-"metainfo-no-summary": {
-  "text": ["Component does not contain a short summary. Ensure that the components MetaInfo file has a <code>summary</code> tag, or that its .desktop file",
-           "has a <code>Comment=</code> field set.<br/>",
-           "More information can be found in the <a href=\"http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s05.html\">Desktop Entry specification</a>",
-           "and the <a href=\"https://www.freedesktop.org/software/appstream/docs/sect-Metadata-Application.html#tag-dapp-summary\">MetaInfo specification</a>."],
   "severity": "error"
 },
 
@@ -173,19 +106,9 @@
   "severity": "warning"
 },
 
-"description-missing": {
-  "text": ["Software components of type '{{kind}}' require a long description, and we were unable to find one. Please please add one via a MetaInfo file."],
-  "severity": "error"
-},
-
 "metadata-serialization-failed": {
   "text": ["Could not create the final metadata. This could have many causes, including a generator bug, but the likeliest cause is an error in the input metadata.<br/>",
            "The error message was: {{msg}}"],
-  "severity": "error"
-},
-
-"no-valid-category": {
-  "text": ["This software component is no member of any valid category."],
   "severity": "error"
 },
 
@@ -204,29 +127,6 @@
 "component-fake-package-association": {
   "text": "This component has a fake or virtual package set as installation candidate. This is not allowed.",
   "severity": "error"
-},
-
-"screenshot-video-check-failed": {
-  "text": ["Unable to inspect video file '{{fname}}'. This may have been caused by a configuration or network issue, or the supplied video file was faulty.",
-           "The error message was: {{msg}}"],
-  "severity": "warning"
-},
-
-"screenshot-video-format-unsupported": {
-  "text": ["The video codec '{{codec}}' or container '{{container}}' of '{{fname}}' are not supported. Please encode the video",
-           "as VP9 or AV1 using the WebM or Matroska container."],
-  "severity": "warning"
-},
-
-"screenshot-video-has-audio": {
-  "text": ["The video '{{fname}}' contains an audio track. The audio may not be played by software centers, so ideally you should avoid using audio,",
-           "or at least make the audio non-essential for understanding the screencast."],
-  "severity": "info"
-},
-
-"screenshot-video-audio-codec-unsupported": {
-  "text": ["The video '{{fname}}' contains an audio track using the '{{codec}}' codec. The only permitted audio codec is <a href=\"https://opus-codec.org/\">Opus</a>."],
-  "severity": "warning"
 },
 
 "screenshot-video-too-big": {
