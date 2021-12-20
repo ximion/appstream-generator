@@ -26,7 +26,6 @@ import appstream.c.types : BundleKind;
 import ascompose.Unit : Unit;
 import ascompose.c.types;
 
-import asgen.bindings.gobjectimplement;
 import asgen.backends.interfaces : Package;
 
 
