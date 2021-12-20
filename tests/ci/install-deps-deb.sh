@@ -37,7 +37,8 @@ eatmydata apt-get install -yq --no-install-recommends \
     libyaml-dev \
     libxmlb-dev \
     libcurl4-gnutls-dev \
-    gperf
+    gperf \
+    itstool
 
 eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
