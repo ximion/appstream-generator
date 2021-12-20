@@ -26,6 +26,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     meson \
     gettext \
     gobject-introspection \
+    gtk-doc-tools \
     xsltproc \
     docbook-xsl \
     docbook-xml \
@@ -34,6 +35,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     libstemmer-dev \
     libxml2-dev \
     libyaml-dev \
+    libxmlb-dev \
     libcurl4-gnutls-dev \
     gperf
 
