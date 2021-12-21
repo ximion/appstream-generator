@@ -769,6 +769,18 @@ public:
      */
     bool process (ref GeneratorResult gres, Component cpt)
     {
+        // we don't touch fonts unless those didn't have their icon
+        // rendered from the font itself already
+        if (cpt.getKind == ComponentKind.FONT) {
+                auto iconsArr = cpt.getIcons ();
+                for (uint i = 0; i < iconsArr.len; i++) {
+                    auto icon = new Icon (cast(AsIcon*) iconsArr.index (i));
+                    // nothing to do for us if cached and remote icons are already there
+                    if (icon.getKind == IconKind.CACHED || icon.getKind == IconKind.REMOTE)
+                        return true;
+                }
+        }
+
         auto iconName = getIconNameAndClear (cpt);
         // nothing to do if there is no icon
         if (iconName is null)
