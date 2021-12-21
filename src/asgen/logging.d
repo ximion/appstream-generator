@@ -22,6 +22,7 @@ module asgen.logging;
 import std.stdio;
 import std.string : format;
 import std.datetime;
+import glib.c.types : LogLevelFlags;
 
 
 private __gshared bool __verbose = false;
@@ -67,8 +68,24 @@ void logError (string, Args...) (const string tmpl, const Args args)
     logMessage (LogSeverity.ERROR, tmpl, args);
 }
 
+private extern(C) void logGExternal (const(char)* logDomain,
+                                     LogLevelFlags logLevel,
+                                     const(char)* message, void* userData)
+{
+    import std.string : fromStringz;
+    logDebug (message.fromStringz);
+}
+
 @trusted
 void setVerbose (const bool enabled)
 {
+    import glib.MessageLog : MessageLog;
     __verbose = enabled;
+
+    if (__verbose) {
+        MessageLog.logSetHandler (null,
+                                  LogLevelFlags.LEVEL_DEBUG,
+                                  &logGExternal,
+                                  null);
+    }
 }
