@@ -146,24 +146,37 @@ public:
      */
     private void processPackages (ref Package[] pkgs, IconHandler iconh)
     {
+        import std.range : chunks;
+        import glib.Thread : Thread;
         auto localeUnit = new LocaleUnit (cstore, pkgs);
-        foreach (ref pkg; parallel (pkgs)) {
-            immutable pkid = pkg.id;
-            if (dstore.packageExists (pkid))
-                continue;
 
+        ulong chunkSize = pkgs.length / Thread.getNumProcessors () / 10;
+        if (chunkSize > 100)
+            chunkSize = 100;
+        if (chunkSize <= 10)
+            chunkSize = 10;
+        logDebug ("Handling %s packages in batches of %s", pkgs.length, chunkSize);
+
+        foreach (pkgsChunk; parallel (pkgs.chunks (chunkSize), 1)) {
             auto mde = new DataExtractor (dstore, iconh, localeUnit);
-            auto res = mde.processPackage (pkg);
-            synchronized (dstore) {
-                // write resulting data into the database
-                dstore.addGeneratorResult (this.conf.metadataType, res);
 
-                logInfo ("Processed %s, components: %s, hints: %s",
-                         res.pkid, res.componentsCount (), res.hintsCount ());
+            foreach (ref pkg; pkgsChunk) {
+                immutable pkid = pkg.id;
+                if (dstore.packageExists (pkid))
+                    continue;
+
+                auto res = mde.processPackage (pkg);
+                synchronized (dstore) {
+                    // write resulting data into the database
+                    dstore.addGeneratorResult (this.conf.metadataType, res);
+
+                    logInfo ("Processed %s, components: %s, hints: %s",
+                            res.pkid, res.componentsCount (), res.hintsCount ());
+                }
+
+                // we don't need content data from this package anymore
+                pkg.finish ();
             }
-
-            // we don't need content data from this package anymore
-            pkg.finish ();
         }
     }
 
