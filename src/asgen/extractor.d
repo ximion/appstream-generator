@@ -108,6 +108,11 @@ public:
         else
             compose.removeFlags (ComposeFlags.PROCESS_FONTS);
 
+        if (conf.feature.screenshotVideos)
+            compose.addFlags (ComposeFlags.ALLOW_SCREENCASTS);
+        else
+            compose.removeFlags (ComposeFlags.ALLOW_SCREENCASTS);
+
         // register allowed custom keys with the composer
         foreach (const ref key; conf.allowedCustomKeys.byKey)
             compose.addCustomAllowed (key);
