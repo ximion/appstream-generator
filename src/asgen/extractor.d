@@ -28,7 +28,6 @@ import std.typecons : scoped;
 import appstream.Component;
 import appstream.Metadata;
 import ascompose.Hint : Hint;
-import ascompose.MetaInfoUtils : MetaInfoUtils;
 import ascompose.Compose : Compose;
 import ascompose.Unit : Unit;
 import ascompose.c.types : ComposeFlags, AscResult, AscUnit;
@@ -184,7 +183,7 @@ public:
     }
 
     /**
-     * Helper function for DataExtractor.parseDesktopFile
+     * Helper function for DataExtractor.processPackage
      */
     extern(C)
     static GPtrArray *translateDesktopTextCallback (GKeyFile *dePtr, const(char) *text, void *userData)
@@ -204,22 +203,6 @@ public:
         }
 
         return res;
-    }
-
-    Component parseDesktopFile (GeneratorResult gres, Component cpt, string fname, Bytes bytes, bool ignoreNoDisplay = false)
-    {
-        const fnameBase = baseName (fname);
-        const pkg = gres.pkg;
-        const externalL10n = pkg.hasDesktopFileTranslations;
-
-        return MetaInfoUtils.parseDesktopEntryData (gres,
-                                                    cpt,
-                                                    bytes,
-                                                    fnameBase,
-                                                    ignoreNoDisplay,
-                                                    conf.formatVersion,
-                                                    externalL10n? &translateDesktopTextCallback : null,
-                                                    externalL10n? &gres.pkg : null);
     }
 
     GeneratorResult processPackage (Package pkg)

@@ -48,12 +48,3 @@ struct: Result
 class: Result
 move: add_hint_v Result addHint
 move: add_hint_by_cid_v Result addHintByCid
-
-struct: MetaInfoUtils
-move: parse_metainfo_data MetaInfoUtils
-move: parse_metainfo_data_simple MetaInfoUtils
-move: validate_metainfo_data_for_component MetaInfoUtils
-move: parse_desktop_entry_data MetaInfoUtils
-
-struct: TranslationUtils
-move: read_translation_status TranslationUtils
