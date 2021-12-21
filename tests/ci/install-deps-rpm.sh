@@ -20,7 +20,6 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     gcc-gdc \
     git-core \
     meson \
-    ffmpeg \
     gettext \
     gir-to-d \
     gnupg \
