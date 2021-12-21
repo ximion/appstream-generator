@@ -276,8 +276,12 @@ public:
             }
 
             if (desc_added) {
-                if (!gres.addHint (cpt, "description-from-package"))
-                    continue;
+                // we only add the "description-from-package" tag if we haven't alreaey
+                // emitted a "no-metainfo" tag, to avoid two hints explaining the same thing
+                if (!gres.hasHint (cpt, "no-metainfo")) {
+                    if (!gres.addHint (cpt, "description-from-package"))
+                        continue;
+                }
             } else {
                 if (!gres.addHint (cpt, "description-missing", ["kind": AsUtils.componentKindToString (ckind)]))
                     continue;
