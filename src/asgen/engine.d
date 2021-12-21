@@ -155,7 +155,7 @@ public:
             chunkSize = 100;
         if (chunkSize <= 10)
             chunkSize = 10;
-        logDebug ("Handling %s packages in batches of %s", pkgs.length, chunkSize);
+        logDebug ("Analyzing %s packages in batches of %s", pkgs.length, chunkSize);
 
         foreach (pkgsChunk; parallel (pkgs.chunks (chunkSize), 1)) {
             auto mde = new DataExtractor (dstore, iconh, localeUnit);
@@ -189,6 +189,8 @@ public:
      **/
     private bool seedContentsData (Suite suite, string section, string arch, Package[] pkgs = [])
     {
+        import glib.Thread : Thread;
+
         bool packageInteresting (Package pkg)
         {
             auto contents = pkg.contents;
@@ -197,14 +199,19 @@ public:
                     return true;
                 if (c.startsWith ("/usr/share/metainfo/"))
                     return true;
-                if (c.startsWith ("/usr/share/appdata/"))
-                    return true;
             }
 
             if (pkg.gst.isNull)
                 return false;
             return pkg.gst.get.isNotEmpty;
         }
+
+        ulong workUnitSize = Thread.getNumProcessors * 2;
+        if (workUnitSize >= pkgs.length)
+            workUnitSize = 4;
+        if (workUnitSize > 30)
+            workUnitSize = 30;
+        logDebug ("Scanning %s packages, work unit size %s", pkgs.length, workUnitSize);
 
         // check if the index has changed data, skip the update if there's nothing new
         if ((pkgs.empty) && (!pkgIndex.hasChanges (dstore, suite.name, section, arch)) && (!this.forced)) {
@@ -224,7 +231,7 @@ public:
         if (!suite.baseSuite.empty) {
             logInfo ("Scanning new packages for base suite %s/%s [%s]", suite.baseSuite, section, arch);
             auto baseSuitePkgs = pkgIndex.packagesFor (suite.baseSuite, section, arch);
-            foreach (ref pkg; parallel (baseSuitePkgs, 4)) {
+            foreach (ref pkg; parallel (baseSuitePkgs, workUnitSize)) {
                 immutable pkid = pkg.id;
 
                 if (!cstore.packageExists (pkid)) {
@@ -240,7 +247,7 @@ public:
 
         // And then scan the suite itself - here packages can be 'interesting'
         // in that they might end up in the output.
-        foreach (ref pkg; parallel (pkgs, 4)) {
+        foreach (ref pkg; parallel (pkgs, workUnitSize)) {
             immutable pkid = pkg.id;
 
             string[] contents;
@@ -383,7 +390,7 @@ public:
         string[string] cidGcidMap;
         bool firstHintEntry = true;
         logDebug ("Building final metadata and hints files.");
-        foreach (ref pkg; parallel (pkgs, 100)) {
+        foreach (ref pkg; parallel (pkgs)) {
             immutable pkid = pkg.id;
             auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids !is null) {
