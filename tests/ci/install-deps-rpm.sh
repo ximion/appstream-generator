@@ -54,6 +54,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     sed \
     vala \
     xmlto \
+    diffutils \
     /usr/bin/node \
     /usr/bin/xsltproc \
     /usr/bin/yarnpkg
