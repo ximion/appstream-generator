@@ -126,6 +126,8 @@ public:
     static void checkMetadataIntermediate (AscResult *cres, AscUnit *cunit, void *userData)
     {
         import ascompose.Result : Result;
+        import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
+
         auto self = cast(DataExtractor) userData;
         auto result = new Result (cres);
 
@@ -144,12 +146,18 @@ public:
             // with matches ours.
             // If it doesn't, we can't just link the package to the component.
             bool samePkg = false;
-            if (self.dtype == DataType.YAML) {
-                if (existingMData.canFind (format ("Package: %s\n", result.getBundleId)))
-                    samePkg = true;
+            immutable bundleId = result.getBundleId;
+            if (bundleId == EXTRA_METAINFO_FAKE_PKGNAME) {
+                // the fake package is exempt from this check
+                samePkg = true;
             } else {
-                if (existingMData.canFind (format ("<pkgname>%s</pkgname>", result.getBundleId)))
-                    samePkg = true;
+                if (self.dtype == DataType.YAML) {
+                    if (existingMData.canFind (format ("Package: %s\n", bundleId)))
+                        samePkg = true;
+                } else {
+                    if (existingMData.canFind (format ("<pkgname>%s</pkgname>", bundleId)))
+                        samePkg = true;
+                }
             }
 
             if ((!samePkg) && (cpt.getKind != ComponentKind.WEB_APP)) {
