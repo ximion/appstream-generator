@@ -35,7 +35,7 @@ import asgen.logging;
 import asgen.extractor;
 import asgen.datastore;
 import asgen.contentsstore;
-import asgen.resultutils;
+import asgen.result;
 import asgen.hint;
 import asgen.reportgenerator;
 import asgen.localeunit : LocaleUnit;
@@ -536,7 +536,7 @@ public:
      * Read a dedicated JSON file which contains information on which components
      * to remove from preexisting metadata.
      */
-    private void readRemovedComponentsInfo (string metainfoDir, GeneratorResult gres)
+    private void readRemovedComponentsInfo (string metainfoDir, ref GeneratorResult gres)
     {
         import std.json : parseJSON;
         import std.stdio : File;

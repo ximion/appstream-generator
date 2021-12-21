@@ -35,7 +35,7 @@ import appstream.Component;
 import asgen.config;
 import asgen.logging;
 import asgen.config : DataType;
-import asgen.resultutils;
+import asgen.result;
 
 
 /**
@@ -328,7 +328,7 @@ public:
         return val !is null;
     }
 
-    void addGeneratorResult (DataType dtype, GeneratorResult gres, const bool alwaysRegenerate = false)
+    void addGeneratorResult (DataType dtype, ref GeneratorResult gres, const bool alwaysRegenerate = false)
     {
         // if the package has no components or hints,
         // mark it as always-ignore

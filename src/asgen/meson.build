@@ -35,7 +35,7 @@ asgen_sources = [
     'mustache.d',
     'packageunit.d',
     'reportgenerator.d',
-    'resultutils.d',
+    'result.d',
     'utils.d',
     'zarchive.d',
      join_paths(build_root, 'src', 'asgen', 'defines.d'),

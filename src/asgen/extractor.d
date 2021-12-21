@@ -37,7 +37,7 @@ import glib.c.types : GPtrArray;
 import asgen.config;
 import asgen.logging;
 import asgen.hintregistry;
-import asgen.resultutils;
+import asgen.result;
 import asgen.backends.interfaces;
 import asgen.datastore;
 import asgen.iconhandler : IconHandler;

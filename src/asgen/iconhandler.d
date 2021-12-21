@@ -44,7 +44,7 @@ static import std.file;
 
 import asgen.utils;
 import asgen.logging;
-import asgen.resultutils;
+import asgen.result;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
 import asgen.config : Config, IconPolicy;
@@ -537,7 +537,7 @@ public:
      *      size          = The size the icon should be stored in.
      **/
     private bool storeIcon (Component cpt,
-                            GeneratorResult gres,
+                            ref GeneratorResult gres,
                             string cptExportPath,
                             Package sourcePkg,
                             string iconPath,
@@ -767,7 +767,7 @@ public:
     /**
      * Try to find & store icons for a selected component.
      */
-    bool process (GeneratorResult gres, Component cpt)
+    bool process (ref GeneratorResult gres, Component cpt)
     {
         auto iconName = getIconNameAndClear (cpt);
         // nothing to do if there is no icon
