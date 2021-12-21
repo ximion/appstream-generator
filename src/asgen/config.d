@@ -146,7 +146,7 @@ private:
         import glib.Util : Util;
 
         // our default export format version
-        formatVersion = FormatVersion.V0_12;
+        formatVersion = FormatVersion.V0_14;
 
         // find all the external binaries we (may) need
         // we search for them unconditionally, because the unittests may rely on their absolute
@@ -179,7 +179,7 @@ public:
     string mediaExportDir;
     string htmlExportDir;
 
-    long maxVideoFileSize;
+    long maxScrFileSize;
 
     IconPolicy[] iconSettings;
 
@@ -534,9 +534,9 @@ public:
             iconSettings ~= IconPolicy (ImageSize (128, 128, 2), true, true);
         }
 
-        this.maxVideoFileSize = 14; // 14MiB is the default maximum size
-        if ("MaxVideoFileSize" in root)
-            this.maxVideoFileSize = root["MaxVideoFileSize"].integer;
+        this.maxScrFileSize = 14; // 14MiB is the default maximum size
+        if ("MaxScreenshotFileSize" in root)
+            this.maxScrFileSize = root["MaxScreenshotFileSize"].integer;
 
         if ("AllowedCustomKeys" in root.object)
             foreach (ref key; root["AllowedCustomKeys"].array)

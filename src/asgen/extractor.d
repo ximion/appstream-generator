@@ -41,7 +41,7 @@ import asgen.hintregistry;
 import asgen.resultutils;
 import asgen.backends.interfaces;
 import asgen.datastore;
-import asgen.handlers;
+import asgen.iconhandler : IconHandler;
 import asgen.utils : componentGetRawIcon, toStaticGBytes;
 import asgen.packageunit : PackageUnit;
 import asgen.localeunit : LocaleUnit;
@@ -84,6 +84,8 @@ public:
         // we handle all threading, so the compose process doesn't also have to be threaded
         compose.removeFlags (ComposeFlags.USE_THREADS);
 
+        if (conf.maxScrFileSize != 0)
+            compose.setMaxScreenshotSize (conf.maxScrFileSize * 1024 * 1024); // set max screenshot size in bytes
 
         // enable or disable user-defined features
         if (conf.feature.validate)

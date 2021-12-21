@@ -129,9 +129,4 @@
   "severity": "error"
 },
 
-"screenshot-video-too-big": {
-  "text": ["The video '{{fname}}' exceeds the maximum allowed file size of {{max_size}} (its size is {{size}}). Please try to make a shorter screencast."],
-  "severity": "warning"
-}
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module asgen.handlers.iconhandler;
+module asgen.iconhandler;
 
 import std.stdio : File, writeln;
 import std.string : endsWith, startsWith, format;

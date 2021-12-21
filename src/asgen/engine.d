@@ -49,7 +49,7 @@ import asgen.backends.archlinux;
 import asgen.backends.rpmmd;
 import asgen.backends.alpinelinux;
 
-import asgen.handlers : IconHandler;
+import asgen.iconhandler : IconHandler;
 
 
 /**

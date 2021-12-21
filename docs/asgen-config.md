@@ -60,7 +60,7 @@ ExportDirs | Set where to export data. The dictionary requires full paths set fo
 ExtraMetainfoDir | Path to a directory where additional injected metainfo files are located. If not set, the `extra-metainfo` directory in the project workspace is used.
 WorkspaceDir | Explicitly set the location of the workspace. Only makes sense if the generator is meant to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag.
 Icons | Customize the icon policy. See below for more details.
-MaxVideoFileSize | The maximum size of downloaded video files in MiB. `0` means unlimited. *Default: `14`*
+MaxScreenshotFileSize | The maximum size of downloaded screenshot image or video files in MiB. `0` means unlimited. *Default: `14`*
 
 
 ### Suite fields
