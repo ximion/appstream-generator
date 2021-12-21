@@ -15,7 +15,7 @@ build_root = meson.build_root()
 #
 src_dir = include_directories('src/')
 
-glib_dep       = dependency('glib-2.0')
+glib_dep       = dependency('glib-2.0', version: '>= 2.62')
 glibd_dep      = dependency('glibd-2.0')
 appstream_dep  = dependency('appstream', version : '>= 0.14.6')
 ascompose_dep  = dependency('appstream-compose', version : '>= 0.15.1')

@@ -1,12 +1,7 @@
 
-glib_ge_2_29 = 'false'
-if glib_dep.version().version_compare('>=2.69')
-    glib_ge_2_29 = 'true'
-endif
 conf_data = configuration_data()
 conf_data.set('datadir', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
 conf_data.set('asgen_version', asgen_version)
-conf_data.set('glib_ge_2_29', glib_ge_2_29)
 configure_file(input : 'defines.d.in',
                output: 'defines.d',
                configuration: conf_data
