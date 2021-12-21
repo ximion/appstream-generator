@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2018-2021 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -19,10 +19,10 @@
 
 import std.stdio : File;
 import std.array : empty;
-import std.path : buildPath, relativePath;
+import std.path : buildPath, buildNormalizedPath, relativePath, baseName;
 
 import asgen.backends.interfaces;
-import asgen.utils : GENERIC_BUFFER_SIZE;
+import asgen.utils : GENERIC_BUFFER_SIZE, existsAndIsDir;
 import asgen.logging;
 
 
@@ -39,6 +39,7 @@ private:
     string[string] desc;
     string[string] _contents;
     string _dataLocation;
+    string _archDataLocation;
 
 public:
     @property override string name () const { return pkgname; }
@@ -57,6 +58,9 @@ public:
 
     @property string dataLocation () const { return _dataLocation; }
     @property void   dataLocation (string value) { _dataLocation = value; }
+
+    @property string archDataLocation () const { return _archDataLocation; }
+    @property void   archDataLocation (string value) { _archDataLocation = value; }
 
     this (string pname, string parch)
     {
@@ -87,15 +91,40 @@ public:
         import std.file : dirEntries, SpanMode;
         import std.array : array;
 
-        if (_dataLocation.empty)
-            return [];
-
         if (!_contents.empty)
             return array(_contents.byKey);
 
-        foreach (iconFname; _dataLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
-            immutable iconBasePath = relativePath (iconFname, _dataLocation);
+        if (_dataLocation.empty || !_dataLocation.existsAndIsDir)
+            return [];
+
+        // find all icons
+        immutable iconLocation = buildNormalizedPath (_dataLocation, "icons");
+        foreach (iconFname; iconLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
+            immutable iconBasePath = relativePath (iconFname, iconLocation);
             _contents[buildPath ("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
+        }
+
+        // find metainfo files
+        foreach (miFname; _dataLocation.dirEntries ("*.xml", SpanMode.shallow, false)) {
+            immutable miBasename = miFname.baseName;
+            logDebug ("Found injected metainfo [%s]: %s", "all", miBasename);
+            _contents[buildPath ("/usr/share/metainfo", miBasename)] = miFname;
+        }
+
+        if (!archDataLocation.existsAndIsDir)
+            return array(_contents.byKey);
+
+        // load arch-specific override metainfo files
+        foreach (miFname; archDataLocation.dirEntries ("*.xml", SpanMode.shallow, false)) {
+            immutable miBasename = miFname.baseName;
+            immutable fakePath = buildPath ("/usr/share/metainfo", miBasename);
+
+            if (fakePath in _contents)
+                logDebug ("Found injected metainfo [%s]: %s (replacing generic one)", arch, miBasename);
+            else
+                logDebug ("Found injected metainfo [%s]: %s", arch, miBasename);
+
+            _contents[fakePath] = miFname;
         }
 
         return array(_contents.byKey);

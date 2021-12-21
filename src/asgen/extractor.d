@@ -59,7 +59,6 @@ private:
 
     IconHandler iconh;
     LocaleUnit l10nUnit;
-    PackageUnit unitHolder;
 
 public:
 
@@ -72,8 +71,7 @@ public:
         l10nUnit = localeUnit;
 
         compose = new Compose;
-        compose.setPrefix ("/usr");
-        compose.setLocaleUnit (l10nUnit);
+        //compose.setPrefix ("/usr");
         compose.setMediaResultDir (db.mediaExportPoolDir);
         compose.setMediaBaseurl ("");
         compose.setCheckMetadataEarlyFunc (&checkMetadataIntermediate, cast(void*) this);
@@ -84,8 +82,12 @@ public:
         // we handle all threading, so the compose process doesn't also have to be threaded
         compose.removeFlags (ComposeFlags.USE_THREADS);
 
+        if (l10nUnit !is null)
+            compose.setLocaleUnit (l10nUnit);
+
+        // set max screenshot size in bytes, if size is limited
         if (conf.maxScrFileSize != 0)
-            compose.setMaxScreenshotSize (conf.maxScrFileSize * 1024 * 1024); // set max screenshot size in bytes
+            compose.setMaxScreenshotSize (conf.maxScrFileSize * 1024 * 1024);
 
         // enable or disable user-defined features
         if (conf.feature.validate)
@@ -116,22 +118,6 @@ public:
         // register allowed custom keys with the composer
         foreach (const ref key; conf.allowedCustomKeys.byKey)
             compose.addCustomAllowed (key);
-    }
-
-    static void validateMetaInfoData (GeneratorResult gres, Component cpt,
-                                      Bytes bytes, const string miBasename)
-    {
-        import appstream.Validator : Validator;
-        import glib.c.types : GDestroyNotify;
-
-        // create thread-local validator for efficiency
-        static Validator validator = null;
-        if (validator is null)
-            validator = new Validator;
-
-        MetaInfoUtils.validateMetainfoDataForComponent(gres, validator, cpt,
-                                                       bytes,
-                                                       miBasename);
     }
 
     /**
@@ -251,7 +237,6 @@ public:
         // wrap package into unit, so AppStream Compose can work with it
         auto unit = new PackageUnit (pkg);
         compose.addUnit (unit);
-        unitHolder = unit;
 
         // process all data
         compose.run (null);
@@ -329,7 +314,42 @@ public:
         compose.finalizeResults ();
 
         // do our own final validation
-        gres.finalize ();
+        cptsPtrArray = gres.fetchComponents ();
+        for (uint i = 0; i < cptsPtrArray.len; i++) {
+            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
+            immutable ckind = cpt.getKind;
+
+            if (cpt.getMergeKind != MergeKind.NONE)
+                continue;
+
+            if (cpt.getPkgnames.empty) {
+                    // no packages are associated with this component
+
+                    if (ckind != ComponentKind.WEB_APP &&
+                        ckind != ComponentKind.OPERATING_SYSTEM &&
+                        ckind != ComponentKind.REPOSITORY) {
+                            // this component is not allowed to have no installation candidate
+                            if (!cpt.hasBundle) {
+                                if (!gres.addHint (cpt, "no-install-candidate"))
+                                    continue;
+                            }
+                    }
+            } else {
+                // packages are associated with this component
+
+                if (pkg.kind == PackageKind.FAKE) {
+                    import std.array : array;
+                    import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
+                    import std.algorithm.iteration : filter;
+
+                    // drop any association with the dummy package
+                    auto pkgnames = cpt.getPkgnames;
+                    cpt.setPkgnames (array(pkgnames.filter!(a => a != EXTRA_METAINFO_FAKE_PKGNAME)));
+                }
+            }
+        }
+
+        // clean up and return result
         pkg.finish ();
         return gres;
     }

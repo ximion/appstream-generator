@@ -552,56 +552,6 @@ public:
     }
 
     /**
-     * Read a bunch of additional, injected metainfo files.
-     */
-    private void readInjectedMetainfo (string metainfoDir, IconHandler iconh, GeneratorResult gres, const string arch)
-    {
-        import std.file : dirEntries, SpanMode;
-        import std.stdio : File;
-        import std.path : baseName;
-        import std.array : replace;
-        import ascompose.MetaInfoUtils : MetaInfoUtils;
-        import asgen.utils : toStaticGBytes;
-        import asgen.handlers.screenshothandler : processScreenshots;
-
-        foreach (miFname; metainfoDir.dirEntries ("*.xml", SpanMode.shallow, false)) {
-            auto f = File (miFname, "r");
-            string line;
-            auto data = appender!string;
-            while ((line = f.readln ()) !is null)
-                data ~= line;
-
-            immutable miBasename = miFname.baseName;
-            logInfo ("Loading injected metainfo [%s]: %s", arch, miBasename);
-
-            // we want some replacement logic for arch-specific injected metainfo files,
-            // so arch-specific xml files can replace generic ones. To archieve that we assume
-            // the metainfo file is named after the component-ID it contains and do some cheap replacement here.
-            gres.removeComponentById (miBasename.replace (".metainfo.xml", ""));
-
-            auto dataBytes = data.data.toStaticGBytes;
-
-            auto cpt = MetaInfoUtils.parseMetainfoDataSimple (gres, dataBytes, miBasename);
-            if (cpt is null)
-                continue;
-
-            // validate
-            if (conf.feature.validate) {
-                    DataExtractor.validateMetaInfoData (gres, cpt, dataBytes, miBasename);
-            }
-
-            // get icon
-            iconh.process (gres, cpt);
-            if (gres.isIgnored (cpt))
-                continue;
-
-            // handle screenshots
-            if (!conf.feature.noDownloads)
-                processScreenshots (gres, cpt, dstore.mediaExportPoolDir);
-        }
-    }
-
-    /**
      * Read metainfo and auxiliary data injected by the person running the data generator.
      */
     private Package processExtraMetainfoData (Suite suite, IconHandler iconh, const string section, const string arch)
@@ -615,30 +565,24 @@ public:
         immutable extraMIDir = buildNormalizedPath (suite.extraMetainfoDir, section);
         immutable archExtraMIDir = buildNormalizedPath (extraMIDir, arch);
 
+        logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
+
         // we create a dummy package to hold information for the injected components
         auto pkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
-        pkg.dataLocation = buildPath (extraMIDir, "icons");
+        pkg.dataLocation = extraMIDir;
+        pkg.archDataLocation = archExtraMIDir;
         pkg.maintainer = "AppStream Generator Maintainer";
-        auto gres = GeneratorResult (pkg);
-
-        logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
 
         // ensure we have no leftover hints in the database.
         // since this package never changes its version number, cruft data will not be automatically
         // removed for it.
         dstore.removePackage (pkg.id);
 
-        if (extraMIDir.existsAndIsDir) {
-            readRemovedComponentsInfo (extraMIDir, gres);
-            readInjectedMetainfo (extraMIDir, iconh, gres, "all");
-        }
-        if (archExtraMIDir.existsAndIsDir) {
-            readRemovedComponentsInfo (archExtraMIDir, gres);
-            readInjectedMetainfo (archExtraMIDir, iconh, gres, arch);
-        }
+        // analyze our dummy package just like all other packages
+        auto mde = new DataExtractor (dstore, iconh, null);
+        auto gres = mde.processPackage (pkg);
 
         // write resulting data into the database
-        gres.finalize ();
         dstore.addGeneratorResult (this.conf.metadataType, gres, true);
 
         return pkg;

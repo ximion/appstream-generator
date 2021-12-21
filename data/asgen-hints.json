@@ -124,9 +124,4 @@
   "severity": "error"
 },
 
-"component-fake-package-association": {
-  "text": "This component has a fake or virtual package set as installation candidate. This is not allowed.",
-  "severity": "error"
-},
-
 }

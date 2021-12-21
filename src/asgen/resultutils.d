@@ -145,47 +145,6 @@ struct GeneratorResult
         auto root = JSONValue (["package": JSONValue (pkid), "hints": map]);
         return root.toJSON (true);
     }
-
-    /**
-     * Perform some common final validation.
-     */
-    void finalize ()
-    {
-        auto cptsPtrArray = res.fetchComponents ();
-        for (uint i = 0; i < cptsPtrArray.len; i++) {
-            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
-            immutable ckind = cpt.getKind;
-
-            if (cpt.getMergeKind != MergeKind.NONE)
-                continue;
-
-            if (cpt.getPkgnames.empty) {
-                    // no packages are associated with this component
-
-                    if (ckind != ComponentKind.WEB_APP &&
-                        ckind != ComponentKind.OPERATING_SYSTEM &&
-                        ckind != ComponentKind.REPOSITORY) {
-                            // this component is not allowed to have no installation candidate
-                            if (!cpt.hasBundle) {
-                                if (!addHint (cpt, "no-install-candidate"))
-                                    continue;
-                            }
-                    }
-            } else {
-                // packages are associated with this component
-
-                if (pkg.kind == PackageKind.FAKE) {
-                    import std.algorithm : canFind;
-                    import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
-
-                    if (cpt.getPkgnames.canFind (EXTRA_METAINFO_FAKE_PKGNAME)) {
-                        if (!addHint (cpt, "component-fake-package-association"))
-                            continue;
-                    }
-                }
-            }
-        }
-    }
 }
 
 unittest
