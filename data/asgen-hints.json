@@ -112,16 +112,4 @@
   "severity": "error"
 },
 
-"font-metainfo-but-no-font": {
-  "text": ["A MetaInfo file with component-type <code>font</code> was found, but we could not find any matching font file (TrueType or OpenType) in the package.<br/>",
-           "This can mean that the <code>&lt;provides&gt; - &lt;font&gt;</code> tags contain wrong values that we could not map to the actual fonts, or that the package simply contained no fonts at all.<br/>",
-           "Fonts in this package: <em>{{font_names}}</em>"],
-  "severity": "error"
-},
-
-"font-load-error": {
-  "text": "Unable to load font '{{fname}}' from package '{{pkg_fname}}: {{error}}",
-  "severity": "error"
-},
-
 }
