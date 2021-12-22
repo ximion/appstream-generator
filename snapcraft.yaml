@@ -1,5 +1,7 @@
 #
 # Copyright (C) 2020 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2020 Canonical Ltd
+#   Author: Iain Lane <iain@orangesquash.org.uk>
 #
 # SPDX-License-Identifier: FSFAP
 #
@@ -164,7 +166,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: v0.14.5
+    #source-tag: v0.15.1
 
     plugin: meson
     meson-parameters:
@@ -181,7 +183,8 @@ parts:
       - gperf
       - libgirepository1.0-dev
       - libglib2.0-dev
-      - liblmdb-dev
+      - libxmlb-dev
+      - liblzma-dev
       - libcurl4-gnutls-dev
       - libstemmer-dev
       - libxml2-dev
@@ -212,7 +215,7 @@ parts:
   glibd:
     source: https://github.com/gtkd-developers/GlibD.git
     source-type: git
-    source-tag: v2.2.0
+    source-tag: v2.3.0
 
     plugin: meson
     meson-parameters:
