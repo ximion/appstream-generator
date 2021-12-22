@@ -181,6 +181,7 @@ parts:
       - gettext
       - gobject-introspection
       - gperf
+      - itstool
       - libgirepository1.0-dev
       - libglib2.0-dev
       - libxmlb-dev
