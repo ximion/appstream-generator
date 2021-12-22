@@ -63,6 +63,8 @@ public:
 
     this (DataStore db, IconHandler iconHandler, LocaleUnit localeUnit)
     {
+        import std.conv : to;
+
         dstore = db;
         iconh = iconHandler;
         conf = Config.get ();
@@ -86,7 +88,7 @@ public:
 
         // set max screenshot size in bytes, if size is limited
         if (conf.maxScrFileSize != 0)
-            compose.setMaxScreenshotSize (conf.maxScrFileSize * 1024 * 1024);
+            compose.setMaxScreenshotSize ((conf.maxScrFileSize * 1024 * 1024).to!ptrdiff_t);
 
         // enable or disable user-defined features
         if (conf.feature.validate)

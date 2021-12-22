@@ -150,7 +150,7 @@ public:
         import glib.Thread : Thread;
         auto localeUnit = new LocaleUnit (cstore, pkgs);
 
-        ulong chunkSize = pkgs.length / Thread.getNumProcessors () / 10;
+        size_t chunkSize = pkgs.length / Thread.getNumProcessors () / 10;
         if (chunkSize > 100)
             chunkSize = 100;
         if (chunkSize <= 10)
@@ -206,7 +206,7 @@ public:
             return pkg.gst.get.isNotEmpty;
         }
 
-        ulong workUnitSize = Thread.getNumProcessors * 2;
+        size_t workUnitSize = Thread.getNumProcessors * 2;
         if (workUnitSize >= pkgs.length)
             workUnitSize = 4;
         if (workUnitSize > 30)
