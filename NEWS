@@ -1,3 +1,32 @@
+Version 0.8.6
+~~~~~~~~~~~~~~
+Released: 2021-12-22
+
+Notes:
+ * This is the first release to fully use libappstream-compose for
+   almost all metadata analysis (except icon processing, which needs
+   special care).
+
+Features:
+ * Reimplement data extractor using the compose API
+ * Enable screencasts in compose based on our screenshotVideos feature flag
+ * Run external metadata through the exact same processing as all other data
+ * Redirect glib debug messages to our own logging if in verbose mode
+ * Adjust parallel processing work unit sizes for seeding
+ * ci: Add Fedora to the CI environment
+
+Bugfixes:
+ * Fix build with GLib >= 2.69
+ * engine: Protect iconTarFiles variable when scanning for icons in parallel
+ * Resolve some issue tag conflicts with as-compose
+ * Control batch processing better to enable better extractor reuse
+ * Add duplicate-metainfo exemption for injected data
+ * Improve explanation of the "no-metainfo" tag
+ * Don't emit "description-from-package" if "no-metainfo" was already present
+
+Contributors:
+ Neal Gompa (ニール・ゴンパ), Matthias Klumpp
+
 Version 0.8.5
 ~~~~~~~~~~~~~~
 Released: 2021-08-28
