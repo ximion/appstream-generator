@@ -83,6 +83,11 @@ public:
         // we handle all threading, so the compose process doesn't also have to be threaded
         compose.removeFlags (ComposeFlags.USE_THREADS);
 
+        // set CAInfo for any download operations performed by this AscCompose
+        if (!conf.caInfo.empty)
+            compose.setCainfo (conf.caInfo);
+
+        // set dummy locale unit for advanced locale processing
         if (l10nUnit !is null)
             compose.setLocaleUnit (l10nUnit);
 
