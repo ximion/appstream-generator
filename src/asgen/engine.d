@@ -588,24 +588,24 @@ public:
         logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
 
         // we create a dummy package to hold information for the injected components
-        auto pkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
-        pkg.dataLocation = extraMIDir;
-        pkg.archDataLocation = archExtraMIDir;
-        pkg.maintainer = "AppStream Generator Maintainer";
+        auto diPkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
+        diPkg.dataLocation = extraMIDir;
+        diPkg.archDataLocation = archExtraMIDir;
+        diPkg.maintainer = "AppStream Generator Maintainer";
 
         // ensure we have no leftover hints in the database.
         // since this package never changes its version number, cruft data will not be automatically
         // removed for it.
-        dstore.removePackage (pkg.id);
+        dstore.removePackage (diPkg.id);
 
         // analyze our dummy package just like all other packages
         auto mde = new DataExtractor (dstore, iconh, null);
-        auto gres = mde.processPackage (pkg);
+        auto gres = mde.processPackage (diPkg);
 
         // write resulting data into the database
         dstore.addGeneratorResult (this.conf.metadataType, gres, true);
 
-        return pkg;
+        return diPkg;
     }
 
     /**

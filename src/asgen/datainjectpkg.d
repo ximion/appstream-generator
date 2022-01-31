@@ -94,8 +94,11 @@ public:
         if (!_contents.empty)
             return array(_contents.byKey);
 
-        if (_dataLocation.empty || !_dataLocation.existsAndIsDir)
+        if (_dataLocation.empty || !_dataLocation.existsAndIsDir) {
+            logInfo("Can not read injected data from '%s': Directory path is empty or does not exist.",
+                    _dataLocation);
             return [];
+        }
 
         // find all icons
         immutable iconLocation = buildNormalizedPath (_dataLocation, "icons");
