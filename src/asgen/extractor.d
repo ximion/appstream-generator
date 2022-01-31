@@ -144,7 +144,7 @@ public:
     }
 
     /**
-     * Helper function for DataExtractor.parseDesktopFile
+     * Helper function for early asgen-specific metadata manipulation
      */
     extern(C)
     static void checkMetadataIntermediate (AscResult *cres, AscUnit *cunit, void *userData)
@@ -171,8 +171,9 @@ public:
             // If it doesn't, we can't just link the package to the component.
             bool samePkg = false;
             immutable bundleId = result.getBundleId;
-            if (bundleId == EXTRA_METAINFO_FAKE_PKGNAME) {
-                // the fake package is exempt from this check
+            immutable bool isInjectedPkg = bundleId == EXTRA_METAINFO_FAKE_PKGNAME;
+            if (isInjectedPkg) {
+                // the fake package is exempt from the is-same-package check
                 samePkg = true;
             } else {
                 if (self.dtype == DataType.YAML) {
@@ -210,7 +211,8 @@ public:
 
             // drop the component as we already have processed it, but keep its
             // global ID so we can still register the ID with this package.
-            result.removeComponentFull(cpt, false);
+            if (!isInjectedPkg)
+                result.removeComponentFull(cpt, false);
         }
     }
 
