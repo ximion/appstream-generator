@@ -165,24 +165,26 @@ public:
             if (existingMData is null)
                 continue;
 
+            immutable bundleId = result.getBundleId;
+            if (bundleId == EXTRA_METAINFO_FAKE_PKGNAME) {
+                // the "package" was injected and therefore has likely already been unlinked
+                // and we will want to reprocess it unconditionally. Therefore, we just skip
+                // all following checks on same-package and duplicate IDs and just continue
+                // processing the metadata without modifications.
+                continue;
+            }
+
             // To account for packages which change their package name, we
             // also need to check if the package this component is associated
             // with matches ours.
             // If it doesn't, we can't just link the package to the component.
             bool samePkg = false;
-            immutable bundleId = result.getBundleId;
-            immutable bool isInjectedPkg = bundleId == EXTRA_METAINFO_FAKE_PKGNAME;
-            if (isInjectedPkg) {
-                // the fake package is exempt from the is-same-package check
-                samePkg = true;
+            if (self.dtype == DataType.YAML) {
+                if (existingMData.canFind (format ("Package: %s\n", bundleId)))
+                    samePkg = true;
             } else {
-                if (self.dtype == DataType.YAML) {
-                    if (existingMData.canFind (format ("Package: %s\n", bundleId)))
-                        samePkg = true;
-                } else {
-                    if (existingMData.canFind (format ("<pkgname>%s</pkgname>", bundleId)))
-                        samePkg = true;
-                }
+                if (existingMData.canFind (format ("<pkgname>%s</pkgname>", bundleId)))
+                    samePkg = true;
             }
 
             if ((!samePkg) && (cpt.getKind != ComponentKind.WEB_APP)) {
@@ -211,8 +213,7 @@ public:
 
             // drop the component as we already have processed it, but keep its
             // global ID so we can still register the ID with this package.
-            if (!isInjectedPkg)
-                result.removeComponentFull(cpt, false);
+            result.removeComponentFull(cpt, false);
         }
     }
 
