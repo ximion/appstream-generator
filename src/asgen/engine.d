@@ -340,9 +340,10 @@ public:
     /**
      * Export metadata and issue hints from the database and store them as files.
      */
-    private void exportData (Suite suite, string section, string arch, ref Package[] pkgs, bool withIconTar = false)
+    private void exportMetadata (Suite suite, string section, string arch, ref Package[] pkgs)
     {
-        import asgen.zarchive;
+        import asgen.zarchive : ArchiveType, compressAndSave;
+
         auto mdataFile = appender!string;
         auto hintsFile = appender!string;
 
@@ -365,18 +366,6 @@ public:
 
         mkdirRecurse (dataExportDir);
         mkdirRecurse (hintsExportDir);
-
-        // prepare icon-tarball array
-        Appender!(string[])[string] iconTarFiles;
-        if (withIconTar) {
-            foreach (ref ipolicy; conf.iconSettings) {
-                if (!ipolicy.storeCached)
-                    continue; // we only want to create tarballs for cached icons
-                auto ia = appender!(string[]);
-                ia.reserve (256);
-                iconTarFiles[ipolicy.iconSize.toString] = ia;
-            }
-        }
 
         immutable useImmutableSuites = conf.feature.immutableSuites;
         // select the media export target directory
@@ -402,11 +391,6 @@ public:
                     }
                 }
 
-                // nothing left to do if we don't need to deal with icon tarballs and
-                // immutable suites.
-                if ((!useImmutableSuites) && (!withIconTar))
-                    continue;
-
                 foreach (ref gcid; gcids) {
                     synchronized (this) cidGcidMap[getCidFromGlobalID (gcid)] = gcid;
 
@@ -416,20 +400,6 @@ public:
                         immutable gcidMediaSuitePath = buildPath (mediaExportDir, gcid);
                         if ((!std.file.exists (gcidMediaSuitePath)) && (std.file.exists (gcidMediaPoolPath)))
                             copyDir (gcidMediaPoolPath, gcidMediaSuitePath, true);
-                    }
-
-                    // compile list of icon-tarball files
-                    if (withIconTar) {
-                        foreach (ref ipolicy; conf.iconSettings) {
-                            if (!ipolicy.storeCached)
-                                continue; // only add icon to cache tarball if we want a cache for the particular size
-                            immutable iconDir = buildPath (mediaExportDir, gcid, "icons", ipolicy.iconSize.toString);
-                            if (!std.file.exists (iconDir))
-                                continue;
-                            foreach (string path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false))
-                                synchronized (this) iconTarFiles[ipolicy.iconSize.toString] ~= path;
-
-                        }
                     }
                 }
             }
@@ -446,27 +416,6 @@ public:
                     }
                 }
             }
-        }
-
-        // create the icon tarballs
-        if (withIconTar) {
-            logInfo ("Creating icon tarball.");
-            foreach (ref ipolicy; conf.iconSettings) {
-                if (!ipolicy.storeCached)
-                    continue;
-
-                auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
-                iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (ipolicy.iconSize.toString)));
-                auto iconFiles = iconTarFiles[ipolicy.iconSize.toString]
-                                 .data
-                                 .sort!("a < b", SwapStrategy.stable);
-                foreach (fname; iconFiles) {
-                    iconTar.addFile (fname);
-                }
-
-                iconTar.close ();
-            }
-            logInfo ("Icon tarball(s) built.");
         }
 
         string dataBaseFname;
@@ -510,6 +459,82 @@ public:
         // (this allows other apps to just resolve the hint tags to severities and explanations
         // without loading either AppStream or AppStream-Generator code)
         saveHintsRegistryToJsonFile (buildPath (conf.hintsExportDir, suite.name, "hint-definitions.json"));
+    }
+
+    /**
+     * Export all icons for the given set of packages and publish them in the selected suite/section.
+     * Package icon duplicates will be eliminated automatically.
+     */
+    private void exportIconTarballs (Suite suite, string section, Package[] pkgs)
+    {
+        import asgen.zarchive;
+
+        // determine data sources and destinations
+        immutable dataExportDir = buildPath (conf.dataExportDir, suite.name, section);
+        mkdirRecurse (dataExportDir);
+        immutable useImmutableSuites = conf.feature.immutableSuites;
+        immutable mediaExportDir = useImmutableSuites
+                                    ? buildNormalizedPath (dstore.mediaExportPoolDir, "..", suite.name)
+                                    : dstore.mediaExportPoolDir;
+
+        // prepare icon-tarball array
+        Appender!(string[])[string] iconTarFiles;
+        foreach (ref ipolicy; conf.iconSettings) {
+            if (!ipolicy.storeCached)
+                continue; // we only want to create tarballs for cached icons
+            auto ia = appender!(string[]);
+            ia.reserve (256);
+            iconTarFiles[ipolicy.iconSize.toString] = ia;
+        }
+
+        logInfo ("Creating icon tarballs for: %s/%s", suite.name, section);
+        bool[string] processedDirs;
+        foreach (ref pkg; parallel (pkgs)) {
+            immutable pkid = pkg.id;
+            auto gcids = dstore.getGCIDsForPackage (pkid);
+            if (gcids is null)
+                continue;
+            foreach (ref gcid; gcids) {
+                // compile list of icon-tarball files
+                foreach (ref ipolicy; conf.iconSettings) {
+                    if (!ipolicy.storeCached)
+                        continue; // only add icon to cache tarball if we want a cache for the particular size
+                    immutable iconDir = buildPath (mediaExportDir, gcid, "icons", ipolicy.iconSize.toString);
+
+                    // skip adding icon entries if we've already investigated this directory
+                    synchronized {
+                        if (iconDir in processedDirs)
+                            continue;
+                        else
+                            processedDirs[iconDir] = true;
+                    }
+
+                    if (!std.file.exists (iconDir))
+                        continue;
+                    foreach (string path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false))
+                        synchronized (this) iconTarFiles[ipolicy.iconSize.toString] ~= path;
+
+                }
+            }
+        }
+
+        // create the icon tarballs
+        foreach (ref ipolicy; conf.iconSettings) {
+            if (!ipolicy.storeCached)
+                continue;
+
+            auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
+            iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (ipolicy.iconSize.toString)));
+            auto iconFiles = iconTarFiles[ipolicy.iconSize.toString]
+                                .data
+                                .sort!("a < b", SwapStrategy.stable);
+            foreach (fname; iconFiles) {
+                iconTar.addFile (fname);
+            }
+
+            iconTar.close ();
+        }
+        logInfo ("Icon tarballs built for: %s/%s", suite.name, section);
     }
 
     private Package[string] getIconCandidatePackages (Suite suite, string section, string arch)
@@ -618,7 +643,6 @@ public:
             reportgen = new ReportGenerator (dstore);
 
         auto sectionPkgs = appender!(Package[]);
-        auto iconTarBuilt = false;
         auto suiteDataChanged = false;
         foreach (ref arch; suite.architectures) {
             // update package contents information and flag boring packages as ignored
@@ -645,8 +669,7 @@ public:
                 pkgs ~= fakePkg;
 
             // export package data
-            exportData (suite, section, arch, pkgs, !iconTarBuilt);
-            iconTarBuilt = true;
+            exportMetadata (suite, section, arch, pkgs);
             suiteDataChanged = true;
 
             // we store the package info over all architectures to generate reports later
@@ -654,15 +677,20 @@ public:
             sectionPkgs ~= pkgs;
 
             // log progress
-            logInfo ("Completed processing of %s/%s [%s]", suite.name, section, arch);
+            logInfo ("Completed metadata processing of %s/%s [%s]", suite.name, section, arch);
 
             // explicit GC collection and minimization run
             gcCollect ();
         }
 
-        // write reports & statistics and render HTML, if that option is selected
-        if (suiteDataChanged)
+
+        if (suiteDataChanged) {
+            // export icons for the found packages in this section
+            exportIconTarballs (suite, section, sectionPkgs.data);
+
+            // write reports & statistics and render HTML, if that option is selected
             reportgen.processFor (suite.name, section, sectionPkgs.data);
+        }
 
         // do garbage collection run now.
         // we might have allocated very big chunks of memory during this iteration,
@@ -850,14 +878,12 @@ public:
             reportgen = new ReportGenerator (dstore);
 
         auto sectionPkgs = appender!(Package[]);
-        auto iconTarBuilt = false;
         foreach (ref arch; suite.architectures) {
             // process new packages
             auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
 
             // export package data
-            exportData (suite, section, arch, pkgs, !iconTarBuilt);
-            iconTarBuilt = true;
+            exportMetadata (suite, section, arch, pkgs);
 
             // we store the package info over all architectures to generate reports later
             sectionPkgs.reserve (sectionPkgs.capacity + pkgs.length);
@@ -866,6 +892,9 @@ public:
             // log progress
             logInfo ("Completed publishing of data for %s/%s [%s]", suite.name, section, arch);
         }
+
+        // export icons for the found packages in this section
+        exportIconTarballs (suite, section, sectionPkgs.data);
 
         // write reports & statistics and render HTML, if that option is selected
         reportgen.processFor (suite.name, section, sectionPkgs.data);
