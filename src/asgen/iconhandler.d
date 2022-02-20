@@ -39,7 +39,9 @@ alias AscUtils = ascompose.Utils.Utils;
 
 import ascompose.Image : Image;
 import ascompose.Canvas : Canvas;
-import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags;
+import ascompose.IconPolicy : IconPolicy;
+import ascompose.IconPolicyIter : IconPolicyIter;
+import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags, IconState;
 static import std.file;
 
 import asgen.utils;
@@ -47,7 +49,7 @@ import asgen.logging;
 import asgen.result;
 import asgen.backends.interfaces;
 import asgen.contentsstore;
-import asgen.config : Config, IconPolicy;
+import asgen.config : Config;
 
 
 // all image extensions that we recognize as possible for icons.
@@ -279,35 +281,49 @@ private:
     Package[string] iconFiles;
     string[] themeNames;
 
-    IconPolicy[] iconPolicy;
-    IconPolicy defaultIconPolicy;
+    IconPolicy iconPolicy;
+    ImageSize defaultIconSize;
+    IconState defaultIconState;
+    ImageSize[] enabledIconSizes;
 
     bool allowIconUpscaling;
     bool allowRemoteIcons;
 
 public:
 
-    this (ContentsStore ccache, string mediaPath, IconPolicy[] iconPolicy, Package[string] pkgMap, string iconTheme = null)
+    this (ContentsStore ccache,
+          const string mediaPath,
+          Package[string] pkgMap,
+          const string iconTheme = null)
     {
         logDebug ("Creating new IconHandler");
+        auto conf = Config.get;
 
         iconFiles.clear ();
         mediaExportPath = mediaPath;
-        this.iconPolicy = iconPolicy;
 
-        foreach (ref policy; iconPolicy) {
-            if (policy.iconSize == ImageSize (64)) {
-                defaultIconPolicy = policy;
+        iconPolicy = conf.iconPolicy;
+        defaultIconSize = ImageSize (64);
+
+        // sanity checks
+        auto policyIter = new IconPolicyIter;
+        policyIter.init (iconPolicy);
+        uint iconSize;
+        uint iconScale;
+        IconState iconState;
+        defaultIconState = IconState.IGNORE;
+        while (policyIter.next (iconSize, iconScale, iconState)) {
+            if (iconSize == defaultIconSize.width && iconScale == defaultIconSize.scale) {
+                defaultIconState = iconState;
                 break;
             }
         }
+        if (defaultIconState == IconState.IGNORE || defaultIconState == IconState.REMOTE_ONLY)
+            throw new Exception ("Default icon size '64x64' is set to ignore or remote-only. This is a bug in the generator or configuration file.");
 
-        // Sanity checks
-        if (defaultIconPolicy.iconSize != ImageSize (64))
-            throw new Exception ("Could not find default icon site '64x64' in icon policy list. This is a bug in the generator or configuration file.");
-        assert (defaultIconPolicy.storeCached == true);
+        // cache a list of enabled icon sizes
+        updateEnabledIconSizeList ();
 
-        auto conf = Config.get;
         allowIconUpscaling = conf.feature.allowIconUpscale;
 
         // we assume that when screenshot storage is permitted, remote icons are also okay
@@ -327,7 +343,7 @@ public:
         themeNames ~= "Adwaita";  // GNOME
         themeNames ~= "breeze";   // KDE
 
-        Package getPackage (string pkid)
+        Package getPackage (const string pkid)
         {
             if (pkid is null)
                 return null;
@@ -397,6 +413,19 @@ public:
         }
 
         logDebug ("Created new IconHandler.");
+    }
+
+    private void updateEnabledIconSizeList ()
+    {
+        enabledIconSizes = [];
+
+        auto policyIter = new IconPolicyIter;
+        policyIter.init (iconPolicy);
+        uint iconSizeInt;
+        uint iconScale;
+        IconState dummy;
+        while (policyIter.next (iconSizeInt, iconScale, dummy))
+            enabledIconSizes ~= ImageSize (iconSizeInt, iconSizeInt, iconScale);
     }
 
     private string getIconNameAndClear (Component cpt)
@@ -535,15 +564,16 @@ public:
      *      sourcePkg     = The package the to-be-extracted icon is located in.
      *      iconPath      = The (absolute) path to the icon.
      *      size          = The size the icon should be stored in.
+     *      targetState   = The target state of the new icon.
      **/
     private bool storeIcon (Component cpt,
                             ref GeneratorResult gres,
                             string cptExportPath,
                             Package sourcePkg,
                             string iconPath,
-                            IconPolicy policy)
+                            ImageSize size,
+                            IconState targetState)
     {
-        immutable size = policy.iconSize;
         auto iformat = AscUtils.imageFormatFromFilename (iconPath);
         if (iformat == ImageFormat.UNKNOWN) {
             gres.addHint (cpt.getId (), "icon-format-unsupported", ["icon_fname": baseName (iconPath)]);
@@ -565,7 +595,7 @@ public:
             // we already extracted that icon, skip the extraction step
             // and just add the new icon.
 
-            if (policy.storeCached) {
+            if (targetState != IconState.REMOTE_ONLY) {
                 auto icon = new Icon ();
                 icon.setKind (IconKind.CACHED);
                 icon.setWidth (size.width);
@@ -574,7 +604,7 @@ public:
                 icon.setName (iconName);
                 cpt.addIcon (icon);
             }
-            if (policy.storeRemote && allowRemoteIcons) {
+            if (targetState != IconState.CACHED_ONLY && allowRemoteIcons) {
                 immutable gcid = gres.gcidForComponent (cpt);
                 if (gcid is null) {
                     gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
@@ -690,7 +720,7 @@ public:
             }
         }
 
-        if (policy.storeCached) {
+        if (targetState != IconState.REMOTE_ONLY) {
             auto icon = new Icon ();
             icon.setKind (IconKind.CACHED);
             icon.setWidth (size.width);
@@ -699,7 +729,7 @@ public:
             icon.setName (iconName);
             cpt.addIcon (icon);
         }
-        if (policy.storeRemote && allowRemoteIcons) {
+        if (targetState != IconState.CACHED_ONLY && allowRemoteIcons) {
             immutable gcid = gres.gcidForComponent (cpt);
             if (gcid is null) {
                 gres.addHint (cpt, "internal-error", "No global ID could be found for the component, could not add remote icon.");
@@ -745,7 +775,7 @@ public:
             break;
         }
 
-        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconPolicy.iconSize)) {
+        if ((info.pkg is null) && (allowIconUpscaling) && (size == defaultIconSize)) {
             // no icon was found to downscale, but we allow upscaling, so try one last time
             // to find a suitable icon for at least the default AppStream icon size.
 
@@ -801,7 +831,13 @@ public:
             logDebug ("Looking for icon '%s' for '%s::%s' (path)", iconName, gres.pkid, cpt.getId);
 
             if (gres.pkg.contents.canFind (iconName))
-                return storeIcon (cpt, gres, cptMediaPath, gres.pkg, iconName, defaultIconPolicy);
+                return storeIcon (cpt,
+                                  gres,
+                                  cptMediaPath,
+                                  gres.pkg,
+                                  iconName,
+                                  defaultIconSize,
+                                  defaultIconState);
 
             // we couldn't find the absolute icon path
             gres.addHint (cpt.getId, "icon-not-found", ["icon_fname": iconName]);
@@ -822,13 +858,20 @@ public:
             /// last icon name that has been handled.
             bool findAndStoreXdgIcon (Package epkg = null)
             {
-                auto iconRes = findIcons (iconName, array(iconPolicy.map!(a => a.iconSize)), epkg);
+                auto iconRes = findIcons (iconName, enabledIconSizes, epkg);
                 if (iconRes.empty)
                     return false;
 
                 IconFindResult[ImageSize] iconsStored;
-                foreach (ref policy; iconPolicy) {
-                    immutable size = policy.iconSize;
+
+
+                auto policyIter = new IconPolicyIter;
+                policyIter.init (iconPolicy);
+                uint iconSizeInt;
+                uint iconScale;
+                IconState iconState;
+                while (policyIter.next (iconSizeInt, iconScale, iconState)) {
+                    immutable size = ImageSize (iconSizeInt, iconSizeInt, iconScale);
                     auto infoP = (size in iconRes);
 
                     IconFindResult info;
@@ -847,7 +890,7 @@ public:
 
                     lastIconName = info.fname;
                     if (iconAllowed (lastIconName)) {
-                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
+                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size, iconState))
                             iconsStored[size] = info;
                     } else {
                         // the found icon is not suitable, but maybe we can scale a differently sized icon to the right one?
@@ -856,7 +899,7 @@ public:
                             continue;
 
                         if (iconAllowed (info.fname)) {
-                            if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, policy))
+                            if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, size, iconState))
                                 iconsStored[size] = info;
                             lastIconName = info.fname;
                         }
@@ -877,16 +920,24 @@ public:
                     logDebug ("Found icon %s - %s in XDG directories, 64x64px size is present", gres.pkid, iconName);
                     return true;
                 } else {
-                    foreach (size; iconPolicy.map!(a => a.iconSize)) {
+                    foreach (const ref size; enabledIconSizes) {
                         if (size !in iconsStored)
                             continue;
-                        if (size < ImageSize(64))
+                        if (size < ImageSize (64))
                             continue;
-                        logInfo ("Downscaling icon %s - %s from %s to %s", gres.pkid, iconName, size, defaultIconPolicy.iconSize);
+                        logInfo ("Downscaling icon %s - %s from %s to %s",
+                                 gres.pkid, iconName, size, defaultIconSize);
                         auto info = iconsStored[size];
                         lastIconName = info.fname;
-                        if (storeIcon (cpt, gres, cptMediaPath, info.pkg, lastIconName, defaultIconPolicy))
+                        if (storeIcon (cpt,
+                                       gres,
+                                       cptMediaPath,
+                                       info.pkg,
+                                       lastIconName,
+                                       defaultIconSize,
+                                       defaultIconState)) {
                             return true;
+                        }
                     }
                 }
 

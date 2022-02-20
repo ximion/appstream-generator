@@ -18,7 +18,7 @@ src_dir = include_directories('src/')
 glib_dep       = dependency('glib-2.0', version: '>= 2.62')
 glibd_dep      = dependency('glibd-2.0')
 appstream_dep  = dependency('appstream', version : '>= 0.14.6')
-ascompose_dep  = dependency('appstream-compose', version : '>= 0.15.1')
+ascompose_dep  = dependency('appstream-compose', version : '>= 0.15.2')
 lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
 archive_dep    = dependency('libarchive', version : '>= 3.2')
 curl_dep       = dependency('libcurl')
@@ -34,7 +34,8 @@ message('Generating AppStream D interfaces from GIR...')
 girtod_gen = run_command(gir_to_d_prog,
                          '-i', gir_wrap_dir,
                          '-o', gir_d_intf_dir,
-                         '--print-files', 'relative,' + source_root)
+                         '--print-files', 'relative,' + source_root,
+                         check: false)
 if girtod_gen.returncode() != 0
     error('Unable to build D interfaces from GIR:\n' + girtod_gen.stderr())
 endif
@@ -56,7 +57,7 @@ if get_option('download-js')
     yarn_exe = find_program('/usr/share/yarn/bin/yarn', 'yarnpkg') # check for the yarn executable
     message('Downloading JavaScript libraries...')
     if run_command('[', '-d', 'data/templates/default/static/js', ']').returncode() != 0
-        getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh', yarn_exe])
+        getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh', yarn_exe], check: false)
         if getjs_cmd.returncode() != 0
             error('Unable to download JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
         endif

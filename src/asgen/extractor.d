@@ -28,7 +28,7 @@ import std.typecons : scoped;
 import appstream.Component;
 import appstream.Metadata;
 import ascompose.Hint : Hint;
-import ascompose.Compose : Compose, IconPolicy;
+import ascompose.Compose : Compose;
 import ascompose.Unit : Unit;
 import ascompose.c.types : ComposeFlags, AscResult, AscUnit;
 import glib.Bytes : Bytes;
@@ -121,22 +121,8 @@ public:
         else
             compose.removeFlags (ComposeFlags.ALLOW_SCREENCASTS);
 
-        // guess an icon policy that matches the user settings best
-        bool hasIconsRemote = false;
-        bool hasIconsCached = false;
-        foreach (const ref policy; conf.iconSettings) {
-            if (policy.storeCached)
-                hasIconsCached = true;
-            if (policy.storeRemote)
-                hasIconsRemote = true;
-            if (hasIconsRemote && hasIconsCached)
-                break;
-        }
-        compose.setIconPolicy (IconPolicy.BALANCED);
-        if (!hasIconsRemote && hasIconsCached)
-            compose.setIconPolicy (IconPolicy.ONLY_CACHED);
-        if (!hasIconsCached && hasIconsRemote)
-            compose.setIconPolicy (IconPolicy.ONLY_REMOTE);
+        // override icon policy with our own, possible user-modified one
+        compose.setIconPolicy (conf.iconPolicy);
 
         // register allowed custom keys with the composer
         foreach (const ref key; conf.allowedCustomKeys.byKey)

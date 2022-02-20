@@ -467,7 +467,10 @@ public:
      */
     private void exportIconTarballs (Suite suite, string section, Package[] pkgs)
     {
+        import ascompose.IconPolicyIter : IconPolicyIter;
+        import ascompose.c.types : IconState;
         import asgen.zarchive;
+        import asgen.utils : ImageSize;
 
         // determine data sources and destinations
         immutable dataExportDir = buildPath (conf.dataExportDir, suite.name, section);
@@ -479,12 +482,20 @@ public:
 
         // prepare icon-tarball array
         Appender!(string[])[string] iconTarFiles;
-        foreach (ref ipolicy; conf.iconSettings) {
-            if (!ipolicy.storeCached)
+
+        auto policyIter = new IconPolicyIter;
+        policyIter.init (conf.iconPolicy);
+        uint iconSizeInt;
+        uint iconScale;
+        IconState iconState;
+        while (policyIter.next (iconSizeInt, iconScale, iconState)) {
+            if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
                 continue; // we only want to create tarballs for cached icons
+
+            const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);
             auto ia = appender!(string[]);
             ia.reserve (256);
-            iconTarFiles[ipolicy.iconSize.toString] = ia;
+            iconTarFiles[iconSize.toString] = ia;
         }
 
         logInfo ("Creating icon tarballs for: %s/%s", suite.name, section);
@@ -494,12 +505,18 @@ public:
             auto gcids = dstore.getGCIDsForPackage (pkid);
             if (gcids is null)
                 continue;
+
+            // new iter for parallel processing
+            auto ipIter = new IconPolicyIter;
             foreach (ref gcid; gcids) {
                 // compile list of icon-tarball files
-                foreach (ref ipolicy; conf.iconSettings) {
-                    if (!ipolicy.storeCached)
+                ipIter.init (conf.iconPolicy);
+                while (ipIter.next (iconSizeInt, iconScale, iconState)) {
+                    if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
                         continue; // only add icon to cache tarball if we want a cache for the particular size
-                    immutable iconDir = buildPath (mediaExportDir, gcid, "icons", ipolicy.iconSize.toString);
+
+                    const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);
+                    immutable iconDir = buildPath (mediaExportDir, gcid, "icons", iconSize.toString);
 
                     // skip adding icon entries if we've already investigated this directory
                     synchronized {
@@ -512,20 +529,22 @@ public:
                     if (!std.file.exists (iconDir))
                         continue;
                     foreach (string path; std.file.dirEntries (iconDir, std.file.SpanMode.shallow, false))
-                        synchronized (this) iconTarFiles[ipolicy.iconSize.toString] ~= path;
+                        synchronized (this) iconTarFiles[iconSize.toString] ~= path;
 
                 }
             }
         }
 
         // create the icon tarballs
-        foreach (ref ipolicy; conf.iconSettings) {
-            if (!ipolicy.storeCached)
+        policyIter.init (conf.iconPolicy);
+        while (policyIter.next (iconSizeInt, iconScale, iconState)) {
+            if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
                 continue;
 
+            const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);
             auto iconTar = new ArchiveCompressor (ArchiveType.GZIP);
-            iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (ipolicy.iconSize.toString)));
-            auto iconFiles = iconTarFiles[ipolicy.iconSize.toString]
+            iconTar.open (buildPath (dataExportDir, "icons-%s.tar.gz".format (iconSize.toString)));
+            auto iconFiles = iconTarFiles[iconSize.toString]
                                 .data
                                 .sort!("a < b", SwapStrategy.stable);
             foreach (fname; iconFiles) {
@@ -658,7 +677,6 @@ public:
             auto pkgs = pkgIndex.packagesFor (suite.name, section, arch);
             auto iconh = new IconHandler (cstore,
                                           dstore.mediaExportPoolDir,
-                                          conf.iconSettings,
                                           getIconCandidatePackages (suite, section, arch),
                                           suite.iconTheme);
             processPackages (pkgs, iconh);
@@ -795,7 +813,6 @@ public:
             // process new packages
             auto iconh = new IconHandler (cstore,
                                           dstore.mediaExportPoolDir,
-                                          conf.iconSettings,
                                           getIconCandidatePackages (suite, sectionName, arch),
                                           suite.iconTheme);
             auto pkgsList = pkgs.data;

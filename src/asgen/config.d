@@ -29,6 +29,7 @@ import std.typecons;
 import std.file : getcwd, thisExePath, exists;
 
 import ascompose.Globals : Globals;
+import ascompose.IconPolicy : IconPolicy;
 public import appstream.c.types : FormatVersion;
 
 import asgen.utils : existsAndIsDir, randomString, ImageSize;
@@ -103,28 +104,6 @@ public immutable allowedIconSizes  = [ImageSize (48),  ImageSize (48, 48, 2),
                                       ImageSize (128), ImageSize (128, 128, 2)];
 
 /**
- * Policy on a single icon size.
- */
-struct IconPolicy
-{
-    ImageSize iconSize; /// Size of the icon this policy is about
-    bool storeCached;   /// True if the icon should be stored in an icon tarball and be cached locally.
-    bool storeRemote;   /// True if this icon should be stored remotely and fetched on demand
-
-    bool storeIcon () @property const
-    {
-        return storeCached || storeRemote;
-    }
-
-    this (ImageSize size, bool cached, bool remote)
-    {
-        iconSize = size;
-        storeCached = cached;
-        storeRemote = remote;
-    }
-}
-
-/**
  * The global configuration for the metadata generator.
  */
 final class Config
@@ -153,6 +132,9 @@ private:
         // paths being set even if a particular feature flag that requires them isn't.
         optipngBinary = Globals.optipngBinary;
         ffprobeBinary = Util.findProgramInPath ("ffprobe");
+
+        // new default icon policy instance
+        iconPolicy = new IconPolicy;
     }
 
 public:
@@ -181,7 +163,7 @@ public:
 
     long maxScrFileSize;
 
-    IconPolicy[] iconSettings;
+    IconPolicy iconPolicy;
 
     string caInfo;
 
@@ -476,62 +458,48 @@ public:
         // icon policy
         if ("Icons" in root.object) {
             import std.algorithm : canFind;
+            import ascompose.c.types : IconState;
 
-            iconSettings.reserve (4);
             auto iconsObj = root["Icons"].object;
             foreach (iconString; iconsObj.byKey) {
                 auto iconObj = iconsObj[iconString];
 
-                IconPolicy ipolicy;
-                ipolicy.iconSize = ImageSize (iconString);
-                if (!allowedIconSizes.canFind (ipolicy.iconSize)) {
+                immutable iconSize = ImageSize (iconString);
+                if (!allowedIconSizes.canFind (iconSize)) {
                     logError ("Invalid icon size '%s' selected in configuration, icon policy has been ignored.", iconString);
                     continue;
                 }
-                if (ipolicy.iconSize.width < 0) {
+                if (iconSize.width < 0) {
                     logError ("Malformed icon size '%s' found in configuration, icon policy has been ignored.", iconString);
                     continue;
                 }
 
+                bool storeRemote = false;
+                bool storeCached = false;
                 if ("remote" in iconObj)
-                    ipolicy.storeRemote = iconObj["remote"].type == JSONType.true_;
+                    storeRemote = iconObj["remote"].type == JSONType.true_;
                 if ("cached" in iconObj)
-                    ipolicy.storeCached = iconObj["cached"].type == JSONType.true_;
+                    storeCached = iconObj["cached"].type == JSONType.true_;
 
-                if (ipolicy.storeIcon)
-                    iconSettings ~= ipolicy;
-            }
+                IconState istate = IconState.IGNORE;
+                if (storeRemote && storeCached)
+                    istate = IconState.CACHED_REMOTE;
+                else if (storeRemote)
+                    istate = IconState.REMOTE_ONLY;
+                else if (storeCached)
+                    istate = IconState.CACHED_ONLY;
 
-            // Sanity check
-            bool defaultSizeFound = false;
-            foreach (ref ipolicy; iconSettings) {
-                if (ipolicy.iconSize == ImageSize (64)) {
-                    defaultSizeFound = true;
-                    if (!ipolicy.storeCached) {
-                        logError ("The icon size 64x64 must always be present and be allowed to be cached. Configuration has been adjusted.");
-                        ipolicy.storeCached = true;
-                        break;
+                // sanity check
+                if (iconSize == ImageSize (64)) {
+                    if (!storeCached) {
+                        logError ("The icon size 64x64 must always be present and be allowed to be cached. Ignored user configuration.");
+                        continue;
                     }
                 }
-            }
-            if (!defaultSizeFound) {
-                logError ("The icon size 64x64 must always be present and be allowed to be cached. Configuration has been adjusted.");
-                IconPolicy ipolicy;
-                ipolicy.iconSize = ImageSize (64);
-                ipolicy.storeCached = true;
-                iconSettings ~= ipolicy;
-            }
 
-        } else {
-            // no explicit icon policy was given, so we use a default policy
-
-            iconSettings.reserve (6);
-            iconSettings ~= IconPolicy (ImageSize (48), true, false);
-            iconSettings ~= IconPolicy (ImageSize (48, 48, 2), true, false);
-            iconSettings ~= IconPolicy (ImageSize (64), true, false);
-            iconSettings ~= IconPolicy (ImageSize (64, 64, 2), true, false);
-            iconSettings ~= IconPolicy (ImageSize (128), true, true);
-            iconSettings ~= IconPolicy (ImageSize (128, 128, 2), true, true);
+                // set new policy, overriding existing one
+                iconPolicy.setPolicy(iconSize.width, iconSize.scale, istate);
+            }
         }
 
         this.maxScrFileSize = 14; // 14MiB is the default maximum size

@@ -48,3 +48,14 @@ struct: Result
 class: Result
 move: add_hint_v Result addHint
 move: add_hint_by_cid_v Result addHintByCid
+
+struct: IconPolicyIter
+code: start
+    /**
+	 * Creates a new policy iterator.
+	 */
+	this()
+	{
+		this(new AscIconPolicyIter);
+	}
+code: end
