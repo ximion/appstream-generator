@@ -50,6 +50,9 @@ jobs:
     - name: Create Build Environment
       run: sudo ./tests/ci/install-deps-deb.sh
 
+    - name: Update Meson
+      run: sudo pip3 install 'meson~=0.56'
+
     - name: Make & Install 3rd-party
       run: sudo ./tests/ci/ci-install-extern.sh
 
