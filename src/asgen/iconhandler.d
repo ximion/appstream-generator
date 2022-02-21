@@ -311,14 +311,14 @@ public:
         uint iconSize;
         uint iconScale;
         IconState iconState;
-        defaultIconState = IconState.IGNORE;
+        defaultIconState = IconState.IGNORED;
         while (policyIter.next (iconSize, iconScale, iconState)) {
             if (iconSize == defaultIconSize.width && iconScale == defaultIconSize.scale) {
                 defaultIconState = iconState;
                 break;
             }
         }
-        if (defaultIconState == IconState.IGNORE || defaultIconState == IconState.REMOTE_ONLY)
+        if (defaultIconState == IconState.IGNORED || defaultIconState == IconState.REMOTE_ONLY)
             throw new Exception ("Default icon size '64x64' is set to ignore or remote-only. This is a bug in the generator or configuration file.");
 
         // cache a list of enabled icon sizes

@@ -489,7 +489,7 @@ public:
         uint iconScale;
         IconState iconState;
         while (policyIter.next (iconSizeInt, iconScale, iconState)) {
-            if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
+            if (iconState == IconState.IGNORED || iconState == IconState.REMOTE_ONLY)
                 continue; // we only want to create tarballs for cached icons
 
             const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);
@@ -512,7 +512,7 @@ public:
                 // compile list of icon-tarball files
                 ipIter.init (conf.iconPolicy);
                 while (ipIter.next (iconSizeInt, iconScale, iconState)) {
-                    if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
+                    if (iconState == IconState.IGNORED || iconState == IconState.REMOTE_ONLY)
                         continue; // only add icon to cache tarball if we want a cache for the particular size
 
                     const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);
@@ -538,7 +538,7 @@ public:
         // create the icon tarballs
         policyIter.init (conf.iconPolicy);
         while (policyIter.next (iconSizeInt, iconScale, iconState)) {
-            if (iconState == IconState.IGNORE || iconState == IconState.REMOTE_ONLY)
+            if (iconState == IconState.IGNORED || iconState == IconState.REMOTE_ONLY)
                 continue;
 
             const iconSize = ImageSize (iconSizeInt, iconSizeInt, iconScale);

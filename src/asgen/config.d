@@ -481,7 +481,7 @@ public:
                 if ("cached" in iconObj)
                     storeCached = iconObj["cached"].type == JSONType.true_;
 
-                IconState istate = IconState.IGNORE;
+                IconState istate = IconState.IGNORED;
                 if (storeRemote && storeCached)
                     istate = IconState.CACHED_REMOTE;
                 else if (storeRemote)
