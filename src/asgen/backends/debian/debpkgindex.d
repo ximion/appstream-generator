@@ -351,6 +351,7 @@ public:
     final bool hasChanges (DataStore dstore, string suite, string section, string arch)
     {
         import std.json;
+        import std.datetime : SysTime;
 
         auto indexFname = getIndexFile (suite, section, arch);
         // if the file doesn't exit, we will emit a warning later anyway, so we just ignore this here
@@ -361,8 +362,8 @@ public:
         if (indexFname in indexChanged)
             return indexChanged[indexFname];
 
-        std.datetime.SysTime mtime;
-        std.datetime.SysTime atime;
+        SysTime mtime;
+        SysTime atime;
         std.file.getTimes (indexFname, atime, mtime);
         auto currentTime = mtime.toUnixTime ();
 
