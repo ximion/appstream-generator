@@ -104,4 +104,5 @@ asgen_test_exe = executable('asgen_test',
 )
 test('asgen_tests',
       asgen_test_exe,
-      workdir: meson.source_root())
+      workdir: source_root
+)

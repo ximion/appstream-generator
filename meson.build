@@ -1,5 +1,5 @@
 project('AppStream Generator', 'd',
-    meson_version : '>=0.46',
+    meson_version : '>=0.56',
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',
     version : '0.8.7'
@@ -7,8 +7,10 @@ project('AppStream Generator', 'd',
 
 asgen_version = meson.project_version()
 
-source_root = meson.source_root()
-build_root = meson.build_root()
+source_root = meson.project_source_root()
+build_root = meson.project_build_root()
+
+fs = import('fs')
 
 #
 # Dependencies
@@ -55,8 +57,8 @@ girbind_lib = static_library('girbindings',
 #
 if get_option('download-js')
     yarn_exe = find_program('/usr/share/yarn/bin/yarn', 'yarnpkg') # check for the yarn executable
-    message('Downloading JavaScript libraries...')
-    if run_command('[', '-d', 'data/templates/default/static/js', ']').returncode() != 0
+    if not fs.is_dir(source_root / 'data' / 'templates' / 'default' / 'static' / 'js')
+        message('Downloading JavaScript libraries...')
         getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh', yarn_exe], check: false)
         if getjs_cmd.returncode() != 0
             error('Unable to download JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
