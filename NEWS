@@ -1,3 +1,14 @@
+Version 0.8.7
+~~~~~~~~~~~~~~
+Released: 2022-02-22
+
+Bugfixes:
+ * Fix build on 32-bit architectures
+ * Set CAInfo on compose instance as well
+ * Don't unlink components of fake packages
+ * Process icons by suite/section across all architectures
+ * Fix a bunch of Meson and D deprecation warnings
+
 Version 0.8.6
 ~~~~~~~~~~~~~~
 Released: 2021-12-22
