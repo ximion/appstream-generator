@@ -394,13 +394,17 @@ public:
         import core.sys.posix.sys.stat;
         import std.path;
 
+        // we set a high fiber stack size, because having a lower size
+        // may make functions crash that need a bigger stack (and libarchive
+        // might do that). See https://github.com/ximion/appstream-generator/issues/101
+        const size_t fiberStackSize = 65536;
+
         auto gen = new Generator!ArchiveEntry (
         {
-            archive_entry *en;
-
             auto ar = openArchive ();
             scope (exit) archive_read_free (ar);
 
+            archive_entry *en;
             while (archive_read_next_header (ar, &en) == ARCHIVE_OK) {
                 auto pathname = fromStringz (archive_entry_pathname (en));
 
@@ -436,7 +440,7 @@ public:
                 aentry.data = this.readEntry (ar);
                 yield (aentry);
             }
-        });
+        }, fiberStackSize);
 
         return gen;
     }
