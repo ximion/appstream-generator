@@ -157,7 +157,7 @@ unittest
     auto res = new GeneratorResult (pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    res.addHint ("org.freedesktop.foobar.desktop", "desktop-file-hidden-set", vars);
+    res.addHint ("org.freedesktop.foobar.desktop", "desktop-entry-hidden-set", vars);
     res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-validation-error", "Nothing is good without chocolate. Add some.");
     res.addHint ("org.freedesktop.awesome-bar.desktop", "screenshot-video-check-failed", "Frobnicate functionality is missing.");
 
