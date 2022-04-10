@@ -2,7 +2,7 @@ project('AppStream Generator', 'd',
     meson_version : '>=0.56',
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',
-    version : '0.8.8'
+    version : '0.8.9'
 )
 
 asgen_version = meson.project_version()
@@ -19,7 +19,7 @@ src_dir = include_directories('src/')
 
 glib_dep       = dependency('glib-2.0', version: '>= 2.62')
 glibd_dep      = dependency('glibd-2.0')
-appstream_dep  = dependency('appstream', version : '>= 0.14.6')
+appstream_dep  = dependency('appstream', version : '>= 0.15.2')
 ascompose_dep  = dependency('appstream-compose', version : '>= 0.15.2')
 lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
 archive_dep    = dependency('libarchive', version : '>= 3.2')
