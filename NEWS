@@ -1,3 +1,13 @@
+Version 0.8.8
+~~~~~~~~~~~~~~
+Released: 2022-04-10
+
+Bugfixes:
+ * Use higher stack size for archive read generator
+
+Contributors:
+ Matthias Klumpp
+
 Version 0.8.7
 ~~~~~~~~~~~~~~
 Released: 2022-02-22
