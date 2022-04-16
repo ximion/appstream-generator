@@ -5,9 +5,6 @@
 set -e
 set -x
 
-# Install rpmfusion repositories
-dnf --assumeyes --quiet install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm --eval %fedora).noarch.rpm
-
 # update caches
 dnf makecache
 
