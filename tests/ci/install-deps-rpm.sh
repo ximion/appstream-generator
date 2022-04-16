@@ -53,6 +53,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     xmlto \
     itstool \
     diffutils \
+    /usr/bin/ffmpeg \
     /usr/bin/node \
     /usr/bin/xsltproc \
     /usr/bin/yarnpkg
