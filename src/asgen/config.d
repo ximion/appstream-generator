@@ -337,11 +337,6 @@ public:
         if ("ExtraMetainfoDir" in root)
             extraMetainfoDir = root["ExtraMetainfoDir"].str;
 
-        this.metadataType = DataType.XML;
-        if ("MetadataType" in root)
-            if (root["MetadataType"].str.toLower == "yaml")
-                this.metadataType = DataType.YAML;
-
         if ("CAInfo" in root)
             this.caInfo = root["CAInfo"].str;
 
@@ -372,6 +367,7 @@ public:
         }
 
         // we default to the Debian backend for now
+        this.metadataType = DataType.XML;
         auto backendId = "debian";
         if ("Backend" in root)
             backendId = root["Backend"].str.toLower;
@@ -412,6 +408,18 @@ public:
                 break;
         }
 
+        // override the backend's default metadata type if requested by user
+        if ("MetadataType" in root) {
+            immutable mdataTypeStr = root["MetadataType"].str.toLower;
+            if (mdataTypeStr == "yaml")
+                this.metadataType = DataType.YAML;
+            else if (mdataTypeStr == "xml")
+                this.metadataType = DataType.XML;
+            else
+                logError("Invalid value '%s' for MetadataType setting.", mdataTypeStr);
+        }
+
+        // suite selections
         auto hasImmutableSuites = false;
         foreach (suiteName; root["Suites"].object.byKey) {
             Suite suite;
