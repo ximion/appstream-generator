@@ -14,7 +14,7 @@ An example `asgen-config.json` file may look like this:
 "Backend": "debian",
 "Features":
   {
-    "validateMetainfo": true
+    "processDesktop": true
   },
 "Suites":
   {
