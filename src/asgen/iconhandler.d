@@ -327,6 +327,7 @@ public:
         allowIconUpscaling = conf.feature.allowIconUpscale;
 
         // we assume that when screenshot storage is permitted, remote icons are also okay
+        // (only then we can actually use the global media_baseurl, if set)
         allowRemoteIcons = conf.feature.storeScreenshots && !conf.mediaBaseUrl.empty;
 
         // Preseeded theme names.

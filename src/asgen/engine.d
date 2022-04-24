@@ -309,12 +309,13 @@ public:
             mediaPoolUrl = buildPath (conf.mediaBaseUrl, suite.name);
         }
 
+        immutable mediaBaseUrlAllowed = !conf.mediaBaseUrl.empty && conf.feature.storeScreenshots;
         if (conf.metadataType == DataType.XML) {
             head = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
             head ~= format ("<components version=\"%s\" origin=\"%s\"", conf.formatVersionStr, origin);
             if (suite.dataPriority != 0)
                 head ~= format (" priority=\"%s\"", suite.dataPriority);
-            if (!conf.mediaBaseUrl.empty ())
+            if (mediaBaseUrlAllowed)
                 head ~= format (" media_baseurl=\"%s\"", mediaPoolUrl);
             if (conf.feature.metadataTimestamps)
                 head ~= format (" time=\"%s\"", timeStr);
@@ -326,7 +327,7 @@ public:
                             "Origin: %s",
                             conf.formatVersionStr,
                             origin);
-            if (!conf.mediaBaseUrl.empty ())
+            if (mediaBaseUrlAllowed)
                 head ~= format ("\nMediaBaseUrl: %s", mediaPoolUrl);
             if (suite.dataPriority != 0)
                 head ~= format ("\nPriority: %s", suite.dataPriority);

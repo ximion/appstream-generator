@@ -116,17 +116,32 @@ public:
         else
             compose.removeFlags (ComposeFlags.PROCESS_FONTS);
 
+        if (conf.feature.storeScreenshots)
+            compose.addFlags (ComposeFlags.STORE_SCREENSHOTS);
+        else
+            compose.removeFlags (ComposeFlags.STORE_SCREENSHOTS);
+
         if (conf.feature.screenshotVideos)
             compose.addFlags (ComposeFlags.ALLOW_SCREENCASTS);
         else
             compose.removeFlags (ComposeFlags.ALLOW_SCREENCASTS);
 
+        if (conf.feature.propagateMetaInfoArtifacts)
+            compose.addFlags (ComposeFlags.PROPAGATE_ARTIFACTS);
+        else
+            compose.removeFlags (ComposeFlags.PROPAGATE_ARTIFACTS);
+
         // override icon policy with our own, possible user-modified one
         compose.setIconPolicy (conf.iconPolicy);
 
         // register allowed custom keys with the composer
-        foreach (const ref key; conf.allowedCustomKeys.byKey)
-            compose.addCustomAllowed (key);
+        if (!conf.allowedCustomKeys.empty) {
+            compose.addFlags (ComposeFlags.PROPAGATE_CUSTOM);
+            foreach (const ref key; conf.allowedCustomKeys.byKey)
+                compose.addCustomAllowed (key);
+        } else {
+            compose.removeFlags (ComposeFlags.PROPAGATE_CUSTOM);
+        }
     }
 
     /**
