@@ -39,6 +39,18 @@ An example `asgen-config.json` file may look like this:
 }
 ```
 
+Note that this example assume that your packages are located in directories
+```
+/srv/archive.tanglu.org/tanglu/
+└── chromodoris
+    ├── contrib
+    │   ├── amd64
+    │   └── i386
+    └── main
+        ├── amd64
+        └── i386
+```
+
 ## Description of fields
 
 ### Toplevel fields
