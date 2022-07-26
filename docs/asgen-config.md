@@ -46,7 +46,7 @@ An example `asgen-config.json` file may look like this:
 Key | Comment
 ------------ | -------------
 ProjectName | The name of your project or distribution which ships AppStream metadata.
-Backend | The backend that should be used to obtain the raw data. Defaults to `debian` if not set.
+Backend | The backend that should be used to obtain the raw data.  Options are: `alpinelinux`, `archlinux`, `debian`, `dummy`, `rpmmd`, `ubuntu`. Defaults to `debian` if not set.
 MetadataType | The type of the resulting AppStream metadata. Can be one of `YAML` or `XML`. If omitted, the backend's default value is used.
 ArchiveRoot | A local URL to the mirror of your archive, containing the dists/ and pool/ directories
 MediaBaseUrl | The http or https URL which should be used in the generated metadata to fetch media like screenshots or icons
