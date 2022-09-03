@@ -42,10 +42,10 @@ eatmydata apt-get install -yq --no-install-recommends \
 
 eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
-    libglibd-2.0-dev \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev
+eatmydata apt-get install -yq libglibd-2.0-dev || true
 
 . /etc/os-release
 if [ "$ID" = "ubuntu" ]; then
