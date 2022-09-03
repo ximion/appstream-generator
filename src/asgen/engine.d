@@ -39,6 +39,7 @@ import asgen.result;
 import asgen.hint;
 import asgen.reportgenerator;
 import asgen.localeunit : LocaleUnit;
+import asgen.cptmodifiers : InjectedModifications;
 import asgen.utils : copyDir, stringArrayToByteArray, getCidFromGlobalID;
 
 import asgen.backends.interfaces;
@@ -144,10 +145,11 @@ public:
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
      */
-    private void processPackages (ref Package[] pkgs, IconHandler iconh)
+    private void processPackages (ref Package[] pkgs, IconHandler iconh, InjectedModifications injMods)
     {
         import std.range : chunks;
         import glib.Thread : Thread;
+
         auto localeUnit = new LocaleUnit (cstore, pkgs);
 
         size_t chunkSize = pkgs.length / Thread.getNumProcessors () / 10;
@@ -158,7 +160,10 @@ public:
         logDebug ("Analyzing %s packages in batches of %s", pkgs.length, chunkSize);
 
         foreach (pkgsChunk; parallel (pkgs.chunks (chunkSize), 1)) {
-            auto mde = new DataExtractor (dstore, iconh, localeUnit);
+            auto mde = new DataExtractor (dstore,
+                                          iconh,
+                                          localeUnit,
+                                          injMods);
 
             foreach (ref pkg; pkgsChunk) {
                 immutable pkid = pkg.id;
@@ -585,52 +590,27 @@ public:
     }
 
     /**
-     * Read a dedicated JSON file which contains information on which components
-     * to remove from preexisting metadata.
-     */
-    private void readRemovedComponentsInfo (string metainfoDir, ref GeneratorResult gres)
-    {
-        import std.json : parseJSON;
-        import std.stdio : File;
-
-        immutable fname = buildPath (metainfoDir, "removed-components.json");
-        if (!std.file.exists (fname))
-            return;
-
-        auto f = File (fname, "r");
-        string jsonData;
-        string line;
-        while ((line = f.readln ()) !is null)
-            jsonData ~= line;
-
-        auto jroot = parseJSON (jsonData);
-        foreach (jCid; jroot.array) {
-            immutable cid = jCid.str;
-
-            auto cpt = new Component;
-            cpt.setKind (ComponentKind.GENERIC);
-            cpt.setMergeKind (MergeKind.REMOVE_COMPONENT);
-            cpt.setId (cid);
-
-            gres.addComponentWithString (cpt, metainfoDir ~ "/-" ~ cid);
-        }
-    }
-
-    /**
      * Read metainfo and auxiliary data injected by the person running the data generator.
      */
-    private Package processExtraMetainfoData (Suite suite, IconHandler iconh, const string section, const string arch)
+    private Package processExtraMetainfoData (Suite suite,
+                                              IconHandler iconh,
+                                              const string section,
+                                              const string arch,
+                                              InjectedModifications injMods)
     {
         import asgen.datainjectpkg : DataInjectPackage;
         import asgen.utils : existsAndIsDir;
 
-        if (suite.extraMetainfoDir is null)
+        if (suite.extraMetainfoDir is null && !injMods.hasRemovedComponents)
             return null;
 
         immutable extraMIDir = buildNormalizedPath (suite.extraMetainfoDir, section);
         immutable archExtraMIDir = buildNormalizedPath (extraMIDir, arch);
 
-        logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
+        if (suite.extraMetainfoDir is null)
+            logInfo ("Injecting component removal requests for %s/%s/%s", suite.name, section, arch);
+        else
+            logInfo ("Loading additional metainfo from local directory for %s/%s/%s", suite.name, section, arch);
 
         // we create a dummy package to hold information for the injected components
         auto diPkg = new DataInjectPackage (EXTRA_METAINFO_FAKE_PKGNAME, arch);
@@ -644,8 +624,11 @@ public:
         dstore.removePackage (diPkg.id);
 
         // analyze our dummy package just like all other packages
-        auto mde = new DataExtractor (dstore, iconh, null);
+        auto mde = new DataExtractor (dstore, iconh, null, null);
         auto gres = mde.processPackage (diPkg);
+
+        // add removal requests, as we can remove packages from frozen suites via overlays
+        injMods.addRemovalRequestsToResult (gres);
 
         // write resulting data into the database
         dstore.addGeneratorResult (this.conf.metadataType, gres, true);
@@ -662,6 +645,15 @@ public:
         if (reportgen is null)
             reportgen = new ReportGenerator (dstore);
 
+        // load repo-level modifications
+        auto injMods = new InjectedModifications;
+        try {
+            injMods.loadForSuite (suite);
+        } catch (Exception e) {
+            throw new Exception (format ("Unable to read modifications.json for suite %s: %s", suite.name, e.msg));
+        }
+
+        // process packages by architecture
         auto sectionPkgs = appender!(Package[]);
         auto suiteDataChanged = false;
         foreach (ref arch; suite.architectures) {
@@ -680,10 +672,10 @@ public:
                                           dstore.mediaExportPoolDir,
                                           getIconCandidatePackages (suite, section, arch),
                                           suite.iconTheme);
-            processPackages (pkgs, iconh);
+            processPackages (pkgs, iconh, injMods);
 
             // read injected data and add it to the database as a fake package
-            auto fakePkg = processExtraMetainfoData (suite, iconh, section, arch);
+            auto fakePkg = processExtraMetainfoData (suite, iconh, section, arch, injMods);
             if (fakePkg !is null)
                 pkgs ~= fakePkg;
 
@@ -702,7 +694,7 @@ public:
             gcCollect ();
         }
 
-
+        // finalize
         if (suiteDataChanged) {
             // export icons for the found packages in this section
             exportIconTarballs (suite, section, sectionPkgs.data);
@@ -817,7 +809,7 @@ public:
                                           getIconCandidatePackages (suite, sectionName, arch),
                                           suite.iconTheme);
             auto pkgsList = pkgs.data;
-            processPackages (pkgsList, iconh);
+            processPackages (pkgsList, iconh, null);
         }
 
         return true;

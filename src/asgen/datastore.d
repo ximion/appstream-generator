@@ -72,7 +72,7 @@ public:
     this ()
     {
         opened = false;
-        mdata = new Metadata ();
+        mdata = new Metadata;
         mdata.setLocale ("ALL");
         mdata.setFormatVersion (Config.get ().formatVersion);
         mdata.setWriteHeader(false);

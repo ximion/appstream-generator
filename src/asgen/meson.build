@@ -18,6 +18,7 @@ asgen_sources = [
     'bindings/lmdb.d',
     'config.d',
     'contentsstore.d',
+    'cptmodifiers.d',
     'datainjectpkg.d',
     'datastore.d',
     'downloader.d',

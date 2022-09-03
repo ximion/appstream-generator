@@ -1,0 +1,9 @@
+{
+  "Remove": [
+    "com.example.removed"
+  ],
+
+  "InjectCustom": {
+    "org.example.newdata": {"earth": "moon", "mars": "phobos", "saturn": "thrym"}
+  }
+}

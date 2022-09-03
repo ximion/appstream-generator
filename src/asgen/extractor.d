@@ -44,6 +44,7 @@ import asgen.iconhandler : IconHandler;
 import asgen.utils : componentGetRawIcon, toStaticGBytes;
 import asgen.packageunit : PackageUnit;
 import asgen.localeunit : LocaleUnit;
+import asgen.cptmodifiers : InjectedModifications;
 
 
 final class DataExtractor
@@ -58,10 +59,14 @@ private:
 
     IconHandler iconh;
     LocaleUnit l10nUnit;
+    InjectedModifications modInj;
 
 public:
 
-    this (DataStore db, IconHandler iconHandler, LocaleUnit localeUnit)
+    this (DataStore db,
+         IconHandler iconHandler,
+         LocaleUnit localeUnit,
+         InjectedModifications modInjInfo = null)
     {
         import std.conv : to;
 
@@ -70,6 +75,7 @@ public:
         conf = Config.get ();
         dtype = conf.metadataType;
         l10nUnit = localeUnit;
+        modInj = modInjInfo;
 
         compose = new Compose;
         //compose.setPrefix ("/usr");
@@ -341,6 +347,22 @@ public:
         for (uint i = 0; i < cptsPtrArray.len; i++) {
             auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
             immutable ckind = cpt.getKind;
+            immutable cid = cpt.getId;
+
+            if (modInj !is null) {
+                // drop component that the repository owner wants to remove
+                if (modInj.isComponentRemoved (cid)) {
+                    gres.removeComponent (cpt);
+                    continue;
+                }
+
+                // inject custom fields from the repository owner, if we have any
+                auto injectedCustom = modInj.injectedCustomData (cid);
+                if (!injectedCustom.isNull) {
+                    foreach (ref ckv; injectedCustom.get.byKeyValue)
+                        cpt.insertCustomValue (ckv.key, ckv.value);
+                }
+            }
 
             if (cpt.getMergeKind != MergeKind.NONE)
                 continue;
