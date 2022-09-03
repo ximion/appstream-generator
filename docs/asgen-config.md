@@ -146,7 +146,8 @@ Example `modifications.json` file:
 }
 ```
 
-Internally, injected metainfo data is grouped under a special fake package name, in order to allow the generator to properly record hints for the added components and to associate the data with the right suite(s).
+Internally, injected metainfo data is grouped under a special fake package name, in order to allow the generator to properly
+record hints for the added components and to associate the data with the right suite(s).
 
 ## Minimal configuration file
 
