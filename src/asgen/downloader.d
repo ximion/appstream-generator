@@ -155,12 +155,12 @@ public:
         return ret;
     }
 
-    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 3) @trusted
+    immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 4) @trusted
     {
         return downloadInternal (url, dFile, maxTryCount);
     }
 
-    immutable(ubyte[]) download (const string url, const uint maxTryCount = 3) @trusted
+    immutable(ubyte[]) download (const string url, const uint maxTryCount = 4) @trusted
     {
         import core.stdc.stdlib : free;
         import core.sys.posix.stdio : fclose, open_memstream;
@@ -187,7 +187,7 @@ public:
      *      dest = The location for the downloaded file.
      *      maxTryCount = Number of times to attempt the download.
      */
-    void downloadFile (const string url, const string dest, const uint maxTryCount = 3) @trusted
+    void downloadFile (const string url, const string dest, const uint maxTryCount = 4) @trusted
     in  { assert (url.isRemote); }
     out { assert (std.file.exists (dest)); }
     do
@@ -219,7 +219,7 @@ public:
      *      url = The URL to download.
      *      maxTryCount = Number of times to retry on timeout.
      */
-    string downloadText (const string url, const uint maxTryCount = 3) @trusted
+    string downloadText (const string url, const uint maxTryCount = 4) @trusted
     {
         const data = download (url, maxTryCount);
         return (cast(char[])data).to!string;
@@ -232,7 +232,7 @@ public:
      *      url = The URL to download.
      *      maxTryCount = Number of times to retry on timeout.
      */
-    string[] downloadTextLines (const string url, const uint maxTryCount = 3) @trusted
+    string[] downloadTextLines (const string url, const uint maxTryCount = 4) @trusted
     {
         import std.string : splitLines;
         return downloadText (url, maxTryCount).splitLines;
