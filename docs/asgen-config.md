@@ -5,34 +5,29 @@ This document describes the options and fields which can be set in an `asgen-con
 ## JSON file example
 
 An example `asgen-config.json` file may look like this:
-```JSON
+```json
 {
-"ProjectName": "Tanglu",
-"ArchiveRoot": "/srv/archive.tanglu.org/tanglu/",
-"MediaBaseUrl": "http://metadata.tanglu.org/appstream/media",
-"HtmlBaseUrl": "http://metadata.tanglu.org/appstream/",
-"Backend": "debian",
-"Features":
-  {
+  "ProjectName": "Tanglu",
+  "ArchiveRoot": "/srv/archive.tanglu.org/tanglu/",
+  "MediaBaseUrl": "http://metadata.tanglu.org/appstream/media",
+  "HtmlBaseUrl": "http://metadata.tanglu.org/appstream/",
+  "Backend": "debian",
+  "Features": {
     "processDesktop": true
   },
-"Suites":
-  {
-    "chromodoris":
-      {
-        "sections": ["main", "contrib"],
-        "architectures": ["amd64", "i386"]
-      },
-    "chromodoris-updates":
-        {
-          "dataPriority": 10,
-          "baseSuite": "chromodoris",
-          "sections": ["main", "contrib"],
-          "architectures": ["amd64", "i386"]
-        }
+  "Suites": {
+    "chromodoris": {
+      "sections": ["main", "contrib"],
+      "architectures": ["amd64", "i386"]
+    },
+    "chromodoris-updates": {
+      "dataPriority": 10,
+      "baseSuite": "chromodoris",
+      "sections": ["main", "contrib"],
+      "architectures": ["amd64", "i386"]
+    }
   },
- "Icons":
-  {
+  "Icons": {
     "64x64":   {"cached": true, "remote": false},
     "128x128": {"cached": false, "remote": true}
   }
@@ -115,25 +110,48 @@ propagateMetaInfoArtifacts | Release artifact information is filtered out by def
 The `Icons` field allows to customize the icon policy used for a generator run. It decides which icon sizes are extracted, and whether they are stored as cached icon, remote icons or both.
 The field contains a dictionary with icon sizes as keys. Valid icon sizes are `48x48`, `64x64` and `128x128` and their HiDPI variants (e.g. `64x64@2`).
 The values for the icon-size keys are dictionaries with two boolean keys, `cached` and `remote`, to select the storage method for the icon size.
-Cached means an icon tarball is generated for the icon size that can be made available locally, while remote means the icon can be downloaded on-demand by the software center and no local cache of all icons exists. Icon sizes not mentioned, or with both `cached` and `remote` set to `false` will not be extracted.
+Cached means an icon tarball is generated for the icon size that can be made available locally, while remote means the icon can be downloaded on-demand by the software center and no local
+cache of all icons exists. Icon sizes not mentioned, or with both `cached` and `remote` set to `false` will not be extracted.
 The `64x64` icon size must always be present and be cached. If this is not the case, appstream-generator will adjust the configuration internally and emit a warning.
 If no `Icons` field is present, appstream-generator will use a default policy for icons (creating cache tarballs for all sizes, and remote links for sizes >= 129x128px).
 
 ## Injecting extra metainfo / removing components
 
-Sometimes injecting metainfo files directly into the generation process instead of packaging them makes sense. This can be done for example for `web-application` components, `operating-system` components or for components which are merged into others. It is discouraged to use this feature for any components that are directly tied to a package.
-Metainfo XML files can be placed in `%ExtraMetainfoDir%/suite/section/(arch)`, where `%ExtraMetainfoDir%` usually is the `extra-metainfo` directory in the generator's current workspace, unless this default is overriden in the configuration file.
-If the `arch` part of the path is omitted, a metainfo file is added to all active architectures. E.g. a XML file placed in `%ExtraMetainfoDir%/buster/main/` will apply to all active architectures for `buster`, while files in `%ExtraMetainfoDir%/buster/main/amd64/` will only apply to the `amd64` architecture.
+Sometimes injecting metainfo files directly into the generation process instead of packaging them makes sense. This can be done for example for `web-application` components, `operating-system` components
+or for components which are merged into others. It is discouraged to use this feature for any components that are directly tied to a package.
+Metainfo XML files can be placed in `%{ExtraMetainfoDir}/suite/section/(arch)`, where `%{ExtraMetainfoDir}` usually is the `extra-metainfo` directory in the generator's current workspace,
+unless this default is overriden in the configuration file.
+If the `arch` part of the path is omitted, a metainfo file is added to all active architectures. E.g. a XML file placed in `%{ExtraMetainfoDir}/buster/main/` will apply to all active architectures
+for `buster`, while files in `%{ExtraMetainfoDir}/buster/main/amd64/` will only apply to the `amd64` architecture.
 
-Additionally to metainfo XML files, a `removed-components.json` file may be placed in the extra-metainfo directories. This JSON file contains a list of component IDs that should be removed from the metadata pool on client machines. By listing IDs in this file, the generator will create a special component that will trigger a component with the same ID to be removed from the metadata pool if its priority is lower.
-This feature is useful for overlay suites, for example if the `buster-updates` suite (with priority 10) wants to completely remove a component from the `buster` suite (with priority 0) from the user's eyes. This may be necessary if a component improperly changes its ID, if you are maintaining an overlay distribution and can not control the composition of packages in the base suites, or in case of legal issues where a component has to be removed retroactively from a frozen distribution suite. It may also be useful to hide `web-application` components in a stable distribution in case their service is discontinued before the distribution release is out of support as well.
+Additionally to metainfo XML files, a `modifications.json` file may be placed in the `extra-metainfo` directories. This JSON file can contain a dictionary with a `Remove` entry and a `InjectCustom` entry.
+The `Remove` entry has a list of component IDs that should be removed from the metadata pool on client machines as value. By listing IDs in this file, the generator will create a special component that
+will trigger a component with the same ID to be removed from the metadata pool if its priority is lower.
+This feature is useful for overlay suites, for example if the `buster-updates` suite (with priority 10) wants to completely remove a component from the `buster` suite (with priority 0) from the user's eyes.
+This may be necessary if a component improperly changes its ID, if you are maintaining an overlay distribution and can not control the composition of packages in the base suites, or in case of legal issues
+where a component has to be removed retroactively from a frozen distribution suite. It may also be useful to hide `web-application` components in a stable distribution in case their service is discontinued
+before the distribution release is out of support as well.
+The `InjectCustom` entry contains a dictionary of string to dictionary mappings that contain values that should be injected into a component's `<custom/>` tag. It can be used to apply values specific
+to the perticular vendor's repository.
+Example `modifications.json` file:
+```json
+{
+  "Remove": [
+    "com.example.removed"
+  ],
+
+  "InjectCustom": {
+    "org.example.mediaplayer": {"Vendor::featured": "yes", "Vendor::price": "42EUR"}
+  }
+}
+```
 
 Internally, injected metainfo data is grouped under a special fake package name, in order to allow the generator to properly record hints for the added components and to associate the data with the right suite(s).
 
 ## Minimal configuration file
 
 A minimal configuration file can look like this:
-```JSON
+```json
 {
 "ProjectName": "Tanglu",
 "ArchiveRoot": "/srv/archive.tanglu.org/tanglu/",
