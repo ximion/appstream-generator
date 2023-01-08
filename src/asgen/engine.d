@@ -658,7 +658,7 @@ public:
         auto suiteDataChanged = false;
         foreach (ref arch; suite.architectures) {
             // update package contents information and flag boring packages as ignored
-            immutable foundInteresting = seedContentsData (suite, section, arch);
+            immutable foundInteresting = seedContentsData (suite, section, arch) || m_forced;
 
             // check if the suite/section/arch has actually changed
             if (!foundInteresting) {
