@@ -38,18 +38,13 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(gobject-introspection-1.0)' \
     'pkgconfig(libarchive)' \
     'pkgconfig(libcurl)' \
-    'pkgconfig(libsoup-2.4)' \
     'pkgconfig(librsvg-2.0)' \
     'pkgconfig(libxml-2.0)' \
+    'pkgconfig(libsystemd)' \
     'pkgconfig(lmdb)' \
-    'pkgconfig(packagekit-glib2)' \
     'pkgconfig(pango)' \
-    'pkgconfig(protobuf-lite)' \
-    'pkgconfig(Qt5Core)' \
-    qt5-linguist \
     'pkgconfig(yaml-0.1)' \
     sed \
-    vala \
     xmlto \
     itstool \
     diffutils \

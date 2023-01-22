@@ -14,11 +14,9 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Create Build Environment
-      continue-on-error: true
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-testing .
 
     - name: Build & Test
-      continue-on-error: true
       run: podman run -a stdout -a stderr -e DC=${{ matrix.dc }} -v `pwd`:/build asgen
            ./tests/ci/build-and-test.sh
 
@@ -44,7 +42,7 @@ jobs:
 
   build-ubuntu-lts:
     name: Ubuntu LTS
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
 

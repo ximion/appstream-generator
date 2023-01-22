@@ -37,6 +37,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     libyaml-dev \
     libxmlb-dev \
     libcurl4-gnutls-dev \
+    libsystemd-dev \
     gperf \
     itstool
 
