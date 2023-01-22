@@ -21,7 +21,7 @@ meson --version
 # Build & Test
 #
 mkdir -p build && cd build
-meson -Ddownload-js=true ..
+meson setup -Ddownload-js=true ..
 ninja -j8
 
 # Run tests

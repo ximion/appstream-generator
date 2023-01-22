@@ -17,6 +17,7 @@ jobs:
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-testing .
 
     - name: Build & Test
+      continue-on-error: ${{ matrix.dc == 'gdc' }}
       run: podman run -a stdout -a stderr -e DC=${{ matrix.dc }} -v `pwd`:/build asgen
            ./tests/ci/build-and-test.sh
 

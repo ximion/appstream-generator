@@ -9,6 +9,8 @@ set -x
 # This script is *only* intended to be run in a CI container.
 #
 
+. /etc/os-release
+
 # Install dscanner
 mkdir -p /usr/local/bin/
 curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.11.0/dscanner-v0.11.0-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
@@ -23,7 +25,7 @@ cd /tmp/build && \
     git clone --depth=10 https://github.com/ximion/appstream.git
 mkdir /tmp/build/appstream/build
 cd /tmp/build/appstream/build && \
-    meson --prefix=/usr \
+    meson setup --prefix=/usr \
         -Dmaintainer=true \
         -Dapt-support=true \
         -Dcompose=true \
@@ -33,12 +35,17 @@ cd /tmp/build/appstream/build && \
     ninja && ninja install
 
 # build & install GLibD
-cd /tmp/build && \
-    git clone --depth=1 https://github.com/gtkd-developers/GlibD.git glib-d
-mkdir /tmp/build/glib-d/build
-cd /tmp/build/glib-d/build && \
-    meson --prefix=/usr \
+if [ "$ID" = "ubuntu" ]; then
+    eatmydata apt-get install -yq --no-install-recommends libglibd-2.0-dev
+else
+    cd /tmp/build && \
+        git clone --depth=1 https://github.com/gtkd-developers/GlibD.git glib-d
+    mkdir /tmp/build/glib-d/build
+    cd /tmp/build/glib-d/build && \
+        meson setup --prefix=/usr \
         ..
+fi;
+
 cd /tmp/build/glib-d/build && \
     ninja && ninja install
 
