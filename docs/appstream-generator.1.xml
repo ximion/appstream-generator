@@ -51,7 +51,7 @@
 			Mageia).
 		</para>
 		<para>
-			The generator will produce AppStream collection metadata files in the AppStream YAML or XML format to be shipped
+			The generator will produce AppStream catalog metadata files in the AppStream YAML or XML format to be shipped
 			to users, as well as detailed HTML reports about found components and HTML and JSON reports on issues found
 			while compiling the metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
 			screenshots etc. to produce high-quality metadata for AppStream based software centers and other tools to consume.

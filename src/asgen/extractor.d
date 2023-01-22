@@ -201,7 +201,7 @@ public:
                 // We only catch that kind of problem later.
 
                 auto cdata = new Metadata ();
-                cdata.setFormatStyle (FormatStyle.COLLECTION);
+                cdata.setFormatStyle (FormatStyle.CATALOG);
                 cdata.setFormatVersion (self.conf.formatVersion);
 
                 if (self.dtype == DataType.YAML)

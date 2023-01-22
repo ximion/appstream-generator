@@ -62,7 +62,7 @@ Oldsuites | This key exists to support migration from an alternative appstream g
 Suites | Suites which should be recognized by the generator. Each suite has the components and architectures which should be searched for metadata as children. See below for more information.
 Features | Disable or enable selected generator features. For a detailed description see below.
 CAInfo | Set the CA certificate bundle file to use for SSL peer verification. If this is not set, the generator will use the system default.
-AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the collection metadata output. This key takes a list of custom-key strings as value.
+AllowedCustomKeys | Set which keys of the <custom/> tag are allowed to be propagated to the catalog metadata output. This key takes a list of custom-key strings as value.
 ExportDirs | Set where to export data. The dictionary requires full paths set for the "Media", "Data", "Hints" or "Html" key. In case a value is missing, the default locations are used.
 ExtraMetainfoDir | Path to a directory where additional injected metainfo files are located. If not set, the `extra-metainfo` directory in the project workspace is used.
 WorkspaceDir | Explicitly set the location of the workspace. Only makes sense if the generator is meant to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag.

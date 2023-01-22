@@ -454,7 +454,7 @@ public:
 
         auto dtype = conf.metadataType;
         auto mdata = scoped!Metadata ();
-        mdata.setFormatStyle (FormatStyle.COLLECTION);
+        mdata.setFormatStyle (FormatStyle.CATALOG);
         mdata.setFormatVersion (conf.formatVersion);
 
         foreach (ref pkg; pkgs) {
