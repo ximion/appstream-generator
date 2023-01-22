@@ -114,6 +114,8 @@ private:
 
     string tmpDir;
 
+    IconPolicy m_iconPolicy;
+
     // thread local
     static bool instantiated_;
 
@@ -125,7 +127,7 @@ private:
         import glib.Util : Util;
 
         // our default export format version
-        formatVersion = FormatVersion.V0_14;
+        formatVersion = FormatVersion.V0_16;
 
         // find all the external binaries we (may) need
         // we search for them unconditionally, because the unittests may rely on their absolute
@@ -134,7 +136,7 @@ private:
         ffprobeBinary = Util.findProgramInPath ("ffprobe");
 
         // new default icon policy instance
-        iconPolicy = new IconPolicy;
+        m_iconPolicy = new IconPolicy;
     }
 
 public:
@@ -163,8 +165,6 @@ public:
 
     long maxScrFileSize;
 
-    IconPolicy iconPolicy;
-
     string caInfo;
 
     static Config get ()
@@ -172,7 +172,7 @@ public:
         if (!instantiated_) {
             synchronized (Config.classinfo) {
                 if (!instance_)
-                    instance_ = new Config ();
+                    instance_ = new Config;
 
                 instantiated_ = true;
             }
@@ -202,7 +202,8 @@ public:
     }
 
     @property
-    string templateDir () {
+    string templateDir ()
+    {
         // find a suitable template directory
         // first check the workspace
         auto tdir = buildPath (workspaceDir, "templates");
@@ -224,6 +225,12 @@ public:
         }
 
         return tdir;
+    }
+
+    @property
+    IconPolicy iconPolicy ()
+    {
+        return m_iconPolicy;
     }
 
     /**

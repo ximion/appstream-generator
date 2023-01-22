@@ -99,9 +99,13 @@ public:
 
         // find all icons
         immutable iconLocation = buildNormalizedPath (_dataLocation, "icons");
-        foreach (iconFname; iconLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
-            immutable iconBasePath = relativePath (iconFname, iconLocation);
-            _contents[buildPath ("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
+        if (iconLocation.existsAndIsDir) {
+            foreach (iconFname; iconLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
+                immutable iconBasePath = relativePath (iconFname, iconLocation);
+                _contents[buildPath ("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
+            }
+        } else {
+            logInfo ("No icons found in '%s' for injected metadata.", iconLocation);
         }
 
         // find metainfo files
