@@ -1,3 +1,27 @@
+Version 0.9.0
+~~~~~~~~~~~~~~
+Released: 2023-01-26
+
+Features:
+ * Allow more complex repo-level metadata additions
+
+Documentation:
+ * docs: Document modifications.json
+ * docs: document values of "Backend" in asgen config
+ * docs: clarify directory structure
+
+Bugfixes:
+ * Make MetadataType override work again
+ * Ensure all user feature flags are applied properly again
+ * Retry failed download 4 times by default
+ * Even process an empty repository if action is forced
+ * Don't fail if icon directory for injected metadata is missing
+ * ci: Improve scripts and don't use deprecated commands
+ * ci: Install ffmpeg in the Fedora images
+
+Contributors:
+ Matthias Klumpp, Miroslav Suchý, Neal Gompa
+
 Version 0.8.8
 ~~~~~~~~~~~~~~
 Released: 2022-04-10
