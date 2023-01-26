@@ -30,7 +30,6 @@ grade: stable
 
 architectures:
   - build-on: [amd64]
-    run-on: [amd64]
 
 apps:
   appstream-generator:
