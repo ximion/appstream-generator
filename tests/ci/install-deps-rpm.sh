@@ -40,8 +40,8 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(libcurl)' \
     'pkgconfig(librsvg-2.0)' \
     'pkgconfig(libxml-2.0)' \
-    'pkgconfig(libxmlb)' \
     'pkgconfig(libsystemd)' \
+    'pkgconfig(xmlb)' \
     'pkgconfig(lmdb)' \
     'pkgconfig(pango)' \
     'pkgconfig(yaml-0.1)' \
