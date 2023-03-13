@@ -49,6 +49,7 @@ import asgen.backends.debian;
 import asgen.backends.ubuntu;
 import asgen.backends.archlinux;
 import asgen.backends.alpinelinux;
+import asgen.backends.freebsd;
 
 static if (HAVE_RPMMD)
     import asgen.backends.rpmmd;
@@ -98,6 +99,9 @@ public:
                 }
             case Backend.Alpinelinux:
                 pkgIndex = new AlpinePackageIndex(conf.archiveRoot);
+                break;
+            case Backend.FreeBSD:
+                pkgIndex = new FreeBSDPackageIndex (conf.archiveRoot);
                 break;
             default:
                 throw new Exception("No backend specified, can not continue!");
