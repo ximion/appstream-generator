@@ -64,6 +64,10 @@ backend_sources = [
     'backends/ubuntu/package.d',
     'backends/ubuntu/ubupkg.d',
     'backends/ubuntu/ubupkgindex.d',
+
+    'backends/freebsd/package.d',
+    'backends/freebsd/fbsdpkg.d',
+    'backends/freebsd/fbsdpkgindex.d',
 ]
 
 if get_option('rpmmd')
