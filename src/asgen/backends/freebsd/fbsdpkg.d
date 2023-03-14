@@ -38,6 +38,9 @@ private:
     string pkgFname;
     PackageKind _kind;
 
+    ArchiveDecompressor pkgArchive;
+    string[] contentsL = null;
+
 public:
     this (string pkgRoot, JSONValue[string] j)
     {
@@ -70,23 +73,23 @@ public:
     override
     const(ubyte[]) getFileData (string fname)
     {
-        ArchiveDecompressor ad;
-        ad.open (pkgFname);
+        if (!pkgArchive.isOpen)
+            pkgArchive.open (this.getFilename);
 
-        return ad.readData(fname);
+        return pkgArchive.readData(fname);
     }
 
     @property override
     string[] contents ()
     {
-        ArchiveDecompressor ad;
-        ad.open (pkgFname);
+        if (!this.contentsL.empty)
+            return this.contentsL;
 
-        auto c = ad.readContents();
+        if (!pkgArchive.isOpen)
+            pkgArchive.open (this.getFilename);
 
-        //throw new Exception(join(c, "\n"));
-
-        return c;
+        this.contentsL = pkgArchive.readContents ();
+        return this.contentsL;
     }
 
     override
