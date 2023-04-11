@@ -2,6 +2,7 @@
 conf_data = configuration_data()
 conf_data.set('datadir', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
 conf_data.set('asgen_version', asgen_version)
+conf_data.set('build_rpmmd', get_option('rpmmd')? 'true' : 'false')
 configure_file(input : 'defines.d.in',
                output: 'defines.d',
                configuration: conf_data
@@ -63,11 +64,15 @@ backend_sources = [
     'backends/ubuntu/package.d',
     'backends/ubuntu/ubupkg.d',
     'backends/ubuntu/ubupkgindex.d',
-
-    'backends/rpmmd/package.d',
-    'backends/rpmmd/rpmpkg.d',
-    'backends/rpmmd/rpmpkgindex.d',
 ]
+
+if get_option('rpmmd')
+    backend_sources += [
+        'backends/rpmmd/package.d',
+        'backends/rpmmd/rpmpkg.d',
+        'backends/rpmmd/rpmpkgindex.d',
+    ]
+endif
 
 #
 # Build and test

@@ -41,14 +41,16 @@ import asgen.reportgenerator;
 import asgen.localeunit : LocaleUnit;
 import asgen.cptmodifiers : InjectedModifications;
 import asgen.utils : copyDir, stringArrayToByteArray, getCidFromGlobalID;
+import asgen.defines : HAVE_RPMMD;
 
 import asgen.backends.interfaces;
 import asgen.backends.dummy;
 import asgen.backends.debian;
 import asgen.backends.ubuntu;
 import asgen.backends.archlinux;
-import asgen.backends.rpmmd;
 import asgen.backends.alpinelinux;
+static if (HAVE_RPMMD) import asgen.backends.rpmmd;
+
 
 import asgen.iconhandler : IconHandler;
 
@@ -89,8 +91,12 @@ public:
                 pkgIndex = new ArchPackageIndex (conf.archiveRoot);
                 break;
             case Backend.RpmMd:
-                pkgIndex = new RPMPackageIndex (conf.archiveRoot);
-                break;
+                static if (HAVE_RPMMD) {
+                    pkgIndex = new RPMPackageIndex (conf.archiveRoot);
+                    break;
+                } else {
+                    throw new Exception ("This appstream-generator was built without support for RPM-MD!");
+                }
             case Backend.Alpinelinux:
                 pkgIndex = new AlpinePackageIndex (conf.archiveRoot);
                 break;
