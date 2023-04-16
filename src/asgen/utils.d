@@ -178,45 +178,6 @@ bool isTopLevelDomain (const string value)
 }
 
 /**
- * Build a global component ID.
- *
- * The global-id is used as a global, unique identifier for this component.
- * (while the component-ID is local, e.g. for one suite).
- * Its primary usecase is to identify a media directory on the filesystem which is
- * associated with this component.
- **/
-@trusted
-string buildCptGlobalID (string cid, string checksum, bool allowNoChecksum = false)
-in { assert (cid.length >= 2); }
-do
-{
-    if (cid is null)
-        return null;
-    if ((!allowNoChecksum) && (checksum is null))
-            return null;
-    if (checksum is null)
-        checksum = "";
-
-    // check whether we can build the gcid by using the reverse domain name,
-    // or whether we should use the simple standard splitter.
-    auto reverseDomainSplit = false;
-    immutable parts = cid.split (".");
-    if (parts.length > 2) {
-        // check if we have a valid TLD. If so, use the reverse-domain-name splitting.
-        if (isTopLevelDomain (parts[0]))
-            reverseDomainSplit = true;
-    }
-
-    string gcid;
-    if (reverseDomainSplit)
-        gcid = "%s/%s/%s/%s".format (parts[0].toLower(), parts[1], join (parts[2..$], "."), checksum);
-    else
-        gcid = "%s/%s/%s/%s".format (cid[0].toLower(), cid[0..2].toLower(), cid, checksum);
-
-    return gcid;
-}
-
-/**
  * Get the component-id back from a global component-id.
  */
 @trusted
@@ -605,13 +566,6 @@ unittest
 {
     import std.exception : assertThrown;
     writeln ("TEST: ", "Utils");
-
-    assert (buildCptGlobalID ("foobar.desktop", "DEADBEEF") == "f/fo/foobar.desktop/DEADBEEF");
-    assert (buildCptGlobalID ("org.gnome.yelp.desktop", "DEADBEEF") == "org/gnome/yelp.desktop/DEADBEEF");
-    assert (buildCptGlobalID ("noto-cjk.font", "DEADBEEF") == "n/no/noto-cjk.font/DEADBEEF");
-    assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", "ABAD1DEA") == "io/sample/awesomeapp.sdk/ABAD1DEA");
-
-    assert (buildCptGlobalID ("io.sample.awesomeapp.sdk", null, true) == "io/sample/awesomeapp.sdk/");
 
     assert (getCidFromGlobalID ("f/fo/foobar.desktop/DEADBEEF") == "foobar.desktop");
     assert (getCidFromGlobalID ("org/gnome/yelp.desktop/DEADBEEF") == "org.gnome.yelp.desktop");

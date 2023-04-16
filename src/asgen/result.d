@@ -34,7 +34,6 @@ static import appstream.Utils;
 alias AsUtils = appstream.Utils.Utils;
 
 import asgen.hintregistry;
-import asgen.utils : buildCptGlobalID;
 import asgen.backends.interfaces;
 import asgen.config : Config;
 
