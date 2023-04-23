@@ -252,7 +252,7 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @t
         foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, true)) {
             if (attrIsDir (e.attributes)) {
                 auto childDir = destRoot ~ e.name[srcLen..$];
-                mkdir (childDir);
+                mkdirRecurse (childDir);
             } else {
                 files ~= e.name;
             }
