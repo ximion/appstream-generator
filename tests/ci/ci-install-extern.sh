@@ -22,7 +22,7 @@ mkdir /tmp/build
 
 # build & install the current Git snapshot of AppStream
 cd /tmp/build && \
-    git clone --depth=10 https://github.com/ximion/appstream.git
+    git clone --depth=1 --branch=stable-0.16.x https://github.com/ximion/appstream.git
 mkdir /tmp/build/appstream/build
 cd /tmp/build/appstream/build && \
     meson setup --prefix=/usr \
