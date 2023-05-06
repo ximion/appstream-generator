@@ -23,6 +23,7 @@ module asgen.backends.ubuntu.ubupkg;
 import std.path : buildPath;
 import std.file : mkdirRecurse;
 import std.conv : to;
+import std.range : empty;
 
 import glib.Internationalization;
 import glib.KeyFile;
@@ -48,15 +49,19 @@ private:
     string globalTmpDir;
     string langpackDir;
     string localeDir;
+    string localedefExe;
     string[] langpackLocales;
 
 public:
 
     this (string globalTmpDir)
     {
+        import glib.Util : Util;
+
         this.globalTmpDir = globalTmpDir;
         this.langpackDir = buildPath (globalTmpDir, "langpacks");
         this.localeDir = buildPath (langpackDir, "locales");
+        this.localedefExe = Util.findProgramInPath ("localedef");
     }
 
     void addLanguagePacks (UbuntuPackage[] langpacks)
@@ -80,7 +85,6 @@ public:
         import std.path : baseName;
         import std.process : Pid, spawnProcess, wait;
         import std.string : splitLines, startsWith;
-        import glib.Util : Util;
 
         if (!langpackDir.exists) {
             bool[string] extracted;
@@ -96,9 +100,17 @@ public:
                 extracted[pkg.name] = true;
             }
 
-            auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
-
             localeDir.mkdirRecurse ();
+            if (extracted.empty) {
+                logWarning ("We have extracted no language packs for this repository!");
+                langpackLocales = [];
+                langpacks = [];
+                // there is nothing more to do for us here, since we do not seem to have
+                // any language packs present in this repository.
+                return;
+            }
+
+            auto supportedd = buildPath (langpackDir, "var", "lib", "locales", "supported.d");
             foreach (locale; parallel (supportedd.dirEntries (SpanMode.shallow), 5)) {
                     foreach (ref line; locale.readText.splitLines) {
                             auto components = line.split (" ");
@@ -107,7 +119,7 @@ public:
                             auto outdir = buildPath (localeDir, components[0]);
                             logDebug ("Generating locale in %s", outdir);
 
-                            auto pid = spawnProcess ([Util.findProgramInPath ("localedef"),
+                            auto pid = spawnProcess ([localedefExe,
                                                       "--no-archive",
                                                       "-i",
                                                       localecharset[0],
