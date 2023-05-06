@@ -11,7 +11,7 @@ then
     YARNPKG=$1
 fi
 
-$YARNPKG install --no-bin-links --prod --no-lockfile --non-interactive
+$YARNPKG install $ASGEN_YARN_EXTRA_ARGS --no-bin-links --prod --non-interactive
 
 JS_TARGET=../../data/templates/default/static/js
 [ ! -d "$JS_TARGET" ] && mkdir $JS_TARGET
