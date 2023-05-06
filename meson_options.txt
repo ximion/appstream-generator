@@ -12,3 +12,8 @@ option('download-js',
        value: true,
        description: 'Download JavaScript with Yarn automatically.'
 )
+option('gir-dir',
+       type: 'string',
+       value: '',
+       description: 'Override the directory where gir-to-d searches for GIR files.'
+)

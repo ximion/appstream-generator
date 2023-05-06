@@ -28,16 +28,22 @@ curl_dep       = dependency('libcurl')
 #
 # Build interfaces from GIR
 #
-gir_to_d_prog = find_program('girtod')
+girtod_exe = find_program('girtod')
 gir_wrap_dir = source_root + '/contrib/girwrap/'
 gir_d_intf_dir = build_root + '/girepo/'
 
 message('Generating AppStream D interfaces from GIR...')
-girtod_gen = run_command(gir_to_d_prog,
-                         '-i', gir_wrap_dir,
-                         '-o', gir_d_intf_dir,
-                         '--print-files', 'relative,' + source_root,
-                         check: false)
+girtod_cmdln = [girtod_exe]
+gir_dir = get_option('gir-dir').strip()
+if gir_dir != ''
+    girtod_cmdln += ['-g', gir_dir]
+endif
+girtod_cmdln += [
+    '-i', gir_wrap_dir,
+    '-o', gir_d_intf_dir,
+    '--print-files', 'relative,' + source_root
+]
+girtod_gen = run_command(girtod_cmdln, check: false)
 if girtod_gen.returncode() != 0
     error('Unable to build D interfaces from GIR:\n' + girtod_gen.stderr())
 endif
