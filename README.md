@@ -1,4 +1,5 @@
 # AppStream Generator
+<img align="right" src="data/templates/default/static/img/asgen.png">
 
 AppStream is an effort to provide additional metadata and unique IDs for all software available in a Linux system.
 This repository contains the server-side of the AppStream infrastructure, a tool to generate metadata from distribution packages. You can find out more about AppStream collection metadata at [Freedesktop](https://www.freedesktop.org/software/appstream/docs/chap-CollectionData.html).
@@ -6,8 +7,6 @@ This repository contains the server-side of the AppStream infrastructure, a tool
 The AppStream generator is currently primarily used by Debian, but is written in a distribution agnostic way. Backends only need to implement [two interfaces](src/asgen/backends/interfaces.d) to to be ready.
 
 If you are looking for the AppStream client-tools, the [AppStream repository](https://github.com/ximion/appstream) is where you want to go.
-
-![AppStream Generator Logo](data/templates/default/static/img/asgen.png "AppStream Generator")
 
 
 ## Install from Flathub
@@ -27,6 +26,12 @@ flatpak run org.freedesktop.appstream.generator --help
 You can use AppStream Generator as [documented](docs/usage.md), but you will need to replace all
 `appstream-generator` commands with `flatpak run org.freedesktop.appstream.generator` and may need
 to set the workspace as absolute path using `-w` instead of relying on autodetection.
+
+
+## Usage
+
+Take a look at the [docs/](docs/usage.md) directory in the source tree for information on how to use the generator and write configuration files for it.
+
 
 ## Development
 ![Build Test](https://github.com/ximion/appstream-generator/workflows/Build%20Test/badge.svg)
@@ -83,9 +88,6 @@ You might want to perform an optimized debug build by passing `--buildtype=debug
 away with `--buildtype=release` in case you want to use the resulting binaries productively. By default, the build happens without optimizations
 which slows down the generator.
 
-## Usage
-
-Take a look at the [docs/](docs/usage.md) directory in the source tree for information on how to use the generator and write configuration files for it.
 
 ## Hacking
 
