@@ -30,7 +30,7 @@ to set the workspace as absolute path using `-w` instead of relying on autodetec
 
 ## Usage
 
-Take a look at the [docs/](docs/usage.md) directory in the source tree for information on how to use the generator and write configuration files for it.
+Take a look at the [docs/](docs/index.md) directory in the source tree for information on how to use the generator and write configuration files for it.
 
 
 ## Development
