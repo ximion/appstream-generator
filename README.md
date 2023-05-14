@@ -10,6 +10,24 @@ If you are looking for the AppStream client-tools, the [AppStream repository](ht
 ![AppStream Generator Logo](data/templates/default/static/img/asgen.png "AppStream Generator")
 
 
+## Install from Flathub
+
+You can install an up-to-date version of AppStream Generator from [Flathub](https://flathub.org) if you just
+want to quickly test the software with your repository:
+```ShellSession
+# Add Flathub remote
+sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# Install appstream-generator
+flatpak install org.freedesktop.appstream.generator
+
+# Run appstream-generator
+flatpak run org.freedesktop.appstream.generator --help
+```
+
+You can use AppStream Generator as [documented](docs/usage.md), but you will need to replace all
+`appstream-generator` commands with `flatpak run org.freedesktop.appstream.generator` and may need
+to set the workspace as absolute path using `-w` instead of relying on autodetection.
+
 ## Development
 ![Build Test](https://github.com/ximion/appstream-generator/workflows/Build%20Test/badge.svg)
 
@@ -67,7 +85,7 @@ which slows down the generator.
 
 ## Usage
 
-Take a look at the `docs/` directory in the source tree for information on how to use the generator and write configuration files for it.
+Take a look at the [docs/](docs/usage.md) directory in the source tree for information on how to use the generator and write configuration files for it.
 
 ## Hacking
 
