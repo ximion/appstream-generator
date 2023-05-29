@@ -29,14 +29,12 @@ import asgen.bindings.lmdb;
 import asgen.config;
 import asgen.logging;
 
-
 /**
  * Contains a cache about available files in packages.
  * This is useful for finding icons and for re-scanning
  * packages which become interesting later.
  **/
-final class ContentsStore
-{
+final class ContentsStore {
 
 private:
     MDB_envp dbEnv;
@@ -55,14 +53,15 @@ public:
 
     ~this ()
     {
-        close ();
+        close();
     }
 
     private void checkError (int rc, string msg)
     {
         if (rc != 0) {
             import std.format;
-            throw new Exception (format ("%s[%s]: %s", msg, rc, mdb_strerror (rc).fromStringz));
+
+            throw new Exception(format("%s[%s]: %s", msg, rc, mdb_strerror(rc).fromStringz));
         }
     }
 
@@ -71,71 +70,75 @@ public:
         static import std.math;
 
         int rc;
-        assert (!opened);
+        assert(!opened);
 
-        logDebug ("Opening contents cache.");
+        logDebug("Opening contents cache.");
 
         // ensure the cache directory exists
-        mkdirRecurse (dir);
+        mkdirRecurse(dir);
 
-        rc = mdb_env_create (&dbEnv);
-        scope (success) opened = true;
-        scope (failure) dbEnv.mdb_env_close ();
-        checkError (rc, "mdb_env_create");
+        rc = mdb_env_create(&dbEnv);
+        scope (success)
+            opened = true;
+        scope (failure)
+            dbEnv.mdb_env_close();
+        checkError(rc, "mdb_env_create");
 
         // We are going to use at max 3 sub-databases:
         // contents, icons and locale
-        rc = dbEnv.mdb_env_set_maxdbs (3);
-        checkError (rc, "mdb_env_set_maxdbs");
+        rc = dbEnv.mdb_env_set_maxdbs(3);
+        checkError(rc, "mdb_env_set_maxdbs");
 
         // set a huge map size to be futureproof.
         // This means we're cruel to non-64bit users, but this
         // software is supposed to be run on 64bit machines anyway.
-        auto mapsize = cast (size_t) std.math.pow (512L, 4);
-        rc = dbEnv.mdb_env_set_mapsize (mapsize);
-        checkError (rc, "mdb_env_set_mapsize");
+        auto mapsize = cast(size_t) std.math.pow(512L, 4);
+        rc = dbEnv.mdb_env_set_mapsize(mapsize);
+        checkError(rc, "mdb_env_set_mapsize");
 
         // open database
-        rc = dbEnv.mdb_env_open (dir.toStringz (),
-                                 MDB_NOMETASYNC,
-                                 octal!755);
-        checkError (rc, "mdb_env_open");
+        rc = dbEnv.mdb_env_open(dir.toStringz(),
+                MDB_NOMETASYNC,
+                octal!755);
+        checkError(rc, "mdb_env_open");
 
         // open sub-databases in the environment
         MDB_txnp txn;
-        rc = dbEnv.mdb_txn_begin (null, 0, &txn);
-        checkError (rc, "mdb_txn_begin");
-        scope (failure) txn.mdb_txn_abort ();
+        rc = dbEnv.mdb_txn_begin(null, 0, &txn);
+        checkError(rc, "mdb_txn_begin");
+        scope (failure)
+            txn.mdb_txn_abort();
 
         // contains a full list of all contents
-        rc = txn.mdb_dbi_open ("contents", MDB_CREATE, &dbContents);
-        checkError (rc, "open contents database");
+        rc = txn.mdb_dbi_open("contents", MDB_CREATE, &dbContents);
+        checkError(rc, "open contents database");
 
         // contains list of icon files and related data
         // the contents sub-database exists only to allow building instances
         // of IconHandler much faster.
-        rc = txn.mdb_dbi_open ("icondata", MDB_CREATE, &dbIcons);
-        checkError (rc, "open icon-info database");
+        rc = txn.mdb_dbi_open("icondata", MDB_CREATE, &dbIcons);
+        checkError(rc, "open icon-info database");
 
         // contains list of locale files and related data
-        rc = txn.mdb_dbi_open ("localedata", MDB_CREATE, &dbLocale);
-        checkError (rc, "open locale-info database");
+        rc = txn.mdb_dbi_open("localedata", MDB_CREATE, &dbLocale);
+        checkError(rc, "open locale-info database");
 
-        rc = txn.mdb_txn_commit ();
-        checkError (rc, "mdb_txn_commit");
+        rc = txn.mdb_txn_commit();
+        checkError(rc, "mdb_txn_commit");
     }
 
     void open (Config conf)
     {
         import std.path : buildPath;
-        this.open (buildPath (conf.databaseDir, "contents"));
+
+        this.open(buildPath(conf.databaseDir, "contents"));
     }
 
     void close ()
     {
         synchronized (this) {
             if (opened)
-                dbEnv.mdb_env_close ();
+                dbEnv.mdb_env_close();
             opened = false;
             dbEnv = null;
         }
@@ -144,37 +147,39 @@ public:
     private MDB_val makeDbValue (const string data)
     {
         import core.stdc.string : strlen;
+
         MDB_val mval;
-        auto cdata = data.toStringz ();
-        mval.mv_size = char.sizeof * strlen (cdata) + 1;
+        auto cdata = data.toStringz();
+        mval.mv_size = char.sizeof * strlen(cdata) + 1;
         mval.mv_data = cast(void*) cdata;
         return mval;
     }
 
     private MDB_txnp newTransaction (uint flags = 0)
-    in { assert (opened); }
-    do
-    {
+    in {
+        assert(opened);
+    }
+    do {
         int rc;
         MDB_txnp txn;
 
-        rc = dbEnv.mdb_txn_begin (null, flags, &txn);
-        checkError (rc, "mdb_txn_begin");
+        rc = dbEnv.mdb_txn_begin(null, flags, &txn);
+        checkError(rc, "mdb_txn_begin");
 
         return txn;
     }
 
     private void commitTransaction (MDB_txnp txn)
     {
-        auto rc = txn.mdb_txn_commit ();
-        checkError (rc, "mdb_txn_commit");
+        auto rc = txn.mdb_txn_commit();
+        checkError(rc, "mdb_txn_commit");
     }
 
     private void quitTransaction (MDB_txnp txn)
     {
         if (txn is null)
             return;
-        txn.mdb_txn_abort ();
+        txn.mdb_txn_abort();
     }
 
     /**
@@ -184,20 +189,22 @@ public:
     {
         MDB_val key;
 
-        key = makeDbValue (pkid);
+        key = makeDbValue(pkid);
 
-        auto txn = newTransaction ();
-        scope (success) commitTransaction (txn);
-        scope (failure) quitTransaction (txn);
+        auto txn = newTransaction();
+        scope (success)
+            commitTransaction (txn);
+        scope (failure)
+            quitTransaction (txn);
 
-        auto res = txn.mdb_del (dbContents, &key, null);
-        checkError (res, "mdb_del (contents)");
+        auto res = txn.mdb_del(dbContents, &key, null);
+        checkError(res, "mdb_del (contents)");
 
-        res = txn.mdb_del (dbIcons, &key, null);
+        res = txn.mdb_del(dbIcons, &key, null);
         if (res != MDB_NOTFOUND)
             checkError (res, "mdb_del (icons)");
 
-        res = txn.mdb_del (dbLocale, &key, null);
+        res = txn.mdb_del(dbLocale, &key, null);
         if (res != MDB_NOTFOUND)
             checkError (res, "mdb_del (locale)");
     }
@@ -207,18 +214,20 @@ public:
         MDB_val dkey;
         MDB_cursorp cur;
 
-        dkey = makeDbValue (pkid);
-        auto txn = newTransaction (MDB_RDONLY);
-        scope (exit) quitTransaction (txn);
+        dkey = makeDbValue(pkid);
+        auto txn = newTransaction(MDB_RDONLY);
+        scope (exit)
+            quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbContents, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open");
+        auto res = txn.mdb_cursor_open(dbContents, &cur);
+        scope (exit)
+            cur.mdb_cursor_close();
+        checkError(res, "mdb_cursor_open");
 
-        res = cur.mdb_cursor_get (&dkey, null, MDB_SET);
+        res = cur.mdb_cursor_get(&dkey, null, MDB_SET);
         if (res == MDB_NOTFOUND)
             return false;
-        checkError (res, "mdb_cursor_get");
+        checkError(res, "mdb_cursor_get");
 
         return true;
     }
@@ -230,54 +239,56 @@ public:
         auto iconInfo = appender!(string[]);
         auto localeInfo = appender!(string[]);
         foreach (ref f; contents) {
-            if ((f.startsWith ("/usr/share/icons/")) ||
-                (f.startsWith ("/usr/share/pixmaps/"))) {
-                    iconInfo ~= f;
-                    continue;
-                }
+            if ((f.startsWith("/usr/share/icons/")) ||
+                    (f.startsWith("/usr/share/pixmaps/"))) {
+                iconInfo ~= f;
+                continue;
+            }
 
             // create a huge index of all Gettext and Qt translation filenames
-            if (f.endsWith (".mo") || f.endsWith (".qm")) {
-                    localeInfo ~= f;
-                    continue;
+            if (f.endsWith(".mo") || f.endsWith(".qm")) {
+                localeInfo ~= f;
+                continue;
             }
         }
 
-        immutable contentsStr = contents.join ("\n");
+        immutable contentsStr = contents.join("\n");
 
         synchronized (this) {
             MDB_val key, contentsVal;
 
-            key = makeDbValue (pkid);
-            contentsVal = makeDbValue (contentsStr);
+            key = makeDbValue(pkid);
+            contentsVal = makeDbValue(contentsStr);
 
-            auto txn = newTransaction ();
-            scope (success) commitTransaction (txn);
-            scope (failure) quitTransaction (txn);
+            auto txn = newTransaction();
+            scope (success)
+                commitTransaction (txn);
+            scope (failure)
+                quitTransaction (txn);
 
-            auto res = txn.mdb_put (dbContents, &key, &contentsVal, 0);
-            checkError (res, "mdb_put");
+            auto res = txn.mdb_put(dbContents, &key, &contentsVal, 0);
+            checkError(res, "mdb_put");
 
             // if we have icon information, store that too
             if (!iconInfo.data.empty) {
                 MDB_val iconsVal;
 
-                immutable iconsStr = iconInfo.data.join ("\n");
-                iconsVal = makeDbValue (iconsStr);
+                immutable iconsStr = iconInfo.data.join("\n");
+                iconsVal = makeDbValue(iconsStr);
 
-                res = txn.mdb_put (dbIcons, &key, &iconsVal, 0);
-                checkError (res, "mdb_put (icons)");
+                res = txn.mdb_put(dbIcons, &key, &iconsVal, 0);
+                checkError(res, "mdb_put (icons)");
             }
 
             // store locale
             if (!localeInfo.data.empty) {
                 MDB_val localeVal;
 
-                immutable localeStr = localeInfo.data.join ("\n");
-                localeVal = makeDbValue (localeStr);
+                immutable localeStr = localeInfo.data.join("\n");
+                localeVal = makeDbValue(localeStr);
 
-                res = txn.mdb_put (dbLocale, &key, &localeVal, 0);
-                checkError (res, "mdb_put (locale)");
+                res = txn.mdb_put(dbLocale, &key, &localeVal, 0);
+                checkError(res, "mdb_put (locale)");
             }
         }
     }
@@ -288,27 +299,29 @@ public:
 
         MDB_cursorp cur;
 
-        auto txn = newTransaction (MDB_RDONLY);
-        scope (exit) quitTransaction (txn);
+        auto txn = newTransaction(MDB_RDONLY);
+        scope (exit)
+            quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open");
+        auto res = txn.mdb_cursor_open(dbi, &cur);
+        scope (exit)
+            cur.mdb_cursor_close();
+        checkError(res, "mdb_cursor_open");
 
         string[string] pkgCMap;
         foreach (ref pkid; pkids) {
-            MDB_val pkey = makeDbValue (pkid);
+            MDB_val pkey = makeDbValue(pkid);
             MDB_val cval;
 
-            res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
+            res = cur.mdb_cursor_get(&pkey, &cval, MDB_SET);
             if (res == MDB_NOTFOUND)
                 continue;
-            checkError (res, "mdb_cursor_get");
+            checkError(res, "mdb_cursor_get");
 
-            auto data = fromStringz (cast(char*) cval.mv_data);
-            auto contents = to!string (data);
+            auto data = fromStringz(cast(char*) cval.mv_data);
+            auto contents = to!string(data);
 
-            foreach (const ref c; contents.split ("\n")) {
+            foreach (const ref c; contents.split("\n")) {
                 if (useBaseName)
                     pkgCMap[c.baseName] = pkid;
                 else
@@ -319,21 +332,21 @@ public:
         return pkgCMap;
     }
 
-    auto getContentsMap (string[] pkids)
+    auto getContentsMap(string[] pkids)
     {
-        return getFilesMap (pkids, dbContents);
+        return getFilesMap(pkids, dbContents);
     }
 
-    auto getIconFilesMap (string[] pkids)
+    auto getIconFilesMap(string[] pkids)
     {
-        return getFilesMap (pkids, dbIcons);
+        return getFilesMap(pkids, dbIcons);
     }
 
-    auto getLocaleMap (string[] pkids)
+    auto getLocaleMap(string[] pkids)
     {
         // we make the assumption here that all locale for a given domain are in one package.
         // otherwise this global search will get even more insane.
-        return getFilesMap (pkids, dbLocale);
+        return getFilesMap(pkids, dbLocale);
     }
 
     private string[] getContentsList (string pkid, MDB_dbi dbi)
@@ -341,56 +354,60 @@ public:
         MDB_val pkey, cval;
         MDB_cursorp cur;
 
-        pkey = makeDbValue (pkid);
+        pkey = makeDbValue(pkid);
 
-        auto txn = newTransaction (MDB_RDONLY);
-        scope (exit) quitTransaction (txn);
+        auto txn = newTransaction(MDB_RDONLY);
+        scope (exit)
+            quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbi, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open");
+        auto res = txn.mdb_cursor_open(dbi, &cur);
+        scope (exit)
+            cur.mdb_cursor_close();
+        checkError(res, "mdb_cursor_open");
 
-        res = cur.mdb_cursor_get (&pkey, &cval, MDB_SET);
+        res = cur.mdb_cursor_get(&pkey, &cval, MDB_SET);
         if (res == MDB_NOTFOUND)
             return null;
-        checkError (res, "mdb_cursor_get");
+        checkError(res, "mdb_cursor_get");
 
-        auto data = fromStringz (cast(char*) cval.mv_data);
-        auto contentsStr = to!string (data);
+        auto data = fromStringz(cast(char*) cval.mv_data);
+        auto contentsStr = to!string(data);
 
-        return contentsStr.split ("\n");
+        return contentsStr.split("\n");
     }
 
     string[] getContents (string pkid)
     {
-        return getContentsList (pkid, dbContents);
+        return getContentsList(pkid, dbContents);
     }
 
     string[] getIcons (string pkid)
     {
-        return getContentsList (pkid, dbIcons);
+        return getContentsList(pkid, dbIcons);
     }
 
     string[] getLocaleFiles (string pkid)
     {
-        return getContentsList (pkid, dbLocale);
+        return getContentsList(pkid, dbLocale);
     }
 
     bool[immutable string] getPackageIdSet ()
     {
         MDB_cursorp cur;
 
-        auto txn = newTransaction ();
-        scope (exit) quitTransaction (txn);
+        auto txn = newTransaction();
+        scope (exit)
+            quitTransaction (txn);
 
-        auto res = txn.mdb_cursor_open (dbContents, &cur);
-        scope (exit) cur.mdb_cursor_close ();
-        checkError (res, "mdb_cursor_open (getPackageIdSet)");
+        auto res = txn.mdb_cursor_open(dbContents, &cur);
+        scope (exit)
+            cur.mdb_cursor_close();
+        checkError(res, "mdb_cursor_open (getPackageIdSet)");
 
         bool[immutable string] pkgSet;
         MDB_val pkey;
-        while (cur.mdb_cursor_get (&pkey, null, MDB_NEXT) == 0) {
-            immutable pkid = to!string (fromStringz (cast(char*) pkey.mv_data));
+        while (cur.mdb_cursor_get(&pkey, null, MDB_NEXT) == 0) {
+            immutable pkid = to!string(fromStringz(cast(char*) pkey.mv_data));
             pkgSet[pkid] = true;
         }
 
@@ -399,30 +416,33 @@ public:
 
     void removePackages (ref bool[immutable string] pkidSet)
     {
-        auto txn = newTransaction ();
-        scope (success) commitTransaction (txn);
-        scope (failure) quitTransaction (txn);
+        auto txn = newTransaction();
+        scope (success)
+            commitTransaction (txn);
+        scope (failure)
+            quitTransaction (txn);
 
         foreach (ref pkid; pkidSet.byKey) {
-            auto key = makeDbValue (pkid);
+            auto key = makeDbValue(pkid);
 
-            auto res = txn.mdb_del (dbContents, &key, null);
-            checkError (res, "mdb_del (contents)");
+            auto res = txn.mdb_del(dbContents, &key, null);
+            checkError(res, "mdb_del (contents)");
 
-            res = txn.mdb_del (dbIcons, &key, null);
+            res = txn.mdb_del(dbIcons, &key, null);
             if (res != MDB_NOTFOUND)
                 checkError (res, "mdb_del (icons)");
-            res = txn.mdb_del (dbLocale, &key, null);
+            res = txn.mdb_del(dbLocale, &key, null);
             if (res != MDB_NOTFOUND)
                 checkError (res, "mdb_del (locale)");
         }
     }
 
     void sync ()
-    in { assert (opened); }
-    do
-    {
-        dbEnv.mdb_env_sync (1);
+    in {
+        assert(opened);
+    }
+    do {
+        dbEnv.mdb_env_sync(1);
     }
 
 }

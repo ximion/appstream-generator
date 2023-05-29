@@ -46,9 +46,7 @@ import asgen.packageunit : PackageUnit;
 import asgen.localeunit : LocaleUnit;
 import asgen.cptmodifiers : InjectedModifications;
 
-
-final class DataExtractor
-{
+final class DataExtractor {
 
 private:
     Compose compose;
@@ -64,111 +62,112 @@ private:
 public:
 
     this (DataStore db,
-         IconHandler iconHandler,
-         LocaleUnit localeUnit,
-         InjectedModifications modInjInfo = null)
+            IconHandler iconHandler,
+            LocaleUnit localeUnit,
+            InjectedModifications modInjInfo = null)
     {
         import std.conv : to;
 
         dstore = db;
         iconh = iconHandler;
-        conf = Config.get ();
+        conf = Config.get();
         dtype = conf.metadataType;
         l10nUnit = localeUnit;
         modInj = modInjInfo;
 
         compose = new Compose;
         //compose.setPrefix ("/usr");
-        compose.setMediaResultDir (db.mediaExportPoolDir);
-        compose.setMediaBaseurl ("");
-        compose.setCheckMetadataEarlyFunc (&checkMetadataIntermediate, cast(void*) this);
-        compose.addFlags (ComposeFlags.IGNORE_ICONS |  // we do custom icon processing
-                          ComposeFlags.PROCESS_UNPAIRED_DESKTOP | // handle desktop-entry files without metainfo data
-                          ComposeFlags.NO_FINAL_CHECK // we trigger the final check manually
-                          );
+        compose.setMediaResultDir(db.mediaExportPoolDir);
+        compose.setMediaBaseurl("");
+        compose.setCheckMetadataEarlyFunc(&checkMetadataIntermediate, cast(void*) this);
+        compose.addFlags(ComposeFlags.IGNORE_ICONS |  // we do custom icon processing
+                ComposeFlags.PROCESS_UNPAIRED_DESKTOP |  // handle desktop-entry files without metainfo data
+                ComposeFlags.NO_FINAL_CHECK // we trigger the final check manually
+                
+        );
         // we handle all threading, so the compose process doesn't also have to be threaded
-        compose.removeFlags (ComposeFlags.USE_THREADS);
+        compose.removeFlags(ComposeFlags.USE_THREADS);
 
         // set CAInfo for any download operations performed by this AscCompose
         if (!conf.caInfo.empty)
-            compose.setCainfo (conf.caInfo);
+            compose.setCainfo(conf.caInfo);
 
         // set dummy locale unit for advanced locale processing
         if (l10nUnit !is null)
-            compose.setLocaleUnit (l10nUnit);
+            compose.setLocaleUnit(l10nUnit);
 
         // set max screenshot size in bytes, if size is limited
         if (conf.maxScrFileSize != 0)
-            compose.setMaxScreenshotSize ((conf.maxScrFileSize * 1024 * 1024).to!ptrdiff_t);
+            compose.setMaxScreenshotSize((conf.maxScrFileSize * 1024 * 1024).to!ptrdiff_t);
 
         // enable or disable user-defined features
         if (conf.feature.validate)
-            compose.addFlags (ComposeFlags.VALIDATE);
+            compose.addFlags(ComposeFlags.VALIDATE);
         else
-            compose.removeFlags (ComposeFlags.VALIDATE);
+            compose.removeFlags(ComposeFlags.VALIDATE);
 
         if (conf.feature.noDownloads)
-            compose.removeFlags (ComposeFlags.ALLOW_NET);
+            compose.removeFlags(ComposeFlags.ALLOW_NET);
         else
-            compose.addFlags (ComposeFlags.ALLOW_NET);
+            compose.addFlags(ComposeFlags.ALLOW_NET);
 
         if (conf.feature.processLocale)
-            compose.addFlags (ComposeFlags.PROCESS_TRANSLATIONS);
+            compose.addFlags(ComposeFlags.PROCESS_TRANSLATIONS);
         else
-            compose.removeFlags (ComposeFlags.PROCESS_TRANSLATIONS);
+            compose.removeFlags(ComposeFlags.PROCESS_TRANSLATIONS);
 
         if (conf.feature.processFonts)
-            compose.addFlags (ComposeFlags.PROCESS_FONTS);
+            compose.addFlags(ComposeFlags.PROCESS_FONTS);
         else
-            compose.removeFlags (ComposeFlags.PROCESS_FONTS);
+            compose.removeFlags(ComposeFlags.PROCESS_FONTS);
 
         if (conf.feature.storeScreenshots)
-            compose.addFlags (ComposeFlags.STORE_SCREENSHOTS);
+            compose.addFlags(ComposeFlags.STORE_SCREENSHOTS);
         else
-            compose.removeFlags (ComposeFlags.STORE_SCREENSHOTS);
+            compose.removeFlags(ComposeFlags.STORE_SCREENSHOTS);
 
         if (conf.feature.screenshotVideos)
-            compose.addFlags (ComposeFlags.ALLOW_SCREENCASTS);
+            compose.addFlags(ComposeFlags.ALLOW_SCREENCASTS);
         else
-            compose.removeFlags (ComposeFlags.ALLOW_SCREENCASTS);
+            compose.removeFlags(ComposeFlags.ALLOW_SCREENCASTS);
 
         if (conf.feature.propagateMetaInfoArtifacts)
-            compose.addFlags (ComposeFlags.PROPAGATE_ARTIFACTS);
+            compose.addFlags(ComposeFlags.PROPAGATE_ARTIFACTS);
         else
-            compose.removeFlags (ComposeFlags.PROPAGATE_ARTIFACTS);
+            compose.removeFlags(ComposeFlags.PROPAGATE_ARTIFACTS);
 
         // override icon policy with our own, possible user-modified one
-        compose.setIconPolicy (conf.iconPolicy);
+        compose.setIconPolicy(conf.iconPolicy);
 
         // register allowed custom keys with the composer
         if (!conf.allowedCustomKeys.empty) {
-            compose.addFlags (ComposeFlags.PROPAGATE_CUSTOM);
+            compose.addFlags(ComposeFlags.PROPAGATE_CUSTOM);
             foreach (const ref key; conf.allowedCustomKeys.byKey)
-                compose.addCustomAllowed (key);
+                compose.addCustomAllowed(key);
         } else {
-            compose.removeFlags (ComposeFlags.PROPAGATE_CUSTOM);
+            compose.removeFlags(ComposeFlags.PROPAGATE_CUSTOM);
         }
     }
 
     /**
      * Helper function for early asgen-specific metadata manipulation
      */
-    extern(C)
-    static void checkMetadataIntermediate (AscResult *cres, AscUnit *cunit, void *userData)
+    extern (C)
+    static void checkMetadataIntermediate (AscResult* cres, AscUnit* cunit, void* userData)
     {
         import ascompose.Result : Result;
         import asgen.config : EXTRA_METAINFO_FAKE_PKGNAME;
 
         auto self = cast(DataExtractor) userData;
-        auto result = new Result (cres);
+        auto result = new Result(cres);
 
-        auto cptsPtrArray = result.fetchComponents ();
+        auto cptsPtrArray = result.fetchComponents();
         for (uint i = 0; i < cptsPtrArray.len; i++) {
-            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
-            auto gcid = result.gcidForComponent (cpt);
+            auto cpt = new Component(cast(AsComponent*) cptsPtrArray.index(i));
+            auto gcid = result.gcidForComponent(cpt);
 
             // don't run expensive operations if the metadata already exists
-            auto existingMData = self.dstore.getMetadata (self.dtype, gcid);
+            auto existingMData = self.dstore.getMetadata(self.dtype, gcid);
             if (existingMData is null)
                 continue;
 
@@ -187,10 +186,10 @@ public:
             // If it doesn't, we can't just link the package to the component.
             bool samePkg = false;
             if (self.dtype == DataType.YAML) {
-                if (existingMData.canFind (format ("Package: %s\n", bundleId)))
+                if (existingMData.canFind(format("Package: %s\n", bundleId)))
                     samePkg = true;
             } else {
-                if (existingMData.canFind (format ("<pkgname>%s</pkgname>", bundleId)))
+                if (existingMData.canFind(format("<pkgname>%s</pkgname>", bundleId)))
                     samePkg = true;
             }
 
@@ -200,22 +199,22 @@ public:
                 // but with the *same ID* exists.
                 // We only catch that kind of problem later.
 
-                auto cdata = new Metadata ();
-                cdata.setFormatStyle (FormatStyle.CATALOG);
-                cdata.setFormatVersion (self.conf.formatVersion);
+                auto cdata = new Metadata();
+                cdata.setFormatStyle(FormatStyle.CATALOG);
+                cdata.setFormatVersion(self.conf.formatVersion);
 
                 if (self.dtype == DataType.YAML)
-                    cdata.parse (existingMData, FormatKind.YAML);
+                    cdata.parse(existingMData, FormatKind.YAML);
                 else
-                    cdata.parse (existingMData, FormatKind.XML);
-                auto ecpt = cdata.getComponent ();
+                    cdata.parse(existingMData, FormatKind.XML);
+                auto ecpt = cdata.getComponent();
 
                 const pkgNames = ecpt.getPkgnames;
                 string pkgName = "(none)";
                 if (!pkgNames.empty)
                     pkgName = pkgNames[0];
-                result.addHint (cpt, "metainfo-duplicate-id", ["cid", cpt.getId,
-                                                               "pkgname", pkgName]);
+                result.addHint(cpt, "metainfo-duplicate-id", ["cid", cpt.getId,
+                    "pkgname", pkgName]);
             }
 
             // drop the component as we already have processed it, but keep its
@@ -227,21 +226,21 @@ public:
     /**
      * Helper function for DataExtractor.processPackage
      */
-    extern(C)
-    static GPtrArray *translateDesktopTextCallback (GKeyFile *dePtr, const(char) *text, void *userData)
+    extern (C)
+    static GPtrArray* translateDesktopTextCallback(GKeyFile* dePtr, const(char)* text, void* userData)
     {
         import glib.KeyFile : KeyFile;
         import glib.c.functions;
         import std.string : fromStringz, toStringz;
 
         auto pkg = *cast(Package*) userData;
-        auto de = new KeyFile (dePtr, false);
-        auto res = g_ptr_array_new_with_free_func (&g_free);
+        auto de = new KeyFile(dePtr, false);
+        auto res = g_ptr_array_new_with_free_func(&g_free);
 
-        auto translations = pkg.getDesktopFileTranslations (de, cast(string) text.fromStringz);
+        auto translations = pkg.getDesktopFileTranslations(de, cast(string) text.fromStringz);
         foreach (ref key, ref value; translations) {
-            g_ptr_array_add (res, g_strdup (key.toStringz));
-            g_ptr_array_add (res, g_strdup (value.toStringz));
+            g_ptr_array_add(res, g_strdup(key.toStringz));
+            g_ptr_array_add(res, g_strdup(value.toStringz));
         }
 
         return res;
@@ -252,72 +251,75 @@ public:
         import ascompose.Result : Result;
 
         // reset compose instance to clear data from any previous invocation
-        compose.reset ();
+        compose.reset();
 
         // set external desktop-entry translation function, if needed
         immutable externalL10n = pkg.hasDesktopFileTranslations;
-        compose.setDesktopEntryL10nFunc (externalL10n? &translateDesktopTextCallback : null,
-                                         externalL10n? &pkg : null);
+        compose.setDesktopEntryL10nFunc(externalL10n ? &translateDesktopTextCallback : null,
+                externalL10n ? &pkg : null);
 
         // wrap package into unit, so AppStream Compose can work with it
-        auto unit = new PackageUnit (pkg);
-        compose.addUnit (unit);
+        auto unit = new PackageUnit(pkg);
+        compose.addUnit(unit);
 
         // process all data
-        compose.run (null);
-        auto resultsArray = compose.getResults ();
+        compose.run(null);
+        auto resultsArray = compose.getResults();
 
         // we processed one unit, so should always generate one result
         if (resultsArray.len != 1) {
-            logError ("Expected %s result for data extraction, but retrieved %s.", 1, resultsArray.len);
-            assert (resultsArray.len == 1);
+            logError("Expected %s result for data extraction, but retrieved %s.", 1, resultsArray.len);
+            assert(resultsArray.len == 1);
         }
 
         // create result wrapper
-        auto gres = GeneratorResult (new Result (cast (AscResult*) resultsArray.index (0)),
-                                     pkg);
+        auto gres = GeneratorResult(new Result(cast(AscResult*) resultsArray.index(0)),
+                pkg);
 
         // process icons and perform additional refinements
-        auto cptsPtrArray = gres.fetchComponents ();
+        auto cptsPtrArray = gres.fetchComponents();
         for (uint i = 0; i < cptsPtrArray.len; i++) {
-            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
+            auto cpt = new Component(cast(AsComponent*) cptsPtrArray.index(i));
             immutable ckind = cpt.getKind;
 
             // find & store icons
-            iconh.process (gres, cpt);
-            if (gres.isIgnored (cpt))
+            iconh.process(gres, cpt);
+            if (gres.isIgnored(cpt))
                 continue;
 
             // add fallback long descriptions only for desktop apps, console apps and web apps
             if (cpt.getMergeKind != MergeKind.NONE)
                 continue;
-            if (ckind != ComponentKind.DESKTOP_APP && ckind != ComponentKind.CONSOLE_APP && ckind != ComponentKind.WEB_APP)
+            if (ckind != ComponentKind.DESKTOP_APP && ckind != ComponentKind.CONSOLE_APP && ckind != ComponentKind
+                    .WEB_APP)
                 continue;
 
             // inject package descriptions, if needed
             auto flags = cpt.getValueFlags;
-            cpt.setValueFlags (flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+            cpt.setValueFlags(flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
 
-            cpt.setActiveLocale ("C");
+            cpt.setActiveLocale("C");
             if (!cpt.getDescription.empty)
                 continue;
 
             // component doesn't have a long description, add one from the packaging.
             auto desc_added = false;
             foreach (ref lang, ref desc; pkg.description) {
-                    cpt.setDescription (desc, lang);
-                    desc_added = true;
+                cpt.setDescription(desc, lang);
+                desc_added = true;
             }
 
             if (desc_added) {
                 // we only add the "description-from-package" tag if we haven't alreaey
                 // emitted a "no-metainfo" tag, to avoid two hints explaining the same thing
-                if (!gres.hasHint (cpt, "no-metainfo")) {
-                    if (!gres.addHint (cpt, "description-from-package"))
+                if (!gres.hasHint(cpt, "no-metainfo")) {
+                    if (!gres.addHint(cpt, "description-from-package"))
                         continue;
                 }
             } else {
-                if (!gres.addHint (cpt, "description-missing", ["kind": AsUtils.componentKindToString (ckind)]))
+                if (!gres.addHint(cpt, "description-missing", [
+                        "kind": AsUtils.componentKindToString(ckind)
+                    ]))
                     continue;
             }
         }
@@ -327,40 +329,40 @@ public:
             auto data = appender!string;
             data.reserve(200);
 
-            auto cpt = new Component ();
-            cpt.setId (pkg.name);
-            cpt.setKind (ComponentKind.CODEC);
-            cpt.setName ("GStreamer Multimedia Codecs", "C");
+            auto cpt = new Component();
+            cpt.setId(pkg.name);
+            cpt.setKind(ComponentKind.CODEC);
+            cpt.setName("GStreamer Multimedia Codecs", "C");
             foreach (ref lang, ref desc; pkg.summary) {
-                cpt.setSummary (desc, lang);
+                cpt.setSummary(desc, lang);
                 data ~= desc;
             }
 
-            gres.addComponent (cpt, data.data.toStaticGBytes);
+            gres.addComponent(cpt, data.data.toStaticGBytes);
         }
 
         // perform final checks
-        compose.finalizeResults ();
+        compose.finalizeResults();
 
         // do our own final validation
-        cptsPtrArray = gres.fetchComponents ();
+        cptsPtrArray = gres.fetchComponents();
         for (uint i = 0; i < cptsPtrArray.len; i++) {
-            auto cpt = new Component (cast (AsComponent*) cptsPtrArray.index (i));
+            auto cpt = new Component(cast(AsComponent*) cptsPtrArray.index(i));
             immutable ckind = cpt.getKind;
             immutable cid = cpt.getId;
 
             if (modInj !is null) {
                 // drop component that the repository owner wants to remove
-                if (modInj.isComponentRemoved (cid)) {
-                    gres.removeComponent (cpt);
+                if (modInj.isComponentRemoved(cid)) {
+                    gres.removeComponent(cpt);
                     continue;
                 }
 
                 // inject custom fields from the repository owner, if we have any
-                auto injectedCustom = modInj.injectedCustomData (cid);
+                auto injectedCustom = modInj.injectedCustomData(cid);
                 if (!injectedCustom.isNull) {
                     foreach (ref ckv; injectedCustom.get.byKeyValue)
-                        cpt.insertCustomValue (ckv.key, ckv.value);
+                        cpt.insertCustomValue(ckv.key, ckv.value);
                 }
             }
 
@@ -368,17 +370,17 @@ public:
                 continue;
 
             if (cpt.getPkgnames.empty) {
-                    // no packages are associated with this component
+                // no packages are associated with this component
 
-                    if (ckind != ComponentKind.WEB_APP &&
+                if (ckind != ComponentKind.WEB_APP &&
                         ckind != ComponentKind.OPERATING_SYSTEM &&
                         ckind != ComponentKind.REPOSITORY) {
-                            // this component is not allowed to have no installation candidate
-                            if (!cpt.hasBundle) {
-                                if (!gres.addHint (cpt, "no-install-candidate"))
-                                    continue;
-                            }
+                    // this component is not allowed to have no installation candidate
+                    if (!cpt.hasBundle) {
+                        if (!gres.addHint(cpt, "no-install-candidate"))
+                            continue;
                     }
+                }
             } else {
                 // packages are associated with this component
 
@@ -389,13 +391,13 @@ public:
 
                     // drop any association with the dummy package
                     auto pkgnames = cpt.getPkgnames;
-                    cpt.setPkgnames (array(pkgnames.filter!(a => a != EXTRA_METAINFO_FAKE_PKGNAME)));
+                    cpt.setPkgnames(array(pkgnames.filter!(a => a != EXTRA_METAINFO_FAKE_PKGNAME)));
                 }
             }
         }
 
         // clean up and return result
-        pkg.finish ();
+        pkg.finish();
         return gres;
     }
 }

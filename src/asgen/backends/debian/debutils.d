@@ -46,10 +46,10 @@ import asgen.utils : isRemote;
  *               contain exactly one "%s"; this function is only suitable for
  *               finding `.xz`, `.bz2` and `.gz` files.
  */
-immutable (string) downloadIfNecessary (const string prefix,
-                                        const string destPrefix,
-                                        const string suffix,
-                                        Downloader downloader = null)
+immutable(string) downloadIfNecessary (const string prefix,
+        const string destPrefix,
+        const string suffix,
+        Downloader downloader = null)
 {
     import std.path : buildPath;
 
@@ -58,24 +58,24 @@ immutable (string) downloadIfNecessary (const string prefix,
 
     immutable exts = ["xz", "bz2", "gz"];
     foreach (ref ext; exts) {
-        immutable fileName = format (buildPath (prefix, suffix), ext);
-        immutable destFileName = format (buildPath (destPrefix, suffix), ext);
+        immutable fileName = format(buildPath(prefix, suffix), ext);
+        immutable destFileName = format(buildPath(destPrefix, suffix), ext);
 
         if (fileName.isRemote) {
             try {
-                downloader.downloadFile (fileName, destFileName);
+                downloader.downloadFile(fileName, destFileName);
                 return destFileName;
             } catch (DownloadException e) {
-                logDebug ("Unable to download: %s", e.msg);
+                logDebug("Unable to download: %s", e.msg);
             }
         } else {
-            if (std.file.exists (fileName))
+            if (std.file.exists(fileName))
                 return fileName;
         }
     }
 
     /* all extensions failed, so we failed */
-    throw new Exception ("Could not obtain any file matching %s".format (buildPath (prefix, suffix)));
+    throw new Exception("Could not obtain any file matching %s".format(buildPath(prefix, suffix)));
 }
 
 /**
@@ -110,23 +110,24 @@ private int order (char c) pure
  * Has '2', '.', '7', '.' ,'-linux-','1'
  */
 private int cmpFragment (const(immutable(char)*) a, const(immutable(char)*) aEnd,
-                         const(immutable(char)*) b, const(immutable(char)*) bEnd) @trusted pure
+        const(immutable(char)*) b, const(immutable(char)*) bEnd) @trusted pure
 {
     import std.ascii;
 
-    immutable(char) *lhs = a;
-    immutable(char) *rhs = b;
+    immutable(char)* lhs = a;
+    immutable(char)* rhs = b;
 
     while (lhs != aEnd && rhs != bEnd) {
         int first_diff = 0;
 
         while (lhs != aEnd && rhs != bEnd && (!(*lhs).isDigit || !(*rhs).isDigit)) {
-            int vc = order (*lhs);
-            int rc = order (*rhs);
+            int vc = order(*lhs);
+            int rc = order(*rhs);
 
             if (vc != rc)
                 return vc - rc;
-            ++lhs; ++rhs;
+            ++lhs;
+            ++rhs;
         }
 
         while (*lhs == '0')
@@ -171,7 +172,7 @@ private int cmpFragment (const(immutable(char)*) a, const(immutable(char)*) aEnd
 }
 
 // import from string.h, needs glibc
-private extern(C) void *memrchr (const void *s, int c, size_t n) @system pure;
+private extern (C) void* memrchr(const void* s, int c, size_t n) @system pure;
 
 /**
  * Compare two Debian-style version numbers.
@@ -180,8 +181,8 @@ int compareVersions (const string a, const string b) @trusted pure
 {
     import core.stdc.string;
 
-    immutable(char) *ac = a.toStringz;
-    immutable(char) *bc = b.toStringz;
+    immutable(char)* ac = a.toStringz;
+    immutable(char)* bc = b.toStringz;
 
     immutable(char*) aEnd = ac + a.length;
     immutable(char*) bEnd = bc + b.length;
@@ -198,14 +199,16 @@ int compareVersions (const string a, const string b) @trusted pure
     // Special case: a zero epoch is the same as no epoch,
     // so remove it.
     if (lhs != ac) {
-        for (; *ac == '0'; ++ac) {}
+        for (; *ac == '0'; ++ac) {
+        }
         if (ac == lhs) {
             ++ac;
             ++lhs;
         }
     }
     if (rhs != bc) {
-        for (; *bc == '0'; ++bc) {}
+        for (; *bc == '0'; ++bc) {
+        }
         if (bc == rhs) {
             ++bc;
             ++rhs;
@@ -213,7 +216,7 @@ int compareVersions (const string a, const string b) @trusted pure
     }
 
     // Compare the epoch
-    auto res = cmpFragment (ac, lhs, bc, rhs);
+    auto res = cmpFragment(ac, lhs, bc, rhs);
     if (res != 0)
         return res;
 
@@ -232,7 +235,7 @@ int compareVersions (const string a, const string b) @trusted pure
         drhs = bEnd;
 
     // Compare the main version
-    res = cmpFragment (lhs, dlhs, rhs, drhs);
+    res = cmpFragment(lhs, dlhs, rhs, drhs);
     if (res != 0)
         return res;
 
@@ -244,33 +247,33 @@ int compareVersions (const string a, const string b) @trusted pure
 
     // no debian revision need to be treated like -0
     if (*(dlhs - 1) == '-' && *(drhs - 1) == '-') {
-        return cmpFragment (dlhs, aEnd, drhs, bEnd);
+        return cmpFragment(dlhs, aEnd, drhs, bEnd);
     } else if (*(dlhs - 1) == '-') {
         immutable(char)* zeroZ = "0";
-        return cmpFragment (dlhs, aEnd, zeroZ, zeroZ + 1);
+        return cmpFragment(dlhs, aEnd, zeroZ, zeroZ + 1);
     } else if (*(drhs - 1) == '-') {
         immutable(char)* zeroZ = "0";
-        return cmpFragment (zeroZ, zeroZ + 1, drhs, bEnd);
+        return cmpFragment(zeroZ, zeroZ + 1, drhs, bEnd);
     } else {
         return 0;
     }
 }
 
-unittest
-{
+unittest {
     import std.stdio : writeln;
-    writeln ("TEST: ", "DebianUtils");
 
-    assert (compareVersions ("6", "8") < 0);
-    assert (compareVersions ("0.6.12b-d", "0.6.12a") > 0);
-    assert (compareVersions ("7.4", "7.4") == 0);
-    assert (compareVersions ("ab.d", "ab.f") < 0);
+    writeln("TEST: ", "DebianUtils");
 
-    assert (compareVersions ("0.6.16", "0.6.14") > 0);
+    assert(compareVersions("6", "8") < 0);
+    assert(compareVersions("0.6.12b-d", "0.6.12a") > 0);
+    assert(compareVersions("7.4", "7.4") == 0);
+    assert(compareVersions("ab.d", "ab.f") < 0);
 
-    assert (compareVersions ("3.0.rc2", "3.0.0") > 0);
-    assert (compareVersions ("3.0.0~rc2", "3.0.0") < 0);
+    assert(compareVersions("0.6.16", "0.6.14") > 0);
 
-    assert (compareVersions ("4:5.6-2", "8.0-6") > 0);
-    assert (compareVersions ("1:1.0-4", "3:0.8-2") < 0);
+    assert(compareVersions("3.0.rc2", "3.0.0") > 0);
+    assert(compareVersions("3.0.0~rc2", "3.0.0") < 0);
+
+    assert(compareVersions("4:5.6-2", "8.0-6") > 0);
+    assert(compareVersions("1:1.0-4", "3:0.8-2") < 0);
 }

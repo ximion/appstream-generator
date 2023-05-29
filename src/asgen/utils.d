@@ -37,6 +37,7 @@ import glib.Bytes : Bytes;
 import appstream.Component;
 import appstream.Icon;
 static import appstream.Utils;
+
 alias AsUtils = appstream.Utils.Utils;
 
 import asgen.defines;
@@ -47,8 +48,7 @@ public immutable DESKTOP_GROUP = "Desktop Entry";
 
 public immutable GENERIC_BUFFER_SIZE = 8192;
 
-struct ImageSize
-{
+struct ImageSize {
     uint width;
     uint height;
     uint scale;
@@ -80,29 +80,29 @@ struct ImageSize
         height = -1;
         scale = -1;
 
-        immutable sep = str.indexOf ("x");
+        immutable sep = str.indexOf("x");
         if (sep <= 0)
             return;
 
-        immutable scaleSep = str.indexOf ("@");
-        width = str[0..sep].to!uint;
+        immutable scaleSep = str.indexOf("@");
+        width = str[0 .. sep].to!uint;
         if (scaleSep <= 0) {
             scale = 1;
-            height = str[sep+1..$].to!uint;
+            height = str[sep + 1 .. $].to!uint;
         } else {
             if (scaleSep == str.length)
-                throw new Exception ("Image size string must not end with '@'.");
-            height = str[sep+1..scaleSep].to!uint;
-            scale = str[scaleSep+1..$].to!uint;
+                throw new Exception("Image size string must not end with '@'.");
+            height = str[sep + 1 .. scaleSep].to!uint;
+            scale = str[scaleSep + 1 .. $].to!uint;
         }
     }
 
     string toString () const
     {
         if (scale == 1)
-            return "%ux%u".format (width, height);
+            return "%ux%u".format(width, height);
         else
-            return "%ux%u@%u".format (width, height, scale);
+            return "%ux%u@%u".format(width, height, scale);
     }
 
     uint toInt () const
@@ -135,13 +135,13 @@ struct ImageSize
 @trusted
 string randomString (uint len)
 {
-    auto asciiLetters = to! (dchar[]) (letters);
-    auto asciiDigits = to! (dchar[]) (digits);
+    auto asciiLetters = to!(dchar[])(letters);
+    auto asciiDigits = to!(dchar[])(digits);
 
     if (len == 0)
         len = 1;
 
-    auto res = to!string (randomSample (chain (asciiLetters, asciiDigits), len));
+    auto res = to!string(randomSample(chain(asciiLetters, asciiDigits), len));
     return res;
 }
 
@@ -174,7 +174,7 @@ bool isTopLevelDomain (const string value)
     if (value.empty)
         return false;
 
-    return AsUtils.isTld (value);
+    return AsUtils.isTld(value);
 }
 
 /**
@@ -183,11 +183,11 @@ bool isTopLevelDomain (const string value)
 @trusted
 string getCidFromGlobalID (string gcid)
 {
-    auto parts = gcid.split ("/");
+    auto parts = gcid.split("/");
     if (parts.length != 4)
         return null;
-    if (isTopLevelDomain (parts[0])) {
-        return join (parts[0..3], ".");
+    if (isTopLevelDomain(parts[0])) {
+        return join(parts[0 .. 3], ".");
     }
 
     return parts[2];
@@ -200,9 +200,9 @@ void hardlink (const string srcFname, const string destFname)
     import core.stdc.string;
     import core.stdc.errno;
 
-    immutable res = link (srcFname.toStringz, destFname.toStringz);
+    immutable res = link(srcFname.toStringz, destFname.toStringz);
     if (res != 0)
-        throw new std.file.FileException ("Unable to create link: %s".format (errno.strerror));
+        throw new std.file.FileException("Unable to create link: %s".format(errno.strerror));
 }
 
 /**
@@ -223,49 +223,49 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @t
     import std.parallelism : parallel;
     import std.array : appender;
 
-    auto deSrc = DirEntry (srcDir);
+    auto deSrc = DirEntry(srcDir);
     auto files = appender!(string[]);
 
-    if (!exists (destDir)) {
-        mkdirRecurse (destDir);
+    if (!exists(destDir)) {
+        mkdirRecurse(destDir);
     }
 
- 	auto deDest = DirEntry (destDir);
-    if(!deDest.isDir ()) {
-        throw new FileException (deDest.name, " is not a directory");
+    auto deDest = DirEntry(destDir);
+    if (!deDest.isDir()) {
+        throw new FileException(deDest.name, " is not a directory");
     }
 
     immutable destRoot = deDest.name ~ '/';
 
-    if (!deSrc.isDir ()) {
+    if (!deSrc.isDir()) {
         if (useHardlinks)
             hardlink (deSrc.name, destRoot);
         else
-            std.file.copy (deSrc.name, destRoot);
+            std.file.copy(deSrc.name, destRoot);
     } else {
         auto srcLen = deSrc.name.length;
-        if (!std.file.exists (destRoot))
+        if (!std.file.exists(destRoot))
             mkdir (destRoot);
 
         // make an array of the regular files and create the directory structure
         // Since it is SpanMode.breadth, we can just use mkdir
-        foreach (DirEntry e; dirEntries (deSrc.name, SpanMode.breadth, true)) {
-            if (attrIsDir (e.attributes)) {
-                auto childDir = destRoot ~ e.name[srcLen..$];
-                mkdirRecurse (childDir);
+        foreach (DirEntry e; dirEntries(deSrc.name, SpanMode.breadth, true)) {
+            if (attrIsDir(e.attributes)) {
+                auto childDir = destRoot ~ e.name[srcLen .. $];
+                mkdirRecurse(childDir);
             } else {
                 files ~= e.name;
             }
         }
 
         // parallel foreach for regular files
-        foreach (fn; parallel (files.data, 100)) {
-            immutable destFn = destRoot ~ fn[srcLen..$];
+        foreach (fn; parallel(files.data, 100)) {
+            immutable destFn = destRoot ~ fn[srcLen .. $];
 
             if (useHardlinks)
                 hardlink (fn, destFn);
             else
-                std.file.copy (fn, destFn);
+                std.file.copy(fn, destFn);
         }
     }
 }
@@ -274,31 +274,42 @@ void copyDir (in string srcDir, in string destDir, bool useHardlinks = false) @t
  * Escape XML characters.
  */
 @safe
-S escapeXml (S) (S s) pure
+S escapeXml (S)(S s) pure
 {
     string r;
     size_t lastI;
-    auto result = appender!S ();
+    auto result = appender!S();
 
     foreach (i, c; s) {
         switch (c) {
-            case '&':  r = "&amp;"; break;
-            case '"':  r = "&quot;"; break;
-            case '\'': r = "&apos;"; break;
-            case '<':  r = "&lt;"; break;
-            case '>':  r = "&gt;"; break;
-            default: continue;
+            case '&':
+                r = "&amp;";
+                break;
+            case '"':
+                r = "&quot;";
+                break;
+            case '\'':
+                r = "&apos;";
+                break;
+            case '<':
+                r = "&lt;";
+                break;
+            case '>':
+                r = "&gt;";
+                break;
+            default:
+                continue;
         }
 
         // Replace with r
-        result.put (s[lastI .. i]);
-        result.put (r);
+        result.put(s[lastI .. i]);
+        result.put(r);
         lastI = i + 1;
     }
 
     if (!result.data.ptr)
         return s;
-    result.put (s[lastI .. $]);
+    result.put(s[lastI .. $]);
     return result.data;
 }
 
@@ -309,32 +320,33 @@ S escapeXml (S) (S s) pure
 string getDataPath (string fname)
 {
     import std.path : buildNormalizedPath, dirName;
+
     immutable exeDirName = std.file.thisExePath.dirName;
 
     // useful for testing
-    if (!exeDirName.startsWith ("/usr")) {
-        auto resPath = buildNormalizedPath (exeDirName, "..", "..", "data", fname);
-        if (std.file.exists (resPath))
+    if (!exeDirName.startsWith("/usr")) {
+        auto resPath = buildNormalizedPath(exeDirName, "..", "..", "data", fname);
+        if (std.file.exists(resPath))
             return resPath;
-        resPath = buildNormalizedPath (exeDirName, "..", "..", "..", "data", fname);
-        if (std.file.exists (resPath))
+        resPath = buildNormalizedPath(exeDirName, "..", "..", "..", "data", fname);
+        if (std.file.exists(resPath))
             return resPath;
     }
 
-    auto resPath = buildPath (DATADIR, fname);
-    if (std.file.exists (resPath))
+    auto resPath = buildPath(DATADIR, fname);
+    if (std.file.exists(resPath))
         return resPath;
 
-    resPath = buildNormalizedPath (exeDirName, "..", "data", fname);
-    if (std.file.exists (resPath))
+    resPath = buildNormalizedPath(exeDirName, "..", "data", fname);
+    if (std.file.exists(resPath))
         return resPath;
 
-    resPath = buildPath ("data", fname);
-    if (std.file.exists (resPath))
+    resPath = buildPath("data", fname);
+    if (std.file.exists(resPath))
         return resPath;
 
     // Uh, let's just give up
-    return buildPath ("/usr", "share", "appstream", fname);
+    return buildPath("/usr", "share", "appstream", fname);
 }
 
 /**
@@ -342,8 +354,8 @@ string getDataPath (string fname)
  */
 bool existsAndIsDir (string path) @safe
 {
-    if (std.file.exists (path))
-        if (std.file.isDir (path))
+    if (std.file.exists(path))
+        if (std.file.isDir(path))
             return true;
     return false;
 }
@@ -354,7 +366,7 @@ bool existsAndIsDir (string path) @safe
 ubyte[] stringArrayToByteArray (string[] strArray) pure @trusted
 {
     auto res = appender!(ubyte[]);
-    res.reserve (strArray.length * 2); // make a guess, we will likely need much more space
+    res.reserve(strArray.length * 2); // make a guess, we will likely need much more space
 
     foreach (ref s; strArray) {
         res ~= cast(ubyte[]) s;
@@ -372,7 +384,7 @@ bool isRemote (const string uri)
     import std.regex : ctRegex, matchFirst;
 
     auto uriregex = ctRegex!(`^(https?|ftps?)://`);
-    auto match = matchFirst (uri, uriregex);
+    auto match = matchFirst(uri, uriregex);
 
     return (!match.empty);
 }
@@ -393,12 +405,12 @@ string[] getTextFileContents (const string path, const uint maxTryCount = 4, Dow
     if (path.isRemote) {
         if (downloader is null)
             downloader = Downloader.get;
-        return downloader.downloadTextLines (path, maxTryCount);
+        return downloader.downloadTextLines(path, maxTryCount);
     } else {
-        if (!std.file.exists (path))
-            throw new Exception ("No such file '%s'", path);
+        if (!std.file.exists(path))
+            throw new Exception("No such file '%s'", path);
 
-        return std.file.readText (path).splitLines;
+        return std.file.readText(path).splitLines;
     }
 }
 
@@ -418,16 +430,16 @@ immutable(ubyte[]) getFileContents (const string path, const uint maxTryCount = 
     if (path.isRemote) {
         if (downloader is null)
             downloader = Downloader.get;
-        return downloader.download (path, maxTryCount);
+        return downloader.download(path, maxTryCount);
     } else {
-        if (!std.file.exists (path))
-            throw new Exception ("No such file '%s'", path);
+        if (!std.file.exists(path))
+            throw new Exception("No such file '%s'", path);
 
         ubyte[] data;
-        auto f = File (path, "r");
+        auto f = File(path, "r");
         while (!f.eof) {
             char[GENERIC_BUFFER_SIZE] buf;
-            data ~= f.rawRead (buf);
+            data ~= f.rawRead(buf);
         }
 
         return cast(immutable ubyte[]) data;
@@ -443,10 +455,10 @@ string getTestSamplesDir () @trusted
 {
     import std.file : getcwd;
 
-    auto path = buildPath (getcwd (), "tests", "samples");
-    if (std.file.exists (path))
+    auto path = buildPath(getcwd(), "tests", "samples");
+    if (std.file.exists(path))
         return path;
-    path = buildNormalizedPath (getcwd (), "..", "tests", "samples");
+    path = buildNormalizedPath(getcwd(), "..", "tests", "samples");
 
     return path;
 }
@@ -462,11 +474,11 @@ Nullable!Icon componentGetRawIcon (ref Component cpt)
     import gobject.c.functions : g_object_ref;
 
     Nullable!Icon iconLocal;
-    auto iconsArr = cpt.getIcons ();
+    auto iconsArr = cpt.getIcons();
 
     for (uint i = 0; i < iconsArr.len; i++) {
         // cast array data to D AsIcon and keep a reference to the C struct
-        auto icon = new Icon (cast(AsIcon*) g_object_ref (iconsArr.index (i)), true);
+        auto icon = new Icon(cast(AsIcon*) g_object_ref (iconsArr.index(i)), true);
         if (icon.getKind == IconKind.STOCK) {
             Nullable!Icon iconStock = icon;
             return iconStock;
@@ -479,40 +491,35 @@ Nullable!Icon componentGetRawIcon (ref Component cpt)
     return iconLocal;
 }
 
-template StoredType(T)
-{
-    static if ( is (T==immutable) || is(T==const) )
-    {
-        static if ( is(T==class) )
-        {
+template StoredType(T) {
+    static if (is(T == immutable) || is(T == const)) {
+        static if (is(T == class)) {
             alias StoredType = Rebindable!T;
-        }
-        else
-        {
+        } else {
             alias StoredType = Unqual!T;
         }
-    }
-    else
-    {
+    } else {
         alias StoredType = T;
     }
 }
 
-bool UseGCRanges(T)() {
+bool UseGCRanges (T)()
+{
     return hasIndirections!T;
 }
 
-bool UseGCRanges(Allocator, T, bool GCRangesAllowed)()
+bool UseGCRanges (Allocator, T, bool GCRangesAllowed)()
 {
     import std.experimental.allocator.gc_allocator;
-    return !is(Allocator==GCAllocator) && hasIndirections!T && GCRangesAllowed;
+
+    return  !is(Allocator == GCAllocator) && hasIndirections!T && GCRangesAllowed;
 }
 
-bool UseGCRanges(Allocator, K, V, bool GCRangesAllowed)()
+bool UseGCRanges (Allocator, K, V, bool GCRangesAllowed)()
 {
     import std.experimental.allocator.gc_allocator;
 
-    return  !is(Allocator == GCAllocator) && (hasIndirections!K || hasIndirections!V ) && GCRangesAllowed;
+    return  !is(Allocator == GCAllocator) && (hasIndirections!K || hasIndirections!V) && GCRangesAllowed;
 }
 
 string filenameFromURI (string uri)
@@ -521,76 +528,79 @@ string filenameFromURI (string uri)
     import std.string : indexOf;
 
     auto bname = uri.baseName;
-    immutable qInd = bname.indexOf ("?");
+    immutable qInd = bname.indexOf("?");
     if (qInd > 0)
-        bname = bname[0..qInd];
-    immutable hInd = bname.indexOf ("#");
+        bname = bname[0 .. qInd];
+    immutable hInd = bname.indexOf("#");
     if (hInd > 0)
-        bname = bname[0..hInd];
+        bname = bname[0 .. hInd];
 
     return bname;
 }
 
-auto toGBytesCopy (const(ubyte)[] data) @trusted
+auto toGBytesCopy(const(ubyte)[] data) @trusted
 {
     import glib.c.functions : g_bytes_new_take, g_memdup;
+
     auto nc = cast(ubyte[]) data;
     // FIXME: We should use g_memdup2 here, once we can bump the GLib version!
-    void *ncCopy = g_memdup (nc.ptr, cast(uint) nc.length);
-    auto gBytes = g_bytes_new_take (ncCopy, cast(size_t) nc.length);
-    return new Bytes (gBytes, true);
+    void* ncCopy = g_memdup(nc.ptr, cast(uint) nc.length);
+    auto gBytes = g_bytes_new_take(ncCopy, cast(size_t) nc.length);
+    return new Bytes(gBytes, true);
 }
 
-auto toStaticGBytes (const(ubyte)[] data) @trusted
+auto toStaticGBytes(const(ubyte)[] data) @trusted
 {
     import glib.c.functions : g_bytes_new_static;
+
     auto nc = cast(ubyte[]) data;
-    auto gBytes = g_bytes_new_static (nc.ptr, cast(size_t) nc.length);
-    return new Bytes (gBytes, true);
+    auto gBytes = g_bytes_new_static(nc.ptr, cast(size_t) nc.length);
+    return new Bytes(gBytes, true);
 }
 
-auto toStaticGBytes (ubyte[] data) @trusted
+auto toStaticGBytes(ubyte[] data) @trusted
 {
     import glib.c.functions : g_bytes_new_static;
-    auto gBytes = g_bytes_new_static (data.ptr, cast(size_t) data.length);
-    return new Bytes (gBytes, true);
+
+    auto gBytes = g_bytes_new_static(data.ptr, cast(size_t) data.length);
+    return new Bytes(gBytes, true);
 }
 
-auto toStaticGBytes (const string data) @trusted
+auto toStaticGBytes(const string data) @trusted
 {
-    return toStaticGBytes (cast(immutable(ubyte)[]) data.representation);
+    return toStaticGBytes(cast(immutable(ubyte)[]) data.representation);
 }
 
 @trusted
-unittest
-{
+unittest {
     import std.exception : assertThrown;
-    writeln ("TEST: ", "Utils");
 
-    assert (getCidFromGlobalID ("f/fo/foobar.desktop/DEADBEEF") == "foobar.desktop");
-    assert (getCidFromGlobalID ("org/gnome/yelp.desktop/DEADBEEF") == "org.gnome.yelp.desktop");
+    writeln("TEST: ", "Utils");
 
-    assert (ImageSize (80, 40).toString () == "80x40");
-    assert (ImageSize (1024, 420).toInt () == 1024);
-    assert (ImageSize (1024, 800) > ImageSize (64, 32));
-    assert (ImageSize (48) < ImageSize (64));
+    assert(getCidFromGlobalID("f/fo/foobar.desktop/DEADBEEF") == "foobar.desktop");
+    assert(getCidFromGlobalID("org/gnome/yelp.desktop/DEADBEEF") == "org.gnome.yelp.desktop");
 
-    assert (ImageSize ("64x64") == ImageSize (64));
-    assert (ImageSize ("64x64@2") == ImageSize (64, 64, 2));
-    assert (ImageSize ("128x128@2") == ImageSize (128, 128, 2));
-    assertThrown!Exception(ImageSize ("48x48@"));
-    assert (ImageSize ("x23@2").height == -1);
-    logInfo ("Size: %s", ImageSize ("64x64"));
+    assert(ImageSize(80, 40).toString() == "80x40");
+    assert(ImageSize(1024, 420).toInt() == 1024);
+    assert(ImageSize(1024, 800) > ImageSize(64, 32));
+    assert(ImageSize(48) < ImageSize(64));
 
-    assert (stringArrayToByteArray (["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
+    assert(ImageSize("64x64") == ImageSize(64));
+    assert(ImageSize("64x64@2") == ImageSize(64, 64, 2));
+    assert(ImageSize("128x128@2") == ImageSize(128, 128, 2));
+    assertThrown!Exception(ImageSize("48x48@"));
+    assert(ImageSize("x23@2").height == -1);
+    logInfo("Size: %s", ImageSize("64x64"));
 
-    assert (isRemote ("http://test.com"));
-    assert (isRemote ("https://example.org"));
-    assert (!isRemote ("/srv/mirror"));
-    assert (!isRemote ("file:///srv/test"));
+    assert(stringArrayToByteArray(["A", "b", "C", "ö", "8"]) == [65, 98, 67, 195, 182, 56]);
 
-    assert (filenameFromURI ("https://example.org/test/filename.txt") == "filename.txt");
-    assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true") == "video.mkv");
-    assert (filenameFromURI ("https://example.org/test/video.mkv#anchor") == "video.mkv");
-    assert (filenameFromURI ("https://example.org/test/video.mkv?raw=true&aaa=bbb") == "video.mkv");
+    assert(isRemote("http://test.com"));
+    assert(isRemote("https://example.org"));
+    assert(!isRemote("/srv/mirror"));
+    assert(!isRemote("file:///srv/test"));
+
+    assert(filenameFromURI("https://example.org/test/filename.txt") == "filename.txt");
+    assert(filenameFromURI("https://example.org/test/video.mkv?raw=true") == "video.mkv");
+    assert(filenameFromURI("https://example.org/test/video.mkv#anchor") == "video.mkv");
+    assert(filenameFromURI("https://example.org/test/video.mkv?raw=true&aaa=bbb") == "video.mkv");
 }

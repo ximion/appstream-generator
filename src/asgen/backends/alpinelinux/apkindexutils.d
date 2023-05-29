@@ -29,8 +29,9 @@ struct ApkIndexBlock {
     string pkgversion;
     string pkgdesc;
 
-    @property string archiveName () {
-        return format ("%s-%s.apk", this.pkgname, this.pkgversion);
+    @property string archiveName ()
+    {
+        return format("%s-%s.apk", this.pkgname, this.pkgversion);
     }
 }
 
@@ -44,23 +45,29 @@ struct ApkIndexBlockRange {
         this.getNextBlock();
     }
 
-    @property ApkIndexBlock front () const {
+    @property ApkIndexBlock front () const
+    {
         return this.currentBlock;
     }
 
-    @property bool empty () {
+    @property bool empty ()
+    {
         return this.m_empty;
     }
 
     void popFront ()
     {
-        this.getNextBlock ();
+        this.getNextBlock();
     }
 
-    @property ApkIndexBlockRange save () { return this; }
+    @property ApkIndexBlockRange save ()
+    {
+        return this;
+    }
 
 private:
-    void getNextBlock () {
+    void getNextBlock ()
+    {
         string[] completePair;
         uint iterations = 0;
 
@@ -70,17 +77,18 @@ private:
             if (currentLine == "") {
                 // next block for next package started
                 break;
-            } if (currentLine.canFind (":")) {
+            }
+            if (currentLine.canFind(":")) {
                 if (completePair.empty) {
                     completePair = [currentLine];
                     continue;
                 }
 
-                auto pair = completePair.join (" ").split (":");
-                this.setCurrentBlock (pair[0], pair[1]);
+                auto pair = completePair.join(" ").split(":");
+                this.setCurrentBlock(pair[0], pair[1]);
                 completePair = [currentLine];
             } else {
-                completePair ~= currentLine.strip ();
+                completePair ~= currentLine.strip();
             }
         }
 
@@ -88,7 +96,8 @@ private:
         this.m_empty = this.lineDelta == this.lines.length;
     }
 
-    void setCurrentBlock (string key, string value) {
+    void setCurrentBlock (string key, string value)
+    {
         switch (key) {
             case "A":
                 this.currentBlock.arch = value;
@@ -117,28 +126,28 @@ private:
     uint lineDelta;
 }
 
-static assert (isForwardRange!ApkIndexBlockRange);
+static assert(isForwardRange!ApkIndexBlockRange);
 
 /**
  * Download apkindex if required. Returns the path to the local copy of the APKINDEX.
  */
-immutable (string) downloadIfNecessary (const string prefix,
-                                        const string destPrefix,
-                                        const string srcFileName,
-                                        const string destFileName)
+immutable(string) downloadIfNecessary (const string prefix,
+        const string destPrefix,
+        const string srcFileName,
+        const string destFileName)
 {
     auto downloader = Downloader.get;
 
-    immutable filePath = buildPath (prefix, srcFileName);
-    immutable destFilePath = buildPath (destPrefix, destFileName);
+    immutable filePath = buildPath(prefix, srcFileName);
+    immutable destFilePath = buildPath(destPrefix, destFileName);
 
     if (filePath.isRemote) {
         try {
-            downloader.downloadFile (filePath, destFilePath);
+            downloader.downloadFile(filePath, destFilePath);
 
             return destFilePath;
         } catch (DownloadException e) {
-            logDebug ("Unable to download: %s", e.msg);
+            logDebug("Unable to download: %s", e.msg);
         }
     } else {
         if (filePath.exists)
@@ -146,5 +155,5 @@ immutable (string) downloadIfNecessary (const string prefix,
     }
 
     /* all extensions failed, so we failed */
-    throw new Exception ("Could not obtain any file matching %s".format (buildPath (prefix, srcFileName)));
+    throw new Exception("Could not obtain any file matching %s".format(buildPath(prefix, srcFileName)));
 }

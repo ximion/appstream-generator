@@ -35,6 +35,7 @@ import appstream.Metadata;
 import appstream.c.types : IssueSeverity;
 import ascompose.Hint : Hint;
 static import appstream.Utils;
+
 alias AsUtils = appstream.Utils.Utils;
 
 import asgen.defines : ASGEN_VERSION;
@@ -45,11 +46,9 @@ import asgen.hintregistry;
 import asgen.backends.interfaces;
 import asgen.datastore;
 
-
 private alias Mustache = MustacheEngine!(string);
 
-final class ReportGenerator
-{
+final class ReportGenerator {
 
 private:
     Config conf;
@@ -67,14 +66,12 @@ private:
 
     Mustache mustache;
 
-    struct HintTag
-    {
+    struct HintTag {
         string tag;
         string message;
     }
 
-    struct HintEntry
-    {
+    struct HintEntry {
         string identifier;
         string[] archs;
         HintTag[] errors;
@@ -82,8 +79,7 @@ private:
         HintTag[] infos;
     }
 
-    struct MetadataEntry
-    {
+    struct MetadataEntry {
         ComponentKind kind;
         string identifier;
         string[] archs;
@@ -91,8 +87,7 @@ private:
         string iconName;
     }
 
-    struct PkgSummary
-    {
+    struct PkgSummary {
         string pkgname;
         string[] cpts;
         int infoCount;
@@ -100,8 +95,7 @@ private:
         int errorCount;
     }
 
-    struct DataSummary
-    {
+    struct DataSummary {
         PkgSummary[string][string] pkgSummaries;
         HintEntry[string][string] hintEntries;
         MetadataEntry[string][string][string] mdataEntries; // package -> version -> gcid -> entry
@@ -115,43 +109,43 @@ public:
 
     this (DataStore db)
     {
-        this.conf = Config.get ();
+        this.conf = Config.get();
 
         // we need the data store to get hint and metainfo data
         dstore = db;
 
         htmlExportDir = conf.htmlExportDir;
         mediaPoolDir = dstore.mediaExportPoolDir;
-        mediaPoolUrl = buildPath (conf.mediaBaseUrl, "pool");
+        mediaPoolUrl = buildPath(conf.mediaBaseUrl, "pool");
 
         // get template directory
         templateDir = conf.templateDir;
-        defaultTemplateDir = buildNormalizedPath (templateDir, "..", "default");
+        defaultTemplateDir = buildNormalizedPath(templateDir, "..", "default");
 
         mustache.path = templateDir;
         mustache.ext = "html";
 
         // create version information to display on every page
-        versionInfo = "%s, AS: %s".format (ASGEN_VERSION, AsUtils.appstreamVersion);
+        versionInfo = "%s, AS: %s".format(ASGEN_VERSION, AsUtils.appstreamVersion);
     }
 
     private string[] splitBlockData (string str, string blockType)
     {
-        auto content = str.strip ();
+        auto content = str.strip();
         string blockName;
-        if (content.startsWith ("{")) {
+        if (content.startsWith("{")) {
             auto li = content.indexOf("}");
             if (li <= 0)
-                throw new Exception ("Invalid %s: Closing '}' missing.", blockType);
-            blockName = content[1..li].strip ();
-            if (li+1 >= content.length)
+                throw new Exception("Invalid %s: Closing '}' missing.", blockType);
+            blockName = content[1 .. li].strip();
+            if (li + 1 >= content.length)
                 content = "";
             else
-                content = content[li+1..$];
+                content = content[li + 1 .. $];
         }
 
         if (blockName is null)
-            throw new Exception ("Invalid %s: Does not have a name.", blockType);
+            throw new Exception("Invalid %s: Does not have a name.", blockType);
 
         return [blockName, content];
     }
@@ -165,13 +159,13 @@ public:
         // this implements a very cheap way to get template inheritance
         // would obviously be better if our template system supported this natively.
         context["partial"] = (string str) {
-            auto split = splitBlockData (str, "partial");
+            auto split = splitBlockData(str, "partial");
             partials[split[0]] = split[1];
             return "";
         };
 
         context["block"] = (string str) {
-            auto split = splitBlockData (str, "block");
+            auto split = splitBlockData(str, "block");
             auto blockName = split[0];
             str = split[1] ~ "\n";
 
@@ -182,8 +176,9 @@ public:
                 return *partialCP;
         };
 
-        auto time = Clock.currTime ();
-        auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format (time.year, time.month, time.day, time.hour,time.minute, time.timezone.stdName);
+        auto time = Clock.currTime();
+        auto timeStr = "%d-%02d-%02d %02d:%02d [%s]".format(time.year, time.month, time.day, time.hour, time.minute, time
+                .timezone.stdName);
 
         context["time"] = timeStr;
         context["generator_version"] = versionInfo;
@@ -193,20 +188,20 @@ public:
 
     private void renderPage (string pageID, string exportName, Mustache.Context context)
     {
-        setupMustacheContext (context);
+        setupMustacheContext(context);
 
-        auto fname = buildPath (htmlExportDir, exportName) ~ ".html";
-        std.file.mkdirRecurse (dirName (fname));
+        auto fname = buildPath(htmlExportDir, exportName) ~ ".html";
+        std.file.mkdirRecurse(dirName(fname));
 
-        if (!std.file.exists (buildPath (templateDir, pageID ~ ".html"))) {
-            if (std.file.exists (buildPath (defaultTemplateDir, pageID ~ ".html")))
+        if (!std.file.exists(buildPath(templateDir, pageID ~ ".html"))) {
+            if (std.file.exists(buildPath(defaultTemplateDir, pageID ~ ".html")))
                 mustache.path = defaultTemplateDir;
         }
 
-        logDebug ("Rendering HTML page: %s", exportName);
-        auto data = mustache.render (pageID, context).strip ();
-        auto f = File (fname, "w");
-        f.writeln (data);
+        logDebug("Rendering HTML page: %s", exportName);
+        auto data = mustache.render(pageID, context).strip();
+        auto f = File(fname, "w");
+        f.writeln(data);
 
         // reset default template path, we might have changed it
         mustache.path = templateDir;
@@ -217,17 +212,17 @@ public:
         static import std.regex;
 
         if (templateDir is null) {
-            logError ("Can not render HTML: No page templates found.");
+            logError("Can not render HTML: No page templates found.");
             return;
         }
 
-        logInfo ("Rendering HTML for %s/%s", suiteName, section);
+        logInfo("Rendering HTML for %s/%s", suiteName, section);
         auto maintRE = std.regex.ctRegex!(`[àáèéëêòöøîìùñ~/\\(\\)" ']`, "g");
 
         // write issue hint pages
-        foreach (ref pkgname; dsum.hintEntries.byKey ()) {
+        foreach (ref pkgname; dsum.hintEntries.byKey()) {
             auto pkgHEntries = dsum.hintEntries[pkgname];
-            auto exportName = format ("%s/%s/issues/%s", suiteName, section, pkgname);
+            auto exportName = format("%s/%s/issues/%s", suiteName, section, pkgname);
 
             auto context = new Mustache.Context;
             context["suite"] = suiteName;
@@ -236,7 +231,7 @@ public:
 
             context["entries"] = (string content) {
                 string res;
-                foreach (ref cid; pkgHEntries.byKey ()) {
+                foreach (ref cid; pkgHEntries.byKey()) {
                     auto hentry = pkgHEntries[cid];
                     auto intCtx = new Mustache.Context;
                     intCtx["component_id"] = cid;
@@ -270,19 +265,19 @@ public:
                         infoSub["info_description"] = info.message;
                     }
 
-                    res ~= mustache.renderString (content, intCtx);
+                    res ~= mustache.renderString(content, intCtx);
                 }
 
                 return res;
             };
 
-            renderPage ("issues_page", exportName, context);
+            renderPage("issues_page", exportName, context);
         }
 
         // write metadata info pages
-        foreach (ref pkgname; dsum.mdataEntries.byKey ()) {
+        foreach (ref pkgname; dsum.mdataEntries.byKey()) {
             auto pkgMVerEntries = dsum.mdataEntries[pkgname];
-            auto exportName = format ("%s/%s/metainfo/%s", suiteName, section, pkgname);
+            auto exportName = format("%s/%s/metainfo/%s", suiteName, section, pkgname);
 
             auto context = new Mustache.Context;
             context["suite"] = suiteName;
@@ -291,14 +286,14 @@ public:
 
             context["cpts"] = (string content) {
                 string res;
-                foreach (ver; pkgMVerEntries.byKey ()) {
+                foreach (ver; pkgMVerEntries.byKey()) {
                     auto mEntries = pkgMVerEntries[ver];
 
-                    foreach (gcid; mEntries.byKey ()) {
+                    foreach (gcid; mEntries.byKey()) {
                         auto mentry = mEntries[gcid];
 
                         auto intCtx = new Mustache.Context;
-                        intCtx["component_id"] = format ("%s - %s", mentry.identifier, ver);
+                        intCtx["component_id"] = format("%s - %s", mentry.identifier, ver);
 
                         foreach (arch; mentry.archs) {
                             auto archSub = intCtx.addSubContext("architectures");
@@ -306,30 +301,30 @@ public:
                         }
                         intCtx["metadata"] = mentry.data;
 
-                        auto cptMediaPath = buildPath (mediaPoolDir, gcid);
-                        auto cptMediaUrl = buildPath (mediaPoolUrl, gcid);
+                        auto cptMediaPath = buildPath(mediaPoolDir, gcid);
+                        auto cptMediaUrl = buildPath(mediaPoolUrl, gcid);
                         string iconUrl;
                         switch (mentry.kind) {
                             case ComponentKind.UNKNOWN:
-                                iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
+                                iconUrl = buildPath(conf.htmlBaseUrl, "static", "img", "no-image.png");
                                 break;
                             case ComponentKind.DESKTOP_APP:
                             case ComponentKind.WEB_APP:
                             case ComponentKind.FONT:
                             case ComponentKind.OPERATING_SYSTEM:
-                                if (std.file.exists (buildPath (cptMediaPath, "icons", "64x64", mentry.iconName)))
-                                    iconUrl = buildPath (cptMediaUrl, "icons", "64x64", mentry.iconName);
+                                if (std.file.exists(buildPath(cptMediaPath, "icons", "64x64", mentry.iconName)))
+                                    iconUrl = buildPath(cptMediaUrl, "icons", "64x64", mentry.iconName);
                                 else
-                                    iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "no-image.png");
+                                    iconUrl = buildPath(conf.htmlBaseUrl, "static", "img", "no-image.png");
                                 break;
                             default:
-                                iconUrl = buildPath (conf.htmlBaseUrl, "static", "img", "cpt-nogui.png");
+                                iconUrl = buildPath(conf.htmlBaseUrl, "static", "img", "cpt-nogui.png");
                                 break;
                         }
 
                         intCtx["icon_url"] = iconUrl;
 
-                        res ~= mustache.renderString (content, intCtx);
+                        res ~= mustache.renderString(content, intCtx);
                     }
 
                 }
@@ -337,11 +332,11 @@ public:
                 return res;
             };
 
-            renderPage ("metainfo_page", exportName, context);
+            renderPage("metainfo_page", exportName, context);
         }
 
         // write hint overview page
-        auto hindexExportName = format ("%s/%s/issues/index", suiteName, section);
+        auto hindexExportName = format("%s/%s/issues/index", suiteName, section);
         auto hsummaryCtx = new Mustache.Context;
         hsummaryCtx["suite"] = suiteName;
         hsummaryCtx["section"] = section;
@@ -349,14 +344,14 @@ public:
         hsummaryCtx["summaries"] = (string content) {
             string res;
 
-            foreach (maintainer; dsum.pkgSummaries.byKey ()) {
+            foreach (maintainer; dsum.pkgSummaries.byKey()) {
                 auto summaries = dsum.pkgSummaries[maintainer];
                 auto intCtx = new Mustache.Context;
                 intCtx["maintainer"] = maintainer;
-                intCtx["maintainer_anchor"] = std.regex.replaceAll (maintainer, maintRE, "_");
+                intCtx["maintainer_anchor"] = std.regex.replaceAll(maintainer, maintRE, "_");
 
                 bool interesting = false;
-                foreach (summary; summaries.byValue ()) {
+                foreach (summary; summaries.byValue()) {
                     if ((summary.infoCount == 0) && (summary.warningCount == 0) && (summary.errorCount == 0))
                         continue;
                     interesting = true;
@@ -366,11 +361,11 @@ public:
                     // again, we use this dumb hack to allow conditionals in the Mustache
                     // template.
                     if (summary.infoCount > 0)
-                        maintSub["has_info_count"] =["has_count": "yes"];
+                        maintSub["has_info_count"] = ["has_count": "yes"];
                     if (summary.warningCount > 0)
-                        maintSub["has_warning_count"] =["has_count": "yes"];
+                        maintSub["has_warning_count"] = ["has_count": "yes"];
                     if (summary.errorCount > 0)
-                        maintSub["has_error_count"] =["has_count": "yes"];
+                        maintSub["has_error_count"] = ["has_count": "yes"];
 
                     maintSub["info_count"] = summary.infoCount;
                     maintSub["warning_count"] = summary.warningCount;
@@ -378,15 +373,15 @@ public:
                 }
 
                 if (interesting)
-                    res ~= mustache.renderString (content, intCtx);
+                    res ~= mustache.renderString(content, intCtx);
             }
 
             return res;
         };
-        renderPage ("issues_index", hindexExportName, hsummaryCtx);
+        renderPage("issues_index", hindexExportName, hsummaryCtx);
 
         // write metainfo overview page
-        auto mindexExportName = format ("%s/%s/metainfo/index", suiteName, section);
+        auto mindexExportName = format("%s/%s/metainfo/index", suiteName, section);
         auto msummaryCtx = new Mustache.Context;
         msummaryCtx["suite"] = suiteName;
         msummaryCtx["section"] = section;
@@ -394,11 +389,11 @@ public:
         msummaryCtx["summaries"] = (string content) {
             string res;
 
-            foreach (maintainer; dsum.pkgSummaries.byKey ()) {
+            foreach (maintainer; dsum.pkgSummaries.byKey()) {
                 auto summaries = dsum.pkgSummaries[maintainer];
                 auto intCtx = new Mustache.Context;
                 intCtx["maintainer"] = maintainer;
-                intCtx["maintainer_anchor"] = std.regex.replaceAll (maintainer, maintRE, "_");
+                intCtx["maintainer_anchor"] = std.regex.replaceAll(maintainer, maintRE, "_");
 
                 intCtx["packages"] = (string content) {
                     string pRes;
@@ -413,27 +408,28 @@ public:
                             cptsSub["cid"] = cid;
                         }
 
-                        pRes ~= mustache.renderString (content, subCtx);
+                        pRes ~= mustache.renderString(content, subCtx);
                     }
 
                     return pRes;
                 };
 
-                res ~= mustache.renderString (content, intCtx);
+                res ~= mustache.renderString(content, intCtx);
             }
 
             return res;
         };
-        renderPage ("metainfo_index", mindexExportName, msummaryCtx);
+        renderPage("metainfo_index", mindexExportName, msummaryCtx);
 
         // render section index page
-        auto secIndexExportName = format ("%s/%s/index", suiteName, section);
+        auto secIndexExportName = format("%s/%s/index", suiteName, section);
         auto secIndexCtx = new Mustache.Context;
         secIndexCtx["suite"] = suiteName;
         secIndexCtx["section"] = section;
 
-        float percOne = 100.0 / cast(float) (dsum.totalMetadata + dsum.totalInfos + dsum.totalWarnings + dsum.totalErrors);
-        secIndexCtx["valid_percentage"] =  dsum.totalMetadata * percOne;
+        float percOne = 100.0 / cast(float)(dsum.totalMetadata + dsum.totalInfos + dsum.totalWarnings + dsum
+                .totalErrors);
+        secIndexCtx["valid_percentage"] = dsum.totalMetadata * percOne;
         secIndexCtx["info_percentage"] = dsum.totalInfos * percOne;
         secIndexCtx["warning_percentage"] = dsum.totalWarnings * percOne;
         secIndexCtx["error_percentage"] = dsum.totalErrors * percOne;
@@ -443,25 +439,25 @@ public:
         secIndexCtx["warning_count"] = dsum.totalWarnings;
         secIndexCtx["info_count"] = dsum.totalInfos;
 
-        renderPage ("section_page", secIndexExportName, secIndexCtx);
+        renderPage("section_page", secIndexExportName, secIndexCtx);
     }
 
     private DataSummary preprocessInformation (string suiteName, string section, Package[] pkgs)
     {
         DataSummary dsum;
 
-        logInfo ("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
+        logInfo("Collecting data about hints and available metainfo for %s/%s", suiteName, section);
 
         auto dtype = conf.metadataType;
-        auto mdata = scoped!Metadata ();
-        mdata.setFormatStyle (FormatStyle.CATALOG);
-        mdata.setFormatVersion (conf.formatVersion);
+        auto mdata = scoped!Metadata();
+        mdata.setFormatStyle(FormatStyle.CATALOG);
+        mdata.setFormatVersion(conf.formatVersion);
 
         foreach (ref pkg; pkgs) {
             immutable pkid = pkg.id;
 
-            auto gcids = dstore.getGCIDsForPackage (pkid);
-            auto hintsData = dstore.getHints (pkid);
+            auto gcids = dstore.getGCIDsForPackage(pkid);
+            auto hintsData = dstore.getHints(pkid);
             if ((hintsData is null) && (gcids is null))
                 continue;
 
@@ -480,7 +476,7 @@ public:
             // process component metadata for this package if there are any
             if (gcids !is null) {
                 foreach (gcid; gcids) {
-                    auto cid = getCidFromGlobalID (gcid);
+                    auto cid = getCidFromGlobalID(gcid);
 
                     // don't add the same entry multiple times for multiple versions
                     if (pkg.name in dsum.mdataEntries) {
@@ -492,7 +488,7 @@ public:
                                 newInfo = true;
                             } else {
                                 // we already have a component with this gcid
-                                if (!(*meP).archs.canFind (pkg.arch))
+                                if (!(*meP).archs.canFind(pkg.arch))
                                     (*meP).archs ~= pkg.arch;
                                 continue;
                             }
@@ -504,45 +500,46 @@ public:
 
                     MetadataEntry me;
                     me.identifier = cid;
-                    me.data = dstore.getMetadata (dtype, gcid);
+                    me.data = dstore.getMetadata(dtype, gcid);
 
-                    mdata.clearComponents ();
+                    mdata.clearComponents();
                     if (dtype == DataType.YAML)
-                        mdata.parse (me.data, FormatKind.YAML);
+                        mdata.parse(me.data, FormatKind.YAML);
                     else
-                        mdata.parse (me.data, FormatKind.XML);
-                    auto cpt = mdata.getComponent ();
+                        mdata.parse(me.data, FormatKind.XML);
+                    auto cpt = mdata.getComponent();
 
                     if (cpt !is null) {
-                        auto iconsArr = cpt.getIcons ();
-                        assert (iconsArr !is null);
+                        auto iconsArr = cpt.getIcons();
+                        assert(iconsArr !is null);
                         for (uint i = 0; i < iconsArr.len; i++) {
                             import appstream.Icon;
-                            auto icon = scoped!Icon (cast (AsIcon*) iconsArr.index (i));
 
-                            if (icon.getKind () == IconKind.CACHED) {
-                                me.iconName = icon.getName ();
+                            auto icon = scoped!Icon(cast(AsIcon*) iconsArr.index(i));
+
+                            if (icon.getKind() == IconKind.CACHED) {
+                                me.iconName = icon.getName();
                                 break;
                             }
                         }
 
-                        me.kind = cpt.getKind ();
+                        me.kind = cpt.getKind();
                     } else {
                         me.kind = ComponentKind.UNKNOWN;
                     }
 
                     me.archs ~= pkg.arch;
                     dsum.mdataEntries[pkg.name][pkg.ver][gcid] = me;
-                    pkgsummary.cpts ~= format ("%s - %s", cid, pkg.ver);
+                    pkgsummary.cpts ~= format("%s - %s", cid, pkg.ver);
                 }
             }
 
             // process hints for this package, if there are any
             if (hintsData !is null) {
-                auto hintsCpts = parseJSON (hintsData);
+                auto hintsCpts = parseJSON(hintsData);
                 hintsCpts = hintsCpts["hints"];
 
-                foreach (cid; hintsCpts.object.byKey ()) {
+                foreach (cid; hintsCpts.object.byKey()) {
                     auto jhints = hintsCpts[cid];
 
                     HintEntry he;
@@ -570,33 +567,33 @@ public:
 
                         Hint hint;
                         try {
-                            hint = new Hint (tag);
+                            hint = new Hint(tag);
                         } catch (Exception e) {
-                            logError ("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
+                            logError("Encountered invalid tag '%s' in component '%s' of package '%s'", tag, cid, pkid);
 
                             // emit an internal error, invalid tags shouldn't happen
                             tag = "internal-unknown-tag";
-                            hint = new Hint (tag);
+                            hint = new Hint(tag);
                             jhint["vars"] = ["tag": tag];
                         }
 
                         // render the full message using the static template and data from the hint
-                        foreach (var; jhint["vars"].object.byKey ())
-                            hint.addExplanationVar (var, jhint["vars"][var].str);
-                        const msg = hint.formatExplanation ();
+                        foreach (var; jhint["vars"].object.byKey())
+                            hint.addExplanationVar(var, jhint["vars"][var].str);
+                        const msg = hint.formatExplanation();
 
                         // add the new hint to the right category
                         const severity = hint.getSeverity;
                         if (severity == IssueSeverity.INFO) {
-                            he.infos ~= HintTag (tag, msg);
+                            he.infos ~= HintTag(tag, msg);
                             pkgsummary.infoCount++;
                         } else if (severity == IssueSeverity.WARNING) {
-                            he.warnings ~= HintTag (tag, msg);
+                            he.warnings ~= HintTag(tag, msg);
                             pkgsummary.warningCount++;
                         } else if (severity == IssueSeverity.PEDANTIC) {
                             // We ignore pedantic issues completely for now
                         } else {
-                            he.errors ~= HintTag (tag, msg);
+                            he.errors ~= HintTag(tag, msg);
                             pkgsummary.errorCount++;
                         }
                     }
@@ -626,40 +623,42 @@ public:
 
     private void saveStatistics (string suiteName, string section, DataSummary dsum)
     {
-        auto stat = JSONValue (["suite": JSONValue (suiteName),
-                                "section": JSONValue (section),
-                                "totalInfos": JSONValue (dsum.totalInfos),
-                                "totalWarnings": JSONValue (dsum.totalWarnings),
-                                "totalErrors": JSONValue (dsum.totalErrors),
-                                "totalMetadata": JSONValue (dsum.totalMetadata)]);
-        dstore.addStatistics (stat);
+        auto stat = JSONValue([
+            "suite": JSONValue(suiteName),
+            "section": JSONValue(section),
+            "totalInfos": JSONValue(dsum.totalInfos),
+            "totalWarnings": JSONValue(dsum.totalWarnings),
+            "totalErrors": JSONValue(dsum.totalErrors),
+            "totalMetadata": JSONValue(dsum.totalMetadata)
+        ]);
+        dstore.addStatistics(stat);
     }
 
     void exportStatistics ()
     {
         import std.algorithm : sort;
 
-        logInfo ("Exporting statistical data.");
+        logInfo("Exporting statistical data.");
 
         // return all statistics we have from the database
-        auto statsCollection = dstore.getStatistics ();
+        auto statsCollection = dstore.getStatistics();
 
-        auto emptyJsonObject ()
+        auto emptyJsonObject()
         {
-            auto jobj = JSONValue (["null": 0]);
-            jobj.object.remove ("null");
+            auto jobj = JSONValue(["null": 0]);
+            jobj.object.remove("null");
             return jobj;
         }
 
-        auto emptyJsonArray ()
+        auto emptyJsonArray()
         {
-            auto jarr = JSONValue ([0, 0]);
+            auto jarr = JSONValue([0, 0]);
             jarr.array = [];
             return jarr;
         }
 
         // create JSON for use with e.g. Rickshaw graph
-        auto smap = emptyJsonObject ();
+        auto smap = emptyJsonObject();
 
         foreach (ref entry; statsCollection) {
             auto js = entry.data;
@@ -668,34 +667,34 @@ public:
             if (js.type == JSONType.array)
                 jstats = js;
             else
-                jstats = JSONValue ([js]);
+                jstats = JSONValue([js]);
 
             foreach (ref jvals; jstats.array) {
                 auto suite = jvals["suite"].str;
                 auto section = jvals["section"].str;
 
                 if (suite !in smap)
-                    smap.object[suite] = emptyJsonObject ();
+                    smap.object[suite] = emptyJsonObject();
                 if (section !in smap[suite]) {
-                    smap[suite].object[section] = emptyJsonObject ();
+                    smap[suite].object[section] = emptyJsonObject();
                     auto sso = smap[suite][section].object;
-                    sso["errors"] = emptyJsonArray ();
-                    sso["warnings"] = emptyJsonArray ();
-                    sso["infos"] = emptyJsonArray ();
-                    sso["metadata"] = emptyJsonArray ();
+                    sso["errors"] = emptyJsonArray();
+                    sso["warnings"] = emptyJsonArray();
+                    sso["infos"] = emptyJsonArray();
+                    sso["metadata"] = emptyJsonArray();
                 }
                 auto suiteSectionObj = smap[suite][section].object;
 
-                auto pointErr = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalErrors"])]);
+                auto pointErr = JSONValue([JSONValue(timestamp), JSONValue(jvals["totalErrors"])]);
                 suiteSectionObj["errors"].array ~= pointErr;
 
-                auto pointWarn = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalWarnings"])]);
+                auto pointWarn = JSONValue([JSONValue(timestamp), JSONValue(jvals["totalWarnings"])]);
                 suiteSectionObj["warnings"].array ~= pointWarn;
 
-                auto pointInfo = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalInfos"])]);
+                auto pointInfo = JSONValue([JSONValue(timestamp), JSONValue(jvals["totalInfos"])]);
                 suiteSectionObj["infos"].array ~= pointInfo;
 
-                auto pointMD = JSONValue ([JSONValue (timestamp), JSONValue (jvals["totalMetadata"])]);
+                auto pointMD = JSONValue([JSONValue(timestamp), JSONValue(jvals["totalMetadata"])]);
                 suiteSectionObj["metadata"].array ~= pointMD;
             }
         }
@@ -705,59 +704,59 @@ public:
             size_t xv;
             size_t yv;
             if (x.array[0].type == JSONType.uinteger)
-                xv = to!size_t (x.array[0].uinteger);
+                xv = to!size_t(x.array[0].uinteger);
             else
-                xv = to!size_t (x.array[0].integer);
+                xv = to!size_t(x.array[0].integer);
 
             if (y.array[0].type == JSONType.uinteger)
-                yv = to!size_t (y.array[0].uinteger);
+                yv = to!size_t(y.array[0].uinteger);
             else
-                yv = to!size_t (y.array[0].integer);
+                yv = to!size_t(y.array[0].integer);
 
             return xv < yv;
         }
 
         // ensure our data is sorted ascending by X
-        foreach (suite; smap.object.byKey ()) {
-            foreach (section; smap[suite].object.byKey ()) {
+        foreach (suite; smap.object.byKey()) {
+            foreach (section; smap[suite].object.byKey()) {
                 auto sso = smap[suite][section].object;
 
-                sort!(compareJData) (sso["errors"].array);
-                sort!(compareJData) (sso["warnings"].array);
-                sort!(compareJData) (sso["infos"].array);
-                sort!(compareJData) (sso["metadata"].array);
+                sort!(compareJData)(sso["errors"].array);
+                sort!(compareJData)(sso["warnings"].array);
+                sort!(compareJData)(sso["infos"].array);
+                sort!(compareJData)(sso["metadata"].array);
             }
         }
 
-        auto fname = buildPath (htmlExportDir, "statistics.json");
-        mkdirRecurse (dirName (fname));
+        auto fname = buildPath(htmlExportDir, "statistics.json");
+        mkdirRecurse(dirName(fname));
 
-        auto sf = File (fname, "w");
-        sf.writeln (smap.toJSON (false));
-        sf.flush ();
-        sf.close ();
+        auto sf = File(fname, "w");
+        sf.writeln(smap.toJSON(false));
+        sf.flush();
+        sf.close();
     }
 
     void processFor (string suiteName, string section, Package[] pkgs)
     {
         // collect all needed information and save statistics
-        auto dsum = preprocessInformation (suiteName, section, pkgs);
-        saveStatistics (suiteName, section, dsum);
+        auto dsum = preprocessInformation(suiteName, section, pkgs);
+        saveStatistics(suiteName, section, dsum);
 
         // drop old pages
-        auto suitSecPagesDest = buildPath (htmlExportDir, suiteName, section);
-        if (std.file.exists (suitSecPagesDest))
+        auto suitSecPagesDest = buildPath(htmlExportDir, suiteName, section);
+        if (std.file.exists(suitSecPagesDest))
             rmdirRecurse (suitSecPagesDest);
 
         // render fresh info pages
-        renderPagesFor (suiteName, section, dsum);
+        renderPagesFor(suiteName, section, dsum);
     }
 
     void updateIndexPages ()
     {
         import std.algorithm : sort;
 
-        logInfo ("Updating HTML index pages and static data.");
+        logInfo("Updating HTML index pages and static data.");
         // render main overview
         auto context = new Mustache.Context;
         foreach (suite; conf.suites.sort!("a.name > b.name")) {
@@ -770,7 +769,7 @@ public:
                 auto secSub = secCtx.addSubContext("sections");
                 secSub["section"] = section;
             }
-            renderPage ("sections_index", format ("%s/index", suite.name), secCtx);
+            renderPage("sections_index", format("%s/index", suite.name), secCtx);
         }
 
         foreach (suite; conf.oldsuites.sort!("a < b")) {
@@ -778,22 +777,21 @@ public:
             sub["suite"] = suite;
         }
 
-        renderPage ("main", "index", context);
+        renderPage("main", "index", context);
 
         // copy static data, if present
-        auto staticSrcDir = buildPath (templateDir, "static");
-        if (std.file.exists (staticSrcDir)) {
-            auto staticDestDir = buildPath (htmlExportDir, "static");
-            if (std.file.exists (staticDestDir))
+        auto staticSrcDir = buildPath(templateDir, "static");
+        if (std.file.exists(staticSrcDir)) {
+            auto staticDestDir = buildPath(htmlExportDir, "static");
+            if (std.file.exists(staticDestDir))
                 rmdirRecurse (staticDestDir);
-            copyDir (staticSrcDir, staticDestDir);
+            copyDir(staticSrcDir, staticDestDir);
         }
     }
 }
 
-unittest
-{
-    writeln ("TEST: ", "Report Generator");
+unittest {
+    writeln("TEST: ", "Report Generator");
 
     //auto rg = new ReportGenerator (null);
     //rg.renderIndices ();

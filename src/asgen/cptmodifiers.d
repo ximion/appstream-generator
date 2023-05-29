@@ -36,8 +36,7 @@ import asgen.result : GeneratorResult;
  * Helper class to provide information about repository-specific metadata modifications.
  * Instances of this class must be thread safe.
  */
-class InjectedModifications
-{
+class InjectedModifications {
 private:
     Component[string] m_removedComponents;
     string[string][string] m_injectedCustomData;
@@ -56,24 +55,24 @@ public:
     void loadForSuite (Suite suite)
     {
         synchronized (m_mutex.writer) {
-            m_removedComponents.clear ();
-            m_injectedCustomData.clear ();
+            m_removedComponents.clear();
+            m_injectedCustomData.clear();
 
-            immutable fname = buildPath (suite.extraMetainfoDir, "modifications.json");
-            if (!std.file.exists (fname))
+            immutable fname = buildPath(suite.extraMetainfoDir, "modifications.json");
+            if (!std.file.exists(fname))
                 return;
-            logInfo ("Using repo-level modifications for %s (via modifications.json)", suite.name);
+            logInfo("Using repo-level modifications for %s (via modifications.json)", suite.name);
 
-            auto f = File (fname, "r");
+            auto f = File(fname, "r");
             string jsonData;
             string line;
-            while ((line = f.readln ()) !is null)
+            while ((line = f.readln()) !is null)
                 jsonData ~= line;
 
-            auto jroot = parseJSON (jsonData);
+            auto jroot = parseJSON(jsonData);
 
             if ("InjectCustom" in jroot) {
-                logDebug ("Using injected custom entries from %s", fname);
+                logDebug("Using injected custom entries from %s", fname);
                 auto jInjCustom = jroot["InjectCustom"].object;
                 foreach (ref jEntry; jInjCustom.byKeyValue) {
                     string[string] kv;
@@ -84,14 +83,14 @@ public:
             }
 
             if ("Remove" in jroot) {
-                logDebug ("Using package removal info from %s", fname);
+                logDebug("Using package removal info from %s", fname);
                 foreach (jCid; jroot["Remove"].array) {
                     immutable cid = jCid.str;
 
                     auto cpt = new Component;
-                    cpt.setKind (ComponentKind.GENERIC);
-                    cpt.setMergeKind (MergeKind.REMOVE_COMPONENT);
-                    cpt.setId (cid);
+                    cpt.setKind(ComponentKind.GENERIC);
+                    cpt.setMergeKind(MergeKind.REMOVE_COMPONENT);
+                    cpt.setId(cid);
 
                     m_removedComponents[cid] = cpt;
                 }
@@ -140,28 +139,32 @@ public:
     {
         synchronized (m_mutex.reader) {
             foreach (cpt; m_removedComponents.byValue)
-                gres.addComponentWithString (cpt, gres.pkid ~ "/-" ~ cpt.getId);
+                gres.addComponentWithString(cpt, gres.pkid ~ "/-" ~ cpt.getId);
         }
     }
 
 }
 
-unittest
-{
+unittest {
     import std.stdio : writeln;
     import asgen.utils : getTestSamplesDir;
-    writeln ("TEST: ", "InjectedModifications");
+
+    writeln("TEST: ", "InjectedModifications");
 
     Suite dummySuite;
     dummySuite.name = "dummy";
-    dummySuite.extraMetainfoDir = buildPath (getTestSamplesDir (), "extra-metainfo");
+    dummySuite.extraMetainfoDir = buildPath(getTestSamplesDir(), "extra-metainfo");
 
     auto injMods = new InjectedModifications;
-    injMods.loadForSuite (dummySuite);
+    injMods.loadForSuite(dummySuite);
 
-    assert (injMods.isComponentRemoved ("com.example.removed"));
-    assert (!injMods.isComponentRemoved ("com.example.not_removed"));
+    assert(injMods.isComponentRemoved("com.example.removed"));
+    assert(!injMods.isComponentRemoved("com.example.not_removed"));
 
-    assert (injMods.injectedCustomData ("org.example.nodata").isNull);
-    assert (injMods.injectedCustomData ("org.example.newdata") == ["earth": "moon", "mars": "phobos", "saturn": "thrym"]);
+    assert(injMods.injectedCustomData("org.example.nodata").isNull);
+    assert(injMods.injectedCustomData("org.example.newdata") == [
+        "earth": "moon",
+        "mars": "phobos",
+        "saturn": "thrym"
+    ]);
 }

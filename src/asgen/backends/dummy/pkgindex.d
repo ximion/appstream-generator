@@ -28,9 +28,7 @@ import asgen.logging;
 import asgen.backends.interfaces;
 import asgen.backends.dummy.dummypkg;
 
-
-final class DummyPackageIndex : PackageIndex
-{
+final class DummyPackageIndex : PackageIndex {
 
 private:
     Package[][string] pkgCache;
@@ -48,7 +46,7 @@ public:
 
     Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
-        return [new DummyPackage ("test", "1.0", "amd64")];
+        return [new DummyPackage("test", "1.0", "amd64")];
     }
 
     Package packageForFile (string fname, string suite = null, string section = null)

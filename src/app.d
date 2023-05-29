@@ -30,7 +30,7 @@ import asgen.config;
 import asgen.engine;
 import asgen.defines : ASGEN_VERSION;
 
-
+// dfmt off
 private immutable helpText =
 "Usage:
   appstream-generator <subcommand> [OPTION...] - AppStream Generator.
@@ -59,6 +59,7 @@ Application Options:
 version (unittest) {
 void main () {}
 } else {
+// dfmt on
 
 private void createXdgRuntimeDir ()
 {
@@ -73,22 +74,22 @@ private void createXdgRuntimeDir ()
     import std.conv : octal;
 
     immutable xdgRuntimeDir = environment.get("XDG_RUNTIME_DIR");
-    if (xdgRuntimeDir.empty || !xdgRuntimeDir.startsWith ("/"))
+    if (xdgRuntimeDir.empty || !xdgRuntimeDir.startsWith("/"))
         return; // nothing to do here
     if (xdgRuntimeDir.exists)
         return; // directory already exists
 
     try {
-        mkdirRecurse (xdgRuntimeDir);
+        mkdirRecurse(xdgRuntimeDir);
         xdgRuntimeDir.setAttributes(octal!700);
     } catch (Exception e) {
-        logDebug ("Unable to create XDG runtime dir: %s", e.msg);
+        logDebug("Unable to create XDG runtime dir: %s", e.msg);
         return;
     }
-    logDebug ("Created missing XDG runtime dir: %s", xdgRuntimeDir);
+    logDebug("Created missing XDG runtime dir: %s", xdgRuntimeDir);
 }
 
-void main(string[] args)
+void main (string[] args)
 {
     string command;
     bool verbose;
@@ -100,6 +101,7 @@ void main(string[] args)
     string configFname;
 
     // parse command-line options
+    // dfmt off
     try {
         getopt (args,
             "help|h", &showHelp,
@@ -113,63 +115,65 @@ void main(string[] args)
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
     }
+    // dfmt on
 
     if (showHelp) {
-        writeln (helpText);
+        writeln(helpText);
         return;
     }
 
     if (showVersion) {
-        writeln ("Generator version: ", ASGEN_VERSION);
+        writeln("Generator version: ", ASGEN_VERSION);
         return;
     }
 
     if (args.length < 2) {
-        writeln ("No subcommand specified!");
+        writeln("No subcommand specified!");
         return;
     }
 
     // globally enable verbose mode, if requested
     if (verbose)
-        asgen.logging.setVerbose (true);
+        asgen.logging.setVerbose(true);
 
-    auto conf = Config.get ();
+    auto conf = Config.get();
     if (configFname.empty) {
         // if we don't have an explicit config file set, and also no
         // workspace, take the current directory
         if (wdir.empty)
-            wdir = getcwd ();
-        configFname = buildPath (wdir, "asgen-config.json");
+            wdir = getcwd();
+        configFname = buildPath(wdir, "asgen-config.json");
     }
 
     try {
-        conf.loadFromFile (configFname, wdir, exportDir);
+        conf.loadFromFile(configFname, wdir, exportDir);
     } catch (Exception e) {
-        writefln ("Unable to load configuration: %s", e.msg);
-        exit (4);
+        writefln("Unable to load configuration: %s", e.msg);
+        exit(4);
     }
     scope (exit) {
         // ensure we clean up when the generator is done
         import std.file : rmdirRecurse, exists;
+
         if (conf.getTmpDir.exists)
-            rmdirRecurse (conf.getTmpDir ());
+            rmdirRecurse (conf.getTmpDir());
     }
 
     // ensure runtime dir exists, in case we are installed with Snappy
-    createXdgRuntimeDir ();
+    createXdgRuntimeDir();
 
-    auto engine = new Engine ();
+    auto engine = new Engine();
     engine.forced = forceAction;
 
     void ensureSuiteAndOrSectionParameterSet ()
     {
         if (args.length < 3) {
-            writeln ("Invalid number of parameters: You need to specify at least a suite name.");
-            exit (1);
+            writeln("Invalid number of parameters: You need to specify at least a suite name.");
+            exit(1);
         }
         if (args.length > 4) {
-            writeln ("Invalid number of parameters: You need to specify a suite name and (optionally) a section name.");
-            exit (1);
+            writeln("Invalid number of parameters: You need to specify a suite name and (optionally) a section name.");
+            exit(1);
         }
     }
 
@@ -177,53 +181,53 @@ void main(string[] args)
     switch (command) {
         case "run":
         case "process":
-            ensureSuiteAndOrSectionParameterSet ();
+            ensureSuiteAndOrSectionParameterSet();
             if (args.length == 3)
-                engine.run (args[2]);
+                engine.run(args[2]);
             else
-                engine.run (args[2], args[3]);
+                engine.run(args[2], args[3]);
             break;
         case "process-file":
             if (args.length < 5) {
-                writeln ("Invalid number of parameters: You need to specify a suite name, a section name and at least one file to process.");
-                exit (1);
+                writeln("Invalid number of parameters: You need to specify a suite name, a section name and at least one file to process.");
+                exit(1);
             }
-            engine.processFile (args[2], args[3], args[4..$]);
+            engine.processFile(args[2], args[3], args[4 .. $]);
             break;
         case "publish":
-            ensureSuiteAndOrSectionParameterSet ();
+            ensureSuiteAndOrSectionParameterSet();
             if (args.length == 3)
-                engine.publish (args[2]);
+                engine.publish(args[2]);
             else
-                engine.publish (args[2], args[3]);
+                engine.publish(args[2], args[3]);
             break;
         case "cleanup":
-            engine.runCleanup ();
+            engine.runCleanup();
             break;
         case "remove-found":
             if (args.length != 3) {
-                writeln ("Invalid number of parameters: You need to specify a suite name.");
-                exit (1);
+                writeln("Invalid number of parameters: You need to specify a suite name.");
+                exit(1);
             }
-            engine.removeHintsComponents (args[2]);
+            engine.removeHintsComponents(args[2]);
             break;
         case "forget":
             if (args.length != 3) {
-                writeln ("Invalid number of parameters: You need to specify a package-id (partial IDs are allowed).");
-                exit (1);
+                writeln("Invalid number of parameters: You need to specify a package-id (partial IDs are allowed).");
+                exit(1);
             }
-            engine.forgetPackage (args[2]);
+            engine.forgetPackage(args[2]);
             break;
         case "info":
             if (args.length != 3) {
-                writeln ("Invalid number of parameters: You need to specify a package-id.");
-                exit (1);
+                writeln("Invalid number of parameters: You need to specify a package-id.");
+                exit(1);
             }
-            engine.printPackageInfo (args[2]);
+            engine.printPackageInfo(args[2]);
             break;
         default:
-            writeln (format ("The command '%s' is unknown.", command));
-            exit (1);
+            writeln(format("The command '%s' is unknown.", command));
+            exit(1);
     }
 }
 

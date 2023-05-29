@@ -35,23 +35,21 @@ import asgen.config : Config;
 import asgen.defines : ASGEN_VERSION;
 import asgen.utils : isRemote, randomString;
 
-class DownloadException : Exception
-{
+class DownloadException : Exception {
     @safe pure nothrow
-    this(const string msg,
-         const string file = __FILE__,
-         size_t line = __LINE__,
-         Throwable next = null)
+    this (const string msg,
+            const string file = __FILE__,
+            size_t line = __LINE__,
+            Throwable next = null)
     {
-        super (msg, file, line, next);
+        super(msg, file, line, next);
     }
 }
 
 /**
  * Download data via HTTP. Based on cURL.
  */
-final class Downloader
-{
+final class Downloader {
 
 private:
     immutable string caInfo;
@@ -65,7 +63,7 @@ public:
     static Downloader get () @trusted
     {
         if (instance_ is null)
-           instance_ = new Downloader;
+            instance_ = new Downloader;
         return instance_;
     }
 
@@ -78,9 +76,10 @@ public:
     }
 
     private immutable(Nullable!SysTime) downloadInternal (const string url, ref File dest, const uint maxTryCount = 5) @trusted
-    in { assert (url.isRemote); }
-    do
-    {
+    in {
+        assert(url.isRemote);
+    }
+    do {
         import core.time : dur;
         import std.string : toLower;
         import std.net.curl : HTTP, FTP;
@@ -90,36 +89,36 @@ public:
 
         size_t onReceiveCb (File f, ubyte[] data)
         {
-            f.rawWrite (data);
+            f.rawWrite(data);
             return data.length;
         }
 
         /* the curl library is stupid; you can't make an AutoProtocol set timeouts */
-        logDebug ("Downloading %s", url);
+        logDebug("Downloading %s", url);
         try {
-            if (url.startsWith ("http")) {
-                immutable httpsUrl = url.startsWith ("https");
-                auto curlHttp = HTTP (url);
+            if (url.startsWith("http")) {
+                immutable httpsUrl = url.startsWith("https");
+                auto curlHttp = HTTP(url);
                 if (!caInfo.empty)
                     curlHttp.caInfo = caInfo;
-                curlHttp.setUserAgent (userAgent);
+                curlHttp.setUserAgent(userAgent);
 
                 HTTP.StatusLine statusLine;
-                curlHttp.connectTimeout = dur!"seconds" (30);
-                curlHttp.dataTimeout = dur!"seconds" (30);
-                curlHttp.onReceive = (data) => onReceiveCb (dest, data);
+                curlHttp.connectTimeout = dur!"seconds"(30);
+                curlHttp.dataTimeout = dur!"seconds"(30);
+                curlHttp.onReceive = (data) => onReceiveCb(dest, data);
                 curlHttp.onReceiveStatusLine = (HTTP.StatusLine l) { statusLine = l; };
                 curlHttp.onReceiveHeader = (in char[] key, in char[] value) {
                     // we will not allow a HTTPS --> HTTP downgrade
                     if (!httpsUrl)
                         return;
-                    if (key == "location" && value.toLower.startsWith ("http:"))
-                        throw new DownloadException ("HTTPS URL tried to redirect to a less secure HTTP URL.");
+                    if (key == "location" && value.toLower.startsWith("http:"))
+                        throw new DownloadException("HTTPS URL tried to redirect to a less secure HTTP URL.");
                 };
                 curlHttp.perform(Yes.throwOnError);
                 if ("last-modified" in curlHttp.responseHeaders) {
-                        auto lastmodified = curlHttp.responseHeaders["last-modified"];
-                        ret = parseRFC822DateTime(lastmodified);
+                    auto lastmodified = curlHttp.responseHeaders["last-modified"];
+                    ret = parseRFC822DateTime(lastmodified);
                 }
 
                 if (statusLine.code != 200 && statusLine.code != 301 && statusLine.code != 302) {
@@ -127,28 +126,30 @@ public:
                         // with some recent update of the D runtime or Curl, the status line isn't set anymore
                         // just to be safe, check whether we received data before assuming everything went fine
                         if (dest.size == 0)
-                            throw new DownloadException ("No data was received from the remote end (Code: %d).".format (statusLine.code));
+                            throw new DownloadException(
+                                    "No data was received from the remote end (Code: %d).".format(statusLine.code));
                     } else {
-                        throw new DownloadException ("HTTP request returned status code %d (%s)".format (statusLine.code, statusLine.reason));
+                        throw new DownloadException("HTTP request returned status code %d (%s)".format(statusLine.code, statusLine
+                                .reason));
                     }
                 }
             } else {
-                auto curlFtp = FTP (url);
-                curlFtp.connectTimeout = dur!"seconds" (30);
-                curlFtp.dataTimeout = dur!"seconds" (30);
-                curlFtp.onReceive = (data) => onReceiveCb (dest, data);
+                auto curlFtp = FTP(url);
+                curlFtp.connectTimeout = dur!"seconds"(30);
+                curlFtp.dataTimeout = dur!"seconds"(30);
+                curlFtp.onReceive = (data) => onReceiveCb(dest, data);
                 curlFtp.perform(Yes.throwOnError);
             }
-            logDebug ("Downloaded %s", url);
+            logDebug("Downloaded %s", url);
         } catch (Exception e) {
             if (maxTryCount > 0) {
-                logDebug ("Failed to download %s, will retry %d more %s",
+                logDebug("Failed to download %s, will retry %d more %s",
                         url,
                         maxTryCount,
                         maxTryCount > 1 ? "times" : "time");
-                download (url, dest, maxTryCount - 1);
+                download(url, dest, maxTryCount - 1);
             } else {
-                throw new DownloadException (e.message.to!string);
+                throw new DownloadException(e.message.to!string);
             }
         }
 
@@ -157,7 +158,7 @@ public:
 
     immutable(Nullable!SysTime) download (const string url, ref File dFile, const uint maxTryCount = 4) @trusted
     {
-        return downloadInternal (url, dFile, maxTryCount);
+        return downloadInternal(url, dFile, maxTryCount);
     }
 
     immutable(ubyte[]) download (const string url, const uint maxTryCount = 4) @trusted
@@ -166,17 +167,19 @@ public:
         import core.sys.posix.stdio : fclose, open_memstream;
 
         char* ptr = null;
-        scope (exit) free (ptr);
+        scope (exit)
+            free (ptr);
         size_t sz = 0;
 
         {
-            auto f = open_memstream (&ptr, &sz);
-            scope (exit) fclose (f);
-            auto file = File.wrapFile (f);
-            downloadInternal (url, file, maxTryCount);
+            auto f = open_memstream(&ptr, &sz);
+            scope (exit)
+                fclose (f);
+            auto file = File.wrapFile(f);
+            downloadInternal(url, file, maxTryCount);
         }
 
-        return cast(immutable ubyte[]) ptr[0..sz].idup;
+        return cast(immutable ubyte[]) ptr[0 .. sz].idup;
     }
 
     /**
@@ -188,26 +191,30 @@ public:
      *      maxTryCount = Number of times to attempt the download.
      */
     void downloadFile (const string url, const string dest, const uint maxTryCount = 4) @trusted
-    in  { assert (url.isRemote); }
-    out { assert (std.file.exists (dest)); }
-    do
-    {
+    in {
+        assert(url.isRemote);
+    }
+    out {
+        assert(std.file.exists(dest));
+    }
+    do {
         import std.file : exists, mkdirRecurse, setTimes, remove;
         static import std.file;
 
         if (dest.exists) {
-            logDebug ("File '%s' already exists, re-download of '%s' skipped.", dest, url);
+            logDebug("File '%s' already exists, re-download of '%s' skipped.", dest, url);
             return;
         }
 
-        mkdirRecurse (dest.dirName);
+        mkdirRecurse(dest.dirName);
 
-        auto f = File (dest, "wb");
-        scope (failure) remove (dest);
+        auto f = File(dest, "wb");
+        scope (failure)
+            remove (dest);
 
-        auto time = downloadInternal (url, f, maxTryCount);
+        auto time = downloadInternal(url, f, maxTryCount);
 
-        f.close ();
+        f.close();
         if (!time.isNull)
             setTimes (dest, Clock.currTime, time.get);
     }
@@ -221,8 +228,8 @@ public:
      */
     string downloadText (const string url, const uint maxTryCount = 4) @trusted
     {
-        const data = download (url, maxTryCount);
-        return (cast(char[])data).to!string;
+        const data = download(url, maxTryCount);
+        return (cast(char[]) data).to!string;
     }
 
     /**
@@ -235,24 +242,25 @@ public:
     string[] downloadTextLines (const string url, const uint maxTryCount = 4) @trusted
     {
         import std.string : splitLines;
-        return downloadText (url, maxTryCount).splitLines;
+
+        return downloadText(url, maxTryCount).splitLines;
     }
 
 }
 
 @trusted
-unittest
-{
+unittest {
     import std.stdio : writeln;
     import std.exception : assertThrown;
     import std.file : remove, readText;
     import std.process : environment;
-    asgen.logging.setVerbose (true);
 
-    writeln ("TEST: ", "Downloader");
+    asgen.logging.setVerbose(true);
+
+    writeln("TEST: ", "Downloader");
 
     if (environment.get("ASGEN_TESTS_NO_NET", "no") != "no") {
-        writeln ("I: NETWORK DEPENDENT TESTS SKIPPED. (explicitly disabled via `ASGEN_TESTS_NO_NET`)");
+        writeln("I: NETWORK DEPENDENT TESTS SKIPPED. (explicitly disabled via `ASGEN_TESTS_NO_NET`)");
         return;
     }
 
@@ -260,29 +268,31 @@ unittest
     auto dl = new Downloader;
     string detectPortalRes;
     try {
-        detectPortalRes = dl.downloadText (urlFirefoxDetectportal);
+        detectPortalRes = dl.downloadText(urlFirefoxDetectportal);
     } catch (DownloadException e) {
-        writeln ("W: NETWORK DEPENDENT TESTS SKIPPED. (automatically, no network detected: ", e.msg, ")");
+        writeln("W: NETWORK DEPENDENT TESTS SKIPPED. (automatically, no network detected: ", e.msg, ")");
         return;
     }
-    writeln ("I: Running network-dependent tests.");
-    assert (detectPortalRes == "success\n");
+    writeln("I: Running network-dependent tests.");
+    assert(detectPortalRes == "success\n");
 
     // check if a downloaded file contains the right contents
-    immutable firefoxDetectportalFname = "/tmp/asgen-test.ffdp" ~ randomString (4);
-    scope(exit) firefoxDetectportalFname.remove ();
-    dl.downloadFile (urlFirefoxDetectportal, firefoxDetectportalFname);
-    assert (readText (firefoxDetectportalFname) == "success\n");
-
+    immutable firefoxDetectportalFname = "/tmp/asgen-test.ffdp" ~ randomString(4);
+    scope (exit)
+        firefoxDetectportalFname.remove();
+    dl.downloadFile(urlFirefoxDetectportal, firefoxDetectportalFname);
+    assert(readText(firefoxDetectportalFname) == "success\n");
 
     // download a bigger chunk of data without error
-    immutable debianOrgFname = "/tmp/asgen-test.do" ~ randomString (4);
-    scope(exit) debianOrgFname.remove ();
-    dl.downloadFile ("https://debian.org", debianOrgFname);
+    immutable debianOrgFname = "/tmp/asgen-test.do" ~ randomString(4);
+    scope (exit)
+        debianOrgFname.remove();
+    dl.downloadFile("https://debian.org", debianOrgFname);
 
     // fail when attempting to download a nonexistent file
-    assertThrown!DownloadException (dl.downloadFile ("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString (4), 2));
+    assertThrown!DownloadException(dl.downloadFile("https://appstream.debian.org/nonexistent", "/tmp/asgen-dltest" ~ randomString(
+            4), 2));
 
     // check if HTTP --> HTTPS redirects, like done on mozilla.org, work
-    dl.downloadFile ("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString (4), 1);
+    dl.downloadFile("http://mozilla.org", "/tmp/asgen-test.mozilla" ~ randomString(4), 1);
 }

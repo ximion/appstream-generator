@@ -24,11 +24,9 @@ import std.string : format;
 import std.datetime;
 import glib.c.types : LogLevelFlags;
 
-
 private __gshared bool __verbose = false;
 
-enum LogSeverity : string
-{
+enum LogSeverity : string {
     DEBUG = "DEBUG",
     INFO = "INFO",
     WARNING = "WARNING",
@@ -36,56 +34,59 @@ enum LogSeverity : string
 }
 
 @trusted
-void logMessage (LogSeverity, string, Args...) (const LogSeverity severity, const string tmpl, const Args args)
+void logMessage (LogSeverity, string, Args...)(const LogSeverity severity, const string tmpl, const Args args)
 {
-    auto time = Clock.currTime ();
-    auto timeStr = "%d-%02d-%02d %02d:%02d:%02d".format (time.year, time.month, time.day, time.hour,time.minute, time.second);
-    writeln (timeStr, " - ", severity, ": ", format (tmpl, args));
+    auto time = Clock.currTime();
+    auto timeStr = "%d-%02d-%02d %02d:%02d:%02d".format(time.year, time.month, time.day, time.hour, time.minute, time
+            .second);
+    writeln(timeStr, " - ", severity, ": ", format(tmpl, args));
 }
 
 @trusted
-void logDebug (string, Args...) (const string tmpl, const Args args)
+void logDebug (string, Args...)(const string tmpl, const Args args)
 {
     if (__verbose)
         logMessage (LogSeverity.DEBUG, tmpl, args);
 }
 
 @safe
-void logInfo (string, Args...) (const string tmpl, const Args args)
+void logInfo (string, Args...)(const string tmpl, const Args args)
 {
-    logMessage (LogSeverity.INFO, tmpl, args);
+    logMessage(LogSeverity.INFO, tmpl, args);
 }
 
 @safe
-void logWarning (string, Args...) (const string tmpl, const Args args)
+void logWarning (string, Args...)(const string tmpl, const Args args)
 {
-    logMessage (LogSeverity.WARNING, tmpl, args);
+    logMessage(LogSeverity.WARNING, tmpl, args);
 }
 
 @safe
-void logError (string, Args...) (const string tmpl, const Args args)
+void logError (string, Args...)(const string tmpl, const Args args)
 {
-    logMessage (LogSeverity.ERROR, tmpl, args);
+    logMessage(LogSeverity.ERROR, tmpl, args);
 }
 
-private extern(C) void logGExternal (const(char)* logDomain,
-                                     LogLevelFlags logLevel,
-                                     const(char)* message, void* userData)
+private extern (C) void logGExternal (const(char)* logDomain,
+        LogLevelFlags logLevel,
+        const(char)* message, void* userData)
 {
     import std.string : fromStringz;
-    logDebug (message.fromStringz);
+
+    logDebug(message.fromStringz);
 }
 
 @trusted
 void setVerbose (const bool enabled)
 {
     import glib.MessageLog : MessageLog;
+
     __verbose = enabled;
 
     if (__verbose) {
-        MessageLog.logSetHandler (null,
-                                  LogLevelFlags.LEVEL_DEBUG,
-                                  &logGExternal,
-                                  null);
+        MessageLog.logSetHandler(null,
+                LogLevelFlags.LEVEL_DEBUG,
+                &logGExternal,
+                null);
     }
 }

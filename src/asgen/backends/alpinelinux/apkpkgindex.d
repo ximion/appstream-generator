@@ -35,8 +35,7 @@ import asgen.backends.interfaces;
 import asgen.backends.alpinelinux.apkpkg;
 import asgen.backends.alpinelinux.apkindexutils;
 
-final class AlpinePackageIndex : PackageIndex
-{
+final class AlpinePackageIndex : PackageIndex {
 
 private:
     string rootDir;
@@ -48,12 +47,12 @@ public:
     this (string dir)
     {
         if (!dir.isRemote)
-            enforce (exists (dir), format ("Directory '%s' does not exist.", dir));
+            enforce (exists(dir), format("Directory '%s' does not exist.", dir));
 
         this.rootDir = dir;
 
-        auto conf = Config.get ();
-        tmpDir = buildPath (conf.getTmpDir, dir.baseName);
+        auto conf = Config.get();
+        tmpDir = buildPath(conf.getTmpDir, dir.baseName);
     }
 
     override void release ()
@@ -66,20 +65,21 @@ public:
         if (pkgDesc is null)
             return;
 
-        auto desc = "<p>%s</p>".format (pkgDesc.escapeXml);
-        pkg.setDescription (desc, "C");
+        auto desc = "<p>%s</p>".format(pkgDesc.escapeXml);
+        pkg.setDescription(desc, "C");
     }
 
     private Package[] loadPackages (string suite, string section, string arch)
     {
-        auto apkRootPath = buildPath (rootDir, suite, section, arch);
-        auto indexFPath = downloadIfNecessary(apkRootPath, tmpDir, "APKINDEX.tar.gz", format("APKINDEX-%s-%s-%s.tar.gz", suite, section, arch));
+        auto apkRootPath = buildPath(rootDir, suite, section, arch);
+        auto indexFPath = downloadIfNecessary(apkRootPath, tmpDir, "APKINDEX.tar.gz", format(
+                "APKINDEX-%s-%s-%s.tar.gz", suite, section, arch));
         AlpinePackage[string] pkgsMap;
         ArchiveDecompressor ad;
-        ad.open (indexFPath);
-        auto indexString = cast(string) ad.readData ("APKINDEX");
-        validate (indexString);
-        auto range = ApkIndexBlockRange (indexString);
+        ad.open(indexFPath);
+        auto indexString = cast(string) ad.readData("APKINDEX");
+        validate(indexString);
+        auto range = ApkIndexBlockRange(indexString);
 
         foreach (pkgInfo; range) {
             auto fileName = pkgInfo.archiveName;
@@ -87,7 +87,7 @@ public:
             if (fileName in pkgsMap) {
                 pkg = pkgsMap[fileName];
             } else {
-                pkg = new AlpinePackage (pkgInfo.pkgname, pkgInfo.pkgversion, pkgInfo.arch);
+                pkg = new AlpinePackage(pkgInfo.pkgname, pkgInfo.pkgversion, pkgInfo.arch);
                 pkgsMap[fileName] = pkg;
             }
 
@@ -99,21 +99,21 @@ public:
         // perform a sanity check, so we will never emit invalid packages
         auto pkgs = appender!(Package[]);
         if (pkgsMap.length > 20)
-            pkgs.reserve ((pkgsMap.length.to!long - 10).to!size_t);
-        foreach (ref pkg; pkgsMap.byValue ())
+            pkgs.reserve((pkgsMap.length.to!long - 10).to!size_t);
+        foreach (ref pkg; pkgsMap.byValue())
             if (pkg.isValid)
                 pkgs ~= pkg;
             else
-                logError ("Found an invalid package (name, architecture or version is missing). This is a bug.");
+                logError("Found an invalid package (name, architecture or version is missing). This is a bug.");
 
         return pkgs.data;
     }
 
     override Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
-        immutable id = "%s-%s-%s".format (suite, section, arch);
+        immutable id = "%s-%s-%s".format(suite, section, arch);
         if (id !in pkgCache) {
-            auto pkgs = loadPackages (suite, section, arch);
+            auto pkgs = loadPackages(suite, section, arch);
             synchronized (this)
                 pkgCache[id] = pkgs;
         }

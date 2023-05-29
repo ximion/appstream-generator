@@ -32,8 +32,7 @@ import asgen.downloader : Downloader;
 import asgen.utils : isRemote;
 import asgen.zarchive : ArchiveDecompressor;
 
-final class AlpinePackage : Package
-{
+final class AlpinePackage : Package {
 private:
     string pkgname;
     string pkgver;
@@ -55,8 +54,8 @@ public:
         this.pkgver = pkgver;
         this.pkgarch = pkgarch;
 
-        auto conf = Config.get ();
-        this.tmpDir = buildPath (conf.getTmpDir (), format ("%s-%s_%s", name, ver, arch));
+        auto conf = Config.get();
+        this.tmpDir = buildPath(conf.getTmpDir(), format("%s-%s_%s", name, ver, arch));
     }
 
     override @property string name () const
@@ -84,7 +83,7 @@ public:
         return this.pkgarch;
     }
 
-    @property void arch(string val)
+    @property void arch (string val)
     {
         this.pkgarch = val;
     }
@@ -107,8 +106,8 @@ public:
         if (pkgFname.isRemote) {
             synchronized (this) {
                 auto dl = Downloader.get;
-                immutable path = buildNormalizedPath (this.tmpDir, this.pkgFname.baseName);
-                dl.downloadFile (this.pkgFname, path);
+                immutable path = buildNormalizedPath(this.tmpDir, this.pkgFname.baseName);
+                dl.downloadFile(this.pkgFname, path);
                 this.localPkgFName = path;
                 return this.localPkgFName;
             }
@@ -136,9 +135,9 @@ public:
     override const(ubyte)[] getFileData (string fname)
     {
         if (!this.archive.isOpen())
-            this.archive.open (this.getFilename);
+            this.archive.open(this.getFilename);
 
-        return this.archive.readData (fname);
+        return this.archive.readData(fname);
     }
 
     @property override string[] contents ()
@@ -147,8 +146,8 @@ public:
             return this.contentsL;
 
         ArchiveDecompressor ad;
-        ad.open (this.getFilename);
-        this.contentsL = ad.readContents ();
+        ad.open(this.getFilename);
+        this.contentsL = ad.readContents();
 
         return this.contentsL;
     }

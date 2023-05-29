@@ -36,12 +36,10 @@ import asgen.utils : existsAndIsDir, randomString, ImageSize;
 import asgen.logging;
 import asgen.defines : DATADIR;
 
-
 /**
  * Describes a suite in a software repository.
  **/
-struct Suite
-{
+struct Suite {
     string name;
     int dataPriority = 0;
     string baseSuite;
@@ -55,8 +53,7 @@ struct Suite
 /**
  * The AppStream metadata type we want to generate.
  **/
-enum DataType
-{
+enum DataType {
     XML,
     YAML
 }
@@ -64,8 +61,7 @@ enum DataType
 /**
  * Distribution-specific backends.
  **/
-enum Backend
-{
+enum Backend {
     Unknown,
     Dummy,
     Debian,
@@ -78,8 +74,7 @@ enum Backend
 /**
  * Generator features that can be toggled by the user.
  */
-struct GeneratorFeatures
-{
+struct GeneratorFeatures {
     bool processDesktop;
     bool validate;
     bool noDownloads;
@@ -99,15 +94,16 @@ struct GeneratorFeatures
 public immutable EXTRA_METAINFO_FAKE_PKGNAME = "+extra-metainfo";
 
 /// A list of valid icon sizes that we recognize in AppStream
-public immutable allowedIconSizes  = [ImageSize (48),  ImageSize (48, 48, 2),
-                                      ImageSize (64),  ImageSize (64, 64, 2),
-                                      ImageSize (128), ImageSize (128, 128, 2)];
+public immutable allowedIconSizes = [
+    ImageSize(48), ImageSize(48, 48, 2),
+    ImageSize(64), ImageSize(64, 64, 2),
+    ImageSize(128), ImageSize(128, 128, 2)
+];
 
 /**
  * The global configuration for the metadata generator.
  */
-final class Config
-{
+final class Config {
 private:
     string workspaceDir;
     string exportDir;
@@ -133,7 +129,7 @@ private:
         // we search for them unconditionally, because the unittests may rely on their absolute
         // paths being set even if a particular feature flag that requires them isn't.
         optipngBinary = Globals.optipngBinary;
-        ffprobeBinary = Util.findProgramInPath ("ffprobe");
+        ffprobeBinary = Util.findProgramInPath("ffprobe");
 
         // new default icon policy instance
         m_iconPolicy = new IconPolicy;
@@ -185,20 +181,21 @@ public:
     string formatVersionStr ()
     {
         static import appstream.Utils;
+
         alias AsUtils = appstream.Utils.Utils;
-        return AsUtils.formatVersionToString (formatVersion);
+        return AsUtils.formatVersionToString(formatVersion);
     }
 
     @property
     string databaseDir () const
     {
-        return buildPath (workspaceDir, "db");
+        return buildPath(workspaceDir, "db");
     }
 
     @property
     string cacheRootDir () const
     {
-        return buildPath (workspaceDir, "cache");
+        return buildPath(workspaceDir, "cache");
     }
 
     @property
@@ -206,20 +203,20 @@ public:
     {
         // find a suitable template directory
         // first check the workspace
-        auto tdir = buildPath (workspaceDir, "templates");
-        tdir = getVendorTemplateDir (tdir, true);
+        auto tdir = buildPath(workspaceDir, "templates");
+        tdir = getVendorTemplateDir(tdir, true);
 
         if (tdir.empty) {
-            immutable exeDir = dirName (thisExePath ());
-            tdir = buildNormalizedPath (exeDir, "..", "..", "..", "data", "templates");
-            tdir = getVendorTemplateDir (tdir);
+            immutable exeDir = dirName(thisExePath());
+            tdir = buildNormalizedPath(exeDir, "..", "..", "..", "data", "templates");
+            tdir = getVendorTemplateDir(tdir);
 
             if (tdir.empty) {
-                tdir = getVendorTemplateDir (buildPath (DATADIR, "templates"));
+                tdir = getVendorTemplateDir(buildPath(DATADIR, "templates"));
 
                 if (tdir.empty) {
-                    tdir = buildNormalizedPath (exeDir, "..", "data", "templates");
-                    tdir = getVendorTemplateDir (tdir);
+                    tdir = buildNormalizedPath(exeDir, "..", "data", "templates");
+                    tdir = getVendorTemplateDir(tdir);
                 }
             }
         }
@@ -240,15 +237,15 @@ public:
     {
         string tdir;
         if (!projectName.empty) {
-            tdir = buildPath (dir, projectName.toLower);
-            if (existsAndIsDir (tdir))
+            tdir = buildPath(dir, projectName.toLower);
+            if (existsAndIsDir(tdir))
                 return tdir;
         }
-        tdir = buildPath (dir, "default");
-        if (existsAndIsDir (tdir))
+        tdir = buildPath(dir, "default");
+        if (existsAndIsDir(tdir))
             return tdir;
         if (allowRoot) {
-            if (existsAndIsDir (dir))
+            if (existsAndIsDir(dir))
                 return dir;
         }
 
@@ -258,20 +255,20 @@ public:
     void loadFromFile (string fname, string enforcedWorkspaceDir = null, string enforcedExportDir = null)
     {
         // read the configuration JSON file
-        auto f = File (fname, "r");
+        auto f = File(fname, "r");
         string jsonData;
         string line;
-        while ((line = f.readln ()) !is null)
+        while ((line = f.readln()) !is null)
             jsonData ~= line;
 
-        JSONValue root = parseJSON (jsonData);
+        JSONValue root = parseJSON(jsonData);
 
         if ("WorkspaceDir" in root) {
             workspaceDir = root["WorkspaceDir"].str;
         } else {
-            workspaceDir = dirName (fname);
+            workspaceDir = dirName(fname);
             if (workspaceDir.empty)
-                workspaceDir = getcwd ();
+                workspaceDir = getcwd();
         }
 
         // allow overriding the workspace location
@@ -296,10 +293,10 @@ public:
 
         // set root export directory
         if (enforcedExportDir.empty) {
-            exportDir = buildPath (workspaceDir, "export");
+            exportDir = buildPath(workspaceDir, "export");
         } else {
             exportDir = enforcedExportDir;
-            logInfo ("Using data export directory root from the command-line: %s", exportDir);
+            logInfo("Using data export directory root from the command-line: %s", exportDir);
         }
         if (!exportDir.isAbsolute)
             exportDir = exportDir.absolutePath;
@@ -307,9 +304,9 @@ public:
         // set the default export directory locations, allow people to override them in the config
         // (we convert the relative to absolute paths later)
         mediaExportDir = "media";
-        dataExportDir  = "data";
+        dataExportDir = "data";
         hintsExportDir = "hints";
-        htmlExportDir  = "html";
+        htmlExportDir = "html";
 
         if ("ExportDirs" in root) {
             auto edirs = root["ExportDirs"].object;
@@ -328,19 +325,19 @@ public:
                         htmlExportDir = dirId.value.str;
                         break;
                     default:
-                        logWarning ("Unknown export directory specifier in config: %s", dirId.key);
+                        logWarning("Unknown export directory specifier in config: %s", dirId.key);
                 }
             }
         }
 
         // convert export directory paths to absolute paths if necessary
-        mediaExportDir = mediaExportDir.isAbsolute? mediaExportDir : buildNormalizedPath (exportDir, mediaExportDir);
-        dataExportDir  = dataExportDir.isAbsolute? dataExportDir : buildNormalizedPath (exportDir, dataExportDir);
-        hintsExportDir = hintsExportDir.isAbsolute? hintsExportDir : buildNormalizedPath (exportDir, hintsExportDir);
-        htmlExportDir  = htmlExportDir.isAbsolute? htmlExportDir : buildNormalizedPath (exportDir, htmlExportDir);
+        mediaExportDir = mediaExportDir.isAbsolute ? mediaExportDir : buildNormalizedPath(exportDir, mediaExportDir);
+        dataExportDir = dataExportDir.isAbsolute ? dataExportDir : buildNormalizedPath(exportDir, dataExportDir);
+        hintsExportDir = hintsExportDir.isAbsolute ? hintsExportDir : buildNormalizedPath(exportDir, hintsExportDir);
+        htmlExportDir = htmlExportDir.isAbsolute ? htmlExportDir : buildNormalizedPath(exportDir, htmlExportDir);
 
         // a place where external metainfo data can be injected
-        auto extraMetainfoDir = buildPath (workspaceDir, "extra-metainfo");
+        auto extraMetainfoDir = buildPath(workspaceDir, "extra-metainfo");
         if ("ExtraMetainfoDir" in root)
             extraMetainfoDir = root["ExtraMetainfoDir"].str;
 
@@ -352,24 +349,24 @@ public:
             immutable versionStr = root["FormatVersion"].str;
 
             switch (versionStr) {
-            case "0.8":
-                formatVersion = FormatVersion.V0_8;
-                break;
-            case "0.9":
-                formatVersion = FormatVersion.V0_9;
-                break;
-            case "0.10":
-                formatVersion = FormatVersion.V0_10;
-                break;
-            case "0.11":
-                formatVersion = FormatVersion.V0_11;
-                break;
-            case "0.12":
-                formatVersion = FormatVersion.V0_12;
-                break;
-            default:
-                logWarning ("Configuration tried to set unknown AppStream format version '%s'. Falling back to default version.", versionStr);
-                break;
+                case "0.8":
+                    formatVersion = FormatVersion.V0_8;
+                    break;
+                case "0.9":
+                    formatVersion = FormatVersion.V0_9;
+                    break;
+                case "0.10":
+                    formatVersion = FormatVersion.V0_10;
+                    break;
+                case "0.11":
+                    formatVersion = FormatVersion.V0_11;
+                    break;
+                case "0.12":
+                    formatVersion = FormatVersion.V0_12;
+                    break;
+                default:
+                    logWarning("Configuration tried to set unknown AppStream format version '%s'. Falling back to default version.", versionStr);
+                    break;
             }
         }
 
@@ -436,11 +433,11 @@ public:
             // itself if immutableSuites is used. Since 'pool' is a bad suite name anyway,
             // we error out early on this.
             if (suiteName == "pool")
-                throw new Exception ("The name 'pool' is forbidden for a suite.");
+                throw new Exception("The name 'pool' is forbidden for a suite.");
 
             auto sn = root["Suites"][suiteName];
             if ("dataPriority" in sn)
-                suite.dataPriority = to!int (sn["dataPriority"].integer);
+                suite.dataPriority = to!int(sn["dataPriority"].integer);
             if ("baseSuite" in sn)
                 suite.baseSuite = sn["baseSuite"].str;
             if ("useIconTheme" in sn)
@@ -457,7 +454,7 @@ public:
                     hasImmutableSuites = true;
             }
 
-            const suiteExtraMIDir = buildNormalizedPath (extraMetainfoDir, suite.name);
+            const suiteExtraMIDir = buildNormalizedPath(extraMetainfoDir, suite.name);
             if (suiteExtraMIDir.existsAndIsDir)
                 suite.extraMetainfoDir = suiteExtraMIDir;
 
@@ -479,13 +476,13 @@ public:
             foreach (iconString; iconsObj.byKey) {
                 auto iconObj = iconsObj[iconString];
 
-                immutable iconSize = ImageSize (iconString);
-                if (!allowedIconSizes.canFind (iconSize)) {
-                    logError ("Invalid icon size '%s' selected in configuration, icon policy has been ignored.", iconString);
+                immutable iconSize = ImageSize(iconString);
+                if (!allowedIconSizes.canFind(iconSize)) {
+                    logError("Invalid icon size '%s' selected in configuration, icon policy has been ignored.", iconString);
                     continue;
                 }
                 if (iconSize.width < 0) {
-                    logError ("Malformed icon size '%s' found in configuration, icon policy has been ignored.", iconString);
+                    logError("Malformed icon size '%s' found in configuration, icon policy has been ignored.", iconString);
                     continue;
                 }
 
@@ -505,9 +502,9 @@ public:
                     istate = IconState.CACHED_ONLY;
 
                 // sanity check
-                if (iconSize == ImageSize (64)) {
+                if (iconSize == ImageSize(64)) {
                     if (!storeCached) {
-                        logError ("The icon size 64x64 must always be present and be allowed to be cached. Ignored user configuration.");
+                        logError("The icon size 64x64 must always be present and be allowed to be cached. Ignored user configuration.");
                         continue;
                     }
                 }
@@ -541,7 +538,7 @@ public:
         // apply vendor feature settings
         if ("Features" in root.object) {
             auto featuresObj = root["Features"].object;
-            foreach (featureId; featuresObj.byKey ()) {
+            foreach (featureId; featuresObj.byKey()) {
                 switch (featureId) {
                     case "validateMetainfo":
                         feature.validate = featuresObj[featureId].type == JSONType.true_;
@@ -550,38 +547,38 @@ public:
                         feature.processDesktop = featuresObj[featureId].type == JSONType.true_;
                         break;
                     case "noDownloads":
-                            feature.noDownloads = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.noDownloads = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "createScreenshotsStore":
-                            feature.storeScreenshots = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.storeScreenshots = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "optimizePNGSize":
-                            feature.optipng = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.optipng = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "metadataTimestamps":
-                            feature.metadataTimestamps = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.metadataTimestamps = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "immutableSuites":
-                            feature.immutableSuites = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.immutableSuites = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "processFonts":
-                            feature.processFonts = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.processFonts = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "allowIconUpscaling":
-                            feature.allowIconUpscale = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.allowIconUpscale = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "processGStreamer":
-                            feature.processGStreamer = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.processGStreamer = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "processLocale":
-                            feature.processLocale = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.processLocale = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "screenshotVideos":
-                            feature.screenshotVideos = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.screenshotVideos = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     case "propagateMetaInfoArtifacts":
-                            feature.propagateMetaInfoArtifacts = featuresObj[featureId].type == JSONType.true_;
-                            break;
+                        feature.propagateMetaInfoArtifacts = featuresObj[featureId].type == JSONType.true_;
+                        break;
                     default:
                         break;
                 }
@@ -592,18 +589,18 @@ public:
         if (feature.optipng) {
             if (optipngBinary.empty) {
                 feature.optipng = false;
-                logError ("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
+                logError("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
             } else {
-                logDebug ("Using `optipng`: %s", optipngBinary);
+                logDebug("Using `optipng`: %s", optipngBinary);
             }
         }
-        Globals.setUseOptipng (feature.optipng);
+        Globals.setUseOptipng(feature.optipng);
         if (feature.screenshotVideos) {
             if (ffprobeBinary.empty) {
                 feature.screenshotVideos = false;
-                logError ("Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
+                logError("Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
             } else {
-                logDebug ("Using `ffprobe`: %s", ffprobeBinary);
+                logDebug("Using `ffprobe`: %s", ffprobeBinary);
             }
         }
 
@@ -611,7 +608,7 @@ public:
             // since disallowing network access might have quite a lot of sideeffects, we print
             // a message to the logs to make debugging easier.
             // in general, running with noDownloads is discouraged.
-            logWarning ("Configuration does not permit downloading files. Several features will not be available.");
+            logWarning("Configuration does not permit downloading files. Several features will not be available.");
         }
 
         if (!feature.immutableSuites) {
@@ -627,12 +624,13 @@ public:
         // of image formats we need
         import ascompose.Image : Image;
         import std.string : toStringz;
-        auto pbFormatNames = Image.supportedFormatNames ();
+
+        auto pbFormatNames = Image.supportedFormatNames();
         if (!pbFormatNames.contains(cast(char*) "png".toStringz) ||
-            !pbFormatNames.contains(cast(char*) "svg".toStringz) ||
-            !pbFormatNames.contains(cast(char*) "jpeg".toStringz)) {
-            logError ("The currently used GdkPixbuf does not seem to support all image formats we require to run normally (png/svg/jpeg). " ~
-                      "This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
+                !pbFormatNames.contains(cast(char*) "svg".toStringz) ||
+                !pbFormatNames.contains(cast(char*) "jpeg".toStringz)) {
+            logError("The currently used GdkPixbuf does not seem to support all image formats we require to run normally (png/svg/jpeg). " ~
+                    "This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
         }
     }
 
@@ -654,10 +652,10 @@ public:
                 else
                     root = cacheRootDir;
 
-                tmpDir = buildPath (root, "tmp", format ("asgen-%s", randomString (8)));
+                tmpDir = buildPath(root, "tmp", format("asgen-%s", randomString(8)));
 
                 // make appstream-compose internal functions aware of the new temp dir
-                Globals.setTmpDir (tmpDir);
+                Globals.setTmpDir(tmpDir);
             }
         }
         return tmpDir;

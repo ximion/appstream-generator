@@ -30,39 +30,35 @@ import asgen.config : Config;
 import asgen.contentsstore : ContentsStore;
 import asgen.backends.interfaces : Package;
 
-
-private __gshared extern(C) GQuark asc_compose_error_quark ();
+private __gshared extern (C) GQuark asc_compose_error_quark ();
 
 /**
  * Special unit that wraps the global locale fetching code.
  */
-public final class LocaleUnit : Unit
-{
+public final class LocaleUnit : Unit {
     package Package[string] localeFilePkgMap;
 
     import gobject.Type : Type;
     import gobject.c.functions : g_object_get_data;
-    import ascompose.c.functions: asc_unit_get_type;
+    import ascompose.c.functions : asc_unit_get_type;
     import ascompose.c.functions : asc_unit_get_user_data;
 
-    struct AGLocaleUnit
-    {
+    struct AGLocaleUnit {
         AscUnit parentInstance;
     }
 
-    struct AGLocaleUnitClass
-    {
+    struct AGLocaleUnitClass {
         AscUnitClass parentClass;
     }
 
-    protected AGLocaleUnit *agLocaleUnit;
+    protected AGLocaleUnit* agLocaleUnit;
 
     protected override void* getStruct()
     {
-        return cast(void*)gObject;
+        return cast(void*) gObject;
     }
 
-    public synchronized static GType getType()
+    public synchronized static GType getType ()
     {
         import std.algorithm : startsWith;
 
@@ -70,16 +66,15 @@ public final class LocaleUnit : Unit
 
         if (agLocaleUnitType == GType.INVALID) {
             agLocaleUnitType = Type.registerStaticSimple(
-                                    asc_unit_get_type(),
-                                    "AGLocaleUnit",
-                                    cast(uint)AGLocaleUnitClass.sizeof,
-                                    cast(GClassInitFunc) &agLocaleUnitClassInit,
-                                    cast(uint)AGLocaleUnit.sizeof, null, cast(GTypeFlags)0);
+                    asc_unit_get_type(),
+                    "AGLocaleUnit",
+                    cast(uint) AGLocaleUnitClass.sizeof,
+                    cast(GClassInitFunc)&agLocaleUnitClassInit,
+                    cast(uint) AGLocaleUnit.sizeof, null, cast(GTypeFlags) 0);
 
-            foreach (member; __traits(derivedMembers, LocaleUnit))
-            {
-                    static if (member.startsWith("_implementInterface"))
-                            __traits(getMember, LocaleUnit, member)(agLocaleUnitType);
+            foreach (member; __traits(derivedMembers, LocaleUnit)) {
+                static if (member.startsWith("_implementInterface"))
+                    __traits(getMember, LocaleUnit, member)(agLocaleUnitType);
             }
         }
 
@@ -94,10 +89,10 @@ public final class LocaleUnit : Unit
         import glib.c.functions : g_strdup, g_free;
         import gobject.c.functions : g_object_newv;
 
-        super (cast(AscUnit*) g_object_newv (getType (), 0, null), true);
+        super(cast(AscUnit*) g_object_newv (getType(), 0, null), true);
 
         // helper for function override callbacks
-        setUserData (cast(void*) this);
+        setUserData(cast(void*) this);
 
         // convert the list into an associative array for faster lookups
         Package[string] pkgMap;
@@ -105,7 +100,7 @@ public final class LocaleUnit : Unit
             immutable pkid = pkg.id;
             pkgMap[pkid] = pkg;
         }
-        pkgMap.rehash ();
+        pkgMap.rehash();
 
         auto conf = Config.get;
         if (!conf.feature.processLocale)
@@ -115,7 +110,7 @@ public final class LocaleUnit : Unit
         // otherwise this global search will get even more insane.
         // the key of the map returned by getLocaleMap will therefore contain only the locale
         // file basename instead of a full path
-        auto dbLocaleMap = cstore.getLocaleMap (array(pkgMap.byKey));
+        auto dbLocaleMap = cstore.getLocaleMap(array(pkgMap.byKey));
         foreach (ref info; dbLocaleMap.byKeyValue) {
             immutable id = info.key;
             immutable pkgid = info.value;
@@ -123,29 +118,28 @@ public final class LocaleUnit : Unit
             // check if we already have a package - lookups in this HashMap are faster
             // due to its smaller size and (most of the time) outweight the following additional
             // lookup for the right package entity.
-            if (localeFilePkgMap.get (id, null) !is null)
+            if (localeFilePkgMap.get(id, null) !is null)
                 continue;
 
             Package pkg;
             if (pkgid !is null)
-                pkg = pkgMap.get (pkgid, null);
+                pkg = pkgMap.get(pkgid, null);
 
             if (pkg !is null)
                 localeFilePkgMap[id] = pkg;
         }
 
-        auto contents = new PtrArray (&g_free);
+        auto contents = new PtrArray(&g_free);
         foreach (ref fname; localeFilePkgMap.byKey)
-            contents.add (cast(void*) g_strdup (fname.toStringz));
-        setContents (contents);
+            contents.add(cast(void*) g_strdup (fname.toStringz));
+        setContents(contents);
     }
 
-    extern(C)
-    {
+    extern (C) {
         static void agLocaleUnitClassInit (void* klass)
         {
-            AscUnitClass *ascUnitClass = cast(AscUnitClass*) klass;
-            gobject.c.types.GObjectClass *gobjectCTypesGObjectClass = cast(gobject.c.types.GObjectClass*)klass;
+            AscUnitClass* ascUnitClass = cast(AscUnitClass*) klass;
+            gobject.c.types.GObjectClass* gobjectCTypesGObjectClass = cast(gobject.c.types.GObjectClass*) klass;
 
             ascUnitClass.open = &agLocaleUnitOpen;
             ascUnitClass.close = &agLocaleUnitClose;
@@ -154,17 +148,17 @@ public final class LocaleUnit : Unit
             ascUnitClass.readData = &agLocaleUnitReadData;
         }
 
-        static int agLocaleUnitOpen (AscUnit *iface, GError** err)
+        static int agLocaleUnitOpen (AscUnit* iface, GError** err)
         {
-            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*)iface, "GObject".ptr);
+            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*) iface, "GObject".ptr);
             if (impl is null)
                 impl = cast(LocaleUnit) asc_unit_get_user_data (iface);
-            return impl.open ()? 1 : 0;
+            return impl.open() ? 1 : 0;
         }
 
         static void agLocaleUnitClose (AscUnit* iface)
         {
-            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*)iface, "GObject".ptr);
+            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*) iface, "GObject".ptr);
             if (impl is null)
                 impl = cast(LocaleUnit) asc_unit_get_user_data (iface);
             impl.close();
@@ -173,27 +167,29 @@ public final class LocaleUnit : Unit
         static int agLocaleUnitFileExists (AscUnit* iface, const(char)* dirname)
         {
             import std.string : fromStringz;
-            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*)iface, "GObject".ptr);
+
+            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*) iface, "GObject".ptr);
             if (impl is null)
                 impl = cast(LocaleUnit) asc_unit_get_user_data (iface);
-            return impl.fileExists (dirname.fromStringz.to!string)? 1 : 0;
+            return impl.fileExists(dirname.fromStringz.to!string) ? 1 : 0;
         }
 
         static int agLocaleUnitDirExists (AscUnit* iface, const(char)* dirname)
         {
             import std.string : fromStringz;
-            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*)iface, "GObject".ptr);
+
+            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*) iface, "GObject".ptr);
             if (impl is null)
                 impl = cast(LocaleUnit) asc_unit_get_user_data (iface);
-            return impl.dirExists (dirname.fromStringz.to!string)? 1 : 0;
+            return impl.dirExists(dirname.fromStringz.to!string) ? 1 : 0;
         }
 
-        static GBytes *agLocaleUnitReadData (AscUnit* iface, const(char)* filename, GError** err)
+        static GBytes* agLocaleUnitReadData(AscUnit* iface, const(char)* filename, GError** err)
         {
-            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*)iface, "GObject".ptr);
+            auto impl = cast(LocaleUnit) g_object_get_data (cast(GObject*) iface, "GObject".ptr);
             if (impl is null)
                 impl = cast(LocaleUnit) asc_unit_get_user_data (iface);
-            return impl.c_readData (filename, err);
+            return impl.c_readData(filename, err);
         }
     }
 
@@ -209,38 +205,38 @@ public final class LocaleUnit : Unit
         //  noop
     }
 
-	public override bool fileExists (string filename)
-	{
-	    return ((filename in localeFilePkgMap) is null)? false : true;
-	}
-
-	public override bool dirExists (string dirname)
-	{
-	    // not implemented yet, as it's not needed for locale finding (yet?)
-		return false;
+    public override bool fileExists (string filename)
+    {
+        return ((filename in localeFilePkgMap) is null) ? false : true;
     }
 
-	package GBytes *c_readData (const(char)* filename, GError** err)
-	{
-	    import glib.c.functions : g_bytes_new_take, g_memdup, g_set_error_literal;
-	    import ascompose.c.types : ComposeError;
-	    import ascompose.c.functions : asc_unit_get_user_data;
-	    import std.string : toStringz, fromStringz;
+    public override bool dirExists (string dirname)
+    {
+        // not implemented yet, as it's not needed for locale finding (yet?)
+        return false;
+    }
 
-	    const fname = filename.fromStringz.to!string;
+    package GBytes* c_readData(const(char)* filename, GError** err)
+    {
+        import glib.c.functions : g_bytes_new_take, g_memdup, g_set_error_literal;
+        import ascompose.c.types : ComposeError;
+        import ascompose.c.functions : asc_unit_get_user_data;
+        import std.string : toStringz, fromStringz;
 
-	    auto pkgP = fname in localeFilePkgMap;
-		if (pkgP is null) {
-		    g_set_error_literal (err,
-                                 asc_compose_error_quark,
-                                 ComposeError.FAILED,
-                                 toStringz ("File '%s' does not exist in a known package!".format(fname)));
-			return null;
+        const fname = filename.fromStringz.to!string;
+
+        auto pkgP = fname in localeFilePkgMap;
+        if (pkgP is null) {
+            g_set_error_literal(err,
+                    asc_compose_error_quark,
+                    ComposeError.FAILED,
+                    toStringz("File '%s' does not exist in a known package!".format(fname)));
+            return null;
         }
-		const data = cast(ubyte[]) (*pkgP).getFileData (fname);
+        const data = cast(ubyte[])(*pkgP).getFileData(fname);
 
         // FIXME: We should use g_memdup2 here, once we can bump the GLib version!
-        void *ncCopy = g_memdup (cast(void*) data.ptr, cast(uint) data.length);
-        return g_bytes_new_take (ncCopy, cast(size_t) data.length);
-	}
+        void* ncCopy = g_memdup(cast(void*) data.ptr, cast(uint) data.length);
+        return g_bytes_new_take(ncCopy, cast(size_t) data.length);
+    }
 }

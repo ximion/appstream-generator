@@ -34,9 +34,7 @@ import asgen.backends.interfaces;
 import asgen.backends.archlinux.alpkg;
 import asgen.backends.archlinux.listfile;
 
-
-final class ArchPackageIndex : PackageIndex
-{
+final class ArchPackageIndex : PackageIndex {
 
 private:
     string rootDir;
@@ -47,8 +45,8 @@ public:
     this (string dir)
     {
         this.rootDir = dir;
-        if (!std.file.exists (dir))
-            throw new Exception ("Directory '%s' does not exist.", dir);
+        if (!std.file.exists(dir))
+            throw new Exception("Directory '%s' does not exist.", dir);
     }
 
     void release ()
@@ -61,62 +59,62 @@ public:
         if (pkgDesc is null)
             return;
 
-        auto desc = "<p>%s</p>".format (pkgDesc.escapeXml);
-        pkg.setDescription (desc, "C");
+        auto desc = "<p>%s</p>".format(pkgDesc.escapeXml);
+        pkg.setDescription(desc, "C");
     }
 
     private Package[] loadPackages (string suite, string section, string arch)
     {
-        auto pkgRoot = buildPath (rootDir, suite, section, "os", arch);
-        auto listsTarFname = buildPath (pkgRoot, format ("%s.files.tar.gz", section));
-        if (!std.file.exists (listsTarFname)) {
-            logWarning ("Package lists tarball '%s' does not exist.", listsTarFname);
+        auto pkgRoot = buildPath(rootDir, suite, section, "os", arch);
+        auto listsTarFname = buildPath(pkgRoot, format("%s.files.tar.gz", section));
+        if (!std.file.exists(listsTarFname)) {
+            logWarning("Package lists tarball '%s' does not exist.", listsTarFname);
             return [];
         }
 
         ArchiveDecompressor ad;
-        ad.open (listsTarFname);
-        logDebug ("Opened: %s", listsTarFname);
+        ad.open(listsTarFname);
+        logDebug("Opened: %s", listsTarFname);
 
         ArchPackage[string] pkgsMap;
-        foreach (entry; ad.read ()) {
+        foreach (entry; ad.read()) {
 
-            auto archPkid = dirName (entry.fname);
+            auto archPkid = dirName(entry.fname);
             ArchPackage pkg;
             if (archPkid in pkgsMap) {
                 pkg = pkgsMap[archPkid];
             } else {
-                pkg = new ArchPackage ();
+                pkg = new ArchPackage();
                 pkgsMap[archPkid] = pkg;
             }
 
-            auto infoBaseName = baseName (entry.fname);
+            auto infoBaseName = baseName(entry.fname);
             if (infoBaseName == "desc") {
                 // we have the description file, add information to this package
-                auto descF = new ListFile ();
-                descF.loadData (entry.data);
-                pkg.name = descF.getEntry ("NAME");
-                pkg.ver  = descF.getEntry ("VERSION");
-                pkg.arch = descF.getEntry ("ARCH");
+                auto descF = new ListFile();
+                descF.loadData(entry.data);
+                pkg.name = descF.getEntry("NAME");
+                pkg.ver = descF.getEntry("VERSION");
+                pkg.arch = descF.getEntry("ARCH");
 
-                pkg.maintainer = descF.getEntry ("PACKAGER");
-                pkg.filename = buildPath (pkgRoot, descF.getEntry ("FILENAME"));
-                setPkgDescription (pkg, descF.getEntry ("DESC"));
+                pkg.maintainer = descF.getEntry("PACKAGER");
+                pkg.filename = buildPath(pkgRoot, descF.getEntry("FILENAME"));
+                setPkgDescription(pkg, descF.getEntry("DESC"));
             } else if (infoBaseName == "files") {
                 // we found a content index, add content information to the package
-                auto filesF = new ListFile ();
-                filesF.loadData (entry.data);
+                auto filesF = new ListFile();
+                filesF.loadData(entry.data);
 
-                auto filesStr = filesF.getEntry ("FILES");
+                auto filesStr = filesF.getEntry("FILES");
                 if (filesStr is null) {
-                    if (!pkg.name.canFind ("-meta")) {
-                        logWarning ("Package '%s' has no file list set. Ignoring it.", pkg.toString ());
+                    if (!pkg.name.canFind("-meta")) {
+                        logWarning("Package '%s' has no file list set. Ignoring it.", pkg.toString());
                         continue;
                     }
                 }
 
                 auto contents = appender!(string[]);
-                foreach (l; filesStr.splitLines ())
+                foreach (l; filesStr.splitLines())
                     contents ~= "/" ~ l;
                 pkg.contents = contents.data;
             }
@@ -125,12 +123,12 @@ public:
         // perform a sanity check, so we will never emit invalid packages
         auto pkgs = appender!(Package[]);
         if (pkgsMap.length > 20)
-            pkgs.reserve ((pkgsMap.length.to!long - 10).to!size_t);
-        foreach (ref pkg; pkgsMap.byValue ()) {
+            pkgs.reserve((pkgsMap.length.to!long - 10).to!size_t);
+        foreach (ref pkg; pkgsMap.byValue()) {
             if (pkg.isValid)
                 pkgs ~= pkg;
             else
-                logError ("Found an invalid package (name, architecture or version is missing). This is a bug.");
+                logError("Found an invalid package (name, architecture or version is missing). This is a bug.");
         }
 
         return pkgs.data;
@@ -141,10 +139,11 @@ public:
         if ((suite == "arch") || (suite == "archlinux"))
             suite = "";
 
-        immutable id = "%s-%s-%s".format (suite, section, arch);
+        immutable id = "%s-%s-%s".format(suite, section, arch);
         if (id !in pkgCache) {
-            auto pkgs = loadPackages (suite, section, arch);
-            synchronized (this) pkgCache[id] = pkgs;
+            auto pkgs = loadPackages(suite, section, arch);
+            synchronized (this)
+                pkgCache[id] = pkgs;
         }
 
         return pkgCache[id];

@@ -31,18 +31,17 @@ import ascompose.Hint : Hint;
 import ascompose.Result : Result;
 import ascompose.c.types : AscHint;
 static import appstream.Utils;
+
 alias AsUtils = appstream.Utils.Utils;
 
 import asgen.hintregistry;
 import asgen.backends.interfaces;
 import asgen.config : Config;
 
-
 /**
  * Helper structure to tie a package instance and compose result together.
  */
-struct GeneratorResult
-{
+struct GeneratorResult {
     Package pkg;
     Result res;
     alias res this;
@@ -50,16 +49,16 @@ struct GeneratorResult
     this (Package pkg)
     {
         res = new Result;
-        res.setBundleKind (BundleKind.PACKAGE);
-        res.setBundleId (pkg.name);
+        res.setBundleKind(BundleKind.PACKAGE);
+        res.setBundleId(pkg.name);
         this.pkg = pkg;
     }
 
     this (Result result, Package pkg)
     {
         this.res = result;
-        this.res.setBundleKind (BundleKind.PACKAGE);
-        this.res.setBundleId (pkg.name);
+        this.res.setBundleKind(BundleKind.PACKAGE);
+        this.res.setBundleId(pkg.name);
         this.pkg = pkg;
     }
 
@@ -79,8 +78,8 @@ struct GeneratorResult
      *      True if the hint did not cause the removal of the component, False otherwise.
      **/
     @trusted
-    bool addHint (T) (T id, string tag, string[string] params)
-        if (is(T == string) || is(T == Component) || is(T == typeof(null)))
+    bool addHint (T)(T id, string tag, string[string] params)
+            if (is(T == string) || is(T == Component) || is(T == typeof(null)))
     {
         static if (is(T == string)) {
             immutable cid = id;
@@ -88,14 +87,14 @@ struct GeneratorResult
             static if (is(T == typeof(null)))
                 immutable cid = "general";
             else
-                immutable cid = id.getId ();
+                immutable cid = id.getId();
         }
 
         string[] paramsFlat;
         foreach (const ref varName, ref varValue; params)
             paramsFlat ~= [varName, varValue];
 
-        return addHintByCid (cid, tag, paramsFlat);
+        return addHintByCid(cid, tag, paramsFlat);
     }
 
     /**
@@ -108,12 +107,12 @@ struct GeneratorResult
      *      True if the hint did not cause the removal of the component, False otherwise.
      **/
     @safe
-    bool addHint (T) (T id, string tag, string msg = null)
+    bool addHint (T)(T id, string tag, string msg = null)
     {
         string[string] vars;
         if (msg !is null)
             vars = ["msg": msg];
-        return addHint (id, tag, vars);
+        return addHint(id, tag, vars);
     }
 
     /**
@@ -122,43 +121,43 @@ struct GeneratorResult
      */
     string hintsToJson ()
     {
-        if (hintsCount () == 0)
+        if (hintsCount() == 0)
             return null;
 
         // FIXME: is this really the only way you can set a type for JSONValue?
-        auto map = JSONValue (["null": 0]);
-        map.object.remove ("null");
+        auto map = JSONValue(["null": 0]);
+        map.object.remove("null");
 
-        foreach (ref cid; getComponentIdsWithHints ()) {
-            auto cptHints = getHints (cid);
-            auto hintNodes = JSONValue ([0, 0]);
+        foreach (ref cid; getComponentIdsWithHints()) {
+            auto cptHints = getHints(cid);
+            auto hintNodes = JSONValue([0, 0]);
             hintNodes.array = [];
 
             for (uint i = 0; i < cptHints.len; i++) {
-                auto hint = new Hint (cast (AscHint*) cptHints.index (i));
+                auto hint = new Hint(cast(AscHint*) cptHints.index(i));
                 hintNodes.array ~= hint.toJsonValue;
             }
             map.object[cid] = hintNodes;
         }
 
-        auto root = JSONValue (["package": JSONValue (pkid), "hints": map]);
-        return root.toJSON (true);
+        auto root = JSONValue(["package": JSONValue(pkid), "hints": map]);
+        return root.toJSON(true);
     }
 }
 
-unittest
-{
+unittest {
     import asgen.backends.dummy.dummypkg;
-    writeln ("TEST: ", "GeneratorResult");
-    loadHintsRegistry ();
 
-    auto pkg = new DummyPackage ("foobar", "1.0", "amd64");
-    auto res = new GeneratorResult (pkg);
+    writeln("TEST: ", "GeneratorResult");
+    loadHintsRegistry();
+
+    auto pkg = new DummyPackage("foobar", "1.0", "amd64");
+    auto res = new GeneratorResult(pkg);
 
     auto vars = ["rainbows": "yes", "unicorns": "no", "storage": "towel"];
-    res.addHint ("org.freedesktop.foobar.desktop", "desktop-entry-hidden-set", vars);
-    res.addHint ("org.freedesktop.awesome-bar.desktop", "metainfo-validation-error", "Nothing is good without chocolate. Add some.");
-    res.addHint ("org.freedesktop.awesome-bar.desktop", "screenshot-video-check-failed", "Frobnicate functionality is missing.");
+    res.addHint("org.freedesktop.foobar.desktop", "desktop-entry-hidden-set", vars);
+    res.addHint("org.freedesktop.awesome-bar.desktop", "metainfo-validation-error", "Nothing is good without chocolate. Add some.");
+    res.addHint("org.freedesktop.awesome-bar.desktop", "screenshot-video-check-failed", "Frobnicate functionality is missing.");
 
-    writeln (res.hintsToJson ());
+    writeln(res.hintsToJson());
 }

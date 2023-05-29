@@ -25,13 +25,11 @@ import asgen.backends.interfaces;
 import asgen.utils : GENERIC_BUFFER_SIZE, existsAndIsDir;
 import asgen.logging;
 
-
 /**
  * Fake package which has the sole purpose of allowing easy injection of local
  * data that does not reside in packages.
  */
-final class DataInjectPackage : Package
-{
+final class DataInjectPackage : Package {
 private:
     string pkgname;
     string pkgarch;
@@ -42,25 +40,67 @@ private:
     string _archDataLocation;
 
 public:
-    @property override string name () const { return pkgname; }
-    @property override string ver () const { return "0~0"; }
-    @property override string arch () const { return pkgarch; }
-    @property override PackageKind kind () @safe pure { return PackageKind.FAKE; }
+    @property override string name () const
+    {
+        return pkgname;
+    }
 
-    @property override const(string[string]) description () const { return desc; }
+    @property override string ver () const
+    {
+        return "0~0";
+    }
+
+    @property override string arch () const
+    {
+        return pkgarch;
+    }
+
+    @property override PackageKind kind () @safe pure
+    {
+        return PackageKind.FAKE;
+    }
+
+    @property override const(string[string]) description () const
+    {
+        return desc;
+    }
 
     override
-    @property string getFilename () const { return "_local_"; }
+    @property string getFilename () const
+    {
+        return "_local_";
+    }
 
     override
-    @property string maintainer () const { return pkgmaintainer; }
-    @property void   maintainer (string maint) { pkgmaintainer = maint; }
+    @property string maintainer () const
+    {
+        return pkgmaintainer;
+    }
 
-    @property string dataLocation () const { return _dataLocation; }
-    @property void   dataLocation (string value) { _dataLocation = value; }
+    @property void maintainer (string maint)
+    {
+        pkgmaintainer = maint;
+    }
 
-    @property string archDataLocation () const { return _archDataLocation; }
-    @property void   archDataLocation (string value) { _archDataLocation = value; }
+    @property string dataLocation () const
+    {
+        return _dataLocation;
+    }
+
+    @property void dataLocation (string value)
+    {
+        _dataLocation = value;
+    }
+
+    @property string archDataLocation () const
+    {
+        return _archDataLocation;
+    }
+
+    @property void archDataLocation (string value)
+    {
+        _archDataLocation = value;
+    }
 
     this (string pname, string parch)
     {
@@ -71,15 +111,15 @@ public:
     override
     ubyte[] getFileData (string fname)
     {
-        immutable localPath = _contents.get (fname, null);
+        immutable localPath = _contents.get(fname, null);
         if (localPath.empty)
             return [];
 
         ubyte[] data;
-        auto f = File (localPath, "r");
+        auto f = File(localPath, "r");
         while (!f.eof) {
             char[GENERIC_BUFFER_SIZE] buf;
-            data ~= f.rawRead (buf);
+            data ~= f.rawRead(buf);
         }
 
         return data;
@@ -98,35 +138,35 @@ public:
             return [];
 
         // find all icons
-        immutable iconLocation = buildNormalizedPath (_dataLocation, "icons");
+        immutable iconLocation = buildNormalizedPath(_dataLocation, "icons");
         if (iconLocation.existsAndIsDir) {
-            foreach (iconFname; iconLocation.dirEntries ("*.{svg,svgz,png}", SpanMode.breadth, true)) {
-                immutable iconBasePath = relativePath (iconFname, iconLocation);
-                _contents[buildPath ("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
+            foreach (iconFname; iconLocation.dirEntries("*.{svg,svgz,png}", SpanMode.breadth, true)) {
+                immutable iconBasePath = relativePath(iconFname, iconLocation);
+                _contents[buildPath("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
             }
         } else {
-            logInfo ("No icons found in '%s' for injected metadata.", iconLocation);
+            logInfo("No icons found in '%s' for injected metadata.", iconLocation);
         }
 
         // find metainfo files
-        foreach (miFname; _dataLocation.dirEntries ("*.xml", SpanMode.shallow, false)) {
+        foreach (miFname; _dataLocation.dirEntries("*.xml", SpanMode.shallow, false)) {
             immutable miBasename = miFname.baseName;
-            logDebug ("Found injected metainfo [%s]: %s", "all", miBasename);
-            _contents[buildPath ("/usr/share/metainfo", miBasename)] = miFname;
+            logDebug("Found injected metainfo [%s]: %s", "all", miBasename);
+            _contents[buildPath("/usr/share/metainfo", miBasename)] = miFname;
         }
 
         if (!archDataLocation.existsAndIsDir)
             return array(_contents.byKey);
 
         // load arch-specific override metainfo files
-        foreach (miFname; archDataLocation.dirEntries ("*.xml", SpanMode.shallow, false)) {
+        foreach (miFname; archDataLocation.dirEntries("*.xml", SpanMode.shallow, false)) {
             immutable miBasename = miFname.baseName;
-            immutable fakePath = buildPath ("/usr/share/metainfo", miBasename);
+            immutable fakePath = buildPath("/usr/share/metainfo", miBasename);
 
             if (fakePath in _contents)
                 logDebug ("Found injected metainfo [%s]: %s (replacing generic one)", arch, miBasename);
             else
-                logDebug ("Found injected metainfo [%s]: %s", arch, miBasename);
+                logDebug("Found injected metainfo [%s]: %s", arch, miBasename);
 
             _contents[fakePath] = miFname;
         }

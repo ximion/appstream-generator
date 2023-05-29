@@ -28,8 +28,7 @@ import asgen.backends.debian;
 import asgen.backends.interfaces;
 import asgen.backends.ubuntu.ubupkg;
 
-final class UbuntuPackageIndex : DebianPackageIndex
-{
+final class UbuntuPackageIndex : DebianPackageIndex {
 
 private:
     LanguagePackProvider langpacks;
@@ -40,7 +39,7 @@ private:
 public:
     this (string dir)
     {
-        super (dir);
+        super(dir);
 
         /*
          * UbuntuPackage needs to extract the langpacks, so we give it an array
@@ -49,21 +48,21 @@ public:
          * langpacks, but otherwise we need to keep a reference to all packages
          * around, which is very expensive.
          */
-        langpacks = new LanguagePackProvider (tmpDir);
+        langpacks = new LanguagePackProvider(tmpDir);
     }
 
     override
     void release ()
     {
-        super.release ();
-        checkedLangPacks.clear ();
-        langpacks = new LanguagePackProvider (tmpDir);
+        super.release();
+        checkedLangPacks.clear();
+        langpacks = new LanguagePackProvider(tmpDir);
     }
 
     override protected
     DebPackage newPackage (string name, string ver, string arch)
     {
-        return new UbuntuPackage (name, ver, arch, langpacks);
+        return new UbuntuPackage(name, ver, arch, langpacks);
     }
 
     override
@@ -71,23 +70,23 @@ public:
     {
         import std.string : startsWith;
 
-        auto pkgs = super.packagesFor (suite, section, arch, withLongDescs);
+        auto pkgs = super.packagesFor(suite, section, arch, withLongDescs);
 
-        immutable ssaId = "%s/%s/%s".format (suite, section, arch);
+        immutable ssaId = "%s/%s/%s".format(suite, section, arch);
         if (ssaId in checkedLangPacks)
             return pkgs; // no need to scan for language packs, we already did that
 
         // scan for language packs and add them to the data provider
         synchronized (this) {
             auto pkgslangpacks = appender!(UbuntuPackage[]);
-            pkgslangpacks.reserve (32);
+            pkgslangpacks.reserve(32);
 
             foreach (ref pkg; pkgs) {
-                    if (pkg.name.startsWith ("language-pack-"))
-                        pkgslangpacks ~= pkg.to!UbuntuPackage;
+                if (pkg.name.startsWith("language-pack-"))
+                    pkgslangpacks ~= pkg.to!UbuntuPackage;
             }
 
-            langpacks.addLanguagePacks (pkgslangpacks.data);
+            langpacks.addLanguagePacks(pkgslangpacks.data);
             checkedLangPacks[ssaId] = true;
         }
 

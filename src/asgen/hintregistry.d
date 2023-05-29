@@ -30,11 +30,11 @@ import appstream.c.types : IssueSeverity;
 import ascompose.Hint : Hint;
 import ascompose.Globals : Globals;
 static import appstream.Utils;
+
 alias AsUtils = appstream.Utils.Utils;
 
 import asgen.logging;
 import asgen.utils;
-
 
 /**
  * Each issue hint type has a severity assigned to it:
@@ -49,11 +49,10 @@ import asgen.utils;
 /**
  * Definition of a issue hint.
  */
-struct HintDefinition
-{
-    string tag;             /// Unique issue tag
+struct HintDefinition {
+    string tag; /// Unique issue tag
     IssueSeverity severity; /// Issue severity
-    string explanation;     /// Explanation template
+    string explanation; /// Explanation template
 }
 
 /**
@@ -65,36 +64,36 @@ void loadHintsRegistry () @trusted
     static import std.file;
 
     // find the hint definition file
-    auto hintsDefFile = getDataPath ("asgen-hints.json");
-    if (!std.file.exists (hintsDefFile)) {
-        logError ("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
+    auto hintsDefFile = getDataPath("asgen-hints.json");
+    if (!std.file.exists(hintsDefFile)) {
+        logError("Hints definition file '%s' was not found! This means we can not determine severity of issue tags and not render report pages.", hintsDefFile);
         return;
     }
 
     // read the hints definition JSON file
-    auto f = File (hintsDefFile, "r");
+    auto f = File(hintsDefFile, "r");
     string jsonData;
     string line;
-    while ((line = f.readln ()) !is null)
+    while ((line = f.readln()) !is null)
         jsonData ~= line;
 
-    auto hintDefsJSON = parseJSON (jsonData);
+    auto hintDefsJSON = parseJSON(jsonData);
 
     bool checkAlreadyLoaded = true;
     foreach (ref tag; hintDefsJSON.object.byKey) {
         auto j = hintDefsJSON[tag];
-        immutable severity = AsUtils.severityFromString (j["severity"].str);
+        immutable severity = AsUtils.severityFromString(j["severity"].str);
 
         bool overrideExisting = false;
         if ((tag == "icon-not-found") ||
-            (tag == "internal-unknown-tag") ||
-            (tag == "internal-error") ||
-            (tag == "no-metainfo"))
+                (tag == "internal-unknown-tag") ||
+                (tag == "internal-error") ||
+                (tag == "no-metainfo"))
             overrideExisting = true;
 
         if (checkAlreadyLoaded) {
-            if (!overrideExisting && Globals.hintTagSeverity (tag) != IssueSeverity.UNKNOWN) {
-                logDebug ("Global hints registry already loaded.");
+            if (!overrideExisting && Globals.hintTagSeverity(tag) != IssueSeverity.UNKNOWN) {
+                logDebug("Global hints registry already loaded.");
                 break;
             }
             checkAlreadyLoaded = false;
@@ -108,7 +107,7 @@ void loadHintsRegistry () @trusted
             explanation = j["text"].str;
         }
 
-        if (!Globals.addHintTag (tag, severity, explanation, overrideExisting))
+        if (!Globals.addHintTag(tag, severity, explanation, overrideExisting))
             logError ("Unable to override existing hint tag %s.", tag);
     }
 }
@@ -119,65 +118,67 @@ void loadHintsRegistry () @trusted
 void saveHintsRegistryToJsonFile (const string fname) @trusted
 {
     // FIXME: is this really the only way you can set a type for JSONValue?
-    auto map = JSONValue (["null": 0]);
-    map.object.remove ("null");
+    auto map = JSONValue(["null": 0]);
+    map.object.remove("null");
 
     foreach (const htag; Globals.getHintTags) {
-        const hdef = retrieveHintDef (htag);
-        auto jval = JSONValue (["text": JSONValue (hdef.explanation),
-                                "severity": JSONValue (AsUtils.severityToString (hdef.severity))]);
+        const hdef = retrieveHintDef(htag);
+        auto jval = JSONValue([
+            "text": JSONValue(hdef.explanation),
+            "severity": JSONValue(AsUtils.severityToString(hdef.severity))
+        ]);
         map.object[hdef.tag] = jval;
     }
 
     File file = File(fname, "w");
-    file.writeln (map.toJSON (true));
-    file.close ();
+    file.writeln(map.toJSON(true));
+    file.close();
 }
 
 HintDefinition retrieveHintDef (string tag) @trusted
 {
     HintDefinition hdef;
     hdef.tag = tag;
-    hdef.severity = Globals.hintTagSeverity (tag);
+    hdef.severity = Globals.hintTagSeverity(tag);
     if (hdef.severity == IssueSeverity.UNKNOWN)
-        return HintDefinition ();
-    hdef.explanation = Globals.hintTagExplanation (tag);
+        return HintDefinition();
+    hdef.explanation = Globals.hintTagExplanation(tag);
     return hdef;
 }
 
-auto toJsonValue (Hint hint) @trusted
+auto toJsonValue(Hint hint) @trusted
 {
     auto hintList = hint.getExplanationVarsList;
     string[string] vars;
     for (uint i = 0; i < hintList.len; i++) {
         if (i % 2 != 0)
             continue;
-        const auto key = fromStringz (cast(char*) hintList.index (i)).to!string;
-        const auto value = fromStringz (cast(char*) hintList.index (i + 1)).to!string;
+        const auto key = fromStringz(cast(char*) hintList.index(i)).to!string;
+        const auto value = fromStringz(cast(char*) hintList.index(i + 1)).to!string;
         vars[key] = value;
     }
 
-    return JSONValue(["tag":  JSONValue (hint.getTag),
-                      "vars": JSONValue (vars)]);
+    return JSONValue(["tag": JSONValue(hint.getTag),
+        "vars": JSONValue(vars)]);
 }
 
 @trusted
-unittest
-{
+unittest {
     import std.exception : assertThrown;
     import glib.GException : GException;
-    writeln ("TEST: ", "Issue Hints");
 
-    assertThrown!GException (new Hint ("description-from-package"));
+    writeln("TEST: ", "Issue Hints");
 
-    loadHintsRegistry ();
-    auto hint = new Hint ("description-from-package");
+    assertThrown!GException(new Hint("description-from-package"));
+
+    loadHintsRegistry();
+    auto hint = new Hint("description-from-package");
 
     foreach (k, v; ["rainbows": "yes", "unicorns": "no", "storage": "towel"])
-        hint.addExplanationVar (k, v);
-    auto root = hint.toJsonValue ();
-    writeln (root.toJSON (true));
+        hint.addExplanationVar(k, v);
+    auto root = hint.toJsonValue();
+    writeln(root.toJSON(true));
 
-    assert (retrieveHintDef ("asv-relation-item-invalid-vercmp").severity != IssueSeverity.UNKNOWN);
-    saveHintsRegistryToJsonFile ("/tmp/testsuite-asgen-hints.json");
+    assert(retrieveHintDef("asv-relation-item-invalid-vercmp").severity != IssueSeverity.UNKNOWN);
+    saveHintsRegistryToJsonFile("/tmp/testsuite-asgen-hints.json");
 }

@@ -1,4 +1,3 @@
-
 module asgen.backends.rpmmd;
 
 public import asgen.backends.rpmmd.rpmpkg;

@@ -27,9 +27,7 @@ import asgen.logging;
 import asgen.zarchive;
 import asgen.backends.interfaces;
 
-
-final class RPMPackage : Package
-{
+final class RPMPackage : Package {
 private:
     string pkgname;
     string pkgver;
@@ -45,27 +43,65 @@ private:
 
 public:
     override
-    @property string name () const { return pkgname; }
-    @property void   name (string val) { pkgname = val; }
+    @property string name () const
+    {
+        return pkgname;
+    }
+
+    @property void name (string val)
+    {
+        pkgname = val;
+    }
 
     override
-    @property string ver () const { return pkgver; }
-    @property void   ver (string val) { pkgver = val; }
+    @property string ver () const
+    {
+        return pkgver;
+    }
+
+    @property void ver (string val)
+    {
+        pkgver = val;
+    }
 
     override
-    @property string arch () const { return pkgarch; }
-    @property void   arch (string val) { pkgarch = val; }
+    @property string arch () const
+    {
+        return pkgarch;
+    }
+
+    @property void arch (string val)
+    {
+        pkgarch = val;
+    }
 
     override
-    @property const(string[string]) description () const { return desc; }
+    @property const(string[string]) description () const
+    {
+        return desc;
+    }
 
     override
-    @property string getFilename () const { return pkgFname; }
-    @property void filename (string fname) { pkgFname = fname; }
+    @property string getFilename () const
+    {
+        return pkgFname;
+    }
+
+    @property void filename (string fname)
+    {
+        pkgFname = fname;
+    }
 
     override
-    @property string maintainer () const { return pkgmaintainer; }
-    @property void maintainer (string maint) { pkgmaintainer = maint; }
+    @property string maintainer () const
+    {
+        return pkgmaintainer;
+    }
+
+    @property void maintainer (string maint)
+    {
+        pkgmaintainer = maint;
+    }
 
     void setDescription (string text, string locale)
     {
@@ -81,9 +117,9 @@ public:
     const(ubyte)[] getFileData (string fname)
     {
         if (!archive.isOpen)
-            archive.open (this.getFilename);
+            archive.open(this.getFilename);
 
-        return archive.readData (fname);
+        return archive.readData(fname);
     }
 
     @property override

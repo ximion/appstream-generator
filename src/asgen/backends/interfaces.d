@@ -26,34 +26,35 @@ import std.array : empty;
 import appstream.Component;
 import glib.KeyFile : KeyFile;
 
-
 public import asgen.datastore;
 
-class GStreamer
-{
+class GStreamer {
     immutable string[] decoders;
     immutable string[] encoders;
     immutable string[] elements;
     immutable string[] uri_sinks;
     immutable string[] uri_sources;
 
-    @property @safe pure bool isNotEmpty () const {
+    @property @safe pure bool isNotEmpty () const
+    {
         return !(decoders.empty &&
-                 encoders.empty &&
-                 elements.empty &&
-                 uri_sinks.empty &&
-                 uri_sources.empty);
+                encoders.empty &&
+                elements.empty &&
+                uri_sinks.empty &&
+                uri_sources.empty);
     }
 
-    this () {
+    this ()
+    {
         decoders = encoders = elements = uri_sinks = uri_sources = [];
     }
 
     this (immutable string[] decoders,
-          immutable string[] encoders,
-          immutable string[] elements,
-          immutable string[] uri_sinks,
-          immutable string[] uri_sources) {
+            immutable string[] encoders,
+            immutable string[] elements,
+            immutable string[] uri_sinks,
+            immutable string[] uri_sources)
+    {
         this.decoders = decoders;
         this.encoders = encoders;
         this.elements = elements;
@@ -67,8 +68,7 @@ class GStreamer
  * Allows distinguishing "real" packages from
  * virtual or fake ones that are used internally.
  */
-enum PackageKind
-{
+enum PackageKind {
     UNKNOWN,
     PHYSICAL,
     FAKE
@@ -77,8 +77,7 @@ enum PackageKind
 /**
  * Represents a distribution package in the generator.
  */
-abstract class Package
-{
+abstract class Package {
     @property string name () const @safe pure;
     @property string ver () const @safe pure;
     @property string arch () const @safe pure;
@@ -107,7 +106,10 @@ abstract class Package
      *
      * E.g.: ["en": "foo the bar"]
      */
-    @property const(string[string]) summary () const { return (string[string]).init; }
+    @property const(string[string]) summary () const
+    {
+        return (string[string]).init;
+    }
 
     /**
      * Local filename of the package. This string is only used for
@@ -134,23 +136,37 @@ abstract class Package
      * this package. This function can be called to avoid excessive use of disk space.
      * As opposed to `close()`, the package may be reopened afterwards.
      */
-    void cleanupTemp () {}
+    void cleanupTemp ()
+    {
+    }
 
     /**
      * Close the package. This function is called when we will
      * no longer request any file data from this package.
      */
-    abstract void finish () {}
+    abstract void finish ()
+    {
+    }
 
-    @property Nullable!GStreamer gst () { return Nullable!GStreamer (); }
+    @property Nullable!GStreamer gst ()
+    {
+        return Nullable!GStreamer();
+    }
 
     /**
      * Retrieve backend-specific translations.
      *
      * (currently only used by the Ubuntu backend)
      */
-    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text) { return null; }
-    @property bool hasDesktopFileTranslations () const { return false; }
+    string[string] getDesktopFileTranslations (KeyFile desktopFile, const string text)
+    {
+        return null;
+    }
+
+    @property bool hasDesktopFileTranslations () const
+    {
+        return false;
+    }
 
     private string pkid;
     /**
@@ -162,8 +178,9 @@ abstract class Package
     final string id () @safe pure
     {
         import std.array : empty;
+
         if (pkid.empty)
-            pkid = "%s/%s/%s".format (this.name, this.ver, this.arch);
+            pkid = "%s/%s/%s".format(this.name, this.ver, this.arch);
         return pkid;
     }
 
@@ -175,9 +192,10 @@ abstract class Package
     final bool isValid ()
     {
         import std.array : empty;
+
         return (!name.empty) &&
-               (!ver.empty) &&
-               (!arch.empty);
+            (!ver.empty) &&
+            (!arch.empty);
     }
 
     @safe pure override
@@ -190,8 +208,7 @@ abstract class Package
 /**
  * An index of information about packages in a distribution.
  */
-interface PackageIndex
-{
+interface PackageIndex {
     /**
      * Called after a set of operations has completed, which allows the index to
      * release memory it might have allocated for cached data, or delete temporary
@@ -205,9 +222,9 @@ interface PackageIndex
      * operation, since the generator might query the data multiple times.
      **/
     Package[] packagesFor (string suite,
-                           string section,
-                           string arch,
-                           bool withLongDescs = true);
+            string section,
+            string arch,
+            bool withLongDescs = true);
 
     /**
      * Get an abstract package representation for a physical package
@@ -217,8 +234,8 @@ interface PackageIndex
      * Backends should return null if the feature is not implemented.
      **/
     Package packageForFile (string fname,
-                            string suite = null,
-                            string section = null);
+            string suite = null,
+            string section = null);
 
     /**
      * Check if the index for the given suite/section/arch triplet has changed since
@@ -228,7 +245,7 @@ interface PackageIndex
      * which means an internal cache is useful.
      */
     bool hasChanges (DataStore dstore,
-                     string suite,
-                     string section,
-                     string arch);
+            string suite,
+            string section,
+            string arch);
 }

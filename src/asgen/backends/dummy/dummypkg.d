@@ -25,9 +25,7 @@ import std.array : empty;
 import asgen.backends.interfaces;
 import asgen.logging;
 
-
-final class DummyPackage : Package
-{
+final class DummyPackage : Package {
 private:
     string pkgname;
     string pkgver;
@@ -38,19 +36,47 @@ private:
     PackageKind _kind;
 
 public:
-    @property override string name () const { return pkgname; }
-    @property override string ver () const { return pkgver; }
-    @property override string arch () const { return pkgarch; }
+    @property override string name () const
+    {
+        return pkgname;
+    }
 
-    @property override const(string[string]) description () const { return desc; }
+    @property override string ver () const
+    {
+        return pkgver;
+    }
+
+    @property override string arch () const
+    {
+        return pkgarch;
+    }
+
+    @property override const(string[string]) description () const
+    {
+        return desc;
+    }
 
     override
-    @property string getFilename () const { return testPkgFname; }
-    @property void   filename (string fname) { testPkgFname = fname; }
+    @property string getFilename () const
+    {
+        return testPkgFname;
+    }
+
+    @property void filename (string fname)
+    {
+        testPkgFname = fname;
+    }
 
     override
-    @property string maintainer () const { return pkgmaintainer; }
-    @property void   maintainer (string maint) { pkgmaintainer = maint; }
+    @property string maintainer () const
+    {
+        return pkgmaintainer;
+    }
+
+    @property void maintainer (string maint)
+    {
+        pkgmaintainer = maint;
+    }
 
     this (string pname, string pver, string parch)
     {

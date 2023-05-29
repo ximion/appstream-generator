@@ -34,14 +34,12 @@ import asgen.backends.interfaces;
 import asgen.downloader : Downloader;
 import asgen.utils : isRemote;
 
-
 /**
  * Helper class for simple deduplication of package descriptions
  * between packages of different architectures in memory.
  */
-final class DebPackageLocaleTexts
-{
-    string[string] summary;     /// map of localized package short summaries
+final class DebPackageLocaleTexts {
+    string[string] summary; /// map of localized package short summaries
     string[string] description; /// map of localized package descriptions
 
     void setDescription (string text, string locale)
@@ -57,12 +55,10 @@ final class DebPackageLocaleTexts
     }
 }
 
-
 /**
  * Representation of a Debian binary package
  */
-class DebPackage : Package
-{
+class DebPackage : Package {
 private:
     string pkgname;
     string pkgver;
@@ -82,31 +78,73 @@ private:
     string localDebFname;
 
 public:
-    final @property override string name () const { return pkgname; }
-    final @property override string ver () const { return pkgver; }
-    final @property override string arch () const { return pkgarch; }
+    final @property override string name () const
+    {
+        return pkgname;
+    }
 
-    final @property void name (string s) { pkgname = s; }
-    final @property void ver (string s) { pkgver = s; }
-    final @property void arch (string s) { pkgarch = s; }
+    final @property override string ver () const
+    {
+        return pkgver;
+    }
 
-    final @property override Nullable!GStreamer gst () { return gstreamer; }
-    final @property void gst (GStreamer gst) { gstreamer = gst; }
+    final @property override string arch () const
+    {
+        return pkgarch;
+    }
 
-    final @property override const(string[string]) description () const { return descTexts.description; }
-    final @property override const(string[string]) summary () const { return descTexts.summary; }
+    final @property void name (string s)
+    {
+        pkgname = s;
+    }
 
-    final @property void filename (string fname) { debFname = fname; localDebFname = null; }
+    final @property void ver (string s)
+    {
+        pkgver = s;
+    }
+
+    final @property void arch (string s)
+    {
+        pkgarch = s;
+    }
+
+    final @property override Nullable!GStreamer gst ()
+    {
+        return gstreamer;
+    }
+
+    final @property void gst (GStreamer gst)
+    {
+        gstreamer = gst;
+    }
+
+    final @property override const(string[string]) description () const
+    {
+        return descTexts.description;
+    }
+
+    final @property override const(string[string]) summary () const
+    {
+        return descTexts.summary;
+    }
+
+    final @property void filename (string fname)
+    {
+        debFname = fname;
+        localDebFname = null;
+    }
+
     override final
-    string getFilename () {
+    string getFilename ()
+    {
         if (!localDebFname.empty)
             return localDebFname;
 
         if (debFname.isRemote) {
             synchronized (this) {
                 auto dl = Downloader.get;
-                immutable path = buildNormalizedPath (tmpDir, debFname.baseName);
-                dl.downloadFile (debFname, path);
+                immutable path = buildNormalizedPath(tmpDir, debFname.baseName);
+                dl.downloadFile(debFname, path);
                 localDebFname = path;
                 return localDebFname;
             }
@@ -117,8 +155,15 @@ public:
     }
 
     override
-    final @property string maintainer () const { return pkgmaintainer; }
-    final @property void   maintainer (string maint) { pkgmaintainer = maint; }
+    final @property string maintainer () const
+    {
+        return pkgmaintainer;
+    }
+
+    final @property void maintainer (string maint)
+    {
+        pkgmaintainer = maint;
+    }
 
     this (string pname, string pver, string parch, DebPackageLocaleTexts l10nTexts = null)
     {
@@ -132,7 +177,7 @@ public:
 
         contentsRead = false;
 
-        updateTmpDirPath ();
+        updateTmpDirPath();
     }
 
     ~this ()
@@ -144,23 +189,23 @@ public:
 
     final void updateTmpDirPath ()
     {
-        auto conf = Config.get ();
-        tmpDir = buildPath (conf.getTmpDir (), format ("%s-%s_%s", name, ver, arch));
+        auto conf = Config.get();
+        tmpDir = buildPath(conf.getTmpDir(), format("%s-%s_%s", name, ver, arch));
     }
 
     final void setDescription (string text, string locale)
     {
-        descTexts.setDescription (text, locale);
+        descTexts.setDescription(text, locale);
     }
 
     final void setSummary (string text, string locale)
     {
-        descTexts.setSummary (text, locale);
+        descTexts.setSummary(text, locale);
     }
 
-    final setLocalizedTexts (DebPackageLocaleTexts l10nTexts)
+    final setLocalizedTexts(DebPackageLocaleTexts l10nTexts)
     {
-        assert (l10nTexts !is null);
+        assert(l10nTexts !is null);
         descTexts = l10nTexts;
     }
 
@@ -170,71 +215,71 @@ public:
         return descTexts;
     }
 
-    private auto openPayloadArchive ()
+    private auto openPayloadArchive()
     {
         import std.regex : ctRegex;
 
-        synchronized(this) {
-                if (dataArchive.isOpen)
-                    return dataArchive;
-
-                ArchiveDecompressor ad;
-                // extract the payload to a temporary location first
-                ad.open (this.getFilename);
-                mkdirRecurse (tmpDir);
-
-                auto files = ad.extractFilesByRegex (ctRegex!(r"data\.*"), tmpDir);
-                if (files.length == 0)
-                    throw new Exception ("Unable to find the payload tarball in Debian package: %s".format (this.getFilename));
-                immutable dataArchiveFname = files[0];
-
-                dataArchive.open (dataArchiveFname);
+        synchronized (this) {
+            if (dataArchive.isOpen)
                 return dataArchive;
+
+            ArchiveDecompressor ad;
+            // extract the payload to a temporary location first
+            ad.open(this.getFilename);
+            mkdirRecurse(tmpDir);
+
+            auto files = ad.extractFilesByRegex(ctRegex!(r"data\.*"), tmpDir);
+            if (files.length == 0)
+                throw new Exception("Unable to find the payload tarball in Debian package: %s".format(this.getFilename));
+            immutable dataArchiveFname = files[0];
+
+            dataArchive.open(dataArchiveFname);
+            return dataArchive;
         }
     }
 
-    final void extractPackage (const string dest = buildPath (tmpDir, name))
+    final void extractPackage (const string dest = buildPath(tmpDir, name))
     {
         import std.file : exists;
         import std.regex : ctRegex;
 
-        synchronized(this) {
+        synchronized (this) {
             if (!dest.exists)
                 mkdirRecurse (dest);
 
-            auto pa = openPayloadArchive ();
-            pa.extractArchive (dest);
+            auto pa = openPayloadArchive();
+            pa.extractArchive(dest);
         }
     }
 
-    private final auto openControlArchive ()
+    private final auto openControlArchive()
     {
         import std.regex : ctRegex;
 
-        synchronized(this) {
-                if (controlArchive.isOpen)
-                    return controlArchive;
-
-                ArchiveDecompressor ad;
-                // extract the payload to a temporary location first
-                ad.open (this.getFilename);
-                mkdirRecurse (tmpDir);
-
-                auto files = ad.extractFilesByRegex (ctRegex!(r"control\.*"), tmpDir);
-                if (files.empty)
-                    throw new Exception ("Unable to find control data in Debian package: %s".format (this.getFilename));
-                immutable controlArchiveFname = files[0];
-
-                controlArchive.open (controlArchiveFname);
+        synchronized (this) {
+            if (controlArchive.isOpen)
                 return controlArchive;
+
+            ArchiveDecompressor ad;
+            // extract the payload to a temporary location first
+            ad.open(this.getFilename);
+            mkdirRecurse(tmpDir);
+
+            auto files = ad.extractFilesByRegex(ctRegex!(r"control\.*"), tmpDir);
+            if (files.empty)
+                throw new Exception("Unable to find control data in Debian package: %s".format(this.getFilename));
+            immutable controlArchiveFname = files[0];
+
+            controlArchive.open(controlArchiveFname);
+            return controlArchive;
         }
     }
 
     override final
     const(ubyte)[] getFileData (string fname)
     {
-        auto pa = openPayloadArchive ();
-        return pa.readData (fname);
+        auto pa = openPayloadArchive();
+        return pa.readData(fname);
     }
 
     @property override final
@@ -245,13 +290,13 @@ public:
         if (contentsRead)
             return contentsL;
 
-        if (pkgname.endsWith ("icon-theme")) {
+        if (pkgname.endsWith("icon-theme")) {
             // the md5sums file does not contain symbolic links - while that is okay-ish for regular
             // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
             // aliases for certain icons. So, use the slow method for reading contents information here.
 
-            auto pa = openPayloadArchive ();
-            contentsL = pa.readContents ();
+            auto pa = openPayloadArchive();
+            contentsL = pa.readContents();
             contentsRead = true;
 
             return contentsL;
@@ -261,12 +306,12 @@ public:
         // the contents of this package.
         // this is way faster than going through the payload directly, and
         // has the same accuracy.
-        auto ca = openControlArchive ();
+        auto ca = openControlArchive();
         const(ubyte)[] md5sumsData;
         try {
-            md5sumsData = ca.readData ("./md5sums");
+            md5sumsData = ca.readData("./md5sums");
         } catch (Exception e) {
-            logWarning ("Could not read md5sums file for package %s: %s", this.id, e.msg);
+            logWarning("Could not read md5sums file for package %s: %s", this.id, e.msg);
             return [];
         }
 
@@ -274,18 +319,18 @@ public:
         try {
             md5sums = md5sums.toUTF8;
         } catch (Exception e) {
-            logError ("Could not decode md5sums file for package %s: %s", this.id, e.msg);
+            logError("Could not decode md5sums file for package %s: %s", this.id, e.msg);
             return [];
         }
 
         auto contentsAppender = appender!(string[]);
-        contentsAppender.reserve (20);
-        foreach (line; md5sums.splitLines ()) {
-            auto parts = line.split ("  ");
+        contentsAppender.reserve(20);
+        foreach (line; md5sums.splitLines()) {
+            auto parts = line.split("  ");
             if (parts.length <= 0)
                 continue;
-            string c = join (parts[1..$], "  ");
-            contentsAppender.put ("/" ~ c);
+            string c = join(parts[1 .. $], "  ");
+            contentsAppender.put("/" ~ c);
         }
         contentsL = contentsAppender.data;
 
@@ -299,17 +344,17 @@ public:
      * This is useful to get information from a package directly, e.g.
      * for processing a single package.
      */
-    final auto readControlInformation ()
+    final auto readControlInformation()
     {
         import std.utf : toUTF8;
         import asgen.backends.debian.tagfile : TagFile;
 
-        auto ca = openControlArchive ();
+        auto ca = openControlArchive();
         const(ubyte)[] controlData;
         try {
-            controlData = ca.readData ("./control");
+            controlData = ca.readData("./control");
         } catch (Exception e) {
-            logError ("Could not read control file for package %s: %s", this.id, e.msg);
+            logError("Could not read control file for package %s: %s", this.id, e.msg);
             return null;
         }
 
@@ -317,36 +362,36 @@ public:
         try {
             controlStr = controlStr.toUTF8;
         } catch (Exception e) {
-            logError ("Could not decode control file for package %s: %s", this.id, e.msg);
+            logError("Could not decode control file for package %s: %s", this.id, e.msg);
             return null;
         }
 
-        auto tf = new TagFile ();
-        tf.load (controlStr);
+        auto tf = new TagFile();
+        tf.load(controlStr);
         return tf;
     }
 
     override final
     void cleanupTemp ()
     {
-        synchronized(this) {
+        synchronized (this) {
             if (controlArchive.isOpen)
-                controlArchive.close ();
+                controlArchive.close();
             if (dataArchive.isOpen)
-                dataArchive.close ();
+                dataArchive.close();
 
             try {
-                if (std.file.exists (tmpDir)) {
+                if (std.file.exists(tmpDir)) {
                     /* Whenever we delete the temporary directory, we need to
                      * forget about the local file too, since (if it's remote) that
                      * was downloaded into there. */
-                    logDebug ("Deleting temporary directory %s", tmpDir);
+                    logDebug("Deleting temporary directory %s", tmpDir);
                     localDebFname = null;
-                    rmdirRecurse (tmpDir);
+                    rmdirRecurse(tmpDir);
                 }
             } catch (Exception e) {
                 // we ignore any error
-                logDebug ("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
+                logDebug("Unable to remove temporary directory: %s (%s)", tmpDir, e.msg);
             }
         }
     }
@@ -354,6 +399,6 @@ public:
     override final
     void finish ()
     {
-        cleanupTemp ();
+        cleanupTemp();
     }
 }

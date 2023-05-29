@@ -22,34 +22,38 @@ module asgen.bindings.libarchive;
 import core.stdc.stdio;
 import std.conv : octal;
 
-extern(C):
+extern (C):
 nothrow:
 @nogc:
-static if (!is(typeof(usize))) private alias usize = size_t;
+static if (!is(typeof(usize)))
+    private alias usize = size_t;
 
-struct archive {}
-struct archive_entry {}
+struct archive {
+}
 
-immutable ARCHIVE_EOF = 1;     /* Found end of archive. */
-immutable ARCHIVE_OK  = 0;	   /* Operation was successful. */
-immutable ARCHIVE_RETRY	= -10; /* Retry might succeed. */
-immutable ARCHIVE_WARN  = -20; /* Partial success. */
+struct archive_entry {
+}
+
+immutable ARCHIVE_EOF = 1; /* Found end of archive. */
+immutable ARCHIVE_OK = 0; /* Operation was successful. */
+immutable ARCHIVE_RETRY = -10; /* Retry might succeed. */
+immutable ARCHIVE_WARN = -20; /* Partial success. */
 immutable ARCHIVE_FAILED = -25; /* Current operation cannot complete. */
-immutable ARCHIVE_FATAL = -30;  /* No more operations are possible. */
+immutable ARCHIVE_FATAL = -30; /* No more operations are possible. */
 
-immutable AE_IFMT   = octal!170000;
-immutable AE_IFREG  = octal!100000;
-immutable AE_IFLNK  = octal!120000;
+immutable AE_IFMT = octal!170000;
+immutable AE_IFREG = octal!100000;
+immutable AE_IFLNK = octal!120000;
 immutable AE_IFSOCK = octal!140000;
-immutable AE_IFCHR  = octal!20000;
-immutable AE_IFBLK  = octal!60000;
-immutable AE_IFDIR  = octal!40000;
-immutable AE_IFIFO  = octal!10000;
+immutable AE_IFCHR = octal!20000;
+immutable AE_IFBLK = octal!60000;
+immutable AE_IFDIR = octal!40000;
+immutable AE_IFIFO = octal!10000;
 
-const(char) *archive_error_string (archive*);
+const(char)* archive_error_string(archive*);
 int archive_errno (archive*);
 
-archive *archive_read_new ();
+archive* archive_read_new();
 int archive_read_free (archive*);
 
 int archive_read_support_filter_all (archive*);
@@ -62,30 +66,30 @@ int archive_read_support_format_all (archive*);
 int archive_read_support_format_ar (archive*);
 int archive_read_support_format_gnutar (archive*);
 
-int archive_write_set_filter_option (archive *a, const(char) *m, const(char) *o, const(char) *v);
+int archive_write_set_filter_option (archive* a, const(char)* m, const(char)* o, const(char)* v);
 
-int archive_read_open_filename (archive*, const(char) *filename, usize block_size);
-int archive_read_open_FILE (archive*, FILE *file);
-int archive_read_open_memory (archive*, void *buff, size_t size);
+int archive_read_open_filename (archive*, const(char)* filename, usize block_size);
+int archive_read_open_FILE (archive*, FILE* file);
+int archive_read_open_memory (archive*, void* buff, size_t size);
 
 ptrdiff_t archive_read_data (archive*, const(void*), usize);
 int archive_read_next_header (archive*, archive_entry**);
 int archive_read_data_skip (archive*);
-int archive_read_data_block (archive *a, const(void*) *buff, size_t *size, long *offset);
+int archive_read_data_block (archive* a, const(void*)* buff, size_t* size, long* offset);
 
-archive_entry *archive_entry_new ();
+archive_entry* archive_entry_new();
 void archive_entry_free (archive_entry*);
 
-const(char) *archive_entry_pathname (archive_entry*);
-void archive_entry_set_pathname (archive_entry*, const(char) *);
+const(char)* archive_entry_pathname(archive_entry*);
+void archive_entry_set_pathname (archive_entry*, const(char)*);
 uint archive_entry_filetype (archive_entry*);
 void archive_entry_set_size (archive_entry*, long);
 void archive_entry_set_filetype (archive_entry*, uint);
 void archive_entry_set_perm (archive_entry*, uint);
 void archive_entry_set_mtime (archive_entry*, ulong sec, long nsec);
-const(char)	*archive_entry_symlink (archive_entry*);
+const(char)* archive_entry_symlink(archive_entry*);
 
-archive *archive_write_new ();
+archive* archive_write_new();
 int archive_write_free (archive*);
 int archive_write_close (archive*);
 
@@ -95,8 +99,8 @@ int archive_write_set_format_pax (archive*);
 int archive_write_set_format_pax_restricted (archive*);
 int archive_write_set_format_raw (archive*);
 //int archive_write_set_format_raw (archive *a); /// Will be available in the next version of libarchive (to be released in 2016)
-int archive_write_set_format_by_name (archive*, const(char) *name);
+int archive_write_set_format_by_name (archive*, const(char)* name);
 
-int archive_write_open_filename (archive*, const(char) *file);
+int archive_write_open_filename (archive*, const(char)* file);
 int archive_write_header (archive*, archive_entry*);
-size_t archive_write_data(archive*, const(void)*, size_t);
+size_t archive_write_data (archive*, const(void)*, size_t);

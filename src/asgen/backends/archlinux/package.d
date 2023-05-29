@@ -1,4 +1,3 @@
-
 module asgen.backends.archlinux;
 
 public import asgen.backends.archlinux.alpkg;

@@ -29,12 +29,10 @@ import std.path : buildPath;
 import asgen.zarchive;
 import asgen.logging;
 
-
 /**
  * Parser for Debian's RFC2822-style metadata.
  */
-final class TagFile
-{
+final class TagFile {
 
 private:
     string[] content;
@@ -47,7 +45,7 @@ public:
 
     this () @trusted
     {
-        currentBlock.clear ();
+        currentBlock.clear();
     }
 
     void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
@@ -55,36 +53,40 @@ public:
         _fname = fname;
 
         if (compressed) {
-            auto data = decompressFile (fname);
-            load (data);
+            auto data = decompressFile(fname);
+            load(data);
         } else {
             import std.stdio;
 
-            auto f = File (fname, "r");
+            auto f = File(fname, "r");
             auto data = appender!string;
             string line;
-            while ((line = f.readln ()) !is null)
+            while ((line = f.readln()) !is null)
                 data ~= line;
-            load (data.data);
+            load(data.data);
         }
     }
 
-    @property string fname () const { return _fname; }
+    @property string fname () const
+    {
+        return _fname;
+    }
 
     void load (string data)
     {
-        content = data.splitLines ();
+        content = data.splitLines();
         pos = 0;
-        readCurrentBlockData ();
+        readCurrentBlockData();
     }
 
-    void first () {
+    void first ()
+    {
         pos = 0;
     }
 
     private void readCurrentBlockData () @trusted
     {
-        currentBlock.clear ();
+        currentBlock.clear();
         immutable clen = content.length;
 
         for (auto i = pos; i < clen; i++) {
@@ -92,31 +94,31 @@ public:
                 break;
 
             // check whether we are in a multiline value field, and just skip forward in that case
-            if (startsWith (content[i], " "))
+            if (startsWith(content[i], " "))
                 continue;
 
-            immutable separatorIndex = indexOf (content[i], ':');
+            immutable separatorIndex = indexOf(content[i], ':');
             if (separatorIndex <= 0)
                 continue; // this is no field
 
-            auto fieldName = content[i][0..separatorIndex];
-            auto fdata = content[i][separatorIndex+1..$];
+            auto fieldName = content[i][0 .. separatorIndex];
+            auto fdata = content[i][separatorIndex + 1 .. $];
 
-            if ((i+1 >= clen)
-                || (!startsWith (content[i+1], " "))) {
-                    // we have a single-line field
-                    currentBlock[fieldName] = fdata.strip ();
+            if ((i + 1 >= clen)
+                    || (!startsWith(content[i + 1], " "))) {
+                // we have a single-line field
+                currentBlock[fieldName] = fdata.strip();
             } else {
                 // we have a multi-line field
-                auto fdata_ml = appender!string ();
-                fdata_ml ~= fdata.strip ();
-                for (auto j = i+1; j < clen; j++) {
-                    auto slice = chompPrefix (content[j], " ");
+                auto fdata_ml = appender!string();
+                fdata_ml ~= fdata.strip();
+                for (auto j = i + 1; j < clen; j++) {
+                    auto slice = chompPrefix(content[j], " ");
                     if (slice == content[j])
                         break;
 
                     if (fdata_ml.data == "") {
-                        fdata_ml = appender!string ();
+                        fdata_ml = appender!string();
                         fdata_ml ~= slice;
                     } else {
                         fdata_ml ~= "\n";
@@ -133,7 +135,7 @@ public:
     {
         bool breakNext = false;
         immutable clen = content.length;
-        currentBlock.clear ();
+        currentBlock.clear();
 
         if (pos >= clen)
             return false;
@@ -155,7 +157,7 @@ public:
         if (pos >= clen)
             return false;
 
-        readCurrentBlockData ();
+        readCurrentBlockData();
         return true;
     }
 

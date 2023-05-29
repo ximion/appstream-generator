@@ -22,9 +22,7 @@ module asgen.backends.archlinux.listfile;
 import std.stdio;
 import std.string;
 
-
-final class ListFile
-{
+final class ListFile {
 
 private:
     string[string] entries;
@@ -39,12 +37,12 @@ public:
     {
         string[] content;
         auto dataStr = cast(string) data;
-        content = dataStr.splitLines ();
+        content = dataStr.splitLines();
 
         string blockName = null;
         foreach (l; content) {
-            if ((l.startsWith ("%")) && (l.endsWith ("%"))) {
-                blockName = l[1..$-1];
+            if ((l.startsWith("%")) && (l.endsWith("%"))) {
+                blockName = l[1 .. $ - 1];
                 continue;
             }
 
@@ -67,16 +65,14 @@ public:
     {
         auto resP = name in entries;
 
-        if (resP is null)
-            // we found nothing
+        if (resP is null) // we found nothing
             return null;
         return *resP;
     }
 }
 
-unittest
-{
-    writeln ("TEST: ", "Backend::Archlinux - ListFile");
+unittest {
+    writeln("TEST: ", "Backend::Archlinux - ListFile");
 
     string data = "%FILENAME%
 a2ps-4.14-6-x86_64.pkg.tar.xz
@@ -101,11 +97,11 @@ EtcEtcEtc3
 %SHA256SUM%
 a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5";
 
-    auto lf = new ListFile ();
-    lf.loadData (cast(ubyte[]) data);
+    auto lf = new ListFile();
+    lf.loadData(cast(ubyte[]) data);
 
-    assert (lf.getEntry ("FILENAME") == "a2ps-4.14-6-x86_64.pkg.tar.xz");
-    assert (lf.getEntry ("VERSION") == "4.14-6");
-    assert (lf.getEntry ("MULTILINE") == "Blah1\nBLUBB2\nEtcEtcEtc3");
-    assert (lf.getEntry ("SHA256SUM") == "a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5");
+    assert(lf.getEntry("FILENAME") == "a2ps-4.14-6-x86_64.pkg.tar.xz");
+    assert(lf.getEntry("VERSION") == "4.14-6");
+    assert(lf.getEntry("MULTILINE") == "Blah1\nBLUBB2\nEtcEtcEtc3");
+    assert(lf.getEntry("SHA256SUM") == "a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5");
 }
