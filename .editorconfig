@@ -8,6 +8,14 @@ charset = utf-8
 indent_style = space
 indent_size = 4
 
+[*.d]
+max_line_length = 120
+dfmt_brace_style = knr
+dfmt_soft_max_line_length = 100
+dfmt_align_switch_statements = false
+dfmt_space_before_function_parameters = true
+dfmt_keep_line_breaks = true
+
 [*.yml]
 indent_style = space
 indent_size = 2
