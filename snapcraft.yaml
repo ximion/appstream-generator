@@ -34,59 +34,91 @@ architectures:
 apps:
   appstream-generator:
     command: usr/bin/appstream-generator
+    extensions: [gnome]
     common-id: org.freedesktop.appstream.generator
     plugs:
       - network
       - home
     environment:
       GSETTINGS_SCHEMA_DIR: "$SNAP/usr/share/glib-2.0/schemas"
-      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gio/modules"
+      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/gio/modules"
 
 layout:
   /usr/share/appstream:
     bind: $SNAP/usr/share/appstream
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
+  /usr/lib/$CRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
   /usr/share/i18n:
     bind: $SNAP/usr/share/i18n
   /usr/share/mime:
     bind: $SNAP/usr/share/mime
 
 parts:
+  ninja:
+    plugin: nil
+    source: https://github.com/ninja-build/ninja.git
+    source-tag: 'v1.11.1'
+    source-depth: 1
+    override-build: |
+      rm -rf build
+      rm -f ninja
+      rm -f ninja_bootstrap
+      sed -i 's_^#!/usr/bin/env python$_#!/usr/bin/env python3_g' configure.py
+      ./configure.py --bootstrap
+      mv ninja ninja_bootstrap
+      rm -rf build
+      ./ninja_bootstrap
+      rm -f ninja_bootstrap
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      mv ninja $CRAFT_PART_INSTALL/usr/bin/
+    build-packages:
+      - python3
+
+  meson-deps:
+    after: [ ninja ]
+    plugin: nil
+    source: https://github.com/mesonbuild/meson.git
+    source-tag: '1.1.1'
+    source-depth: 1
+    override-build: |
+      python3 -m pip install .
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages
+      rm -rf $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/meson*
+      python3 -m pip install --target=$CRAFT_PART_INSTALL/usr .
+      mv $CRAFT_PART_INSTALL/usr/bin/meson /usr/local/bin/meson
+      sed -i "s%^#!/usr/bin/python3$%#!/usr/bin/env python3%g" /usr/local/bin/meson
+    build-packages:
+      - python3-pip
+
   appstream-generator:
     source: .
     source-type: git
     parse-info: [usr/share/metainfo/org.freedesktop.appstream.generator.metainfo.xml]
-
     override-pull: |
-      snapcraftctl pull
+      craftctl default
       # set version from Git
-      snapcraftctl set-version "$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')"
-
+      craftctl set version=$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')
       # adjust to an absolute path to help finding the GIR file from the AppStream part
-      sed -i 's|AppStream-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' ${SNAPCRAFT_PART_SRC}/contrib/girwrap/APILookupAppStream.txt
-      sed -i 's|AppStreamCompose-1.0.gir|$SNAPCRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' ${SNAPCRAFT_PART_SRC}/contrib/girwrap/APILookupAppStreamCompose.txt
-
-
+      sed -i 's|AppStream-1.0.gir|$CRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' ${CRAFT_PART_SRC}/contrib/girwrap/APILookupAppStream.txt
+      sed -i 's|AppStreamCompose-1.0.gir|$CRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' ${CRAFT_PART_SRC}/contrib/girwrap/APILookupAppStreamCompose.txt
     plugin: meson
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/
     override-build: |
       # install yarn
-      curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-      echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+      curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+      echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
       apt-get update && apt-get install --no-install-recommends -y yarn nodejs
-
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
-      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${SNAPCRAFT_PART_BUILD} ${SNAPCRAFT_PART_SRC}
-      ninja -C "${SNAPCRAFT_PART_BUILD}" -j4
-      meson test -C "${SNAPCRAFT_PART_BUILD}" --verbose
-      DESTDIR=${SNAPCRAFT_PART_INSTALL} ninja -C "${SNAPCRAFT_PART_BUILD}" install
+      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
+      ninja -C "${CRAFT_PART_BUILD}" -j4
+      meson test -C "${CRAFT_PART_BUILD}" --verbose
+      DESTDIR=${CRAFT_PART_INSTALL} ninja -C "${CRAFT_PART_BUILD}" install
     override-prime: |
       set -eux
-      snapcraftctl prime
+      craftctl default
       for dir in usr/lib/*/gdk-pixbuf-2.0; do
         if [ -d "${dir}" ]; then
           for subdir in "${dir}"/*; do
@@ -98,42 +130,39 @@ parts:
         fi
       done
       update-mime-database -V usr/share/mime/
-      usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
+      usr/lib/${CRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     build-packages:
       - curl
-      - meson
       - docbook-xsl
       - docbook-xml
-      - xsltproc
       - ffmpeg
-      - libgdk-pixbuf2.0-dev
       - libarchive-dev
-      - librsvg2-dev
-      - liblmdb-dev
-      - libglib2.0-dev
-      - libcurl4-gnutls-dev
       - libcairo2-dev
-      - libfreetype6-dev
+      - libcurl4-gnutls-dev
       - libfontconfig1-dev
+      - libfreetype6-dev
+      - libgdk-pixbuf2.0-dev
+      - libglib2.0-dev
+      - liblmdb-dev
       - libpango1.0-dev
+      - librsvg2-dev
+      - xsltproc
     stage-packages:
+      - ffmpeg
+      - freeglut3
       - gdb
       - glib-networking
-      - ffmpeg
-      - optipng
-      - libc-bin
-      - libglu1-mesa
-      - freeglut3
-      - libslang2
       - libarchive13
+      - libc-bin
       - libcairo2
-      - libcroco3
+      - libcurl3-gnutls
       - libdatrie1
       - libfontconfig1
       - libfreetype6
       - libgdk-pixbuf2.0-0
       - libglib2.0-0
       - libglib2.0-bin
+      - libglu1-mesa
       - libgraphite2-3
       - libharfbuzz0b
       - libpango-1.0-0
@@ -143,7 +172,7 @@ parts:
       - libpng16-16
       - librsvg2-2
       - librsvg2-common
-      - libcurl3-gnutls
+      - libslang2
       - libthai0
       - libx11-6
       - libxau6
@@ -155,8 +184,11 @@ parts:
       - libxrender1
       - locales
       - locales-all
+      - optipng
       - shared-mime-info
     after:
+      - ninja
+      - meson-deps
       - appstream
       - ldc
       - gir-to-d
@@ -165,9 +197,10 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: v0.16.2
-
+    source-tag: 'v0.16.2'
     plugin: meson
+    build-environment:
+      - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     meson-parameters:
       - --prefix=/usr
       - --buildtype=debugoptimized
@@ -176,70 +209,78 @@ parts:
       - -Dsystemd=false
     build-packages:
       - build-essential
-      - docbook-xsl
       - docbook-xml
+      - docbook-xsl
       - gettext
       - gobject-introspection
       - gperf
       - itstool
+      - libcurl4-gnutls-dev
+      - liblzma-dev
+      - libffi-dev
       - libgirepository1.0-dev
       - libglib2.0-dev
-      - libxmlb-dev
-      - liblzma-dev
-      - libcurl4-gnutls-dev
       - libstemmer-dev
       - libxml2-dev
+      - libxmlb-dev
       - libyaml-dev
-      - meson
       - xsltproc
     stage-packages:
-     - libicu66
-     - liblmdb0
      - libcurl3-gnutls
+     - libicu70
+     - liblmdb0
      - libstemmer0d
      - libxml2
+    after:
+      - ninja
+      - meson-deps
 
   gir-to-d:
     source: https://github.com/gtkd-developers/gir-to-d.git
     source-type: git
-    source-tag: v0.22.0
-
+    source-tag: 'v0.23.1'
     plugin: meson
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
-    build-packages:
-      - meson
+    build-environment:
+      # obtained from https://raw.githubusercontent.com/archlinux/svntogit-community/packages/gir-to-d/trunk/PKGBUILD
+      - DC: ldc2
+      - LDFLAGS: "$(echo -ne $LDFLAGS | sed -e 's/-flto=auto/-flto=full/')"
+      - DFLAGS: "--allinst"
+      - DESTDIR: $CRAFT_PART_INSTALL
     after:
       - ldc
+      - ninja
+      - meson-deps
 
   glibd:
     source: https://github.com/gtkd-developers/GlibD.git
     source-type: git
-    source-tag: v2.3.0
-
+    source-tag: 'v2.4.2'
     plugin: meson
+    build-environment:
+      - GIR_PATH: /snap/gnome-42-2204-sdk/current/usr/share/gir-1.0${GIR_PATH:+:$GIR_PATH}
+      - GIREPOSITORY_PATH: /snap/gnome-42-2204-sdk/current/usr/lib/girepository-1.0${GIREPOSITORY_PATH:+:$GIREPOSITORY_PATH}
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
     build-packages:
-      - meson
       - gobject-introspection
       - libgirepository1.0-dev
       - libglib2.0-dev
     after:
       - gir-to-d
       - ldc
+      - ninja
+      - meson-deps
 
   ldc:
     plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.30.0/ldc2-1.30.0-linux-x86_64.tar.xz
-
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.32.2/ldc2-1.32.2-linux-x86_64.tar.xz
     override-build: |
       # link shared by default
       sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
-
       # remove unneeded libs
       rm -rf lib32
-
-      snapcraftctl build
+      craftctl default
