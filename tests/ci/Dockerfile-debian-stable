@@ -1,14 +1,14 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM registry.fedoraproject.org/fedora:rawhide
+FROM debian:stable
 
 # prepare
 RUN mkdir -p /build/ci/
 
 # install build dependencies
-COPY install-deps-rpm.sh /build/ci/
-RUN chmod +x /build/ci/install-deps-rpm.sh && /build/ci/install-deps-rpm.sh
+COPY install-deps-deb.sh /build/ci/
+RUN chmod +x /build/ci/install-deps-deb.sh && /build/ci/install-deps-deb.sh
 
 # install 3rd-party stuff
 COPY ci-install-extern.sh /build/ci/
