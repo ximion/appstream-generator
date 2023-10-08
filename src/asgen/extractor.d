@@ -83,7 +83,7 @@ public:
         compose.addFlags(ComposeFlags.IGNORE_ICONS |  // we do custom icon processing
                 ComposeFlags.PROCESS_UNPAIRED_DESKTOP |  // handle desktop-entry files without metainfo data
                 ComposeFlags.NO_FINAL_CHECK // we trigger the final check manually
-                
+
         );
         // we handle all threading, so the compose process doesn't also have to be threaded
         compose.removeFlags(ComposeFlags.USE_THREADS);
@@ -204,9 +204,9 @@ public:
                 cdata.setFormatVersion(self.conf.formatVersion);
 
                 if (self.dtype == DataType.YAML)
-                    cdata.parse(existingMData, FormatKind.YAML);
+                    cdata.parseData(existingMData, -1, FormatKind.YAML);
                 else
-                    cdata.parse(existingMData, FormatKind.XML);
+                    cdata.parseData(existingMData, -1, FormatKind.XML);
                 auto ecpt = cdata.getComponent();
 
                 const pkgNames = ecpt.getPkgnames;
@@ -248,6 +248,7 @@ public:
 
     GeneratorResult processPackage (Package pkg)
     {
+        import appstream.Context : Context;
         import ascompose.Result : Result;
 
         // reset compose instance to clear data from any previous invocation
@@ -282,6 +283,12 @@ public:
             auto cpt = new Component(cast(AsComponent*) cptsPtrArray.index(i));
             immutable ckind = cpt.getKind;
 
+            auto context = cpt.getContext();
+            if (context is null) {
+                context = new Context();
+                cpt.setContext(context);
+            }
+
             // find & store icons
             iconh.process(gres, cpt);
             if (gres.isIgnored(cpt))
@@ -295,10 +302,8 @@ public:
                 continue;
 
             // inject package descriptions, if needed
-            auto flags = cpt.getValueFlags;
-            cpt.setValueFlags(flags | AsValueFlags.NO_TRANSLATION_FALLBACK);
-
-            cpt.setActiveLocale("C");
+            context.setValueFlags(context.getValueFlags | AsValueFlags.NO_TRANSLATION_FALLBACK);
+            context.setLocale("C");
             if (!cpt.getDescription.empty)
                 continue;
 

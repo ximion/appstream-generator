@@ -124,7 +124,7 @@ private:
         import glib.Util : Util;
 
         // our default export format version
-        formatVersion = FormatVersion.V0_16;
+        formatVersion = FormatVersion.V1_0;
 
         // find all the external binaries we (may) need
         // we search for them unconditionally, because the unittests may rely on their absolute
@@ -350,20 +350,8 @@ public:
             immutable versionStr = root["FormatVersion"].str;
 
             switch (versionStr) {
-                case "0.8":
-                    formatVersion = FormatVersion.V0_8;
-                    break;
-                case "0.9":
-                    formatVersion = FormatVersion.V0_9;
-                    break;
-                case "0.10":
-                    formatVersion = FormatVersion.V0_10;
-                    break;
-                case "0.11":
-                    formatVersion = FormatVersion.V0_11;
-                    break;
-                case "0.12":
-                    formatVersion = FormatVersion.V0_12;
+                case "1.0":
+                    formatVersion = FormatVersion.V1_0;
                     break;
                 default:
                     logWarning("Configuration tried to set unknown AppStream format version '%s'. Falling back to default version.", versionStr);

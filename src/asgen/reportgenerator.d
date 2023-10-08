@@ -504,9 +504,9 @@ public:
 
                     mdata.clearComponents();
                     if (dtype == DataType.YAML)
-                        mdata.parse(me.data, FormatKind.YAML);
+                        mdata.parseData(me.data, -1, FormatKind.YAML);
                     else
-                        mdata.parse(me.data, FormatKind.XML);
+                        mdata.parseData(me.data, -1, FormatKind.XML);
                     auto cpt = mdata.getComponent();
 
                     if (cpt !is null) {
