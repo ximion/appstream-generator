@@ -197,7 +197,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v0.16.2'
+    source-tag: 'v1.0.0'
     plugin: meson
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
