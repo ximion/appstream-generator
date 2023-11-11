@@ -1,3 +1,29 @@
+Version 0.9.1
+~~~~~~~~~~~~~~
+Released: 2023-11-11
+
+Features:
+ * Implement a FreeBSD backend
+ * Add I/O caching for the FreeBSD backend
+ * Allow to manually specify a GIR directory at build time
+ * Include Yarn lockfile
+ * Add release information to metainfo file
+ * Build against AppStream 1.0
+
+Bugfixes:
+ * Make building the RPMMD backend optional
+ * web: Better split archive sections
+ * ubuntu: Don't fail on repositories with no language packs
+ * utils: mkdirRecurse instead of mkdir inside parallel
+
+Miscellaneous:
+ * Snap updates
+ * Add documentation how to install from Flathub
+ * Autoformat source code
+
+Contributors:
+ Gleb Popov, Heather Ellsworth, Matthias Klumpp, Pablo Correa Gómez
+
 Version 0.9.0
 ~~~~~~~~~~~~~~
 Released: 2023-01-26
