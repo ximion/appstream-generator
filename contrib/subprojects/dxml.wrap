@@ -1,0 +1,5 @@
+[wrap-git]
+directory = dxml
+url = https://github.com/ximion/dxml.git
+revision = master
+depth = 1

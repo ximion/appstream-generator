@@ -25,7 +25,7 @@ import std.array : appender, empty;
 import std.string : format;
 import std.algorithm : canFind, endsWith;
 import std.conv : to;
-import std.xml;
+import dxml.parser : parseXML;
 static import std.file;
 
 import asgen.logging;

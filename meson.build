@@ -25,6 +25,11 @@ lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
 archive_dep    = dependency('libarchive', version : '>= 3.2')
 curl_dep       = dependency('libcurl')
 
+dxml_dep = dependency('', required: false)
+if get_option('rpmmd')
+    dxml_dep = dependency('dxml', fallback: ['dxml', 'dxml_dep'])
+endif
+
 #
 # Build interfaces from GIR
 #
