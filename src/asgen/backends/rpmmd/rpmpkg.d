@@ -22,9 +22,14 @@ module asgen.backends.rpmmd.rpmpkg;
 import std.stdio;
 import std.string;
 import std.array : empty;
+import std.path : buildNormalizedPath, baseName;
+static import std.file;
 
+import asgen.config : Config;
 import asgen.logging;
 import asgen.zarchive;
+import asgen.downloader : Downloader;
+import asgen.utils : isRemote;
 import asgen.backends.interfaces;
 
 final class RPMPackage : Package {
@@ -36,6 +41,7 @@ private:
     string[string] desc;
     string[string] summ;
     string pkgFname;
+    string localPkgFname;
 
     string[] contentsL;
 
@@ -81,10 +87,26 @@ public:
         return desc;
     }
 
-    override
-    @property string getFilename () const
+    override final
+    @property
+    string getFilename ()
     {
-        return pkgFname;
+        if (!localPkgFname.empty)
+            return localPkgFname;
+
+        if (pkgFname.isRemote) {
+            synchronized (this) {
+                auto conf = Config.get();
+                auto dl = Downloader.get;
+                immutable path = buildNormalizedPath(conf.getTmpDir(), format("%s-%s_%s_%s", name, ver, arch, pkgFname.baseName));
+                dl.downloadFile(pkgFname, path);
+                localPkgFname = path;
+                return localPkgFname;
+            }
+        } else {
+            localPkgFname = pkgFname;
+            return pkgFname;
+        }
     }
 
     @property void filename (string fname)
@@ -137,5 +159,20 @@ public:
     override
     void finish ()
     {
+        synchronized (this) {
+            if (archive.isOpen)
+                archive.close();
+
+            try {
+                if (pkgFname.isRemote && std.file.exists(localPkgFname)) {
+                    logDebug("Deleting temporary package file %s", localPkgFname);
+                    localPkgFname = null;
+                    std.file.remove(localPkgFname);
+                }
+            } catch (Exception e) {
+                // we ignore any error
+                logDebug("Unable to remove temporary package: %s (%s)", localPkgFname, e.msg);
+            }
+        }
     }
 }

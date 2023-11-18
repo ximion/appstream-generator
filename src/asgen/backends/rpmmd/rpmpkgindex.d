@@ -20,7 +20,7 @@
 module asgen.backends.rpmmd.rpmpkgindex;
 
 import std.stdio : writeln;
-import std.path : buildPath;
+import std.path : buildPath, baseName;
 import std.array : appender, empty;
 import std.string : format;
 import std.algorithm : canFind, endsWith;
@@ -29,22 +29,30 @@ import dxml.dom : parseDOM, EntityType;
 static import std.file;
 
 import asgen.logging;
+import asgen.config;
+import asgen.utils : escapeXml, getTextFileContents, isRemote;
+
 import asgen.backends.interfaces;
 import asgen.backends.rpmmd.rpmpkg;
+import asgen.backends.rpmmd.rpmutils : downloadIfNecessary;
 
 final class RPMPackageIndex : PackageIndex {
 
 private:
     string rootDir;
     Package[][string] pkgCache;
+    string tmpRootDir;
 
 public:
 
     this (string dir)
     {
         this.rootDir = dir;
-        if (!std.file.exists(dir))
-            throw new Exception("Directory '%s' does not exist.", dir);
+        if (!dir.isRemote && !std.file.exists(dir))
+            throw new Exception("Directory '%s' does not exist.".format(dir));
+
+        auto conf = Config.get();
+        tmpRootDir = buildPath(conf.getTmpDir, dir.baseName);
     }
 
     void release ()
@@ -82,10 +90,14 @@ public:
     private RPMPackage[] loadPackages (string suite, string section, string arch)
     {
         auto repoRoot = buildPath(rootDir, suite, section, arch, "os");
-
         auto primaryIndexFiles = appender!(string[]);
         auto filelistFiles = appender!(string[]);
-        immutable repoMdIndexContent = cast(string) std.file.read(buildPath(repoRoot, "repodata", "repomd.xml"));
+
+        string repoMdFname;
+        synchronized (this)
+            repoMdFname = downloadIfNecessary(buildPath(repoRoot, "repodata", "repomd.xml"), tmpRootDir);
+
+        immutable repoMdIndexContent = cast(string) std.file.read(repoMdFname);
 
         // parse index data
         auto indexDoc = parseDOM(repoMdIndexContent);
@@ -115,7 +127,10 @@ public:
 
         // parse the primary metadata
         foreach (ref primaryFile; primaryIndexFiles.data) {
-            immutable metaFname = buildPath(repoRoot, primaryFile);
+            string metaFname;
+            synchronized(this)
+                metaFname = downloadIfNecessary(buildPath(repoRoot, primaryFile), tmpRootDir);
+
             string data;
             if (primaryFile.endsWith(".xml")) {
                 data = cast(string) std.file.read(metaFname);
@@ -188,7 +203,10 @@ public:
 
         // read the filelists
         foreach (ref filelistFile; filelistFiles.data) {
-            immutable flistFname = buildPath(repoRoot, filelistFile);
+            string flistFname;
+            synchronized (this)
+                flistFname = downloadIfNecessary(buildPath(repoRoot, filelistFile), tmpRootDir);
+
             string data;
             if (filelistFile.endsWith(".xml")) {
                 data = cast(string) std.file.read(flistFname);

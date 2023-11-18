@@ -75,6 +75,7 @@ if get_option('rpmmd')
         'backends/rpmmd/package.d',
         'backends/rpmmd/rpmpkg.d',
         'backends/rpmmd/rpmpkgindex.d',
+        'backends/rpmmd/rpmutils.d',
     ]
 endif
 
