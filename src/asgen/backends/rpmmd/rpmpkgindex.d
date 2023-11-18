@@ -25,7 +25,7 @@ import std.array : appender, empty;
 import std.string : format;
 import std.algorithm : canFind, endsWith;
 import std.conv : to;
-import dxml.parser : parseXML;
+import dxml.dom : parseDOM, EntityType;
 static import std.file;
 
 import asgen.logging;
@@ -61,27 +61,54 @@ public:
         pkg.setDescription(desc, "C");
     }
 
+    static private string getXmlStrAttr(T)(T elem, string name)
+    {
+        foreach (attr; elem.attributes) {
+            if (attr.name == name)
+                return attr.value;
+        }
+        return null;
+    }
+
+    static private string getXmlElemText(T)(T elem)
+    {
+        foreach (child; elem.children) {
+            if (child.type == EntityType.text)
+                return child.text;
+        }
+        return null;
+    }
+
     private RPMPackage[] loadPackages (string suite, string section, string arch)
     {
         auto repoRoot = buildPath(rootDir, suite, section, arch, "os");
 
         auto primaryIndexFiles = appender!(string[]);
         auto filelistFiles = appender!(string[]);
-        auto repoMdIndexContent = cast(string) std.file.read(buildPath(repoRoot, "repodata", "repomd.xml"));
-        auto indexXml = new DocumentParser(repoMdIndexContent);
-        indexXml.onStartTag["data"] = (ElementParser xml) {
-            immutable dataType = xml.tag.attr["type"];
-            if (dataType == "primary") {
-                xml.onStartTag["location"] = (ElementParser x) {
-                    primaryIndexFiles ~= x.tag.attr["href"];
-                };
-                xml.parse();
-            } else if (dataType == "filelists") {
-                xml.onStartTag["location"] = (ElementParser x) { filelistFiles ~= x.tag.attr["href"]; };
-                xml.parse();
+        immutable repoMdIndexContent = cast(string) std.file.read(buildPath(repoRoot, "repodata", "repomd.xml"));
+
+        // parse index data
+        auto indexDoc = parseDOM(repoMdIndexContent);
+        foreach (dataElem; indexDoc.children[0].children) {
+            // iterate over all "data" elements
+            if (dataElem.type != EntityType.elementStart || dataElem.name != "data")
+                continue;
+
+            string dataType = getXmlStrAttr(dataElem, "type");
+            foreach (locationElem; dataElem.children) {
+                if (locationElem.type != EntityType.elementStart && locationElem.type != EntityType.elementEmpty)
+                    continue;
+                if (locationElem.name != "location")
+                    continue;
+
+                string href = getXmlStrAttr(locationElem, "href");
+                if (dataType == "primary") {
+                    primaryIndexFiles ~= href;
+                } else if (dataType == "filelists") {
+                    filelistFiles ~= href;
+                }
             }
-        };
-        indexXml.parse();
+        }
 
         // package-id -> RPMPackage
         RPMPackage[string] pkgMap;
@@ -98,54 +125,66 @@ public:
                 data = decompressFile(metaFname);
             }
 
-            auto pkgXml = new DocumentParser(data);
-            pkgXml.onStartTag["package"] = (ElementParser xml) {
-                // make sure we only check RPM packages
-                if (xml.tag.attr["type"] != "rpm")
-                    return;
+            auto pkgXml = parseDOM(data);
+            foreach (pkgElem; pkgXml.children[0].children) {
+                if (pkgElem.type != EntityType.elementStart || pkgElem.name != "package")
+                    continue;
+
+                if (getXmlStrAttr(pkgElem, "type") != "rpm")
+                    continue;
 
                 auto pkg = new RPMPackage;
                 pkg.maintainer = "None";
-                xml.onEndTag["name"] = (in Element e) { pkg.name = e.text; };
-                xml.onEndTag["arch"] = (in Element e) { pkg.arch = e.text; };
-                xml.onEndTag["summary"] = (in Element e) { pkg.setSummary(e.text, "C"); };
-                xml.onEndTag["description"] = (in Element e) { pkg.setDescription(e.text, "C"); };
-                xml.onEndTag["packager"] = (in Element e) { pkg.maintainer = e.text; };
-
-                xml.onStartTag["version"] = (ElementParser x) {
-                    immutable epoch = x.tag.attr["epoch"];
-                    immutable upstream_ver = x.tag.attr["ver"];
-                    immutable rel = x.tag.attr["rel"];
-
-                    if ((epoch == "0") || (epoch.empty))
-                        pkg.ver = "%s-%s".format(upstream_ver, rel);
-                    else
-                        pkg.ver = "%s:%s-%s".format(epoch, upstream_ver, rel);
-                };
-
-                xml.onStartTag["location"] = (ElementParser x) {
-                    pkg.filename = buildPath(repoRoot, x.tag.attr["href"]);
-                };
 
                 string pkgidCS;
-                xml.onEndTag["checksum"] = (in Element e) {
-                    // we are only interested in the package-id here
-                    if (e.tag.attr["pkgid"] != "YES")
-                        return;
-                    pkgidCS = e.text;
-                };
-                xml.parse();
+                foreach (child; pkgElem.children) {
+                    if (child.type != EntityType.elementStart && child.type != EntityType.elementEmpty)
+                        continue;
+
+                    switch (child.name) {
+                        case "name":
+                            pkg.name = getXmlElemText(child);
+                            break;
+                        case "arch":
+                            pkg.arch = getXmlElemText(child);
+                            break;
+                        case "summary":
+                            pkg.setSummary(getXmlElemText(child), "C");
+                            break;
+                        case "description":
+                            pkg.setDescription(getXmlElemText(child), "C");
+                            break;
+                        case "packager":
+                            pkg.maintainer = getXmlElemText(child);
+                            break;
+                        case "version":
+                            string epoch = getXmlStrAttr(child, "epoch");
+                            string upstream_ver = getXmlStrAttr(child, "ver");
+                            string rel = getXmlStrAttr(child, "rel");
+                            pkg.ver = epoch.empty || epoch == "0" ? "%s-%s".format(upstream_ver, rel) : "%s:%s-%s".format(epoch, upstream_ver, rel);
+                            break;
+                        case "location":
+                            pkg.filename = buildPath(repoRoot, getXmlStrAttr(child, "href"));
+                            break;
+                        case "checksum":
+                            if (getXmlStrAttr(child, "pkgid") == "YES") {
+                                pkgidCS = getXmlElemText(child);
+                            }
+                            break;
+                        default:
+                            continue;
+                    }
+                }
 
                 if (pkgidCS.empty) {
                     logWarning("Found package '%s' in '%s' without suitable pkgid. Ignoring it.", pkg.name, primaryFile);
-                    return;
+                    continue;
                 }
 
                 pkgMap[pkgidCS] = pkg;
-            };
-            pkgXml.parse();
+            }
         }
-        pkgMap.rehash;
+        pkgMap.rehash();
 
         // read the filelists
         foreach (ref filelistFile; filelistFiles.data) {
@@ -159,21 +198,25 @@ public:
                 data = decompressFile(flistFname);
             }
 
-            auto flXml = new DocumentParser(data);
-            flXml.onStartTag["package"] = (ElementParser xml) {
-                immutable pkgid = xml.tag.attr["pkgid"];
+            auto flDoc = parseDOM(data);
+            foreach (pkgElem; flDoc.children[0].children) {
+                if (pkgElem.type != EntityType.elementStart || pkgElem.name != "package")
+                    continue;
+
+                immutable pkgid = getXmlStrAttr(pkgElem, "pkgid");
                 auto pkgP = pkgid in pkgMap;
                 if (pkgP is null)
-                    return;
+                    continue;
                 auto pkg = *pkgP;
 
                 auto contents = appender!(string[]);
-                xml.onEndTag["file"] = (in Element e) { contents ~= e.text; };
-                xml.parse();
+                foreach (fileElem; pkgElem.children) {
+                    if (fileElem.type == EntityType.elementStart && fileElem.name == "file")
+                        contents ~= getXmlElemText(fileElem);
+                }
 
                 pkg.contents = contents.data;
-            };
-            flXml.parse();
+            }
         }
 
         return pkgMap.values;
