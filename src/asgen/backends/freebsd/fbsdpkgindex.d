@@ -59,9 +59,32 @@ public:
     private Package[] loadPackages (string suite, string section, string arch)
     {
         auto pkgRoot = buildPath (rootDir, suite);
-        auto listsTarFname = buildPath (pkgRoot, "packagesite.pkg");
+        auto metaFname = buildPath (pkgRoot, "meta.conf");
+        string manifestFname, manifestArchive;
+
+        if (!std.file.exists (metaFname)) {
+            logError ("Metadata file '%s' does not exist.", metaFname);
+            return [];
+        }
+
+        foreach(line; std.file.slurp!(string)(metaFname, "%s")) {
+            if (line.startsWith("manifests_archive")) {
+                // manifests_archive = "packagesite";
+                auto splitResult = line.split("\"");
+                if (splitResult.length == 3)
+                    manifestArchive = splitResult[1];
+            }
+            else if (line.startsWith("manifests")) {
+                // manifests = "packagesite.yaml";
+                auto splitResult = line.split("\"");
+                if (splitResult.length == 3)
+                    manifestFname = splitResult[1];
+            }
+        }
+
+        auto listsTarFname = buildPath (pkgRoot, manifestArchive ~ ".pkg");
         if (!std.file.exists (listsTarFname)) {
-            logWarning ("Package lists file '%s' does not exist.", listsTarFname);
+            logError ("Package lists file '%s' does not exist.", listsTarFname);
             return [];
         }
 
@@ -69,7 +92,7 @@ public:
         ad.open (listsTarFname);
         logDebug ("Opened: %s", listsTarFname);
 
-        auto d = ad.readData("packagesite.yaml");
+        auto d = ad.readData(manifestFname);
         auto pkgs = appender!(Package[]);
 
         foreach(entry; d.split('\n')) {
