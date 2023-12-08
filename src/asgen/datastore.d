@@ -192,9 +192,12 @@ public:
     private MDB_val makeDbValue (string data)
     {
         import core.stdc.string : strlen;
+        import std.encoding : sanitize, EncodingSchemeUtf8;
+
+        auto dataSane = sanitize(data);
+        auto cdata = dataSane.toStringz();
 
         MDB_val mval;
-        auto cdata = data.toStringz();
         mval.mv_size = char.sizeof * strlen(cdata) + 1;
         mval.mv_data = cast(void*) cdata;
         return mval;
