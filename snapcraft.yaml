@@ -90,6 +90,79 @@ parts:
     build-packages:
       - python3-pip
 
+  gir-to-d:
+    source: https://github.com/gtkd-developers/gir-to-d.git
+    source-type: git
+    source-tag: 'v0.23.2'
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+    build-environment:
+      # obtained from https://raw.githubusercontent.com/archlinux/svntogit-community/packages/gir-to-d/trunk/PKGBUILD
+      - DC: ldc2
+      - LDFLAGS: "$(echo -ne $LDFLAGS | sed -e 's/-flto=auto/-flto=full/')"
+      - DFLAGS: "--allinst"
+      - DESTDIR: $CRAFT_PART_INSTALL
+    after:
+      - ldc
+      - ninja
+      - meson-deps
+
+  ldc:
+    plugin: dump
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz
+    override-build: |
+      # link shared by default
+      sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
+      # remove unneeded libs
+      rm -rf lib32
+      craftctl default
+
+  appstream:
+    source: https://github.com/ximion/appstream.git
+    source-type: git
+    source-tag: 'v1.0.2'
+    plugin: meson
+    build-environment:
+      - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+      - DESTDIR: $CRAFT_PART_INSTALL
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=debugoptimized
+      - -Dcompose=true
+      - -Dapidocs=false
+      - -Dsystemd=false
+    build-packages:
+      - build-essential
+      - docbook-xml
+      - docbook-xsl
+      - gettext
+      - gobject-introspection
+      - gperf
+      - itstool
+      - libcurl4-gnutls-dev
+      - liblzma-dev
+      - libffi-dev
+      - libgirepository1.0-dev
+      - libglib2.0-dev
+      - libstemmer-dev
+      - libxml2-dev
+      - libxmlb-dev
+      - libyaml-dev
+      - libzstd-dev
+      - xsltproc
+    stage-packages:
+     - libcurl3-gnutls
+     - libicu70
+     - libstemmer0d
+     - libxml2
+     - libyaml-0-2
+     - libzstd1
+    after:
+      - ninja
+      - meson-deps
+
   appstream-generator:
     source: .
     source-type: git
@@ -104,6 +177,7 @@ parts:
     plugin: meson
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/
+      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/pkgconfig/
     override-build: |
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
@@ -192,75 +266,3 @@ parts:
       - appstream
       - ldc
       - gir-to-d
-
-  appstream:
-    source: https://github.com/ximion/appstream.git
-    source-type: git
-    source-tag: 'v1.0.2'
-    plugin: meson
-    build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-    meson-parameters:
-      - --prefix=/usr
-      - --buildtype=debugoptimized
-      - -Dcompose=true
-      - -Dapidocs=false
-      - -Dsystemd=false
-    build-packages:
-      - build-essential
-      - docbook-xml
-      - docbook-xsl
-      - gettext
-      - gobject-introspection
-      - gperf
-      - itstool
-      - libcurl4-gnutls-dev
-      - liblzma-dev
-      - libffi-dev
-      - libgirepository1.0-dev
-      - libglib2.0-dev
-      - libstemmer-dev
-      - libxml2-dev
-      - libxmlb-dev
-      - libyaml-dev
-      - libzstd-dev
-      - xsltproc
-    stage-packages:
-     - libcurl3-gnutls
-     - libicu70
-     - libstemmer0d
-     - libxml2
-     - libyaml-0-2
-     - libzstd1
-    after:
-      - ninja
-      - meson-deps
-
-  gir-to-d:
-    source: https://github.com/gtkd-developers/gir-to-d.git
-    source-type: git
-    source-tag: 'v0.23.2'
-    plugin: meson
-    meson-parameters:
-      - --prefix=/usr
-      - --buildtype=release
-    build-environment:
-      # obtained from https://raw.githubusercontent.com/archlinux/svntogit-community/packages/gir-to-d/trunk/PKGBUILD
-      - DC: ldc2
-      - LDFLAGS: "$(echo -ne $LDFLAGS | sed -e 's/-flto=auto/-flto=full/')"
-      - DFLAGS: "--allinst"
-      - DESTDIR: $CRAFT_PART_INSTALL
-    after:
-      - ldc
-      - ninja
-      - meson-deps
-
-  ldc:
-    plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz
-    override-build: |
-      # link shared by default
-      sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
-      # remove unneeded libs
-      rm -rf lib32
-      craftctl default
