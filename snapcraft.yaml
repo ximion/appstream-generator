@@ -54,41 +54,6 @@ layout:
     bind: $SNAP/usr/share/mime
 
 parts:
-  ninja:
-    plugin: nil
-    source: https://github.com/ninja-build/ninja.git
-    source-tag: 'v1.11.1'
-    source-depth: 1
-    override-build: |
-      rm -rf build
-      rm -f ninja
-      rm -f ninja_bootstrap
-      sed -i 's_^#!/usr/bin/env python$_#!/usr/bin/env python3_g' configure.py
-      ./configure.py --bootstrap
-      mv ninja ninja_bootstrap
-      rm -rf build
-      ./ninja_bootstrap
-      rm -f ninja_bootstrap
-      mkdir -p $CRAFT_PART_INSTALL/usr/bin
-      mv ninja $CRAFT_PART_INSTALL/usr/bin/
-    build-packages:
-      - python3
-
-  meson-deps:
-    after: [ ninja ]
-    plugin: nil
-    source: https://github.com/mesonbuild/meson.git
-    source-tag: '1.1.1'
-    source-depth: 1
-    override-build: |
-      python3 -m pip install .
-      mkdir -p $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages
-      rm -rf $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/meson*
-      python3 -m pip install --target=$CRAFT_PART_INSTALL/usr .
-      mv $CRAFT_PART_INSTALL/usr/bin/meson /usr/local/bin/meson
-      sed -i "s%^#!/usr/bin/python3$%#!/usr/bin/env python3%g" /usr/local/bin/meson
-    build-packages:
-      - python3-pip
 
   gir-to-d:
     source: https://github.com/gtkd-developers/gir-to-d.git
@@ -104,20 +69,10 @@ parts:
       - LDFLAGS: "$(echo -ne $LDFLAGS | sed -e 's/-flto=auto/-flto=full/')"
       - DFLAGS: "--allinst"
       - DESTDIR: $CRAFT_PART_INSTALL
-    after:
+    build-packages:
+      - build-essential
       - ldc
-      - ninja
-      - meson-deps
 
-  ldc:
-    plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz
-    override-build: |
-      # link shared by default
-      sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
-      # remove unneeded libs
-      rm -rf lib32
-      craftctl default
 
   appstream:
     source: https://github.com/ximion/appstream.git
@@ -158,9 +113,6 @@ parts:
      - libxml2
      - libyaml-0-2
      - libzstd1
-    after:
-      - ninja
-      - meson-deps
 
   appstream-generator:
     source: .
@@ -207,6 +159,7 @@ parts:
       - docbook-xml
       - ffmpeg
       - npm
+      - ldc
       - libarchive-dev
       - libcairo2-dev
       - libcurl4-gnutls-dev
@@ -261,8 +214,5 @@ parts:
       - optipng
       - shared-mime-info
     after:
-      - ninja
-      - meson-deps
       - appstream
-      - ldc
       - gir-to-d
