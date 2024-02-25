@@ -197,7 +197,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.0.0'
+    source-tag: 'v1.0.2'
     plugin: meson
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
@@ -238,7 +238,7 @@ parts:
   gir-to-d:
     source: https://github.com/gtkd-developers/gir-to-d.git
     source-type: git
-    source-tag: 'v0.23.1'
+    source-tag: 'v0.23.2'
     plugin: meson
     meson-parameters:
       - --prefix=/usr
@@ -257,7 +257,7 @@ parts:
   glibd:
     source: https://github.com/gtkd-developers/GlibD.git
     source-type: git
-    source-tag: 'v2.4.2'
+    source-tag: 'v2.4.3'
     plugin: meson
     build-environment:
       - GIR_PATH: /snap/gnome-42-2204-sdk/current/usr/share/gir-1.0${GIR_PATH:+:$GIR_PATH}
@@ -277,7 +277,7 @@ parts:
 
   ldc:
     plugin: dump
-    source: https://github.com/ldc-developers/ldc/releases/download/v1.32.2/ldc2-1.32.2-linux-x86_64.tar.xz
+    source: https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz
     override-build: |
       # link shared by default
       sed -i '/\sswitches =/a \        "-link-defaultlib-shared",' etc/ldc2.conf
