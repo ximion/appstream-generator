@@ -165,6 +165,7 @@ parts:
       - libglu1-mesa
       - libgraphite2-3
       - libharfbuzz0b
+      - liblmdb0
       - libpango-1.0-0
       - libpangocairo-1.0-0
       - libpangoft2-1.0-0
@@ -224,13 +225,15 @@ parts:
       - libxml2-dev
       - libxmlb-dev
       - libyaml-dev
+      - libzstd-dev
       - xsltproc
     stage-packages:
      - libcurl3-gnutls
      - libicu70
-     - liblmdb0
      - libstemmer0d
      - libxml2
+     - libyaml-0-2
+     - libzstd1
     after:
       - ninja
       - meson-deps
