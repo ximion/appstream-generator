@@ -5,13 +5,13 @@ if [ -n "$MESON_SOURCE_ROOT" ]; then
     cd "$MESON_SOURCE_ROOT/contrib/setup/"
 fi
 
-YARNPKG="yarn"
+NPM="npm"
 if [ ! -z "$1" ]
 then
-    YARNPKG=$1
+    NPM=$1
 fi
 
-$YARNPKG install $ASGEN_YARN_EXTRA_ARGS --prod --non-interactive
+$NPM install --no-save
 
 JS_TARGET=../../data/templates/default/static/js
 [ ! -d "$JS_TARGET" ] && mkdir $JS_TARGET

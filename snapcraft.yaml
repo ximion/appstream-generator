@@ -105,10 +105,6 @@ parts:
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/
     override-build: |
-      # install yarn
-      curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-      echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-      apt-get update && apt-get install --no-install-recommends -y yarn nodejs
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
@@ -136,6 +132,7 @@ parts:
       - docbook-xsl
       - docbook-xml
       - ffmpeg
+      - npm
       - libarchive-dev
       - libcairo2-dev
       - libcurl4-gnutls-dev

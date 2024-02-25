@@ -55,12 +55,6 @@ else
     gdk_pixbuf_dep="libgdk-pixbuf-2.0-dev"
 fi;
 
-yarnpkg_dep="yarnpkg"
-if dpkg -s yarn >/dev/null 2>&1; then
-  # if the conflicting "yarn" package was already installed,
-  # don't try to install yarnpkg
-  yarnpkg_dep=""
-fi
 eatmydata apt-get install -yq --no-install-recommends \
     $gdk_pixbuf_dep \
     librsvg2-dev \
@@ -73,4 +67,4 @@ eatmydata apt-get install -yq --no-install-recommends \
     curl \
     gnupg \
     ffmpeg \
-    $yarnpkg_dep
+    npm

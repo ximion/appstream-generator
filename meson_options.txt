@@ -10,7 +10,7 @@ option('rpmmd',
 option('download-js',
        type: 'boolean',
        value: true,
-       description: 'Download JavaScript with Yarn automatically.'
+       description: 'Download JavaScript with NPM automatically.'
 )
 option('gir-dir',
        type: 'string',

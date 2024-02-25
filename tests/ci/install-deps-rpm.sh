@@ -52,4 +52,4 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     /usr/bin/ffmpeg \
     /usr/bin/node \
     /usr/bin/xsltproc \
-    /usr/bin/yarnpkg
+    /usr/bin/npm

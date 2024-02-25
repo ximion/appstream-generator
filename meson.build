@@ -17,13 +17,13 @@ fs = import('fs')
 #
 src_dir = include_directories('src/')
 
-glib_dep       = dependency('glib-2.0', version: '>= 2.62')
-glibd_dep      = dependency('glibd-2.0')
-appstream_dep  = dependency('appstream', version : '>= 1.0.0')
-ascompose_dep  = dependency('appstream-compose', version : '>= 1.0.0')
-lmdb_dep       = dependency('lmdb', version : '>= 0.9.22')
-archive_dep    = dependency('libarchive', version : '>= 3.2')
-curl_dep       = dependency('libcurl')
+glib_dep      = dependency('glib-2.0', version: '>= 2.62')
+glibd_dep     = dependency('glibd-2.0')
+appstream_dep = dependency('appstream', version : '>= 1.0.0')
+ascompose_dep = dependency('appstream-compose', version : '>= 1.0.0')
+lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
+archive_dep   = dependency('libarchive', version : '>= 3.2')
+curl_dep      = dependency('libcurl')
 
 dxml_dep = dependency('', required: false)
 if get_option('rpmmd')
@@ -67,12 +67,12 @@ girbind_lib = static_library('girbindings',
 # Download JS stuff and additional sources if we couldn't find them
 #
 if get_option('download-js')
-    yarn_exe = find_program('/usr/share/yarn/bin/yarn', 'yarnpkg') # check for the yarn executable
+    npm_exe = find_program('npm')
     if not fs.is_dir(source_root / 'data' / 'templates' / 'default' / 'static' / 'js')
         message('Downloading JavaScript libraries...')
-        getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh', yarn_exe], check: false)
+        getjs_cmd = run_command([source_root + '/contrib/setup/build_js.sh', npm_exe], check: false)
         if getjs_cmd.returncode() != 0
-            error('Unable to download JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+            error('Unable to download JavaScript files with NPM:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
         endif
     endif
 endif
