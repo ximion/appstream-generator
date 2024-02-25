@@ -125,7 +125,6 @@ parts:
     source-tag: 'v1.0.2'
     plugin: meson
     build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_PART_BUILD/src${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
       - DESTDIR: $CRAFT_PART_INSTALL
     meson-parameters:
       - --prefix=/usr
