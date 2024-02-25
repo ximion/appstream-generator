@@ -184,7 +184,7 @@ parts:
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
       meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true -Drpmmd=false ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
       ninja -C "${CRAFT_PART_BUILD}" -j4
-      meson test -C "${CRAFT_PART_BUILD}" --verbose
+      meson test -C "${CRAFT_PART_BUILD}" --print-errorlogs --no-stdsplit --verbose
       DESTDIR=${CRAFT_PART_INSTALL} ninja -C "${CRAFT_PART_BUILD}" install
     override-prime: |
       set -eux
