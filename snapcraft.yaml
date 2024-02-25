@@ -140,6 +140,7 @@ parts:
       - libfreetype6-dev
       - libgdk-pixbuf2.0-dev
       - libglib2.0-dev
+      - libglibd-2.0-dev
       - liblmdb-dev
       - libpango1.0-dev
       - librsvg2-dev
@@ -159,6 +160,7 @@ parts:
       - libgdk-pixbuf2.0-0
       - libglib2.0-0
       - libglib2.0-bin
+      - libglibd-2.0-0
       - libglu1-mesa
       - libgraphite2-3
       - libharfbuzz0b
@@ -190,7 +192,6 @@ parts:
       - appstream
       - ldc
       - gir-to-d
-      - glibd
 
   appstream:
     source: https://github.com/ximion/appstream.git
@@ -250,27 +251,6 @@ parts:
       - DFLAGS: "--allinst"
       - DESTDIR: $CRAFT_PART_INSTALL
     after:
-      - ldc
-      - ninja
-      - meson-deps
-
-  glibd:
-    source: https://github.com/gtkd-developers/GlibD.git
-    source-type: git
-    source-tag: 'v2.4.3'
-    plugin: meson
-    build-environment:
-      - GIR_PATH: /snap/gnome-42-2204-sdk/current/usr/share/gir-1.0${GIR_PATH:+:$GIR_PATH}
-      - GIREPOSITORY_PATH: /snap/gnome-42-2204-sdk/current/usr/lib/girepository-1.0${GIREPOSITORY_PATH:+:$GIREPOSITORY_PATH}
-    meson-parameters:
-      - --prefix=/usr
-      - --buildtype=release
-    build-packages:
-      - gobject-introspection
-      - libgirepository1.0-dev
-      - libglib2.0-dev
-    after:
-      - gir-to-d
       - ldc
       - ninja
       - meson-deps
