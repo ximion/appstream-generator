@@ -178,11 +178,12 @@ parts:
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/
       - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/pkgconfig/
+      - PATH: $CRAFT_STAGE/usr/bin/${PATH:+:$PATH}
     override-build: |
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
-      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
+      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true -Drpmmd=false ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
       ninja -C "${CRAFT_PART_BUILD}" -j4
       meson test -C "${CRAFT_PART_BUILD}" --verbose
       DESTDIR=${CRAFT_PART_INSTALL} ninja -C "${CRAFT_PART_BUILD}" install
