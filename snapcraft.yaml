@@ -175,7 +175,7 @@ parts:
       sed -i 's|AppStreamCompose-1.0.gir|$CRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' ${CRAFT_PART_SRC}/contrib/girwrap/APILookupAppStreamCompose.txt
     plugin: meson
     build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
       - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/pkgconfig/
       - PATH: $CRAFT_STAGE/usr/bin/${PATH:+:$PATH}
     override-build: |
