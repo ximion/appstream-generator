@@ -32,6 +32,9 @@
   <url type="bugtracker">https://github.com/ximion/appstream-generator/issues</url>
 
   <project_group>Freedesktop</project_group>
+  <developer id="org.freedesktop">
+    <name translate="no">Matthias Klumpp</name>
+  </developer>
 
   <provides>
     <binary>appstream-generator</binary>
