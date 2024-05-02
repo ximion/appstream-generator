@@ -60,7 +60,7 @@ public:
     {
         auto pkgRoot = buildPath (rootDir, suite);
         auto metaFname = buildPath (pkgRoot, "meta.conf");
-        string manifestFname, manifestArchive;
+        string dataFname;
 
         if (!std.file.exists (metaFname)) {
             logError ("Metadata file '%s' does not exist.", metaFname);
@@ -68,37 +68,36 @@ public:
         }
 
         foreach(line; std.file.slurp!(string)(metaFname, "%s")) {
-            if (line.startsWith("manifests_archive")) {
-                // manifests_archive = "packagesite";
+            if (line.startsWith("data")) {
+                // data = "data";
                 auto splitResult = line.split("\"");
-                if (splitResult.length == 3)
-                    manifestArchive = splitResult[1];
-            }
-            else if (line.startsWith("manifests")) {
-                // manifests = "packagesite.yaml";
-                auto splitResult = line.split("\"");
-                if (splitResult.length == 3)
-                    manifestFname = splitResult[1];
+                if (splitResult.length == 3) {
+                    dataFname = splitResult[1];
+                    break;
+                }
             }
         }
 
-        auto listsTarFname = buildPath (pkgRoot, manifestArchive ~ ".pkg");
-        if (!std.file.exists (listsTarFname)) {
-            logError ("Package lists file '%s' does not exist.", listsTarFname);
+        auto dataTarFname = buildPath (pkgRoot, dataFname ~ ".pkg");
+        if (!std.file.exists (dataTarFname)) {
+            logError ("Package lists file '%s' does not exist.", dataTarFname);
             return [];
         }
 
         ArchiveDecompressor ad;
-        ad.open (listsTarFname);
-        logDebug ("Opened: %s", listsTarFname);
+        ad.open (dataTarFname);
+        logDebug ("Opened: %s", dataTarFname);
 
-        auto d = ad.readData(manifestFname);
+        auto dataJson = parseJSON(assumeUTF(ad.readData(dataFname)));
+        if (dataJson.type != JSONType.object) {
+            logError ("JSON from '%s' is not an object .", dataTarFname);
+            return [];
+        }
         auto pkgs = appender!(Package[]);
 
-        foreach(entry; d.split('\n')) {
-            auto j = parseJSON(assumeUTF(entry));
-            if (j.type == JSONType.object)
-                pkgs ~= to!Package(new FreeBSDPackage(pkgRoot, j.object));
+        foreach(entry; dataJson.object["packages"].array) {
+            if (entry.type == JSONType.object)
+                pkgs ~= to!Package(new FreeBSDPackage(pkgRoot, entry.object));
         }
 
         return pkgs.data;
