@@ -46,6 +46,7 @@ import ascompose.c.types : ImageFormat, ImageLoadFlags, ImageSaveFlags, IconStat
 static import std.file;
 
 import asgen.utils;
+import asgen.defines : LOCALBASE;
 import asgen.logging;
 import asgen.result;
 import asgen.backends.interfaces;
@@ -147,7 +148,7 @@ public:
 
     this (const string name, Package pkg)
     {
-        auto indexData = pkg.getFileData(buildPath("/usr/share/icons", name, "index.theme"));
+        auto indexData = pkg.getFileData (buildPath (LOCALBASE, "share/icons", name, "index.theme"));
         this(name, indexData);
     }
 
@@ -238,10 +239,11 @@ public:
 
             string front () const @property
             {
-                return "/usr/share/icons/%s/%s/%s.%s".format(theme.name,
-                        theme.directories[idxThemeDir]["path"].get!(string),
-                        iname,
-                        extensions[idxExt]);
+                return buildPath (LOCALBASE,
+                         "share/icons/%s/%s/%s.%s".format (theme.name,
+                                                           theme.directories[idxThemeDir]["path"].get!(string),
+                                                           iname,
+                                                           extensions[idxExt]));
             }
 
             void popFront ()
@@ -357,7 +359,7 @@ public:
         foreach (info; parallel(filesPkids.byKeyValue, 100)) {
             immutable fname = info.key;
             immutable pkgid = info.value;
-            if (fname.startsWith("/usr/share/pixmaps/")) {
+            if (fname.startsWith (buildPath (LOCALBASE, "share/pixmaps/"))) {
                 auto pkg = getPackage(pkgid);
                 if (pkg is null)
                     continue;
@@ -368,7 +370,7 @@ public:
 
             // optimization: check if we actually have an interesting path before
             // entering the foreach loop.
-            if (!fname.startsWith("/usr/share/icons/"))
+            if (!fname.startsWith (buildPath (LOCALBASE, "share/icons/")))
                 continue;
 
             auto pkg = getPackage(filesPkids[fname]);
@@ -376,10 +378,10 @@ public:
                 continue;
 
             foreach (name; themeNames) {
-                if (fname == "/usr/share/icons/%s/index.theme".format(name)) {
+                if (fname == buildPath (LOCALBASE, "share/icons/%s/index.theme".format (name))) {
                     synchronized (this)
                         tmpThemes[name] = new Theme(name, pkg);
-                } else if (fname.startsWith("/usr/share/icons/%s".format(name))) {
+                } else if (fname.startsWith (buildPath (LOCALBASE, "share/icons/%s".format (name)))) {
                     synchronized (this)
                         iconFiles[fname] = pkg;
                 }
@@ -477,14 +479,14 @@ public:
                 // this is "wrong", but we support it for compatibility reasons.
                 // However, we only ever use it to satisfy the 64x64px requirement
                 foreach (extension; possibleIconExts)
-                    yield ("/usr/share/icons/%s%s".format(iconName, extension));
+                    yield (buildPath (LOCALBASE, "share/icons/%s%s".format (iconName, extension)));
 
                 // check pixmaps directory for icons
                 // we only ever use the pixmap directory contents to satisfy the minimum 64x64px icon
                 // requirement. Otherwise we get weird upscaling to higher sizes or HiDPI sizes happening,
                 // as later code tries to downscale "bigger" sizes.
                 foreach (extension; possibleIconExts)
-                    yield ("/usr/share/pixmaps/%s%s".format(iconName, extension));
+                    yield (buildPath (LOCALBASE, "share/pixmaps/%s%s".format (iconName, extension)));
             }
         });
 
@@ -1013,9 +1015,9 @@ unittest {
     auto theme = new Theme("hicolor", indexData);
     foreach (fname; theme.matchingIconFilenames("accessories-calculator", ImageSize(48))) {
         bool valid = false;
-        if (fname.startsWith("/usr/share/icons/hicolor/48x48/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/48x48/")))
             valid = true;
-        if (fname.startsWith("/usr/share/icons/hicolor/scalable/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/scalable/")))
             valid = true;
         assert(valid);
 
@@ -1031,13 +1033,13 @@ unittest {
     }
 
     foreach (fname; theme.matchingIconFilenames("accessories-text-editor", ImageSize(192))) {
-        if (fname.startsWith("/usr/share/icons/hicolor/192x192/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/192x192/")))
             continue;
-        if (fname.startsWith("/usr/share/icons/hicolor/256x256/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/256x256/")))
             continue;
-        if (fname.startsWith("/usr/share/icons/hicolor/512x512/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/512x512/")))
             continue;
-        if (fname.startsWith("/usr/share/icons/hicolor/scalable/"))
+        if (fname.startsWith (buildPath (LOCALBASE, "share/icons/hicolor/scalable/")))
             continue;
         assert(0);
     }

@@ -1,6 +1,7 @@
 
 conf_data = configuration_data()
 conf_data.set('datadir', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
+conf_data.set('localbase', get_option('localbase'))
 conf_data.set('asgen_version', asgen_version)
 conf_data.set('build_rpmmd', get_option('rpmmd')? 'true' : 'false')
 configure_file(input : 'defines.d.in',

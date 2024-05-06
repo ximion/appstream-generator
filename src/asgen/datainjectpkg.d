@@ -22,6 +22,7 @@ import std.array : empty;
 import std.path : buildPath, buildNormalizedPath, relativePath, baseName;
 
 import asgen.backends.interfaces;
+import asgen.defines : LOCALBASE;
 import asgen.utils : GENERIC_BUFFER_SIZE, existsAndIsDir;
 import asgen.logging;
 
@@ -142,7 +143,7 @@ public:
         if (iconLocation.existsAndIsDir) {
             foreach (iconFname; iconLocation.dirEntries("*.{svg,svgz,png}", SpanMode.breadth, true)) {
                 immutable iconBasePath = relativePath(iconFname, iconLocation);
-                _contents[buildPath("/usr/share/icons/hicolor", iconBasePath)] = iconFname;
+                _contents[buildPath (LOCALBASE, "share/icons/hicolor", iconBasePath)] = iconFname;
             }
         } else {
             logInfo("No icons found in '%s' for injected metadata.", iconLocation);
@@ -152,7 +153,7 @@ public:
         foreach (miFname; _dataLocation.dirEntries("*.xml", SpanMode.shallow, false)) {
             immutable miBasename = miFname.baseName;
             logDebug("Found injected metainfo [%s]: %s", "all", miBasename);
-            _contents[buildPath("/usr/share/metainfo", miBasename)] = miFname;
+            _contents[buildPath (LOCALBASE, "share/metainfo", miBasename)] = miFname;
         }
 
         if (!archDataLocation.existsAndIsDir)
@@ -161,7 +162,7 @@ public:
         // load arch-specific override metainfo files
         foreach (miFname; archDataLocation.dirEntries("*.xml", SpanMode.shallow, false)) {
             immutable miBasename = miFname.baseName;
-            immutable fakePath = buildPath("/usr/share/metainfo", miBasename);
+            immutable fakePath = buildPath (LOCALBASE, "share/metainfo", miBasename);
 
             if (fakePath in _contents)
                 logDebug ("Found injected metainfo [%s]: %s (replacing generic one)", arch, miBasename);

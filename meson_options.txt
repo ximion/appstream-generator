@@ -17,3 +17,4 @@ option('gir-dir',
        value: '',
        description: 'Override the directory where gir-to-d searches for GIR files.'
 )
+option('localbase', type : 'string', value : '/usr', description : 'Prefix under which all 3rd party software is installed')

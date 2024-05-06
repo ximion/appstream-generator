@@ -35,6 +35,7 @@ import glib.Bytes : Bytes;
 import glib.c.types : GPtrArray;
 
 import asgen.config : Config, DataType;
+import asgen.defines : LOCALBASE;
 import asgen.logging;
 import asgen.hintregistry;
 import asgen.result;
@@ -76,7 +77,7 @@ public:
         modInj = modInjInfo;
 
         compose = new Compose;
-        //compose.setPrefix ("/usr");
+        compose.setPrefix (LOCALBASE);
         compose.setMediaResultDir(db.mediaExportPoolDir);
         compose.setMediaBaseurl("");
         compose.setCheckMetadataEarlyFunc(&checkMetadataIntermediate, cast(void*) this);
