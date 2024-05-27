@@ -213,6 +213,17 @@ parts:
       - locales-all
       - optipng
       - shared-mime-info
+    prime:
+      - -usr/lib/*/libglib-*
+      - -usr/lib/*/libgio*
+      - -usr/lib/*/libgmodule*
+      - -usr/lib/*/libgobject*
+      - -usr/lib/*/libgthread*
+      - -usr/lib/*/pkgconfig/gio*
+      - -usr/lib/*/pkgconfig/glib-2.0.pc
+      - -usr/lib/*/pkgconfig/gmodule*
+      - -usr/lib/*/pkgconfig/gobject-2.0.pc
+      - -usr/lib/*/pkgconfig/gthread-2.0.pc
     after:
       - appstream
       - gir-to-d
