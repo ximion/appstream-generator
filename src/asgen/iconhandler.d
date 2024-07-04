@@ -340,6 +340,7 @@ public:
         if (iconTheme !is null)
             themeNames ~= iconTheme;
         themeNames ~= "Adwaita"; // GNOME
+        themeNames ~= "AdwaitaLegacy"; // GNOME
         themeNames ~= "breeze"; // KDE
 
         Package getPackage (const string pkid)
