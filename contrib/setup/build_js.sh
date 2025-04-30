@@ -11,7 +11,7 @@ then
     NPM=$1
 fi
 
-$NPM install --no-save
+$NPM ci --ignore-scripts
 
 JS_TARGET=../../data/templates/default/static/js
 [ ! -d "$JS_TARGET" ] && mkdir $JS_TARGET
