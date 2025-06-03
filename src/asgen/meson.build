@@ -68,6 +68,10 @@ backend_sources = [
     'backends/freebsd/package.d',
     'backends/freebsd/fbsdpkg.d',
     'backends/freebsd/fbsdpkgindex.d',
+
+    'backends/solus/package.d',
+    'backends/solus/eopkgpkg.d',
+    'backends/solus/eopkgpkgindex.d',
 ]
 
 if get_option('rpmmd')
