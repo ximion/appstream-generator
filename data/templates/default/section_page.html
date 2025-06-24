@@ -75,6 +75,9 @@
 
     </div>
 
+    <div id="placeholder" style="width:600px;height:300px;"></div>
+    <div id="tooltip" style="position:absolute;display:none;background:#fff;padding:6px;border:1px solid #ccc;color:#000;font-size:12px;border-radius:4px;"></div>
+
     <script type="text/javascript">
       function dataUseJSTime(data) {
           return data.map(function(v) {
@@ -159,6 +162,23 @@
                 });
 
             };
+
+            $("#placeholder").bind("plothover", function (event, pos, item) {
+                if (item) {
+                    const x = item.datapoint[0];
+                    const y = item.datapoint[1];
+                    const seriesLabel = item.series.label;
+                    const date = new Date(x);
+                    const dateStr = date.toLocaleDateString();
+
+                    $("#tooltip")
+                        .html(`${seriesLabel}: ${y} on ${dateStr}`)
+                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
+                        .fadeIn(200);
+                } else {
+                    $("#tooltip").hide();
+                }
+            });
         }
 
         plotAccordingToChoices();
