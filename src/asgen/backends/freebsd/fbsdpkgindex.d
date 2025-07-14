@@ -58,8 +58,8 @@ public:
 
     private Package[] loadPackages (string suite, string section, string arch)
     {
-        auto pkgRoot = buildPath (rootDir, suite);
-        auto metaFname = buildPath (pkgRoot, "meta.conf");
+        auto repoRoot = buildPath (rootDir, suite);
+        auto metaFname = buildPath (repoRoot, "meta.conf");
         string dataFname;
 
         if (!std.file.exists (metaFname)) {
@@ -78,7 +78,7 @@ public:
             }
         }
 
-        auto dataTarFname = buildPath (pkgRoot, dataFname ~ ".pkg");
+        auto dataTarFname = buildPath (repoRoot, dataFname ~ ".pkg");
         if (!std.file.exists (dataTarFname)) {
             logError ("Package lists file '%s' does not exist.", dataTarFname);
             return [];
@@ -97,7 +97,7 @@ public:
 
         foreach(entry; dataJson.object["packages"].array) {
             if (entry.type == JSONType.object)
-                pkgs ~= to!Package(new FreeBSDPackage(pkgRoot, entry.object));
+                pkgs ~= to!Package(new FreeBSDPackage(repoRoot, entry.object));
         }
 
         return pkgs.data;
@@ -116,7 +116,11 @@ public:
 
     Package packageForFile (string fname, string suite = null, string section = null)
     {
-        return null; // FIXME: not implemented
+        if (!std.file.exists (fname)) {
+            logError ("Working dir '%s' does not exist.", fname);
+            return null;
+        }
+        return to!Package(FreeBSDPackage.createFromWorkdir(fname));
     }
 
     bool hasChanges (DataStore dstore, string suite, string section, string arch)

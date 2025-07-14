@@ -24,7 +24,8 @@ import std.stdio;
 import std.json;
 import std.path;
 import std.string;
-import std.array : empty;
+import std.file;
+import std.array;
 import asgen.backends.interfaces;
 import asgen.logging;
 import asgen.zarchive;
@@ -33,46 +34,99 @@ import asgen.zarchive;
 final class FreeBSDPackage : Package
 {
 private:
-    JSONValue pkgjson;
+    JSONValue pkgJson;
 
     string pkgFname;
     PackageKind _kind;
 
     ArchiveDecompressor pkgArchive;
+    string stageDir;
+    bool isWorkdirPackage;
+
     string[] contentsL = null;
 
-public:
-    this (string pkgRoot, JSONValue[string] j)
+    this ()
     {
-        pkgjson = j;
-        pkgFname = buildPath (pkgRoot, pkgjson["repopath"].str());
         _kind = PackageKind.PHYSICAL;
     }
 
-    @property override string name () const { return pkgjson["name"].str(); }
-    @property override string ver () const { return pkgjson["version"].str(); }
-    @property override string arch () const { return pkgjson["arch"].str(); }
-    @property override string maintainer () const { return pkgjson["maintainer"].str(); }
+public:
+    this (string repoRoot, JSONValue[string] j)
+    {
+        pkgJson = j;
+        pkgFname = buildPath (repoRoot, pkgJson["repopath"].str());
+        _kind = PackageKind.PHYSICAL;
+        isWorkdirPackage = false;
+    }
+
+    static FreeBSDPackage createFromWorkdir(string workDir)
+    {
+        auto ret = new FreeBSDPackage();
+        ret.isWorkdirPackage = true;
+
+        uint count = 0;
+        foreach(f; dirEntries (buildPath (workDir, "pkg"), "*.pkg", SpanMode.shallow)) {
+            ret.pkgFname = f;
+            count++;
+        }
+
+        if (ret.pkgFname.empty) {
+            logError ("Working dir '%s' does not contain any packages under in pkg/", workDir);
+            return null;
+        }
+
+        if (count > 1) {
+            logError ("Multiple packages found in pkg/, subpackages are not supported");
+            return null;
+        }
+
+        ret.stageDir = buildPath (workDir, "stage");
+        if (!isDir (ret.stageDir)) {
+            logError ("Stage dir '%s' does not exist", ret.stageDir);
+            return null;
+        }
+
+        ArchiveDecompressor ad;
+        ad.open (ret.pkgFname);
+
+        auto dataJson = parseJSON(assumeUTF(ad.readData("+COMPACT_MANIFEST")));
+        if (dataJson.type != JSONType.object) {
+            logError ("Fail to parse JSON from +COMPACT_MANIFEST of %s", ret.pkgFname);
+            return null;
+        }
+
+        ret.pkgJson = dataJson.object;
+
+        return ret;
+    }
+
+    @property override string name () const { return pkgJson["name"].str(); }
+    @property override string ver () const { return pkgJson["version"].str(); }
+    @property override string arch () const { return pkgJson["arch"].str(); }
+    @property override string maintainer () const { return pkgJson["maintainer"].str(); }
     @property override string getFilename () const { return pkgFname; }
 
 
     @property override const(string[string]) summary () const
     {
         string[string] sums;
-        sums["en"] = pkgjson["comment"].str();
+        sums["en"] = pkgJson["comment"].str();
         return sums;
     }
 
     @property override const(string[string]) description () const
     {
         string[string] descs;
-        descs["en"] = pkgjson["desc"].str();
+        descs["en"] = pkgJson["desc"].str();
         return descs;
     }
 
     override
     const(ubyte[]) getFileData (string fname)
     {
+        if (isWorkdirPackage)
+            return cast(ubyte[])(read(stageDir ~ fname));
+
         if (!pkgArchive.isOpen)
             pkgArchive.open (this.getFilename);
 
@@ -84,6 +138,19 @@ public:
     {
         if (!this.contentsL.empty)
             return this.contentsL;
+
+        if (isWorkdirPackage) {
+            auto contents = appender!(string[]);
+            foreach(f; dirEntries (stageDir, "*.*", SpanMode.depth)) {
+                string p = asRelativePath (f, stageDir).array;
+                if (p[0] != '/')
+                    p = '/' ~ p;
+                contents ~= p;
+            }
+
+            this.contentsL = contents.data;
+            return this.contentsL;
+        }
 
         if (!pkgArchive.isOpen)
             pkgArchive.open (this.getFilename);
