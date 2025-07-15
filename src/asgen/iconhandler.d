@@ -393,7 +393,7 @@ public:
         // we inject our own copy here.
         if ("hicolor" !in tmpThemes) {
             logInfo("No packaged hicolor icon theme found, using built-in one.");
-            auto hicolorThemeIndex = getDataPath("hicolor-theme-index.theme");
+            auto hicolorThemeIndex = buildPath (LOCALBASE, "share/icons/hicolor/index.theme");
             if (!std.file.exists(hicolorThemeIndex)) {
                 logError("Hicolor icon theme index at '%s' was not found! We will not be able to handle icons in this theme.", hicolorThemeIndex);
             } else {
