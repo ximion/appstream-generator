@@ -39,6 +39,8 @@ AppStream Metadata Generator
 
 Subcommands:
   run SUITE [SECTION]     - Process new metadata for the given distribution suite and publish it.
+  process-file SUITE SECTION FILE1 [FILE2 ...]
+                          - Process new metadata for the given package file.
   cleanup                 - Cleanup old metadata and media files.
   publish SUITE [SECTION] - Export all metadata and publish reports in the export directories.
   remove-found SUITE      - Drop all valid processed metadata and hints.
