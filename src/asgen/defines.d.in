@@ -23,6 +23,9 @@ module asgen.defines;
 // location of arch-indep data for asgen
 public enum DATADIR = "@datadir@";
 
+// prefix into which all 3rd party software is installed
+public enum LOCALBASE = "@localbase@";
+
 // current version of the tool
 public enum ASGEN_VERSION = "@asgen_version@";
 

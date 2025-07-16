@@ -23,10 +23,12 @@ import std.stdio;
 import std.string;
 import std.conv : to, octal;
 import std.file : mkdirRecurse;
+import std.path : buildPath;
 import std.array : appender, join, split, empty;
 
 import asgen.bindings.lmdb;
 import asgen.config;
+import asgen.defines : LOCALBASE;
 import asgen.logging;
 
 /**
@@ -239,7 +241,9 @@ public:
         auto iconInfo = appender!(string[]);
         auto localeInfo = appender!(string[]);
         foreach (ref f; contents) {
-            if ((f.startsWith("/usr/share/icons/")) ||
+            if ((f.startsWith (buildPath (LOCALBASE, "share/icons/"))) ||
+                (f.startsWith (buildPath (LOCALBASE, "share/pixmaps/"))) ||
+                (f.startsWith ("/usr/share/icons/")) ||
                     (f.startsWith("/usr/share/pixmaps/"))) {
                 iconInfo ~= f;
                 continue;
