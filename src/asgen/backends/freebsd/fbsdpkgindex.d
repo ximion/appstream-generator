@@ -106,9 +106,9 @@ public:
     Package[] packagesFor (string suite, string section, string arch, bool withLongDescs = true)
     {
         immutable id = "%s-%s-%s".format (suite, section, arch);
-        if (id !in pkgCache) {
+        synchronized (this) if (id !in pkgCache) {
             auto pkgs = loadPackages (suite, section, arch);
-            synchronized (this) pkgCache[id] = pkgs;
+            pkgCache[id] = pkgs;
         }
 
         return pkgCache[id];
