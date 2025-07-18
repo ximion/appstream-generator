@@ -68,6 +68,11 @@ backend_sources = [
     'backends/freebsd/package.d',
     'backends/freebsd/fbsdpkg.d',
     'backends/freebsd/fbsdpkgindex.d',
+
+    'backends/nix/package.d',
+    'backends/nix/nixindexutils.d',
+    'backends/nix/nixpkg.d',
+    'backends/nix/nixpkgindex.d',
 ]
 
 if get_option('rpmmd')
