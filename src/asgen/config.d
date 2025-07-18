@@ -69,7 +69,8 @@ enum Backend {
     Archlinux,
     RpmMd,
     Alpinelinux,
-    FreeBSD
+    FreeBSD,
+    Solus
 }
 
 /**
@@ -400,6 +401,11 @@ public:
             case "freebsd":
                 this.backendName = "FreeBSD";
                 this.backend = Backend.FreeBSD;
+                this.metadataType = DataType.XML;
+                break;
+            case "solus":
+                this.backendName = "Solus";
+                this.backend = Backend.Solus;
                 this.metadataType = DataType.XML;
                 break;
             default:

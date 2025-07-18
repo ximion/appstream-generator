@@ -50,6 +50,7 @@ import asgen.backends.ubuntu;
 import asgen.backends.archlinux;
 import asgen.backends.alpinelinux;
 import asgen.backends.freebsd;
+import asgen.backends.solus;
 
 static if (HAVE_RPMMD)
     import asgen.backends.rpmmd;
@@ -102,6 +103,9 @@ public:
                 break;
             case Backend.FreeBSD:
                 pkgIndex = new FreeBSDPackageIndex (conf.archiveRoot);
+                break;
+            case Backend.Solus:
+                pkgIndex = new EopkgPackageIndex (conf.archiveRoot);
                 break;
             default:
                 throw new Exception("No backend specified, can not continue!");
