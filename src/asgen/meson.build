@@ -94,7 +94,7 @@ asgen_exe = executable('appstream-generator',
                    archive_dep,
                    curl_dep,
                    dxml_dep],
-    link_with: [girbind_lib],
+    link_with: [girbind_lib, asgencpp_lib],
     d_import_dirs: [data_import_dirs],
     install: true
 )

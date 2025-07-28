@@ -12,11 +12,11 @@ set -x
 . /etc/os-release
 
 # Install dscanner
-mkdir -p /usr/local/bin/
-curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.11.0/dscanner-v0.11.0-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
-tar -xzf /tmp/dscanner.tar.gz -C /usr/local/bin/
-rm /tmp/dscanner.tar.gz
-dscanner --version
+#mkdir -p /usr/local/bin/
+#curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.11.0/dscanner-v0.11.0-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
+#tar -xzf /tmp/dscanner.tar.gz -C /usr/local/bin/
+#rm /tmp/dscanner.tar.gz
+#dscanner --version
 
 mkdir /tmp/build
 

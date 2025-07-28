@@ -1,5 +1,6 @@
-project('AppStream Generator', 'd',
+project('AppStream Generator', 'cpp', 'd',
     meson_version : '>=0.56',
+    default_options : ['c_std=c23', 'cpp_std=c++23'],
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',
     version : '0.9.2'
@@ -24,11 +25,18 @@ ascompose_dep = dependency('appstream-compose', version : '>= 1.0.0')
 lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
+catch2_dep    = dependency('catch2-with-main')
 
 dxml_dep = dependency('', required: false)
 if get_option('rpmmd')
     dxml_dep = dependency('dxml', fallback: ['dxml', 'dxml_dep'])
 endif
+
+#
+# Compiler flags
+#
+add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'c')
+add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'cpp')
 
 #
 # Build interfaces from GIR
@@ -83,5 +91,8 @@ subdir('src')
 # documentation
 subdir('docs')
 
-#data
+# data
 subdir('data')
+
+# tests
+subdir('tests')

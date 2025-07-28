@@ -55,9 +55,13 @@ def run(source_root, dscanner_config):
 
     subprocess.run(['dscanner', '--version'])
 
-    cmd = ['dscanner',
-           '--styleCheck', os.path.join(source_root, 'src'),
-           '--config', dscanner_config]
+    cmd = [
+        'dscanner',
+        '--styleCheck',
+        os.path.join(source_root, 'src'),
+        '--config',
+        dscanner_config,
+    ]
     cmd.extend(find_include_dirs(source_root))
 
     pres = subprocess.run(cmd, cwd=source_root)
@@ -69,6 +73,7 @@ def run(source_root, dscanner_config):
         print('\033[91m:( D-Scanner found issues \033[0m')
         print(pres)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
