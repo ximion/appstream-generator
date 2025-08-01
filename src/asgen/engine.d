@@ -31,6 +31,7 @@ static import std.file;
 import appstream.Component;
 
 import asgen.config;
+import asgen.defines : LOCALBASE;
 import asgen.logging;
 import asgen.extractor;
 import asgen.datastore;
@@ -211,9 +212,9 @@ public:
         {
             auto contents = pkg.contents;
             foreach (ref c; contents) {
-                if (c.startsWith("/usr/share/applications/"))
+                if (c.startsWith (buildPath (LOCALBASE, "share/applications/")))
                     return true;
-                if (c.startsWith("/usr/share/metainfo/"))
+                if (c.startsWith (buildPath (LOCALBASE, "share/metainfo/")))
                     return true;
             }
 
