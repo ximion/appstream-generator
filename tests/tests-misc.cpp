@@ -54,10 +54,10 @@ TEST_CASE("Extracting a tarball", "[zarchive]")
     char *mkdtemp_result = mkdtemp(ctmpdir.data());
     REQUIRE(mkdtemp_result != nullptr);
     tmpdir = std::string(mkdtemp_result);
-    auto cleanup = [&tmpdir](void*) {
+    auto cleanup = [&tmpdir](void *) {
         fs::remove_all(tmpdir);
     };
-    std::unique_ptr<void, decltype(cleanup)> guard((void*)1, cleanup);
+    std::unique_ptr<void, decltype(cleanup)> guard((void *)1, cleanup);
 
     ar.open(archive);
     ar.extractArchive(tmpdir);

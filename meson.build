@@ -25,7 +25,9 @@ ascompose_dep = dependency('appstream-compose', version : '>= 1.0.0')
 lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
+
 catch2_dep    = dependency('catch2-with-main')
+tbb_dep       = dependency('tbb')
 
 dxml_dep = dependency('', required: false)
 if get_option('rpmmd')
