@@ -18,14 +18,15 @@ fs = import('fs')
 #
 src_dir = include_directories('src/')
 
-glib_dep      = dependency('glib-2.0', version: '>= 2.62')
 glibd_dep     = dependency('glibd-2.0')
+
+glib_dep      = dependency('glib-2.0', version: '>= 2.62')
 appstream_dep = dependency('appstream', version : '>= 1.0.0')
 ascompose_dep = dependency('appstream-compose', version : '>= 1.0.0')
 lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
-
+fyaml_dep     = dependency('libfyaml', version : '>= 0.8')
 catch2_dep    = dependency('catch2-with-main')
 tbb_dep       = dependency('tbb')
 

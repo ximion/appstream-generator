@@ -1,7 +1,7 @@
 #
 # Docker file for AppStream Generator CI tests
 #
-FROM debian:stable
+FROM debian:trixie
 
 # prepare
 RUN mkdir -p /build/ci/
