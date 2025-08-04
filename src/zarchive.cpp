@@ -357,10 +357,9 @@ std::vector<std::string> ArchiveDecompressor::readContents()
 /**
  * Returns a generator to iterate over the contents of this tarball.
  */
-std::vector<ArchiveDecompressor::ArchiveEntry> ArchiveDecompressor::read()
+std::generator<ArchiveDecompressor::ArchiveEntry> ArchiveDecompressor::read()
 {
     archive_entry *en = nullptr;
-    std::vector<ArchiveEntry> entries;
     ArchivePtr ar(openArchive(), archive_read_free);
 
     while (archive_read_next_header(ar.get(), &en) == ARCHIVE_OK) {
@@ -384,20 +383,18 @@ std::vector<ArchiveDecompressor::ArchiveEntry> ArchiveDecompressor::read()
             // we cheat here and set the link target as data
             // TODO: Proper handling of symlinks, e.g. by adding a filetype property to ArchiveEntry.
             entry.data = std::vector<uint8_t>(linkTarget, linkTarget + std::strlen(linkTarget));
-            entries.push_back(entry);
+            co_yield entry;
             continue;
         }
 
         if (filetype != AE_IFREG) {
-            entries.push_back(entry);
+            co_yield entry;
             continue;
         }
 
         entry.data = readEntry(ar.get());
-        entries.push_back(entry);
+        co_yield entry;
     }
-
-    return entries;
 }
 
 /**

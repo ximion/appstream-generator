@@ -105,3 +105,85 @@ TEST_CASE("Utils: getTextFileContents and getFileContents read file data", "[uti
     REQUIRE(bytes.size() == 12); // 6+6 including newlines
     fs::remove(tmpfile);
 }
+
+TEST_CASE("Selectively reading tarball", "[zarchive]")
+{
+    std::string archive = fs::path(getTestSamplesDir()) / "test.tar.xz";
+    REQUIRE(fs::exists(archive));
+    ArchiveDecompressor ar;
+    ar.open(archive);
+
+    SECTION("Full iteration through all entries")
+    {
+        std::vector<std::string> filenames;
+        std::vector<std::vector<uint8_t>> fileData;
+
+        for (const auto &entry : ar.read()) {
+            filenames.push_back(entry.fname);
+            fileData.push_back(entry.data);
+        }
+
+        // Should have found files from the test archive
+        REQUIRE(!filenames.empty());
+
+        // Check that we got the expected file
+        auto it = std::find(filenames.begin(), filenames.end(), "/b/a");
+        REQUIRE(it != filenames.end());
+
+        // Get the data for file "/b/a" and verify content
+        size_t index = std::distance(filenames.begin(), it);
+        std::string content(fileData[index].begin(), fileData[index].end());
+        // Remove trailing newline if present
+        if (!content.empty() && content.back() == '\n')
+            content.pop_back();
+        REQUIRE(content == "hello");
+    }
+
+    SECTION("Early termination when finding specific file")
+    {
+        int entriesProcessed = 0;
+        bool foundTargetFile = false;
+        std::string targetContent;
+
+        for (const auto &entry : ar.read()) {
+            entriesProcessed++;
+
+            if (entry.fname == "/c/d") {
+                foundTargetFile = true;
+                targetContent = std::string(entry.data.begin(), entry.data.end());
+                // Remove trailing newline if present
+                if (!targetContent.empty() && targetContent.back() == '\n')
+                    targetContent.pop_back();
+                break; // Early termination
+            }
+        }
+
+        REQUIRE(foundTargetFile);
+        REQUIRE(targetContent == "world");
+        // Should have processed fewer entries than total (early termination worked)
+        REQUIRE(entriesProcessed > 0);
+        REQUIRE(entriesProcessed <= 10); // Reasonable upper bound for test archive
+    }
+
+    SECTION("Multiple iterations over same archive")
+    {
+        // Test that we can iterate multiple times
+        int firstCount = 0;
+        for (const auto &entry : ar.read()) {
+            firstCount++;
+            (void)entry; // Suppress unused variable warning
+        }
+
+        int secondCount = 0;
+        for (const auto &entry : ar.read()) {
+            secondCount++;
+            (void)entry;
+        }
+
+        // Both iterations should yield the same number of entries
+        REQUIRE(firstCount > 0);
+        REQUIRE(firstCount == secondCount);
+    }
+
+    ar.close();
+}

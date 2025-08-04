@@ -25,6 +25,7 @@
 #include <optional>
 #include <regex>
 #include <mutex>
+#include <generator>
 
 struct archive;
 
@@ -56,8 +57,7 @@ public:
     std::vector<uint8_t> readData(const std::string &fname);
     std::vector<std::string> extractFilesByRegex(const std::regex &re, const std::string &destdir);
     std::vector<std::string> readContents();
-    // Generator-like interface: returns all entries
-    std::vector<ArchiveEntry> read();
+    std::generator<ArchiveEntry> read();
 
 private:
     std::string archive_fname;
