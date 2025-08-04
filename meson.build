@@ -27,13 +27,10 @@ lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
 fyaml_dep     = dependency('libfyaml', version : '>= 0.8')
+inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
+
 catch2_dep    = dependency('catch2-with-main')
 tbb_dep       = dependency('tbb')
-
-dxml_dep = dependency('', required: false)
-if get_option('rpmmd')
-    dxml_dep = dependency('dxml', fallback: ['dxml', 'dxml_dep'])
-endif
 
 #
 # Compiler flags

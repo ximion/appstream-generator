@@ -24,9 +24,11 @@ asgen_deps = [
   glib_dep,
   appstream_dep,
   ascompose_dep,
+  fyaml_dep,
   lmdb_dep,
   archive_dep,
-  curl_dep
+  curl_dep,
+  inja_dep,
 ]
 
 # static library of bindings automatically generated from GIR
