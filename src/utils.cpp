@@ -189,7 +189,7 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
     });
 }
 
-static std::string getExecutableDir()
+std::string getExecutableDir()
 {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
@@ -358,6 +358,17 @@ std::string filenameFromURI(const std::string &uri)
         bname = bname.substr(0, hInd);
 
     return bname;
+}
+
+std::string toLower(const std::string &s)
+{
+    std::string out;
+    out.resize(s.size());
+    std::ranges::transform(s, out.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+
+    return out;
 }
 
 } // namespace ASGenerator

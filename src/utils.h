@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 #include <optional>
-#include <cstdint>
 #include <format>
 #include <compare>
 #include <filesystem>
@@ -47,7 +46,7 @@ struct ImageSize {
     /**
      * Constructor with width, height, and scale.
      */
-    ImageSize(std::uint32_t w, std::uint32_t h, std::uint32_t s)
+    constexpr ImageSize(std::uint32_t w, std::uint32_t h, std::uint32_t s)
         : width(w),
           height(h),
           scale(s)
@@ -57,7 +56,7 @@ struct ImageSize {
     /**
      * Constructor with width and height (scale = 1).
      */
-    ImageSize(std::uint32_t w, std::uint32_t h)
+    constexpr ImageSize(std::uint32_t w, std::uint32_t h)
         : width(w),
           height(h),
           scale(1)
@@ -67,9 +66,19 @@ struct ImageSize {
     /**
      * Constructor with size (square image, scale = 1).
      */
-    explicit ImageSize(std::uint32_t s)
+    explicit constexpr ImageSize(std::uint32_t s)
         : width(s),
           height(s),
+          scale(1)
+    {
+    }
+
+    /**
+     * Constructor with size (square image, scale = 1).
+     */
+    explicit constexpr ImageSize()
+        : width(0),
+          height(0),
           scale(1)
     {
     }
@@ -89,10 +98,23 @@ struct ImageSize {
      */
     std::uint32_t toInt() const;
 
-    auto operator<= > (const ImageSize &other) const
+    /**
+     * Three-way comparison operator for natural sorting.
+     * Compares width first, then scale if widths are equal.
+     */
+    // clang-format off
+    std::strong_ordering operator<=> (const ImageSize &other) const
     {
-        return toInt() <= > other.toInt();
+        if (auto cmp = width <=> other.width; cmp != 0)
+            return cmp;
+        return scale <=> other.scale;
     }
+
+    /**
+     * Equality comparison operator.
+     */
+    bool operator==(const ImageSize &other) const = default;
+    // clang-format on
 };
 
 /**
@@ -136,6 +158,8 @@ void hardlink(const std::string &srcFname, const std::string &destFname);
  * @param useHardlinks Use hardlinks instead of copying files.
  */
 void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks = false);
+
+std::string getExecutableDir();
 
 /**
  * Get full path for an AppStream generator data file.
@@ -199,5 +223,12 @@ std::optional<AsIcon *> componentGetRawIcon(AsComponent *cpt);
  * Extract filename from URI, removing query parameters and fragments.
  */
 std::string filenameFromURI(const std::string &uri);
+
+/**
+ * Convert a string to lowercase.
+ *
+ * @param s The string to convert to lowercase.
+ */
+std::string toLower(const std::string &s);
 
 } // namespace ASGenerator
