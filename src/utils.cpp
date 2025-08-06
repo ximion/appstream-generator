@@ -19,6 +19,7 @@
 
 #include "defines.h"
 #include "utils.h"
+#include "downloader.h"
 
 #include <algorithm>
 #include <random>
@@ -270,11 +271,13 @@ static std::vector<std::string> splitLines(const std::string &text)
     return lines;
 }
 
-std::vector<std::string> getTextFileContents(const std::string &path, std::uint32_t maxTryCount, void *downloader)
+std::vector<std::string> getTextFileContents(const std::string &path, std::uint32_t maxTryCount, Downloader *downloader)
 {
     if (isRemote(path)) {
-        // TODO: Implement downloader interface when available
-        throw std::runtime_error("Remote file downloading not yet implemented");
+        Downloader *dl = downloader;
+        if (dl == nullptr)
+            dl = &Downloader::get();
+        return dl->downloadTextLines(path, maxTryCount);
     } else {
         if (!fs::exists(path)) {
             throw std::runtime_error(std::format("No such file '{}'", path));
@@ -291,11 +294,13 @@ std::vector<std::string> getTextFileContents(const std::string &path, std::uint3
     }
 }
 
-std::vector<std::uint8_t> getFileContents(const std::string &path, std::uint32_t maxTryCount, void *downloader)
+std::vector<std::uint8_t> getFileContents(const std::string &path, std::uint32_t maxTryCount, Downloader *downloader)
 {
     if (isRemote(path)) {
-        // TODO: Implement downloader interface when available
-        throw std::runtime_error("Remote file downloading not yet implemented");
+        Downloader *dl = downloader;
+        if (dl == nullptr)
+            dl = &Downloader::get();
+        return dl->download(path, maxTryCount);
     } else {
         if (!fs::exists(path)) {
             throw std::runtime_error(std::format("No such file '{}'", path));

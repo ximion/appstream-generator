@@ -25,9 +25,9 @@
 #include <format>
 #include <compare>
 #include <filesystem>
-
-#include <glib.h>
 #include <appstream.h>
+
+#include "downloader.h"
 
 namespace ASGenerator
 {
@@ -192,7 +192,7 @@ bool isRemote(const std::string &uri);
 std::vector<std::string> getTextFileContents(
     const std::string &path,
     std::uint32_t maxTryCount = 4,
-    void *downloader = nullptr);
+    Downloader *downloader = nullptr);
 
 /**
  * Download or open `path` and return it as a byte array.
@@ -205,7 +205,7 @@ std::vector<std::string> getTextFileContents(
 std::vector<std::uint8_t> getFileContents(
     const std::string &path,
     std::uint32_t maxTryCount = 4,
-    void *downloader = nullptr);
+    Downloader *downloader = nullptr);
 
 /**
  * Get path of the directory with test samples.

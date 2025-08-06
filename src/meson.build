@@ -1,6 +1,7 @@
 
 asgencpp_src = files(
   'config.cpp',
+  'downloader.cpp',
   'logging.cpp',
   'utils.cpp',
   'zarchive.cpp',
@@ -8,6 +9,7 @@ asgencpp_src = files(
 
 asgencpp_hdr = files(
   'config.h',
+  'downloader.h',
   'logging.h',
   'utils.h',
   'zarchive.h',

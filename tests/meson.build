@@ -1,4 +1,5 @@
 
+# Miscellaneous tests
 tests_misc = executable(
     'tests-misc',
     'tests-misc.cpp',
@@ -6,3 +7,12 @@ tests_misc = executable(
     include_directories: [src_dir],
 )
 test('Miscellaneous', tests_misc)
+
+# Network-dependent tests
+tests_net = executable(
+    'tests-net',
+    'tests-net.cpp',
+    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Network', tests_misc)
