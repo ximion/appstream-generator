@@ -159,7 +159,7 @@ void hardlink(const std::string &srcFname, const std::string &destFname);
  */
 void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks = false);
 
-std::string getExecutableDir();
+fs::path getExecutableDir();
 
 /**
  * Get full path for an AppStream generator data file.

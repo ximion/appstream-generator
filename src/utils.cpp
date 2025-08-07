@@ -190,7 +190,7 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
     });
 }
 
-std::string getExecutableDir()
+fs::path getExecutableDir()
 {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
@@ -199,31 +199,33 @@ std::string getExecutableDir()
     }
 
     std::string exePath(result, count);
-    return fs::path(exePath).parent_path().string();
+    return fs::path(exePath).parent_path();
 }
 
 std::string getDataPath(const std::string &fname)
 {
-    const std::string exeDirName = getExecutableDir();
+    static const auto exeDirName = getExecutableDir();
 
     // useful for testing
-    if (!exeDirName.starts_with("/usr")) {
-        auto resPath = fs::path(exeDirName) / ".." / ".." / "data" / fname;
-        resPath = fs::canonical(resPath);
+    if (!exeDirName.string().starts_with("/usr")) {
+        auto resPath = exeDirName / ".." / ".." / "data" / fname;
         if (fs::exists(resPath))
-            return resPath.string();
+            return fs::canonical(resPath).string();
 
-        resPath = fs::path(exeDirName) / ".." / ".." / ".." / "data" / fname;
-        resPath = fs::canonical(resPath);
+        resPath = exeDirName / ".." / ".." / ".." / "data" / fname;
         if (fs::exists(resPath))
-            return resPath.string();
+            return fs::canonical(resPath).string();
+
+        resPath = exeDirName / ".." / ".." / ".." / ".." / "data" / fname;
+        if (fs::exists(resPath))
+            return fs::canonical(resPath).string();
     }
 
     auto resPath = fs::path(DATADIR) / fname;
     if (fs::exists(resPath))
         return resPath.string();
 
-    resPath = fs::path(exeDirName) / ".." / "data" / fname;
+    resPath = exeDirName / ".." / "data" / fname;
     if (fs::exists(resPath))
         return resPath.string();
 

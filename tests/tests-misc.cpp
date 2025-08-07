@@ -23,10 +23,15 @@
 #include <fstream>
 #include <filesystem>
 #include <optional>
+#include <thread>
+#include <appstream-compose.h>
 
 #include "logging.h"
-#include "zarchive.h"
 #include "utils.h"
+#include "zarchive.h"
+#include "hintregistry.h"
+#include "result.h"
+#include "backends/dummy/dummypkg.h"
 
 using namespace ASGenerator;
 namespace fs = std::filesystem;
@@ -186,4 +191,226 @@ TEST_CASE("Selectively reading tarball", "[zarchive]")
     }
 
     ar.close();
+}
+
+TEST_CASE("Image size operations", "[utils][imagesize]")
+{
+    SECTION("ImageSize construction and comparison")
+    {
+        ImageSize size1(64);
+        ImageSize size2(64, 64, 1);
+        ImageSize size3(64, 64, 2); // HiDPI
+        ImageSize size4(128);
+
+        REQUIRE(size1 == size2);
+        REQUIRE(size1 != size3);
+        REQUIRE(size1 != size4);
+        REQUIRE(size3 != size4);
+
+        // Test scale differences
+        REQUIRE(size1.scale == 1);
+        REQUIRE(size3.scale == 2);
+    }
+
+    SECTION("ImageSize string representation")
+    {
+        ImageSize size1(64);
+        ImageSize size2(128, 128, 2);
+
+        REQUIRE(size1.toString() == "64x64");
+        REQUIRE(size2.toString() == "128x128@2");
+    }
+
+    SECTION("ImageSize ordering")
+    {
+        ImageSize small(48);
+        ImageSize medium(64);
+        ImageSize large(128);
+        ImageSize mediumHiDPI(64, 64, 2);
+
+        REQUIRE(small < medium);
+        REQUIRE(medium < large);
+        REQUIRE(medium < mediumHiDPI); // Same size but higher scale
+    }
+}
+
+TEST_CASE("HintRegistry functionality", "[hintregistry]")
+{
+    using namespace ASGenerator;
+
+    SECTION("Load hints registry")
+    {
+        g_autoptr(AscHint) hint = nullptr;
+        g_autoptr(GError) error = nullptr;
+
+        // tag must not exist at this point
+        hint = asc_hint_new_for_tag("description-from-package", &error);
+        REQUIRE(error != nullptr);
+        REQUIRE(hint == nullptr);
+        g_error_free(g_steal_pointer(&error));
+
+        // Test loading the hints registry
+        REQUIRE_NOTHROW(loadHintsRegistry());
+
+        // after loading the registry, the tag should exist
+        hint = asc_hint_new_for_tag("description-from-package", &error);
+        if (error != nullptr)
+            FAIL(std::format("Error creating hint: {}", error->message));
+        REQUIRE(hint != nullptr);
+
+        // Test that some common hint tags are loaded
+        REQUIRE(asc_globals_hint_tag_severity("icon-not-found") != AS_ISSUE_SEVERITY_UNKNOWN);
+        REQUIRE(asc_globals_hint_tag_severity("no-metainfo") != AS_ISSUE_SEVERITY_UNKNOWN);
+        REQUIRE(asc_globals_hint_tag_severity("internal-error") != AS_ISSUE_SEVERITY_UNKNOWN);
+
+        // Test severity retrieval
+        auto severity = asc_globals_hint_tag_severity("icon-not-found");
+        REQUIRE(severity != AS_ISSUE_SEVERITY_UNKNOWN);
+
+        // Test explanation retrieval
+        std::string explanation = asc_globals_hint_tag_explanation("icon-not-found");
+        REQUIRE_FALSE(explanation.empty());
+    }
+
+    SECTION("Retrieve hint definition")
+    {
+        auto hdef = retrieveHintDef("icon-not-found");
+        REQUIRE(hdef.tag == "icon-not-found");
+        REQUIRE(hdef.severity == AS_ISSUE_SEVERITY_ERROR);
+        REQUIRE_FALSE(hdef.explanation.empty());
+
+        // Test non-existent hint
+        auto emptyHdef = retrieveHintDef("non-existent-hint");
+        REQUIRE(emptyHdef.tag.empty());
+        REQUIRE(emptyHdef.severity == AS_ISSUE_SEVERITY_UNKNOWN);
+        REQUIRE(emptyHdef.explanation.empty());
+    }
+
+    SECTION("Hint to JSON conversion")
+    {
+        std::unordered_map<std::string, std::string> vars = {
+            {"test_key",    "test_value"   },
+            {"another_key", "another_value"}
+        };
+
+        auto jsonStr = hintToJsonString("test-tag", vars);
+        REQUIRE_FALSE(jsonStr.empty());
+        REQUIRE(jsonStr != "{}");
+
+        // Basic JSON validation - should contain our data
+        REQUIRE(jsonStr.find("test-tag") != std::string::npos);
+        REQUIRE(jsonStr.find("test_key") != std::string::npos);
+        REQUIRE(jsonStr.find("test_value") != std::string::npos);
+    }
+
+    SECTION("Save hints registry to JSON file")
+    {
+        auto tempFile = fs::temp_directory_path() / "test-hints-registry.json";
+
+        REQUIRE_NOTHROW(saveHintsRegistryToJsonFile(tempFile.string()));
+        REQUIRE(fs::exists(tempFile));
+
+        // Verify file has content
+        auto fileSize = fs::file_size(tempFile);
+        REQUIRE(fileSize > 0);
+
+        // Clean up
+        fs::remove(tempFile);
+    }
+}
+
+TEST_CASE("GeneratorResult functionality", "[result]")
+{
+    using namespace ASGenerator;
+
+    auto pkg = std::make_shared<DummyPackage>("foobar", "1.0.0", "amd64");
+
+    SECTION("Basic GeneratorResult operations")
+    {
+        GeneratorResult result(pkg);
+
+        // Test package ID
+        REQUIRE(result.pkid() == "foobar/1.0.0/amd64");
+
+        // Test package retrieval
+        REQUIRE(result.getPackage() == pkg);
+        REQUIRE(result.getResult() != nullptr);
+    }
+
+    SECTION("Add hints to result")
+    {
+        GeneratorResult result(pkg);
+
+        // Ensure hints registry is loaded
+        loadHintsRegistry();
+
+        // Add a hint with component ID
+        std::unordered_map<std::string, std::string> vars = {
+            {"icon_fname",      "test.png" },
+            {"additional_info", "test data"}
+        };
+
+        bool stillValid = result.addHint("org.test.Component", "icon-not-found", vars);
+        REQUIRE(stillValid == false);
+
+        // Add a hint with simple message
+        stillValid = result.addHint("org.test.Component2", "no-metainfo", "Test message");
+        REQUIRE(stillValid);
+
+        // Verify hints were added
+        REQUIRE(result.hintsCount() > 0);
+        REQUIRE(result.hasHint("org.test.Component", "icon-not-found"));
+        REQUIRE(result.hasHint("org.test.Component2", "no-metainfo"));
+    }
+
+    SECTION("Generate hints JSON")
+    {
+        GeneratorResult result(pkg);
+        loadHintsRegistry();
+
+        // Add some hints
+        const std::unordered_map<std::string, std::string> &vars = {
+            {"rainbows", "yes"  },
+            {"unicorns", "no"   },
+            {"storage",  "towel"}
+        };
+        result.addHint("org.freedesktop.foobar.desktop", "desktop-entry-hidden-set", vars);
+        result.addHint(
+            "org.freedesktop.awesome-bar.desktop",
+            "metainfo-validation-error",
+            "Nothing is good without chocolate. Add some.");
+        result.addHint(
+            "org.freedesktop.awesome-bar.desktop",
+            "screenshot-video-check-failed",
+            "Frobnicate functionality is missing.");
+
+        // Generate JSON
+        auto jsonStr = result.hintsToJson();
+        REQUIRE_FALSE(jsonStr.empty());
+
+        // Basic validation
+        INFO(jsonStr);
+        REQUIRE(jsonStr.find("foobar/1.0.0/amd64") != std::string::npos);
+        REQUIRE(jsonStr.find("org.freedesktop.awesome-bar.desktop") != std::string::npos);
+        REQUIRE(jsonStr.find("screenshot-video-check-failed") != std::string::npos);
+        REQUIRE(jsonStr.find("desktop-entry-hidden-set") != std::string::npos);
+    }
+
+    SECTION("Move semantics")
+    {
+        GeneratorResult result1(pkg);
+        loadHintsRegistry();
+        result1.addHint("test.component", "icon-not-found");
+
+        // Test move constructor
+        GeneratorResult result2 = std::move(result1);
+        REQUIRE(result2.pkid() == "foobar/1.0.0/amd64");
+        REQUIRE(result2.hintsCount() > 0);
+
+        // Test move assignment
+        GeneratorResult result3(pkg);
+        result3 = std::move(result2);
+        REQUIRE(result3.pkid() == "foobar/1.0.0/amd64");
+        REQUIRE(result3.hintsCount() > 0);
+    }
 }

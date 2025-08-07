@@ -1,20 +1,28 @@
 
+subdir('backends')
+
 asgencpp_src = files(
   'config.cpp',
   'contentsstore.cpp',
   'downloader.cpp',
+  'hintregistry.cpp',
   'logging.cpp',
+  'result.cpp',
   'utils.cpp',
   'zarchive.cpp',
+  'backends/interfaces.cpp',
 )
 
 asgencpp_hdr = files(
   'config.h',
   'contentsstore.h',
   'downloader.h',
+  'hintregistry.h',
   'logging.h',
+  'result.h',
   'utils.h',
   'zarchive.h',
+  'backends/interfaces.h',
 )
 
 conf_data = configuration_data()
@@ -40,7 +48,7 @@ asgen_deps = [
 # static library of bindings automatically generated from GIR
 asgen_lib = static_library(
   'asgenlib',
-  [asgencpp_src, asgencpp_hdr, defines_h],
+  [asgencpp_src, asgencpp_hdr, defines_h, backends_src],
   dependencies: asgen_deps,
   cpp_args: [
     '-DI_KNOW_THE_APPSTREAM_COMPOSE_API_IS_SUBJECT_TO_CHANGE'
