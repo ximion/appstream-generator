@@ -47,6 +47,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev \
+    libtbb-dev \
     libcatch2-dev
 eatmydata apt-get install -yq libglibd-2.0-dev || true
 

@@ -46,6 +46,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(pango)' \
     'pkgconfig(yaml-0.1)' \
     'pkgconfig(libfyaml)' \
+    'pkgconfig(tbb)' \
     'pkgconfig(catch2)' \
     sed \
     xmlto \
