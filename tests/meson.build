@@ -8,6 +8,15 @@ tests_misc = executable(
 )
 test('Miscellaneous', tests_misc)
 
+# Database/Cache tests
+tests_db = executable(
+    'tests-db',
+    'tests-db.cpp',
+    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Databases', tests_db)
+
 # Network-dependent tests
 tests_net = executable(
     'tests-net',
@@ -15,4 +24,4 @@ tests_net = executable(
     dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
-test('Network', tests_misc)
+test('Network', tests_net)

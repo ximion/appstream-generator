@@ -28,7 +28,6 @@
 #include "downloader.h"
 #include "utils.h"
 #include "logging.h"
-#include "zarchive.h"
 
 using namespace ASGenerator;
 
