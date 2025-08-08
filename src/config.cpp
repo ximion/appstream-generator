@@ -52,8 +52,11 @@ Config::Config()
     // find all the external binaries we (may) need
     // we search for them unconditionally, because the unittests may rely on their absolute
     // paths being set even if a particular feature flag that requires them isn't.
-    optipngBinary = asc_globals_get_optipng_binary();
-    ffprobeBinary = g_find_program_in_path("ffprobe");
+    const auto optipngBin_c = asc_globals_get_optipng_binary();
+    optipngBinary = optipngBin_c? std::string(optipngBin_c) : "";
+
+    g_autofree gchar *ffprobeBin_c = g_find_program_in_path("ffprobe");
+    ffprobeBinary = ffprobeBin_c? std::string(ffprobeBin_c) : "";
 
     // new default icon policy instance
     m_iconPolicy = asc_icon_policy_new();
