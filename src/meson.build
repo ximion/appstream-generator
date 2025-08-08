@@ -4,6 +4,8 @@ subdir('backends')
 asgencpp_src = files(
   'config.cpp',
   'contentsstore.cpp',
+  'cptmodifiers.cpp',
+  'datainjectpkg.cpp',
   'downloader.cpp',
   'hintregistry.cpp',
   'logging.cpp',
@@ -16,6 +18,8 @@ asgencpp_src = files(
 asgencpp_hdr = files(
   'config.h',
   'contentsstore.h',
+  'cptmodifiers.h',
+  'datainjectpkg.h',
   'downloader.h',
   'hintregistry.h',
   'logging.h',

@@ -46,9 +46,8 @@ static bool canRunNetworkTests()
     auto &downloader = Downloader::get();
     const std::string urlFirefoxDetectportal = "https://detectportal.firefox.com/";
 
-    std::string detectPortalRes;
     try {
-        detectPortalRes = downloader.downloadText(urlFirefoxDetectportal);
+        downloader.downloadText(urlFirefoxDetectportal);
     } catch (const DownloadException &e) {
         SKIP("Network dependent tests skipped (automatically, no network detected: " + std::string(e.what()) + ")");
         return false;

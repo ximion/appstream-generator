@@ -138,6 +138,7 @@ public:
     bool hasHint(const std::string &componentId, const std::string &tag) const;
     bool hasHint(AsComponent *cpt, const std::string &tag) const;
     void addComponent(AsComponent *cpt) const;
+    void addComponentWithString(AsComponent *cpt, const std::string &data);
     void removeComponent(AsComponent *cpt) const;
     bool isIgnored(AsComponent *cpt) const;
     std::string gcidForComponent(AsComponent *cpt) const;

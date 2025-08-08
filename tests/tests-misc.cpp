@@ -32,6 +32,8 @@
 #include "hintregistry.h"
 #include "result.h"
 #include "backends/dummy/dummypkg.h"
+#include "cptmodifiers.h"
+#include "datainjectpkg.h"
 
 using namespace ASGenerator;
 namespace fs = std::filesystem;
@@ -413,4 +415,25 @@ TEST_CASE("GeneratorResult functionality", "[result]")
         REQUIRE(result3.pkid() == "foobar/1.0.0/amd64");
         REQUIRE(result3.hintsCount() > 0);
     }
+}
+
+TEST_CASE("InjectedModifications", "[cptmodifiers]")
+{
+    auto dummySuite = std::make_shared<Suite>();
+    dummySuite->name = "dummy";
+    dummySuite->extraMetainfoDir = getTestSamplesDir() / "extra-metainfo";
+
+    auto injMods = std::make_unique<InjectedModifications>();
+    injMods->loadForSuite(dummySuite);
+
+    REQUIRE(injMods->isComponentRemoved("com.example.removed"));
+    REQUIRE_FALSE(injMods->isComponentRemoved("com.example.not_removed"));
+
+    REQUIRE_FALSE(injMods->injectedCustomData("org.example.nodata").has_value());
+
+    auto customData = injMods->injectedCustomData("org.example.newdata");
+    REQUIRE(customData.has_value());
+    REQUIRE(customData->at("earth") == "moon");
+    REQUIRE(customData->at("mars") == "phobos");
+    REQUIRE(customData->at("saturn") == "thrym");
 }

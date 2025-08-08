@@ -4,6 +4,10 @@
   ],
 
   "InjectCustom": {
-    "org.example.newdata": {"earth": "moon", "mars": "phobos", "saturn": "thrym"}
+    "org.example.newdata": {
+      "earth": "moon",
+      "mars": "phobos",
+      "saturn": "thrym"
+    }
   }
 }

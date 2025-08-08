@@ -124,6 +124,13 @@ bool GeneratorResult::addHint(AsComponent *cpt, const std::string &tag, const st
     return addHint(cid, tag, msg);
 }
 
+void GeneratorResult::addComponentWithString(AsComponent *cpt, const std::string &data)
+{
+    g_autoptr(GError) error = nullptr;
+    if (!asc_result_add_component_with_string(m_res, cpt, data.c_str(), &error))
+        throw std::runtime_error(error->message);
+}
+
 std::string GeneratorResult::hintsToJson() const
 {
     if (hintsCount() == 0) {
