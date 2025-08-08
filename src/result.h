@@ -141,8 +141,10 @@ public:
     void addComponentWithString(AsComponent *cpt, const std::string &data);
     void removeComponent(AsComponent *cpt) const;
     bool isIgnored(AsComponent *cpt) const;
+    bool isUnitIgnored() const;
     std::string gcidForComponent(AsComponent *cpt) const;
     std::vector<std::string> getComponentGcids() const;
+    GPtrArray *fetchComponents() const;
 
 private:
     std::shared_ptr<Package> m_pkg;

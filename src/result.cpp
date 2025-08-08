@@ -282,6 +282,11 @@ bool GeneratorResult::isIgnored(AsComponent *cpt) const
     return asc_result_is_ignored(m_res, cpt) != 0;
 }
 
+bool GeneratorResult::isUnitIgnored() const
+{
+    return asc_result_unit_ignored(m_res);
+}
+
 std::string GeneratorResult::gcidForComponent(AsComponent *cpt) const
 {
     const char *gcid = asc_result_gcid_for_component(m_res, cpt);
@@ -303,6 +308,11 @@ std::vector<std::string> GeneratorResult::getComponentGcids() const
     }
 
     return result;
+}
+
+GPtrArray *GeneratorResult::fetchComponents() const
+{
+    return asc_result_fetch_components(m_res);
 }
 
 } // namespace ASGenerator

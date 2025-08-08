@@ -136,9 +136,8 @@ std::optional<std::string> getCidFromGlobalID(const std::string &gcid)
 
 void hardlink(const std::string &srcFname, const std::string &destFname)
 {
-    if (::link(srcFname.c_str(), destFname.c_str()) != 0) {
+    if (::link(srcFname.c_str(), destFname.c_str()) != 0)
         throw std::runtime_error(std::format("Unable to create link: {}", std::strerror(errno)));
-    }
 }
 
 void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks)
@@ -146,13 +145,11 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
     fs::path srcPath(srcDir);
     fs::path destPath(destDir);
 
-    if (!fs::exists(destPath)) {
+    if (!fs::exists(destPath))
         fs::create_directories(destPath);
-    }
 
-    if (!fs::is_directory(destPath)) {
+    if (!fs::is_directory(destPath))
         throw std::runtime_error(std::format("{} is not a directory", destPath.string()));
-    }
 
     if (!fs::is_directory(srcPath)) {
         if (useHardlinks) {
@@ -160,6 +157,7 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
         } else {
             fs::copy_file(srcPath, destPath);
         }
+
         return;
     }
 
@@ -194,9 +192,8 @@ fs::path getExecutableDir()
 {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    if (count == -1) {
+    if (count == -1)
         throw std::runtime_error("Failed to get executable path");
-    }
 
     std::string exePath(result, count);
     return fs::path(exePath).parent_path();
@@ -279,16 +276,15 @@ std::vector<std::string> getTextFileContents(const std::string &path, std::uint3
         Downloader *dl = downloader;
         if (dl == nullptr)
             dl = &Downloader::get();
+
         return dl->downloadTextLines(path, maxTryCount);
     } else {
-        if (!fs::exists(path)) {
+        if (!fs::exists(path))
             throw std::runtime_error(std::format("No such file '{}'", path));
-        }
 
         std::ifstream file(path);
-        if (!file.is_open()) {
+        if (!file.is_open())
             throw std::runtime_error(std::format("Failed to open file '{}'", path));
-        }
 
         std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -302,16 +298,15 @@ std::vector<std::uint8_t> getFileContents(const std::string &path, std::uint32_t
         Downloader *dl = downloader;
         if (dl == nullptr)
             dl = &Downloader::get();
+
         return dl->download(path, maxTryCount);
     } else {
-        if (!fs::exists(path)) {
+        if (!fs::exists(path))
             throw std::runtime_error(std::format("No such file '{}'", path));
-        }
 
         std::ifstream file(path, std::ios::binary);
-        if (!file.is_open()) {
+        if (!file.is_open())
             throw std::runtime_error(std::format("Failed to open file '{}'", path));
-        }
 
         std::vector<std::uint8_t> data;
 
@@ -348,6 +343,7 @@ std::optional<AsIcon *> componentGetRawIcon(AsComponent *cpt)
     // only return local icon if we had no stock icon
     if (iconLocal)
         return iconLocal;
+
     return std::nullopt;
 }
 
@@ -376,6 +372,64 @@ std::string toLower(const std::string &s)
     });
 
     return out;
+}
+
+std::string rtrimString(const std::string &s)
+{
+    std::string result = s;
+    result.erase(
+        std::find_if(
+            result.rbegin(),
+            result.rend(),
+            [](unsigned char ch) {
+                return !std::isspace(ch);
+            })
+            .base(),
+        result.end());
+
+    return result;
+}
+
+std::string joinStrings(const std::vector<std::string> &strings, const std::string &delimiter)
+{
+    if (strings.empty())
+        return "";
+
+    if (strings.size() == 1)
+        return strings[0];
+
+    std::string result = strings[0];
+    for (size_t i = 1; i < strings.size(); ++i) {
+        result += delimiter + strings[i];
+    }
+
+    return result;
+}
+
+std::vector<std::string> splitString(const std::string &s, char delimiter)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+        result.push_back(item);
+    }
+
+    return result;
+}
+
+bool dirEmpty(const std::string &dir)
+{
+    if (!fs::exists(dir))
+        return true;
+
+    for (const auto &entry : fs::directory_iterator(dir)) {
+        (void)entry;  // Suppress unused variable warning
+        return false; // Found at least one entry
+    }
+
+    return true;
 }
 
 } // namespace ASGenerator

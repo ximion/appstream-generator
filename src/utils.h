@@ -231,4 +231,32 @@ std::string filenameFromURI(const std::string &uri);
  */
 std::string toLower(const std::string &s);
 
+/**
+ * Trim whitespace from the right end of a string.
+ *
+ * @param s The string to trim.
+ */
+std::string rtrimString(const std::string &s);
+
+/**
+ * Join a vector of strings with a delimiter.
+ *
+ * @param strings The strings to join.
+ * @param delimiter The delimiter to use.
+ */
+std::string joinStrings(const std::vector<std::string> &strings, const std::string &delimiter);
+
+/**
+ * Split a string by a delimiter character.
+ *
+ * @param s The string to split.
+ * @param delimiter The delimiter character.
+ */
+std::vector<std::string> splitString(const std::string &s, char delimiter);
+
+/**
+ * Check if directory is empty
+ */
+bool dirEmpty(const std::string &dir);
+
 } // namespace ASGenerator
