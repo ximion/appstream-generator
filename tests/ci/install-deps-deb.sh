@@ -42,24 +42,25 @@ eatmydata apt-get install -yq --no-install-recommends \
     gperf \
     itstool
 
+. /etc/os-release
+if [ "$ID" = "ubuntu" ]; then
+    catch2_dep="catch2"
+    eatmydata apt-get install -yq --no-install-recommends g++-14 gcc-14
+else
+    catch2_dep="libcatch2-dev"
+fi;
+
 eatmydata apt-get install -yq --no-install-recommends \
     gir-to-d \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev \
     libtbb-dev \
-    libcatch2-dev
+    $catch2_dep
 eatmydata apt-get install -yq libglibd-2.0-dev || true
 
-. /etc/os-release
-if [ "$ID" = "ubuntu" ]; then
-    gdk_pixbuf_dep="libgdk-pixbuf2.0-dev"
-else
-    gdk_pixbuf_dep="libgdk-pixbuf-2.0-dev"
-fi;
-
 eatmydata apt-get install -yq --no-install-recommends \
-    $gdk_pixbuf_dep \
+    libgdk-pixbuf-2.0-dev \
     librsvg2-dev \
     libcairo2-dev \
     libfontconfig1-dev \

@@ -63,6 +63,9 @@ jobs:
   build-ubuntu-lts:
     name: Ubuntu LTS
     runs-on: ubuntu-24.04
+    env:
+      CC: gcc-14
+      CXX: g++-14
     steps:
     - uses: actions/checkout@v3
 
