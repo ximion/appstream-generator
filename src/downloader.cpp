@@ -121,9 +121,8 @@ static size_t headerCallback(char *buffer, size_t size, size_t nitems, void *use
 
 Downloader &Downloader::get()
 {
-    if (!instance_) {
+    if (!instance_)
         instance_ = std::make_unique<Downloader>();
-    }
     return *instance_;
 }
 
@@ -171,9 +170,8 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
 
-        if (!caInfo.empty()) {
+        if (!caInfo.empty())
             curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
-        }
 
         CURLcode res = curl_easy_perform(curl);
 
@@ -332,9 +330,8 @@ void Downloader::downloadFile(const std::string &url, const std::string &dest, s
     fs::create_directories(fs::path(dest).parent_path());
 
     std::ofstream file(dest, std::ios::binary);
-    if (!file.is_open()) {
+    if (!file.is_open())
         throw DownloadException(std::format("Failed to open destination file: {}", dest));
-    }
 
     try {
         auto lastModified = downloadInternal(url, file, maxTryCount);
@@ -345,7 +342,7 @@ void Downloader::downloadFile(const std::string &url, const std::string &dest, s
             auto timeT = std::chrono::system_clock::to_time_t(*lastModified);
             auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-            // Use utimensat or similar system call to set file times
+            // Set access and modification times of the source
             struct timespec times[2];
             times[0].tv_sec = currentTime; // access time
             times[0].tv_nsec = 0;

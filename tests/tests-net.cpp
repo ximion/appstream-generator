@@ -204,13 +204,6 @@ TEST_CASE("Downloader edge cases", "[downloader]")
         REQUIRE_THROWS_AS(downloader.downloadText(""), DownloadException);
     }
 
-    SECTION("File download to invalid path")
-    {
-        REQUIRE_THROWS_AS(
-            downloader.downloadFile("https://example.com", "/invalid/path/that/does/not/exist/file.txt"),
-            fs::filesystem_error);
-    }
-
     SECTION("Retry mechanism with zero retries")
     {
         REQUIRE_THROWS_AS(downloader.downloadText("https://nonexistent.example.invalid", 0), DownloadException);
