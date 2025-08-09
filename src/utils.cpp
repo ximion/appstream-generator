@@ -19,7 +19,6 @@
 
 #include "defines.h"
 #include "utils.h"
-#include "downloader.h"
 
 #include <algorithm>
 #include <random>
@@ -37,6 +36,9 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
+
+#include "logging.h"
+#include "downloader.h"
 
 namespace ASGenerator
 {
@@ -199,7 +201,7 @@ fs::path getExecutableDir()
     return fs::path(exePath).parent_path();
 }
 
-std::string getDataPath(const std::string &fname)
+fs::path getDataPath(const std::string &fname)
 {
     static const auto exeDirName = getExecutableDir();
 
@@ -207,31 +209,31 @@ std::string getDataPath(const std::string &fname)
     if (!exeDirName.string().starts_with("/usr")) {
         auto resPath = exeDirName / ".." / ".." / "data" / fname;
         if (fs::exists(resPath))
-            return fs::canonical(resPath).string();
+            return fs::canonical(resPath);
 
         resPath = exeDirName / ".." / ".." / ".." / "data" / fname;
         if (fs::exists(resPath))
-            return fs::canonical(resPath).string();
+            return fs::canonical(resPath);
 
         resPath = exeDirName / ".." / ".." / ".." / ".." / "data" / fname;
         if (fs::exists(resPath))
-            return fs::canonical(resPath).string();
+            return fs::canonical(resPath);
     }
 
     auto resPath = fs::path(DATADIR) / fname;
     if (fs::exists(resPath))
-        return resPath.string();
+        return resPath;
 
     resPath = exeDirName / ".." / "data" / fname;
     if (fs::exists(resPath))
-        return resPath.string();
+        return resPath;
 
     resPath = fs::path("data") / fname;
     if (fs::exists(resPath))
-        return resPath.string();
+        return resPath;
 
     // Uh, let's just give up
-    return (fs::path("/usr") / "share" / "appstream" / fname).string();
+    return fs::path("/usr") / "share" / "appstream" / fname;
 }
 
 bool existsAndIsDir(const std::string &path)

@@ -233,7 +233,7 @@ DataStore::~DataStore()
     g_object_unref(m_mdata);
 }
 
-const std::string &DataStore::mediaExportPoolDir() const
+const fs::path &DataStore::mediaExportPoolDir() const
 {
     return m_mediaDir;
 }
@@ -252,7 +252,7 @@ void DataStore::printVersionDbg()
     logDebug("Using {} major={} minor={} patch={}", ver, major, minor, patch);
 }
 
-void DataStore::open(const std::string &dir, const std::string &mediaBaseDir)
+void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -333,7 +333,7 @@ void DataStore::open(const std::string &dir, const std::string &mediaBaseDir)
     }
 
     m_opened = true;
-    m_mediaDir = fs::path(mediaBaseDir) / "pool";
+    m_mediaDir = mediaBaseDir / "pool";
     fs::create_directories(m_mediaDir);
 }
 
@@ -724,7 +724,7 @@ void DataStore::cleanupCruft()
     // we need the global Config instance here
     const auto &conf = Config::get();
 
-    const auto mdirLen = m_mediaDir.length();
+    const auto mdirLen = m_mediaDir.string().length();
     for (const auto &entry : fs::recursive_directory_iterator(m_mediaDir)) {
         if (!entry.is_directory())
             continue;
@@ -756,7 +756,7 @@ void DataStore::cleanupCruft()
                 if (suite.isImmutable)
                     continue;
 
-                const auto suiteGCIDMediaDir = fs::path(m_mediaDir).parent_path() / suite.name / gcid;
+                const auto suiteGCIDMediaDir = m_mediaDir.parent_path() / suite.name / gcid;
 
                 if (fs::exists(suiteGCIDMediaDir))
                     fs::remove_all(suiteGCIDMediaDir);

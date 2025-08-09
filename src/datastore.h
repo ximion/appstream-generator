@@ -78,12 +78,12 @@ public:
     /**
      * Get the media export pool directory
      */
-    const std::string &mediaExportPoolDir() const;
+    const fs::path &mediaExportPoolDir() const;
 
     /**
      * Open database with explicit directories
      */
-    void open(const std::string &dir, const std::string &mediaBaseDir);
+    void open(const std::string &dir, const fs::path &mediaBaseDir);
 
     /**
      * Open database using configuration
@@ -237,7 +237,7 @@ private:
 
     bool m_opened;
     AsMetadata *m_mdata;
-    std::string m_mediaDir;
+    fs::path m_mediaDir;
 
     mutable std::mutex m_mutex;
 

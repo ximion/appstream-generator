@@ -1,43 +1,42 @@
-{{#partial}}{title}{{package_name}} in {{suite}}/{{section}}{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ float_right }
-<small>Last updated on: {{time}}</small>
-{{/partial}}
+{% block title %}{{package_name}} in {{suite}}/{{section}}{% endblock %}
 
-{{#partial}}{ head_extra }
+{% block head_extra %}
 <link rel="stylesheet" href="{{root_url}}/static/css/highlight.css">
 <script src="{{root_url}}/static/js/highlight/highlight.pack.js"></script>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ header_content }
+{% block header_content %}
 <span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
-
 <span>{{package_name}}</span> <span style="font-size:16px;">[{{section}}]</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Metadata for {{package_name}} in {{section}}</h1>
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}
 
-    <div class="wrapper">
-      {{#cpts}}
-      <h2>
-        {{component_id}}
-        {{#architectures}}
-          <span style="font-size:12px;" class="label label-neutral">⚙ {{arch}}</span>
-        {{/architectures}}
-      </h2>
+{% block content %}
+<h1>Metadata for {{package_name}} in {{section}}</h1>
 
-      <div style="float: right; padding: 6px;">
-        <img src="{{icon_url}}" alt="Icon" />
-      </div>
+<div class="wrapper">
+  {% for cpt in cpts %}
+  <h2>
+    {{cpt.component_id}}
+    {% for arch in cpt.architectures %}
+      <span style="font-size:12px;" class="label label-neutral">⚙ {{arch.arch}}</span>
+    {% endfor %}
+  </h2>
 
-      <div class="well">
-        <pre><code>{{metadata}}</code></pre>
-      </div>
-      {{/cpts}}
+  <div style="float: right; padding: 6px;">
+    <img src="{{cpt.icon_url}}" alt="Icon" />
+  </div>
 
-    </div>
-    <script>hljs.initHighlightingOnLoad();</script>
-{{/partial}}
+  <div class="well">
+    <pre><code>{{cpt.metadata}}</code></pre>
+  </div>
+  {% endfor %}
 
-{{> base}}
+</div>
+<script>hljs.initHighlightingOnLoad();</script>
+{% endblock %}

@@ -51,14 +51,14 @@ void loadHintsRegistry()
         logError(
             "Hints definition file '{}' was not found! This means we can not determine severity of issue tags and not "
             "render report pages.",
-            hintsDefFile);
+            hintsDefFile.string());
         return;
     }
 
     // read the hints definition JSON file
     std::ifstream file(hintsDefFile);
     if (!file.is_open()) {
-        logError("Failed to open hints definition file '{}'", hintsDefFile);
+        logError("Failed to open hints definition file '{}'", hintsDefFile.string());
         return;
     }
 

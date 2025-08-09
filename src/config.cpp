@@ -98,20 +98,8 @@ fs::path Config::templateDir() const
     auto tdir = m_workspaceDir / "templates";
     tdir = getVendorTemplateDir(tdir, true);
 
-    if (tdir.empty()) {
-        const auto exeDir = fs::path(getExecutableDir());
-        tdir = fs::canonical(exeDir / ".." / ".." / ".." / "data" / "templates");
-        tdir = getVendorTemplateDir(tdir);
-
-        if (tdir.empty()) {
-            tdir = getVendorTemplateDir((fs::path(DATADIR) / "templates"));
-
-            if (tdir.empty()) {
-                tdir = fs::canonical(exeDir / ".." / "data" / "templates");
-                tdir = getVendorTemplateDir(tdir);
-            }
-        }
-    }
+    if (tdir.empty())
+        tdir = getVendorTemplateDir(getDataPath("templates"));
 
     return tdir;
 }
@@ -696,11 +684,10 @@ fs::path Config::getTmpDir()
 
     if (m_tmpDir.empty()) {
         std::string root;
-        if (cacheRootDir().empty()) {
+        if (cacheRootDir().empty())
             root = "/tmp/";
-        } else {
+        else
             root = cacheRootDir();
-        }
 
         m_tmpDir = fs::path(root) / "tmp" / std::format("asgen-{}", randomString(8));
 
@@ -709,6 +696,11 @@ fs::path Config::getTmpDir()
     }
 
     return m_tmpDir;
+}
+
+void Config::setWorkspaceDir(const fs::path &dir)
+{
+    m_workspaceDir = dir;
 }
 
 } // namespace ASGenerator

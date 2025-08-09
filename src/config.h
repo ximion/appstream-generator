@@ -152,8 +152,11 @@ public:
         const std::string &fname,
         const std::string &enforcedWorkspaceDir = "",
         const std::string &enforcedExportDir = "");
+
     bool isValid() const;
     fs::path getTmpDir();
+
+    void setWorkspaceDir(const fs::path &dir);
 
     // Delete copy constructor and assignment operator for singleton
     Config(const Config &) = delete;

@@ -52,7 +52,6 @@ final class ReportGenerator {
 
 private:
     Config conf;
-    PackageIndex pkgIndex;
     DataStore dstore;
 
     string htmlExportDir;

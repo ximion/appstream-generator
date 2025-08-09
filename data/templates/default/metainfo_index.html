@@ -1,37 +1,36 @@
-{{#partial}}{title}Components in {{suite}}/{{section}}{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ header_content }
+{% block title %}Components in {{suite}}/{{section}}{% endblock %}
+
+{% block header_content %}
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>Components summary for {{suite}}/{{section}}</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Metadata for {{suite}}/{{section}}</h1>
-
-      {{#summaries}}
-        <h3 id="{{maintainer_anchor}}">{{maintainer}} <a title="Permalink" class="permalink" href="#{{maintainer_anchor}}">#</a></h3>
-        <ul class="overviewlisting">
-        {{#packages}}
-          <li>
-            <span style="font-size:16px;">
-            <a href="{{pkgname}}.html">{{pkgname}}</a>&nbsp;
-            </span>
-
-            <ul>
-            {{#components}}
-              <li>{{cid}}</li>
-            {{/components}}
-            </ul>
-
-          </li>
-        {{/packages}}
-        </ul>
-      {{/summaries}}
-
-{{/partial}}
-
-{{#partial}}{ float_right }
+{% block float_right %}
 <small>Last updated on: {{time}}</small>
-{{/partial}}
+{% endblock %}
 
-{{> base}}
+{% block content %}
+<h1>Metadata for {{suite}}/{{section}}</h1>
+
+{% for summary in summaries %}
+  <h3 id="{{summary.maintainer_anchor}}">{{summary.maintainer}} <a title="Permalink" class="permalink" href="#{{summary.maintainer_anchor}}">#</a></h3>
+  <ul class="overviewlisting">
+  {% for package in summary.packages %}
+    <li>
+      <span style="font-size:16px;">
+      <a href="{{package.pkgname}}.html">{{package.pkgname}}</a>&nbsp;
+      </span>
+
+      <ul>
+      {% for component in package.components %}
+        <li>{{component.cid}}</li>
+      {% endfor %}
+      </ul>
+
+    </li>
+  {% endfor %}
+  </ul>
+{% endfor %}
+{% endblock %}

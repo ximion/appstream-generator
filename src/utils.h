@@ -164,7 +164,7 @@ fs::path getExecutableDir();
 /**
  * Get full path for an AppStream generator data file.
  */
-std::string getDataPath(const std::string &fname);
+fs::path getDataPath(const std::string &fname);
 
 /**
  * Check if a path exists and is a directory.

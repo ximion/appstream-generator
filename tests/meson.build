@@ -25,3 +25,12 @@ tests_net = executable(
     include_directories: [src_dir],
 )
 test('Network', tests_net)
+
+# Network-dependent tests
+tests_report = executable(
+    'tests-report',
+    'tests-report.cpp',
+    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('ReportGenerator', tests_report)

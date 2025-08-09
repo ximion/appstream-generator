@@ -1,39 +1,39 @@
-{{#partial}}{title}Hints summary for {{suite}}/{{section}}{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ header_content }
+{% block title %}Hints summary for {{suite}}/{{section}}{% endblock %}
+
+{% block header_content %}
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>Hints summary for {{suite}}/{{section}}</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Metadata processing hints found for {{suite}}/{{section}}</h1>
-
-      {{#summaries}}
-        <h3 id="{{maintainer_anchor}}">{{maintainer}} <a title="Permalink" class="permalink" href="#{{maintainer_anchor}}">#</a></h3>
-        <ul class="overviewlisting">
-        {{#packages}}
-          <li>
-            <span style="font-size:16px;">
-            <a href="{{pkgname}}.html">{{pkgname}}</a>&nbsp;
-            </span>
-          {{#has_info_count}}
-            <span class="label label-info">Infos: {{info_count}}</span>
-          {{/has_info_count}}
-          {{#has_warning_count}}
-            <span class="label label-warning">Warnings: {{warning_count}}</span>
-          {{/has_warning_count}}
-          {{#has_error_count}}
-            <span class="label label-error">Errors: {{error_count}}</span>
-          {{/has_error_count}}
-
-          </li>
-        {{/packages}}
-        </ul>
-      {{/summaries}}
-{{/partial}}
-
-{{#partial}}{ float_right }
+{% block float_right %}
 <small>Last updated on: {{time}}</small>
-{{/partial}}
+{% endblock %}
 
-{{> base}}
+{% block content %}
+<h1>Metadata processing hints found for {{suite}}/{{section}}</h1>
+
+{% for summary in summaries %}
+  <h3 id="{{summary.maintainer_anchor}}">{{summary.maintainer}} <a title="Permalink" class="permalink" href="#{{summary.maintainer_anchor}}">#</a></h3>
+  <ul class="overviewlisting">
+  {% for package in summary.packages %}
+    <li>
+      <span style="font-size:16px;">
+      <a href="{{package.pkgname}}.html">{{package.pkgname}}</a>&nbsp;
+      </span>
+    {% if package.has_info_count %}
+      <span class="label label-info">Infos: {{package.info_count}}</span>
+    {% endif %}
+    {% if package.has_warning_count %}
+      <span class="label label-warning">Warnings: {{package.warning_count}}</span>
+    {% endif %}
+    {% if package.has_error_count %}
+      <span class="label label-error">Errors: {{package.error_count}}</span>
+    {% endif %}
+
+    </li>
+  {% endfor %}
+  </ul>
+{% endfor %}
+{% endblock %}
