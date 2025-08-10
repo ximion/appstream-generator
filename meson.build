@@ -25,9 +25,9 @@ lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
 fyaml_dep     = dependency('libfyaml', version : '>= 0.8')
+tbb_dep       = dependency('tbb')
 inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
 catch2_dep    = dependency('catch2-with-main')
-tbb_dep       = dependency('tbb')
 
 #
 # Compiler flags

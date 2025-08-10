@@ -20,10 +20,8 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <format>
-#include <chrono>
-#include <mutex>
-#include <iostream>
 
 namespace ASGenerator
 {
@@ -35,68 +33,70 @@ enum class LogSeverity {
     ERROR
 };
 
-void setVerbose(bool verbose);
-bool isVerbose();
+void setVerbose(bool verbose) noexcept;
+bool isVerbose() noexcept;
 
-std::string logSeverityToString(LogSeverity severity);
+constexpr std::string_view logSeverityToString(LogSeverity severity) noexcept;
+
+// Base logging function that handles the actual output
+void logMessageImpl(LogSeverity severity, const std::string &message);
 
 template<typename... Args>
-void logMessage(LogSeverity severity, const std::string &tmpl, Args &&...args)
+void logMessage(LogSeverity severity, std::string_view fmt, Args &&...args)
 {
-    using namespace std::chrono;
-    auto now = system_clock::now();
-    auto t = system_clock::to_time_t(now);
-    std::tm tm = *std::localtime(&t);
-    std::ostringstream timeStr;
-    timeStr << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-    std::string formatted = std::vformat(tmpl, std::make_format_args(args...));
-    std::cout << timeStr.str() << " - " << logSeverityToString(severity) << ": " << formatted << std::endl;
+    std::string formatted_msg;
+    if constexpr (sizeof...(Args) > 0)
+        formatted_msg = std::vformat(fmt, std::make_format_args(args...));
+    else
+        formatted_msg = std::string{fmt};
+    logMessageImpl(severity, formatted_msg);
 }
 
-inline void logDebug(const std::string &tmpl)
+template<typename... Args>
+inline void logDebug(std::string_view fmt, Args &&...args)
 {
     if (isVerbose())
-        logMessage(LogSeverity::DEBUG, tmpl);
+        logMessage(LogSeverity::DEBUG, fmt, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void logDebug(const std::string &tmpl, Args &&...args)
+inline void logInfo(std::string_view fmt, Args &&...args)
+{
+    logMessage(LogSeverity::INFO, fmt, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+inline void logWarning(std::string_view fmt, Args &&...args)
+{
+    logMessage(LogSeverity::WARNING, fmt, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+inline void logError(std::string_view fmt, Args &&...args)
+{
+    logMessage(LogSeverity::ERROR, fmt, std::forward<Args>(args)...);
+}
+
+// Convenience overloads for simple string messages (no template arguments)
+inline void logDebug(std::string_view msg)
 {
     if (isVerbose())
-        logMessage(LogSeverity::DEBUG, tmpl, std::forward<Args>(args)...);
+        logMessageImpl(LogSeverity::DEBUG, std::string{msg});
 }
 
-inline void logInfo(const std::string &tmpl)
+inline void logInfo(std::string_view msg)
 {
-    logMessage(LogSeverity::INFO, tmpl);
+    logMessageImpl(LogSeverity::INFO, std::string{msg});
 }
 
-template<typename... Args>
-inline void logInfo(const std::string &tmpl, Args &&...args)
+inline void logWarning(std::string_view msg)
 {
-    logMessage(LogSeverity::INFO, tmpl, std::forward<Args>(args)...);
+    logMessageImpl(LogSeverity::WARNING, std::string{msg});
 }
 
-inline void logWarning(const std::string &tmpl)
+inline void logError(std::string_view msg)
 {
-    logMessage(LogSeverity::WARNING, tmpl);
-}
-
-template<typename... Args>
-inline void logWarning(const std::string &tmpl, Args &&...args)
-{
-    logMessage(LogSeverity::WARNING, tmpl, std::forward<Args>(args)...);
-}
-
-inline void logError(const std::string &tmpl)
-{
-    logMessage(LogSeverity::ERROR, tmpl);
-}
-
-template<typename... Args>
-inline void logError(const std::string &tmpl, Args &&...args)
-{
-    logMessage(LogSeverity::ERROR, tmpl, std::forward<Args>(args)...);
+    logMessageImpl(LogSeverity::ERROR, std::string{msg});
 }
 
 } // namespace ASGenerator

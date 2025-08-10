@@ -88,7 +88,7 @@ public:
     /**
      * Open database using configuration
      */
-    void open(const std::shared_ptr<Config> &conf);
+    void open(const Config &conf);
 
     /**
      * Close the database

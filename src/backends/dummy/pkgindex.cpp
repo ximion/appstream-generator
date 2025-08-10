@@ -34,18 +34,18 @@ void DummyPackageIndex::release()
     m_pkgCache.clear();
 }
 
-std::vector<std::unique_ptr<Package>> DummyPackageIndex::packagesFor(
+std::vector<std::shared_ptr<Package>> DummyPackageIndex::packagesFor(
     const std::string &suite,
     const std::string &section,
     const std::string &arch,
     bool withLongDescs)
 {
-    std::vector<std::unique_ptr<Package>> packages;
-    packages.push_back(std::make_unique<DummyPackage>("test", "1.0", "amd64"));
+    std::vector<std::shared_ptr<Package>> packages;
+    packages.push_back(std::make_shared<DummyPackage>("test", "1.0", "amd64"));
     return packages;
 }
 
-std::unique_ptr<Package> DummyPackageIndex::packageForFile(
+std::shared_ptr<Package> DummyPackageIndex::packageForFile(
     const std::string &fname,
     const std::string &suite,
     const std::string &section)
@@ -55,7 +55,7 @@ std::unique_ptr<Package> DummyPackageIndex::packageForFile(
 }
 
 bool DummyPackageIndex::hasChanges(
-    DataStore *dstore,
+    std::shared_ptr<DataStore> dstore,
     const std::string &suite,
     const std::string &section,
     const std::string &arch)

@@ -24,9 +24,10 @@
 #include <filesystem>
 #include <fstream>
 #include <ranges>
-#include <execution>
 #include <appstream-compose.h>
 #include <gio/gio.h>
+
+#include <tbb/parallel_for_each.h>
 
 #include "config.h"
 #include "logging.h"
@@ -277,7 +278,7 @@ IconHandler::IconHandler(
 
     // Process files in parallel, but synchronize theme and icon file access
     std::mutex themesMutex, iconFilesMutex;
-    std::for_each(std::execution::par_unseq, filesPkids.begin(), filesPkids.end(), [&](const auto &info) {
+    tbb::parallel_for_each(filesPkids.begin(), filesPkids.end(), [&](const auto &info) {
         const std::string &fname = info.first;
         const std::string &pkgid = info.second;
 

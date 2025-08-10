@@ -55,7 +55,7 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
     m_removedComponents.clear();
     m_injectedCustomData.clear();
 
-    const auto fname = fs::path(suite->extraMetainfoDir) / "modifications.json";
+    const auto fname = suite->extraMetainfoDir / "modifications.json";
     if (!fs::exists(fname))
         return;
 

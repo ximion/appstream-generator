@@ -3,7 +3,7 @@
 tests_misc = executable(
     'tests-misc',
     'tests-misc.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('Miscellaneous', tests_misc)
@@ -12,7 +12,7 @@ test('Miscellaneous', tests_misc)
 tests_db = executable(
     'tests-db',
     'tests-db.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('Databases', tests_db)
@@ -21,7 +21,7 @@ test('Databases', tests_db)
 tests_net = executable(
     'tests-net',
     'tests-net.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('Network', tests_net)
@@ -30,7 +30,7 @@ test('Network', tests_net)
 tests_report = executable(
     'tests-report',
     'tests-report.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('ReportGenerator', tests_report)
@@ -39,7 +39,7 @@ test('ReportGenerator', tests_report)
 tests_icons = executable(
     'tests-icons',
     'tests-icons.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('IconHandler', tests_icons)
@@ -48,7 +48,7 @@ test('IconHandler', tests_icons)
 tests_engine = executable(
     'tests-engine',
     'tests-engine.cpp',
-    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
 test('Engine', tests_icons)

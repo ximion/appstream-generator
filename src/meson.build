@@ -9,6 +9,7 @@ asgencpp_src = files(
   'datastore.cpp',
   'dataunits.cpp',
   'downloader.cpp',
+  'engine.cpp',
   'extractor.cpp',
   'hintregistry.cpp',
   'iconhandler.cpp',
@@ -28,6 +29,7 @@ asgencpp_hdr = files(
   'datastore.h',
   'dataunits.h',
   'downloader.h',
+  'engine.h',
   'extractor.h',
   'hintregistry.h',
   'iconhandler.h',
@@ -56,6 +58,7 @@ asgen_deps = [
   lmdb_dep,
   archive_dep,
   curl_dep,
+  tbb_dep,
   inja_dep,
 ]
 

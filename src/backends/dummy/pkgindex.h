@@ -33,26 +33,29 @@ namespace ASGenerator
 class DummyPackageIndex : public PackageIndex
 {
 private:
-    std::unordered_map<std::string, std::vector<std::unique_ptr<Package>>> m_pkgCache;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<Package>>> m_pkgCache;
 
 public:
     DummyPackageIndex(const std::string &dir);
 
     void release() override;
 
-    std::vector<std::unique_ptr<Package>> packagesFor(
+    std::vector<std::shared_ptr<Package>> packagesFor(
         const std::string &suite,
         const std::string &section,
         const std::string &arch,
         bool withLongDescs = true) override;
 
-    std::unique_ptr<Package> packageForFile(
+    std::shared_ptr<Package> packageForFile(
         const std::string &fname,
         const std::string &suite = "",
         const std::string &section = "") override;
 
-    bool hasChanges(DataStore *dstore, const std::string &suite, const std::string &section, const std::string &arch)
-        override;
+    bool hasChanges(
+        std::shared_ptr<DataStore> dstore,
+        const std::string &suite,
+        const std::string &section,
+        const std::string &arch) override;
 };
 
 } // namespace ASGenerator

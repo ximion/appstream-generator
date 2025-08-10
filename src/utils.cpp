@@ -27,7 +27,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
-#include <execution>
 #include <ranges>
 #include <string_view>
 #include <filesystem>
@@ -36,6 +35,8 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
+
+#include <tbb/parallel_for_each.h>
 
 #include "logging.h"
 #include "downloader.h"
@@ -178,7 +179,7 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
     }
 
     // Copy or hardlink files
-    std::for_each(std::execution::par_unseq, files.begin(), files.end(), [&](const fs::path &file) {
+    tbb::parallel_for_each(files.begin(), files.end(), [&](const fs::path &file) {
         const auto relativePath = fs::relative(file, srcPath);
         const auto destFile = destPath / relativePath;
 
@@ -390,6 +391,23 @@ std::string rtrimString(const std::string &s)
         result.end());
 
     return result;
+}
+
+std::string trimString(std::string_view s) noexcept
+{
+    const char *b = s.data();
+    const char *e = b + s.size();
+
+    auto is_space = [](unsigned char c) constexpr noexcept {
+        return c == ' ' || (c >= '\t' && c <= '\r');
+    };
+
+    while (b != e && is_space(static_cast<unsigned char>(*b)))
+        ++b;
+    while (e != b && is_space(static_cast<unsigned char>(e[-1])))
+        --e;
+
+    return std::string(b, e);
 }
 
 std::string joinStrings(const std::vector<std::string> &strings, const std::string &delimiter)

@@ -229,7 +229,7 @@ public:
      * The PackageIndex should cache the data if obtaining it is an expensive
      * operation, since the generator might query the data multiple times.
      **/
-    virtual std::vector<std::unique_ptr<Package>> packagesFor(
+    virtual std::vector<std::shared_ptr<Package>> packagesFor(
         const std::string &suite,
         const std::string &section,
         const std::string &arch,
@@ -242,7 +242,7 @@ public:
      * package is requested.
      * Backends should return null if the feature is not implemented.
      **/
-    virtual std::unique_ptr<Package> packageForFile(
+    virtual std::shared_ptr<Package> packageForFile(
         const std::string &fname,
         const std::string &suite = "",
         const std::string &section = "") = 0;
@@ -255,7 +255,7 @@ public:
      * which means an internal cache is useful.
      */
     virtual bool hasChanges(
-        DataStore *dstore,
+        std::shared_ptr<DataStore> dstore,
         const std::string &suite,
         const std::string &section,
         const std::string &arch) = 0;

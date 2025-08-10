@@ -44,7 +44,7 @@ public:
     void processFor(
         const std::string &suiteName,
         const std::string &section,
-        const std::vector<std::unique_ptr<Package>> &pkgs);
+        const std::vector<std::shared_ptr<Package>> &pkgs);
     void updateIndexPages();
     void exportStatistics();
 
@@ -104,7 +104,7 @@ public:
     DataSummary preprocessInformation(
         const std::string &suiteName,
         const std::string &section,
-        const std::vector<std::unique_ptr<Package>> &pkgs);
+        const std::vector<std::shared_ptr<Package>> &pkgs);
     void saveStatistics(const std::string &suiteName, const std::string &section, const DataSummary &dsum);
 
 private:

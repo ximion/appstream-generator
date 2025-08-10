@@ -56,7 +56,7 @@ struct Suite {
     std::string iconTheme;
     std::vector<std::string> sections;
     std::vector<std::string> architectures;
-    std::string extraMetainfoDir;
+    fs::path extraMetainfoDir;
     bool isImmutable = false;
 };
 
@@ -154,7 +154,7 @@ public:
         const std::string &enforcedExportDir = "");
 
     bool isValid() const;
-    fs::path getTmpDir();
+    fs::path getTmpDir() const;
 
     void setWorkspaceDir(const fs::path &dir);
 
@@ -169,7 +169,7 @@ private:
 
     fs::path m_workspaceDir;
     fs::path m_exportDir;
-    fs::path m_tmpDir;
+    mutable fs::path m_tmpDir;
 
     AscIconPolicy *m_iconPolicy;
 

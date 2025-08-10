@@ -337,9 +337,9 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
     fs::create_directories(m_mediaDir);
 }
 
-void DataStore::open(const std::shared_ptr<Config> &conf)
+void DataStore::open(const Config &conf)
 {
-    open(conf->databaseDir() / "main", conf->mediaExportDir);
+    open(conf.databaseDir() / "main", conf.mediaExportDir);
 }
 
 void DataStore::close()

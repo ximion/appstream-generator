@@ -1,7 +1,7 @@
 
-dummy_src = files(
+backend_dummy_src = files(
   'dummypkg.cpp',
   'pkgindex.cpp',
 )
 
-backends_src += dummy_src
+backends_src += backend_dummy_src

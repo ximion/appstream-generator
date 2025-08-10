@@ -229,14 +229,21 @@ std::string filenameFromURI(const std::string &uri);
  *
  * @param s The string to convert to lowercase.
  */
-std::string toLower(const std::string &s);
+[[nodiscard]] std::string toLower(const std::string &s);
 
 /**
  * Trim whitespace from the right end of a string.
  *
  * @param s The string to trim.
  */
-std::string rtrimString(const std::string &s);
+[[nodiscard]] std::string rtrimString(const std::string &s);
+
+/**
+ * Trim whitespace from both ends of a string.
+ *
+ * @param s The string to trim.
+ */
+[[nodiscard]] std::string trimString(std::string_view s) noexcept;
 
 /**
  * Join a vector of strings with a delimiter.
@@ -244,7 +251,7 @@ std::string rtrimString(const std::string &s);
  * @param strings The strings to join.
  * @param delimiter The delimiter to use.
  */
-std::string joinStrings(const std::vector<std::string> &strings, const std::string &delimiter);
+[[nodiscard]] std::string joinStrings(const std::vector<std::string> &strings, const std::string &delimiter);
 
 /**
  * Split a string by a delimiter character.
@@ -252,12 +259,12 @@ std::string joinStrings(const std::vector<std::string> &strings, const std::stri
  * @param s The string to split.
  * @param delimiter The delimiter character.
  */
-std::vector<std::string> splitString(const std::string &s, char delimiter);
+[[nodiscard]] std::vector<std::string> splitString(const std::string &s, char delimiter);
 
 /**
  * Check if directory is empty
  */
-bool dirEmpty(const std::string &dir);
+[[nodiscard]] bool dirEmpty(const std::string &dir);
 
 } // namespace ASGenerator
 

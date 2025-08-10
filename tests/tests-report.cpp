@@ -83,21 +83,21 @@ public:
     }
 
 protected:
-    std::vector<std::unique_ptr<Package>> createTestPackages()
+    std::vector<std::shared_ptr<Package>> createTestPackages()
     {
-        std::vector<std::unique_ptr<Package>> packages;
+        std::vector<std::shared_ptr<Package>> packages;
 
-        auto pkg1 = std::make_unique<DummyPackage>("testpkg1", "1.0.0", "amd64");
+        auto pkg1 = std::make_shared<DummyPackage>("testpkg1", "1.0.0", "amd64");
         pkg1->setMaintainer("Test Maintainer <test@example.com>");
         pkg1->setFilename("testpkg1_1.0.0_amd64.deb");
         packages.push_back(std::move(pkg1));
 
-        auto pkg2 = std::make_unique<DummyPackage>("testpkg2", "2.0.0", "amd64");
+        auto pkg2 = std::make_shared<DummyPackage>("testpkg2", "2.0.0", "amd64");
         pkg2->setMaintainer("Another Maintainer <another@example.com>");
         pkg2->setFilename("testpkg2_2.0.0_amd64.deb");
         packages.push_back(std::move(pkg2));
 
-        auto pkg3 = std::make_unique<DummyPackage>("testpkg3", "1.5.0", "riscv64");
+        auto pkg3 = std::make_shared<DummyPackage>("testpkg3", "1.5.0", "riscv64");
         pkg3->setMaintainer("Test Maintainer <test@example.com>");
         pkg3->setFilename("testpkg3_1.5.0_i386.deb");
         packages.push_back(std::move(pkg3));

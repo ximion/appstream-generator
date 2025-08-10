@@ -19,26 +19,30 @@
 
 #include "logging.h"
 
-#include <iomanip>
-#include <sstream>
 #include <atomic>
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <sstream>
+#include <syncstream>
 
 namespace ASGenerator
 {
 
-std::atomic_bool __verboseFlag{false};
+std::atomic_bool _verboseFlag{false};
 
-void setVerbose(bool verbose)
+void setVerbose(bool verbose) noexcept
 {
-    __verboseFlag.store(verbose);
+    _verboseFlag.store(verbose);
 }
 
-bool isVerbose()
+bool isVerbose() noexcept
 {
-    return __verboseFlag.load();
+    return _verboseFlag.load();
 }
 
-std::string logSeverityToString(LogSeverity severity)
+constexpr std::string_view logSeverityToString(LogSeverity severity) noexcept
 {
     switch (severity) {
     case LogSeverity::DEBUG:
@@ -52,6 +56,21 @@ std::string logSeverityToString(LogSeverity severity)
     default:
         return "UNKNOWN";
     }
+}
+
+void logMessageImpl(LogSeverity severity, const std::string &message)
+{
+    // Use synchronized output stream for thread safety
+    std::osyncstream sync_out{std::cout};
+
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+
+    std::ostringstream time_stream;
+    time_stream << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+    sync_out << time_stream.str() << " - " << logSeverityToString(severity) << ": " << message << '\n';
 }
 
 } // namespace ASGenerator

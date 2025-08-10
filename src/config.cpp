@@ -345,11 +345,10 @@ void Config::loadFromFile(
     htmlExportDir = makeAbsoluteExportPath(htmlExportDir);
 
     // a place where external metainfo data can be injected
-    auto extraMetainfoDir = (fs::path(m_workspaceDir) / "extra-metainfo").string();
+    auto extraMetainfoDir = m_workspaceDir / "extra-metainfo";
     auto extraMetainfoDirNode = getNodeByKey(root, "ExtraMetainfoDir");
-    if (extraMetainfoDirNode) {
+    if (extraMetainfoDirNode)
         extraMetainfoDir = getNodeStringValue(extraMetainfoDirNode);
-    }
 
     auto caInfoNode = getNodeByKey(root, "CAInfo");
     if (caInfoNode)
@@ -466,9 +465,9 @@ void Config::loadFromFile(
                 }
             }
 
-            auto suiteExtraMIDir = fs::path(extraMetainfoDir) / suite.name;
+            auto suiteExtraMIDir = extraMetainfoDir / suite.name;
             if (fs::exists(suiteExtraMIDir) && fs::is_directory(suiteExtraMIDir))
-                suite.extraMetainfoDir = suiteExtraMIDir.string();
+                suite.extraMetainfoDir = suiteExtraMIDir;
 
             suites.push_back(suite);
         }
@@ -677,7 +676,7 @@ bool Config::isValid() const
 /**
  * Get unique temporary directory to use during one generator run.
  */
-fs::path Config::getTmpDir()
+fs::path Config::getTmpDir() const
 {
     static std::mutex tmpDirMutex;
     std::lock_guard<std::mutex> lock(tmpDirMutex);

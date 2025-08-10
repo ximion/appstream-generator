@@ -151,9 +151,11 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cu
         auto cpt = AS_COMPONENT(g_ptr_array_index(cptsPtrArray, i));
         auto gcid = asc_result_gcid_for_component(cres, cpt);
 
-        // don't run expensive operations if the metadata already exists
+        // don't run expensive operations later if the metadata already exists
         auto existingMData = self->m_dstore->getMetadata(self->m_dtype, gcid);
-        if (!existingMData.empty())
+
+        // skip if no existing metadata is present
+        if (existingMData.empty())
             continue;
 
         const auto bundleId = asc_result_get_bundle_id(cres);
@@ -256,13 +258,15 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
     // process all data
     g_autoptr(GError) error = nullptr;
     if (!asc_compose_run(m_compose, nullptr, &error))
-        throw std::runtime_error(std::format("Failed to run compose process: {}", error ? error->message : "Unknown error"));
+        throw std::runtime_error(
+            std::format("Failed to run compose process: {}", error ? error->message : "Unknown error"));
 
     auto resultsArray = asc_compose_get_results(m_compose);
 
     // we processed one unit, so should always generate one result
     if (resultsArray->len != 1)
-        throw std::runtime_error(std::format("Expected 1 result for data extraction, but retrieved {}.", resultsArray->len));
+        throw std::runtime_error(
+            std::format("Expected 1 result for data extraction, but retrieved {}.", resultsArray->len));
 
     // create result wrapper
     auto ascResult = ASC_RESULT(g_ptr_array_index(resultsArray, 0));

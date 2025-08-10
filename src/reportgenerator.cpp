@@ -352,7 +352,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
 ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
     const std::string &suiteName,
     const std::string &section,
-    const std::vector<std::unique_ptr<Package>> &pkgs)
+    const std::vector<std::shared_ptr<Package>> &pkgs)
 {
     DataSummary dsum;
 
@@ -686,7 +686,7 @@ void ReportGenerator::exportStatistics()
 void ReportGenerator::processFor(
     const std::string &suiteName,
     const std::string &section,
-    const std::vector<std::unique_ptr<Package>> &pkgs)
+    const std::vector<std::shared_ptr<Package>> &pkgs)
 {
     // collect all needed information and save statistics
     auto dsum = preprocessInformation(suiteName, section, pkgs);
