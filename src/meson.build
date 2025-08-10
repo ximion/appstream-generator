@@ -79,3 +79,9 @@ asgen_lib_dep = declare_dependency(
   dependencies: asgen_deps,
   compile_args: asgen_args,
 )
+
+asgen_exe = executable('appstream-generator',
+  ['main.cpp'],
+  dependencies: [asgen_lib_dep],
+  install: true
+)
