@@ -43,3 +43,12 @@ tests_icons = executable(
     include_directories: [src_dir],
 )
 test('IconHandler', tests_icons)
+
+# Engine tests
+tests_engine = executable(
+    'tests-engine',
+    'tests-engine.cpp',
+    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Engine', tests_icons)
