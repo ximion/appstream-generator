@@ -216,6 +216,16 @@ TEST_CASE("Image size operations", "[utils][imagesize]")
 
         REQUIRE(size1.toString() == "64x64");
         REQUIRE(size2.toString() == "128x128@2");
+
+        ImageSize size3("64x64");
+        REQUIRE(size3.width == 64);
+        REQUIRE(size3.height == 64);
+        REQUIRE(size3.scale == 1);
+
+        ImageSize size4("128x128@2");
+        REQUIRE(size4.width == 128);
+        REQUIRE(size4.height == 128);
+        REQUIRE(size4.scale == 2);
     }
 
     SECTION("ImageSize ordering")
@@ -224,10 +234,15 @@ TEST_CASE("Image size operations", "[utils][imagesize]")
         ImageSize medium(64);
         ImageSize large(128);
         ImageSize mediumHiDPI(64, 64, 2);
+        ImageSize largeHiDPI(128, 128, 2);
 
         REQUIRE(small < medium);
         REQUIRE(medium < large);
         REQUIRE(medium < mediumHiDPI); // Same size but higher scale
+
+        REQUIRE(medium < largeHiDPI);
+        REQUIRE(medium == ImageSize(64, 64, 1));
+        REQUIRE_FALSE(medium == largeHiDPI);
     }
 }
 

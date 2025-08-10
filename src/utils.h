@@ -260,3 +260,16 @@ std::vector<std::string> splitString(const std::string &s, char delimiter);
 bool dirEmpty(const std::string &dir);
 
 } // namespace ASGenerator
+
+// Hash function for ImageSize to use in std::unordered_map
+template<>
+struct std::hash<ASGenerator::ImageSize> {
+    std::size_t operator()(const ASGenerator::ImageSize &size) const noexcept
+    {
+        std::size_t h1 = std::hash<std::uint32_t>{}(size.width);
+        std::size_t h2 = std::hash<std::uint32_t>{}(size.height);
+        std::size_t h3 = std::hash<std::uint32_t>{}(size.scale);
+
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+};

@@ -26,7 +26,7 @@ tests_net = executable(
 )
 test('Network', tests_net)
 
-# Network-dependent tests
+# Report generator tests
 tests_report = executable(
     'tests-report',
     'tests-report.cpp',
@@ -34,3 +34,12 @@ tests_report = executable(
     include_directories: [src_dir],
 )
 test('ReportGenerator', tests_report)
+
+# Icon handler tests
+tests_icons = executable(
+    'tests-icons',
+    'tests-icons.cpp',
+    dependencies: [catch2_dep, tbb_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('IconHandler', tests_icons)
