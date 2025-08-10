@@ -17,8 +17,6 @@ apt-get install -yq \
     gdb \
     gcc \
     g++ \
-    gdc \
-    ldc \
     git
 
 # install dependencies
@@ -51,7 +49,6 @@ else
 fi;
 
 eatmydata apt-get install -yq --no-install-recommends \
-    gir-to-d \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev \

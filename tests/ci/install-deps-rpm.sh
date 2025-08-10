@@ -14,16 +14,13 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     gdb \
     gcc \
     gcc-c++ \
-    gcc-gdc \
     git-core \
     meson \
     gettext \
-    gir-to-d \
     gnupg \
     gperf \
     docbook-dtds \
     docbook-style-xsl \
-    ldc \
     libasan \
     libstemmer-devel \
     libubsan \

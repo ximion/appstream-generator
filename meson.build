@@ -1,5 +1,5 @@
-project('AppStream Generator', 'cpp', 'd',
-    meson_version : '>=0.56',
+project('AppStream Generator', 'cpp',
+    meson_version : '>=1.0',
     default_options : ['c_std=c23', 'cpp_std=c++23'],
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',
@@ -18,17 +18,14 @@ fs = import('fs')
 #
 src_dir = include_directories('src/')
 
-glibd_dep     = dependency('glibd-2.0')
-
-glib_dep      = dependency('glib-2.0', version: '>= 2.62')
-appstream_dep = dependency('appstream', version : '>= 1.0.0')
-ascompose_dep = dependency('appstream-compose', version : '>= 1.0.0')
+glib_dep      = dependency('glib-2.0', version: '>= 2.80')
+appstream_dep = dependency('appstream', version : '>= 1.0.5')
+ascompose_dep = dependency('appstream-compose', version : '>= 1.0.5')
 lmdb_dep      = dependency('lmdb', version : '>= 0.9.22')
 archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
 fyaml_dep     = dependency('libfyaml', version : '>= 0.8')
 inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
-
 catch2_dep    = dependency('catch2-with-main')
 tbb_dep       = dependency('tbb')
 
@@ -37,39 +34,6 @@ tbb_dep       = dependency('tbb')
 #
 add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'c')
 add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'cpp')
-
-#
-# Build interfaces from GIR
-#
-girtod_exe = find_program('girtod')
-gir_wrap_dir = source_root + '/contrib/girwrap/'
-gir_d_intf_dir = build_root + '/girepo/'
-
-message('Generating AppStream D interfaces from GIR...')
-girtod_cmdln = [girtod_exe]
-gir_dir = get_option('gir-dir').strip()
-if gir_dir != ''
-    girtod_cmdln += ['-g', gir_dir]
-endif
-girtod_cmdln += [
-    '-i', gir_wrap_dir,
-    '-o', gir_d_intf_dir,
-    '--print-files', 'relative,' + source_root
-]
-girtod_gen = run_command(girtod_cmdln, check: false)
-if girtod_gen.returncode() != 0
-    error('Unable to build D interfaces from GIR:\n' + girtod_gen.stderr())
-endif
-
-gir_bind_dir = include_directories('girepo')
-gir_binding_sources = girtod_gen.stdout().strip().split('\n')
-
-# static library of bindings automatically generated from GIR
-girbind_lib = static_library('girbindings',
-    [gir_binding_sources],
-    include_directories: [gir_bind_dir],
-    dependencies: [glibd_dep]
-)
 
 #
 # Download JS stuff and additional sources if we couldn't find them
@@ -85,7 +49,7 @@ if get_option('download-js')
     endif
 endif
 
-# asgen sources
+# sources
 subdir('src')
 
 # documentation

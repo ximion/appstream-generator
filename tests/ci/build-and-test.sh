@@ -6,15 +6,12 @@
 set -e
 export LANG=C.UTF-8
 
-if [ "$DC" = "ldc" ];
-then
-  export DC=ldc2
-fi
 ROOT_DIR=$(pwd)
 
-echo "D compiler: $DC"
+echo "C compiler: $CC"
+echo "C++ compiler: $CXX"
 set -v
-$DC --version
+$CXX --version
 meson --version
 
 #
@@ -30,10 +27,3 @@ meson test -v --print-errorlogs
 # Test install
 DESTDIR=/tmp/install-ninja ninja install
 cd $ROOT_DIR
-
-#
-# Other checks
-#
-
-# run D-Scanner
-./tests/ci/run-dscanner.py . tests/dscanner.ini || true
