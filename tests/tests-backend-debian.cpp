@@ -20,7 +20,6 @@
 #include "backends/debian/debutils.h"
 
 using namespace ASGenerator;
-namespace fs = std::filesystem;
 
 static struct TestSetup {
     TestSetup()

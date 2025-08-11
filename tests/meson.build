@@ -51,7 +51,7 @@ tests_engine = executable(
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
-test('Engine', tests_icons)
+test('Engine', tests_engine)
 
 # Debian backend tests
 tests_backend_debian = executable(
@@ -60,4 +60,13 @@ tests_backend_debian = executable(
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
-test('Backend - Debian', tests_icons)
+test('Backend - Debian', tests_backend_debian)
+
+# Debian backend tests
+tests_backend_misc = executable(
+    'tests-backend-misc',
+    'tests-backend-misc.cpp',
+    dependencies: [catch2_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Backend - Misc Tests', tests_backend_misc)

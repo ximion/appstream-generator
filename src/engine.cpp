@@ -52,6 +52,7 @@
 #include "backends/debian/debpkgindex.h"
 #include "backends/ubuntu/ubupkgindex.h"
 #include "backends/alpinelinux/apkpkgindex.h"
+#include "backends/archlinux/alpkgindex.h"
 
 namespace ASGenerator
 {
@@ -72,8 +73,7 @@ Engine::Engine()
         m_pkgIndex = std::make_unique<UbuntuPackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::Archlinux:
-        // Would create ArchPackageIndex - implementation depends on availability
-        throw std::runtime_error("Archlinux backend not yet implemented in C++ version");
+        m_pkgIndex = std::make_unique<ArchPackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::RpmMd:
         // Would create RPMPackageIndex - implementation depends on availability
