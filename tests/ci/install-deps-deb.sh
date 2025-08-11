@@ -53,6 +53,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     libarchive-dev \
     libpango1.0-dev \
     libtbb-dev \
+    libunwind-dev \
     $catch2_dep
 eatmydata apt-get install -yq libglibd-2.0-dev || true
 

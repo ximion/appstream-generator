@@ -24,6 +24,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     libasan \
     libstemmer-devel \
     libubsan \
+    libunwind-devel \
     'pkgconfig(cairo)' \
     'pkgconfig(freetype2)' \
     'pkgconfig(fontconfig)' \
