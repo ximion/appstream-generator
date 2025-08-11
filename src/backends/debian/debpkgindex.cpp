@@ -78,11 +78,9 @@ std::string DebianPackageIndex::packageDescToAppStreamDesc(const std::vector<std
 {
     // TODO: We actually need a Markdown-ish parser here if we want
     // to support listings in package descriptions properly.
-    std::string description;
-    description.reserve(80);
-    description += "<p>";
-    bool first = true;
+    std::string description = "<p>";
 
+    bool first = true;
     for (const auto &line : lines) {
         const auto trimmedLine = trimString(line);
         if (trimmedLine == ".") {
@@ -212,6 +210,7 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
         const auto ver = tagf.readField("Version");
         const auto fname = tagf.readField("Filename");
         const auto pkgArch = tagf.readField("Architecture");
+        const auto rawDesc = tagf.readField("Description");
 
         if (name.empty())
             continue;
@@ -222,6 +221,18 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
         auto pkg = newPackage(name, ver, actualArch);
         pkg->setFilename((fs::path(m_rootDir) / fname).string());
         pkg->setMaintainer(tagf.readField("Maintainer"));
+
+        if (!rawDesc.empty()) {
+            // parse old-style descriptions
+            const auto dSplit = splitString(rawDesc, '\n');
+            if (dSplit.size() >= 2) {
+                pkg->setSummary(dSplit[0], "C");
+
+                std::vector<std::string> descLines(dSplit.begin() + 1, dSplit.end());
+                const std::string description = packageDescToAppStreamDesc(descLines);
+                pkg->setDescription(description, "C");
+            }
+        }
 
         // Parse GStreamer information
         auto splitAndTrim = [](const std::string &str) -> std::vector<std::string> {
@@ -303,17 +314,15 @@ std::shared_ptr<Package> DebianPackageIndex::packageForFile(
     pkg->setFilename(fname);
 
     auto tf = pkg->readControlInformation();
-    if (!tf) {
+    if (!tf)
         throw std::runtime_error(std::format("Unable to read control information for package {}", fname));
-    }
 
     pkg->setName(tf->readField("Package"));
     pkg->setVersion(tf->readField("Version"));
     pkg->setArch(tf->readField("Architecture"));
 
-    if (pkg->name().empty() || pkg->ver().empty() || pkg->arch().empty()) {
+    if (pkg->name().empty() || pkg->ver().empty() || pkg->arch().empty())
         throw std::runtime_error(std::format("Unable to get control data for package {}", fname));
-    }
 
     const std::string rawDesc = tf->readField("Description");
     const auto dSplit = splitString(rawDesc, '\n');
