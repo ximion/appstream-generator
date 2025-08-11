@@ -53,7 +53,7 @@
 #include "backends/ubuntu/ubupkgindex.h"
 #include "backends/alpinelinux/apkpkgindex.h"
 #include "backends/archlinux/alpkgindex.h"
-// #include "backends/rpmmd/rpmpkgindex.h"
+#include "backends/rpmmd/rpmpkgindex.h"
 #include "backends/freebsd/fbsdpkgindex.h"
 
 namespace ASGenerator
@@ -78,8 +78,7 @@ Engine::Engine()
         m_pkgIndex = std::make_unique<ArchPackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::RpmMd:
-        // Would create RPMPackageIndex - implementation depends on availability
-        throw std::runtime_error("RPM-MD backend not yet implemented in C++ version");
+        m_pkgIndex = std::make_unique<RPMPackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::Alpinelinux:
         m_pkgIndex = std::make_unique<AlpinePackageIndex>(m_conf->archiveRoot);

@@ -19,6 +19,7 @@
 #include "utils.h"
 
 #include "backends/archlinux/listfile.h"
+#include "backends/rpmmd/rpmpkgindex.h"
 
 using namespace ASGenerator;
 
@@ -75,5 +76,19 @@ a629a0e0eca0d96a97eb3564f01be495772439df6350600c93120f5ac7f3a1b5)";
 
         // Test non-existent entry
         REQUIRE(lf.getEntry("NONEXISTENT").empty());
+    }
+}
+
+TEST_CASE("RPMPackageIndex", "[backend][rpmmd]")
+{
+    SECTION("Load RPM packages from test repository")
+    {
+        auto samplesDir = getTestSamplesDir();
+        auto rpmmdDir = samplesDir / "rpmmd";
+
+        RPMPackageIndex pi(rpmmdDir.string());
+        auto pkgs = pi.packagesFor("26", "Workstation", "x86_64");
+
+        REQUIRE(pkgs.size() == 4);
     }
 }

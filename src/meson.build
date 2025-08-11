@@ -60,6 +60,7 @@ asgen_deps = [
   curl_dep,
   tbb_dep,
   inja_dep,
+  libxml2_dep,
 ]
 
 asgen_args = [

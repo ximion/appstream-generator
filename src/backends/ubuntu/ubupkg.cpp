@@ -104,7 +104,7 @@ void LanguagePackProvider::extractLangpacks()
             localeFiles.push_back(entry.path());
     }
 
-    // Process locale files in parallel (like the original D code with parallel(5))
+    // Process locale files in parallel (batch size of 5)
     tbb::parallel_for(
         tbb::blocked_range<std::size_t>(0, localeFiles.size(), 5),
         [&](const tbb::blocked_range<std::size_t> &range) {
@@ -134,7 +134,6 @@ void LanguagePackProvider::extractLangpacks()
                     logDebug("Generating locale in {}", outdir.string());
 
                     // Execute localedef to generate locale
-                    // Build arguments array like the original D code
                     std::vector<std::string> args = {
                         m_localedefExe,
                         "--no-archive",

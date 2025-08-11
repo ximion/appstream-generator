@@ -264,7 +264,7 @@ public:
             return;
         }
 
-        // Convert the list into a map for faster lookups (like the D code)
+        // Convert the list into a map for faster lookups
         std::unordered_map<std::string, Package *> pkgMap;
         for (const auto &pkg : package_list) {
             const std::string pkid = pkg->id();

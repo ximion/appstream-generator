@@ -119,7 +119,7 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::packagesFor(
 {
     const std::string id = std::format("{}-{}-{}", suite, section, arch);
 
-    // Thread-safe cache access matching D's synchronized(this) block
+    // Thread-safe cache access
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     auto it = m_pkgCache.find(id);
