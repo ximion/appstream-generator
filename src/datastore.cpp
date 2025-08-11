@@ -725,20 +725,40 @@ void DataStore::cleanupCruft()
     const auto &conf = Config::get();
 
     const auto mdirLen = m_mediaDir.string().length();
-    for (const auto &entry : fs::recursive_directory_iterator(m_mediaDir)) {
-        if (!entry.is_directory())
-            continue;
+    if (!fs::exists(m_mediaDir)) {
+        logInfo("Media directory '{}' does not exist.", m_mediaDir.string());
+        return;
+    }
 
-        const auto &path = entry.path().string();
-        if (path.length() <= mdirLen)
-            continue;
+    // Collect all directory paths first to avoid modifying filesystem while iterating
+    std::vector<fs::path> dirsToProcess;
+    try {
+        for (const auto &entry :
+             fs::recursive_directory_iterator(m_mediaDir, fs::directory_options::skip_permission_denied)) {
+            if (!entry.is_directory())
+                continue;
 
-        const std::string relPath = path.substr(mdirLen + 1);
-        const auto pathParts = splitString(relPath, '/');
-        if (pathParts.size() != 4)
-            continue;
+            const auto &path = entry.path();
+            if (path.string().length() <= mdirLen)
+                continue;
 
+            const std::string relPath = path.string().substr(mdirLen + 1);
+            const auto pathParts = splitString(relPath, '/');
+            if (pathParts.size() != 4)
+                continue;
+
+            dirsToProcess.push_back(path);
+        }
+    } catch (const fs::filesystem_error &e) {
+        logWarning("Error while scanning media directory: {}", e.what());
+        return;
+    }
+
+    // Now process the collected directories
+    for (const auto &path : dirsToProcess) {
+        const std::string relPath = path.string().substr(mdirLen + 1);
         const std::string &gcid = relPath;
+
         if (activeGCIDs.contains(gcid))
             continue;
 

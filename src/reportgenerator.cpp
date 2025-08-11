@@ -145,6 +145,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
             }
             entry["architectures"] = architectures;
 
+            entry["has_errors"] = false;
             if (!hentry.errors.empty()) {
                 entry["has_errors"] = true;
                 inja::json errors = inja::json::array();
@@ -157,6 +158,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 entry["errors"] = errors;
             }
 
+            entry["has_warnings"] = false;
             if (!hentry.warnings.empty()) {
                 entry["has_warnings"] = true;
                 inja::json warnings = inja::json::array();
@@ -169,6 +171,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 entry["warnings"] = warnings;
             }
 
+            entry["has_infos"] = false;
             if (!hentry.infos.empty()) {
                 entry["has_infos"] = true;
                 inja::json infos = inja::json::array();
@@ -437,7 +440,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
 
                 auto cpt = as_metadata_get_component(mdata);
                 if (cpt != nullptr) {
-                    g_autoptr(GPtrArray) iconsArr = as_component_get_icons(cpt);
+                    const auto iconsArr = as_component_get_icons(cpt);
                     assert(iconsArr != nullptr);
                     for (guint i = 0; i < iconsArr->len; i++) {
                         AsIcon *icon = AS_ICON(g_ptr_array_index(iconsArr, i));

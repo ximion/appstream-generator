@@ -302,7 +302,7 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
         as_context_set_value_flags(context, valueFlags);
         as_context_set_locale(context, "C");
         const auto cptDesc = as_component_get_description(cpt);
-        if (cptDesc == nullptr || cptDesc[0] == '\0')
+        if (cptDesc != nullptr && cptDesc[0] != '\0')
             continue;
 
         // component doesn't have a long description, add one from the packaging.

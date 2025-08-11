@@ -149,9 +149,8 @@ std::string GeneratorResult::hintsToJson() const
     fy_document_set_root(fyd, root);
 
     // Add package field
-    g_autofree gchar *pkgid = g_strdup(pkid().c_str());
     fy_node *pkgKey = fy_node_create_scalar(fyd, "package", FY_NT);
-    fy_node *pkgValue = fy_node_create_scalar(fyd, pkgid, FY_NT);
+    fy_node *pkgValue = fy_node_create_scalar_copy(fyd, pkid().c_str(), FY_NT);
     fy_node_mapping_append(root, pkgKey, pkgValue);
 
     // Create hints mapping

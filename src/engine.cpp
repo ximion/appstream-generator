@@ -373,7 +373,7 @@ void Engine::exportMetadata(
     hintsFile.str().reserve(512);
 
     // Prepare hints file
-    hintsFile << "[";
+    hintsFile << "[\n";
 
     logInfo("Exporting data for {} ({}/{})", suite.name, section, arch);
 
@@ -438,9 +438,9 @@ void Engine::exportMetadata(
             std::lock_guard<std::mutex> lock(exportMutex);
             if (firstHintEntry) {
                 firstHintEntry = false;
-                hintsFile << hres;
+                hintsFile << rtrimString(hres);
             } else {
-                hintsFile << ",\n" << hres;
+                hintsFile << ",\n" << rtrimString(hres);
             }
         }
     });

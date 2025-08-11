@@ -368,7 +368,7 @@ std::string filenameFromURI(const std::string &uri)
 
 std::string escapeXml(const std::string &s) noexcept
 {
-    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), s.length());
+    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), s.size());
     return std::string(escapedStr);
 }
 

@@ -187,7 +187,7 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
 
         // Add text field
         fy_node *textKey = fy_node_create_scalar(fyd, "text", FY_NT);
-        fy_node *textValue = fy_node_create_scalar(fyd, hdef.explanation.c_str(), FY_NT);
+        fy_node *textValue = fy_node_create_scalar_copy(fyd, hdef.explanation.c_str(), FY_NT);
         fy_node_mapping_append(hintMapping, textKey, textValue);
 
         // Add severity field
@@ -226,7 +226,7 @@ HintDefinition retrieveHintDef(const gchar *tag)
     hdef.severity = asc_globals_hint_tag_severity(tag);
     if (hdef.severity == AS_ISSUE_SEVERITY_UNKNOWN)
         return {};
-    hdef.explanation = asc_globals_hint_tag_explanation(tag);
+    hdef.explanation = std::string(asc_globals_hint_tag_explanation(tag));
     return hdef;
 }
 

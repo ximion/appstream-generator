@@ -22,13 +22,13 @@
       <span style="font-size:16px;">
       <a href="{{package.pkgname}}.html">{{package.pkgname}}</a>&nbsp;
       </span>
-    {% if package.has_info_count %}
+    {% if package.info_count > 0 %}
       <span class="label label-info">Infos: {{package.info_count}}</span>
     {% endif %}
-    {% if package.has_warning_count %}
+    {% if package.warning_count > 0 %}
       <span class="label label-warning">Warnings: {{package.warning_count}}</span>
     {% endif %}
-    {% if package.has_error_count %}
+    {% if package.error_count > 0 %}
       <span class="label label-error">Errors: {{package.error_count}}</span>
     {% endif %}
 

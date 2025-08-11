@@ -263,11 +263,15 @@ int main(int argc, char **argv)
     createXdgRuntimeDir();
 
     int result = 0;
-    try {
+    if (isVerbose()) {
         result = executeCommand(args[1], args, forceAction);
-    } catch (const std::exception &e) {
-        std::cerr << std::format("Error executing command: {}", e.what()) << std::endl;
-        result = 1;
+    } else {
+        try {
+            result = executeCommand(args[1], args, forceAction);
+        } catch (const std::exception &e) {
+            std::cerr << std::format("Error executing command: {}", e.what()) << std::endl;
+            result = 1;
+        }
     }
 
     return result;
