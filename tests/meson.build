@@ -52,3 +52,12 @@ tests_engine = executable(
     include_directories: [src_dir],
 )
 test('Engine', tests_icons)
+
+# Debian backend tests
+tests_backend_debian = executable(
+    'tests-backend-debian',
+    'tests-backend-debian.cpp',
+    dependencies: [catch2_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Backend - Debian', tests_icons)
