@@ -133,7 +133,6 @@ static void asg_package_unit_close_impl(AscUnit *unit)
 
     if (priv->package)
         priv->package->finish();
-    asc_unit_close(ASC_UNIT(pkg_unit));
 }
 
 static gboolean asg_package_unit_dir_exists_impl(AscUnit *unit, const gchar *dirname)

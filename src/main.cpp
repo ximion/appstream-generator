@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "defines.h"
+
 #include <iostream>
 #include <filesystem>
 #include <format>
@@ -27,7 +29,11 @@
 
 #include <glib.h>
 
-#include "defines.h"
+#ifdef HAVE_BACKWARD
+#define BACKWARD_HAS_UNWIND 1
+#include <backward.hpp>
+#endif
+
 #include "logging.h"
 #include "config.h"
 #include "engine.h"
@@ -156,6 +162,12 @@ int main(int argc, char **argv)
     g_autofree gchar *wdir = nullptr;
     g_autofree gchar *exportDir = nullptr;
     g_autofree gchar *configFname = nullptr;
+
+#ifdef HAVE_BACKWARD
+    backward::SignalHandling sh;
+    if (sh.loaded())
+        logDebug("Backward registered for stack-trace printing.");
+#endif
 
     GOptionEntry entries[] = {
         {"help", 'h', 0, G_OPTION_ARG_NONE, &showHelp, "Show help options", nullptr},

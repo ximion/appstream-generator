@@ -225,6 +225,14 @@ std::optional<AsIcon *> componentGetRawIcon(AsComponent *cpt);
 std::string filenameFromURI(const std::string &uri);
 
 /**
+ * Escape XML special characters in a string.
+ *
+ * @param s The string to escape.
+ * @return The escaped string.
+ */
+[[nodiscard]] std::string escapeXml(const std::string &s) noexcept;
+
+/**
  * Convert a string to lowercase.
  *
  * @param s The string to convert to lowercase.

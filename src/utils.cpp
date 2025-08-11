@@ -366,6 +366,12 @@ std::string filenameFromURI(const std::string &uri)
     return bname;
 }
 
+std::string escapeXml(const std::string &s) noexcept
+{
+    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), s.length());
+    return std::string(escapedStr);
+}
+
 std::string toLower(const std::string &s)
 {
     std::string out;

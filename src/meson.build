@@ -44,7 +44,7 @@ asgencpp_hdr = files(
 conf_data = configuration_data()
 conf_data.set_quoted('DATADIR', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
 conf_data.set_quoted('ASGEN_VERSION', asgen_version)
-conf_data.set('BUILD_RPMMD', get_option('rpmmd'))
+conf_data.set('HAVE_BACKWARD', backward_dep.found())
 defines_h = configure_file(
   output: 'defines.h',
   configuration: conf_data
@@ -82,6 +82,9 @@ asgen_lib_dep = declare_dependency(
 
 asgen_exe = executable('appstream-generator',
   ['main.cpp'],
-  dependencies: [asgen_lib_dep],
+  dependencies: [
+    asgen_lib_dep,
+    backward_deps,
+  ],
   install: true
 )

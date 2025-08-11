@@ -424,20 +424,18 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                 me.data = m_dstore->getMetadata(dtype, gcid);
 
                 as_metadata_clear_components(mdata);
-                GError *error = nullptr;
-                if (dtype == DataType::YAML) {
+                g_autoptr(GError) error = nullptr;
+                if (dtype == DataType::YAML)
                     as_metadata_parse_data(mdata, me.data.c_str(), -1, AS_FORMAT_KIND_YAML, &error);
-                } else {
+                else
                     as_metadata_parse_data(mdata, me.data.c_str(), -1, AS_FORMAT_KIND_XML, &error);
-                }
 
                 if (error != nullptr) {
                     logWarning("Failed to parse metadata for {}: {}", gcid, error->message);
-                    g_error_free(error);
                     continue;
                 }
 
-                g_autoptr(AsComponent) cpt = as_metadata_get_component(mdata);
+                auto cpt = as_metadata_get_component(mdata);
                 if (cpt != nullptr) {
                     g_autoptr(GPtrArray) iconsArr = as_component_get_icons(cpt);
                     assert(iconsArr != nullptr);
@@ -507,7 +505,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                             std::string tag = jhintNode["tag"];
 
                             g_autoptr(AscHint) hint = nullptr;
-                            GError *error = nullptr;
+                            g_autoptr(GError) error = nullptr;
                             hint = asc_hint_new_for_tag(tag.c_str(), &error);
                             if (hint == nullptr) {
                                 logError(
@@ -516,7 +514,6 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                                     cid,
                                     pkid,
                                     error ? error->message : "Unknown error");
-                                g_clear_error(&error);
 
                                 // emit an internal error, invalid tags shouldn't happen
                                 tag = "internal-unknown-tag";
