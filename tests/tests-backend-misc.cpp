@@ -29,8 +29,10 @@ static struct TestSetup {
     }
 } testSetup;
 
-TEST_CASE("ListFile parsing", "[backend][archlinux]") {
-    SECTION("Parse Arch Linux package format") {
+TEST_CASE("ListFile parsing", "[backend][archlinux]")
+{
+    SECTION("Parse Arch Linux package format")
+    {
         const std::string testData = R"(%FILENAME%
 a2ps-4.14-6-x86_64.pkg.tar.xz
 

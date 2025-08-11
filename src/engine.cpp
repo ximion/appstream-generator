@@ -53,6 +53,8 @@
 #include "backends/ubuntu/ubupkgindex.h"
 #include "backends/alpinelinux/apkpkgindex.h"
 #include "backends/archlinux/alpkgindex.h"
+// #include "backends/rpmmd/rpmpkgindex.h"
+#include "backends/freebsd/fbsdpkgindex.h"
 
 namespace ASGenerator
 {
@@ -83,8 +85,7 @@ Engine::Engine()
         m_pkgIndex = std::make_unique<AlpinePackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::FreeBSD:
-        // Would create FreeBSDPackageIndex - implementation depends on availability
-        throw std::runtime_error("FreeBSD backend not yet implemented in C++ version");
+        m_pkgIndex = std::make_unique<FreeBSDPackageIndex>(m_conf->archiveRoot);
         break;
     default:
         throw std::runtime_error("No backend specified, can not continue!");
