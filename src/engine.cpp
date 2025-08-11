@@ -51,6 +51,7 @@
 #include "backends/dummy/pkgindex.h"
 #include "backends/debian/debpkgindex.h"
 #include "backends/ubuntu/ubupkgindex.h"
+#include "backends/alpinelinux/apkpkgindex.h"
 
 namespace ASGenerator
 {
@@ -79,8 +80,7 @@ Engine::Engine()
         throw std::runtime_error("RPM-MD backend not yet implemented in C++ version");
         break;
     case Backend::Alpinelinux:
-        // Would create AlpinePackageIndex - implementation depends on availability
-        throw std::runtime_error("Alpine Linux backend not yet implemented in C++ version");
+        m_pkgIndex = std::make_unique<AlpinePackageIndex>(m_conf->archiveRoot);
         break;
     case Backend::FreeBSD:
         // Would create FreeBSDPackageIndex - implementation depends on availability
