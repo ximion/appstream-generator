@@ -226,7 +226,7 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cu
     }
 }
 
-GPtrArray *DataExtractor::translateDesktopTextCallback(const GKeyFile *dePtr, const char *text, void *userData)
+GPtrArray *DataExtractor::translateDesktopTextCallback(GKeyFile *dePtr, const char *text, void *userData)
 {
     auto pkg = *static_cast<Package **>(userData);
     auto res = g_ptr_array_new_with_free_func(g_free);

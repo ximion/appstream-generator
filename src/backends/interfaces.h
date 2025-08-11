@@ -175,7 +175,7 @@ public:
      * (currently only used by the Ubuntu backend)
      */
     virtual std::unordered_map<std::string, std::string> getDesktopFileTranslations(
-        const GKeyFile *desktopFile,
+        GKeyFile *desktopFile,
         const std::string &text)
     {
         return {};

@@ -78,7 +78,7 @@ private:
      * Helper function for translating desktop file text.
      * This is a C callback function for desktop entry translation.
      */
-    static GPtrArray *translateDesktopTextCallback(const GKeyFile *dePtr, const char *text, void *userData);
+    static GPtrArray *translateDesktopTextCallback(GKeyFile *dePtr, const char *text, void *userData);
 };
 
 } // namespace ASGenerator
