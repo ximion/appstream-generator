@@ -4,7 +4,7 @@
 AppStream is an effort to provide additional metadata and unique IDs for all software available in a Linux system.
 This repository contains the server-side of the AppStream infrastructure, a tool to generate metadata from distribution packages. You can find out more about AppStream collection metadata at [Freedesktop](https://www.freedesktop.org/software/appstream/docs/chap-CollectionData.html).
 
-The AppStream generator is currently primarily used by Debian, but is written in a distribution agnostic way. Backends only need to implement [two interfaces](src/asgen/backends/interfaces.d) to be ready.
+The AppStream generator is currently primarily used by Debian, but is written in a distribution agnostic way. Backends only need to implement [two interfaces](src/backends/interfaces.h) to be ready.
 
 If you are looking for the AppStream client-tools, the [AppStream repository](https://github.com/ximion/appstream) is where you want to go.
 
@@ -38,37 +38,40 @@ Take a look at the [docs/](docs/index.md) directory in the source tree for infor
 
 ### Build dependencies
 
- * LDC[1]
- * Meson (>= 0.46) [2]
- * GLibD [3]
- * AppStream [4]
- * libarchive (>= 3.2) [5]
- * LMDB [6]
- * GirToD [7]
- * LibSoup
+This project requires a C++23-capable compiler, GCC >= 14 or Clang >= 18 is recommended.
+
+The following libraries and tools are required to build the generator:
+ * Meson (>= 1.0) [1]
+ * AppStream [2]
+ * libarchive (>= 3.2) [3]
+ * LMDB [4]
+ * Curl
  * Cairo
  * GdkPixbuf 2.0
  * RSvg 2.0
  * FreeType
  * Fontconfig
  * Pango
+ * Inja [5]
+ * Catch2 [6]
+ * oneAPI TBB [7]
  * Yarn (optional) [8]
 
-[1]: https://github.com/ldc-developers/ldc/releases
-[2]: http://mesonbuild.com/
-[3]: https://github.com/gtkd-developers/GlibD
-[4]: https://github.com/ximion/appstream
-[5]: https://libarchive.org/
-[6]: https://symas.com/lmdb/
-[7]: https://github.com/gtkd-developers/gir-to-d
+[1]: http://mesonbuild.com/
+[2]: https://github.com/ximion/appstream
+[3]: https://libarchive.org/
+[4]: https://symas.com/lmdb/
+[5]: https://github.com/pantor/inja
+[6]: https://github.com/catchorg/Catch2
+[7]: https://uxlfoundation.github.io/oneTBB/
 [8]: https://yarnpkg.com/
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
-sudo apt install meson ldc gir-to-d \
+sudo apt install meson g++ \
     libappstream-dev libappstream-compose-dev libsoup2.4-dev libarchive-dev \
     libgdk-pixbuf2.0-dev librsvg2-dev libcairo2-dev libfreetype-dev libfontconfig1-dev \
-    libpango1.0-dev liblmdb-dev libglibd-2.0-dev \
+    libpango1.0-dev liblmdb-dev libtbb-dev libcatch2-dev \
     yarnpkg
 ```
 
@@ -93,4 +96,6 @@ which slows down the generator.
 
 ## Hacking
 
-Pull-requests and patches are very welcome! If you are new to D, it is highly recommended to take a few minutes to look at the D tour to get a feeling of what the language can do: https://tour.dlang.org/
+Pull-requests and patches are very welcome! Using C++23 features is encouraged, if sensible.
+Make sure your code compiles in maintainer mode, and format your changes to adhere to the project's coding style.
+To help with the latter we provide the `autoformat.py` helper script to format code via *clang-format*.
