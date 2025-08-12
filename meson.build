@@ -10,6 +10,7 @@ asgen_version = meson.project_version()
 
 source_root = meson.project_source_root()
 build_root = meson.project_build_root()
+cxx = meson.get_compiler('cpp')
 
 fs = import('fs')
 
@@ -38,11 +39,81 @@ if backward_dep.found()
     backward_deps = [backward_dep, libunwind_dep]
 endif
 
+# Ensure we have a compiler that can handle the C++23 features we need
+if cxx.get_id() == 'gcc'
+    if not cxx.version().version_compare('>=14.0')
+        error('GCC 14 or newer is required to build this project')
+    endif
+elif cxx.get_id() == 'clang'
+    if not cxx.version().version_compare('>=18.0')
+        error('Clang 18 or newer is required to build this project')
+    endif
+endif
+
 #
 # Compiler flags
 #
 add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'c')
 add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'cpp')
+
+if get_option('maintainer')
+    maintainer_c_args = [
+        '-Werror',
+        '-Wall',
+        '-Wextra',
+        '-Wcast-align',
+        '-Wno-uninitialized',
+        '-Wempty-body',
+        '-Wformat-security',
+        '-Winit-self',
+        '-Wnull-dereference',
+        '-Winline',
+        '-Wmaybe-uninitialized',
+    ]
+    maintainer_cpp_args = [
+        '-Wsuggest-final-methods'
+    ]
+
+    add_project_arguments(maintainer_c_args, language: 'c')
+    add_project_arguments([maintainer_c_args, maintainer_cpp_args], language: 'cpp')
+endif
+
+# a few compiler warning/error flags we always want enabled
+add_project_arguments(
+    '-Werror=shadow',
+    '-Werror=empty-body',
+    '-Werror=missing-prototypes',
+    '-Werror=implicit-function-declaration',
+    '-Werror=missing-declarations',
+    '-Werror=return-type',
+    '-Werror=int-conversion',
+    '-Werror=incompatible-pointer-types',
+    '-Werror=misleading-indentation',
+    '-Werror=format-security',
+
+    '-Wno-missing-field-initializers',
+    '-Wno-error=missing-field-initializers',
+    '-Wno-unused-parameter',
+    '-Wno-error=unused-parameter',
+    language: 'c'
+)
+add_project_arguments(
+    cxx.get_supported_arguments([
+        '-Werror=empty-body',
+        '-Werror=pointer-arith',
+        '-Werror=missing-declarations',
+        '-Werror=return-type',
+        '-Werror=misleading-indentation',
+        '-Werror=format-security',
+        #'-Werror=suggest-override', -- we can't enable this, Inja is missing overrides
+
+        '-Wno-missing-field-initializers',
+        '-Wno-error=missing-field-initializers',
+        '-Wno-unused-parameter',
+        '-Wno-error=unused-parameter',
+     ]),
+    language: 'cpp'
+)
 
 #
 # Download JS stuff and additional sources if we couldn't find them
@@ -58,14 +129,10 @@ if get_option('download-js')
     endif
 endif
 
-# sources
+#
+# Subdirs
+#
 subdir('src')
-
-# documentation
-subdir('docs')
-
-# data
 subdir('data')
-
-# tests
 subdir('tests')
+subdir('docs')

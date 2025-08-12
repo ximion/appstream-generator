@@ -53,15 +53,6 @@ void RPMPackageIndex::release()
     m_pkgCache.clear();
 }
 
-void setPkgDescription(const std::shared_ptr<RPMPackage> &pkg, const std::string &pkgDesc)
-{
-    if (pkgDesc.empty())
-        return;
-
-    const std::string desc = std::format("<p>{}</p>", escapeXml(pkgDesc));
-    pkg->setDescription(desc, "C");
-}
-
 static std::string getXmlStrAttr(xmlNodePtr elem, const std::string &name)
 {
     if (!elem || !elem->properties)
