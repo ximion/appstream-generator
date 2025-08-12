@@ -540,7 +540,7 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
                 data = metadataStr;
 
                 // remove trailing whitespaces and linebreaks
-                data = rtrimString(data);
+                data = Utils::rtrimString(data);
             }
         } catch (const std::exception &e) {
             gres.addHint(cpt, "metadata-serialization-failed", e.what());
@@ -566,7 +566,7 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
         putKeyValue(m_dbPackages, gres.pkid(), "seen");
     } else {
         // store global component IDs for this package as newline-separated list
-        std::string gcidVal = joinStrings(gcids, "\n");
+        std::string gcidVal = Utils::joinStrings(gcids, "\n");
         putKeyValue(m_dbPackages, gres.pkid(), gcidVal);
     }
 }
@@ -579,7 +579,7 @@ std::vector<std::string> DataStore::getGCIDsForPackage(const std::string &pkid)
     }
 
     std::vector<std::string> validCids;
-    const auto cids = splitString(pkval, '\n');
+    const auto cids = Utils::splitString(pkval, '\n');
     for (const auto &cid : cids) {
         if (!cid.empty())
             validCids.push_back(cid);
@@ -644,7 +644,7 @@ std::unordered_set<std::string> DataStore::getActiveGCIDs()
             if (pkval == "ignore" || pkval == "seen")
                 continue;
 
-            const auto gcidList = splitString(pkval, '\n');
+            const auto gcidList = Utils::splitString(pkval, '\n');
             for (const auto &gcid : gcidList) {
                 if (!gcid.empty())
                     gcids.insert(gcid);
@@ -700,11 +700,11 @@ void DataStore::cleanupDirs(const std::string &rootPath)
     if (!fs::exists(pdir))
         return;
 
-    if (dirEmpty(pdir))
+    if (Utils::dirEmpty(pdir))
         fs::remove(pdir);
 
     pdir = pdir.parent_path();
-    if (dirEmpty(pdir))
+    if (Utils::dirEmpty(pdir))
         fs::remove(pdir);
 }
 
@@ -743,7 +743,7 @@ void DataStore::cleanupCruft()
                 continue;
 
             const std::string relPath = path.string().substr(mdirLen + 1);
-            const auto pathParts = splitString(relPath, '/');
+            const auto pathParts = Utils::splitString(relPath, '/');
             if (pathParts.size() != 4)
                 continue;
 

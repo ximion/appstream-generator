@@ -26,9 +26,9 @@ static struct TestSetup {
 
 TEST_CASE("Engine with test data", "[engine][integration]")
 {
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
-    auto samplesDir = getTestSamplesDir();
+    auto samplesDir = Utils::getTestSamplesDir();
 
     SECTION("Test init with Debian backend")
     {
@@ -49,13 +49,13 @@ TEST_CASE("Engine with test data", "[engine][integration]")
 
 TEST_CASE("Engine package info functionality", "[engine]")
 {
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
 
     auto &config = Config::get();
     config.backend = Backend::Dummy;
     config.setWorkspaceDir("/tmp");
-    config.archiveRoot = (getTestSamplesDir() / "debian").string();
+    config.archiveRoot = (Utils::getTestSamplesDir() / "debian").string();
 
     Engine engine;
 

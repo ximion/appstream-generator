@@ -20,10 +20,9 @@
 #include "result.h"
 #include "backends/dummy/dummypkg.h"
 #include "cptmodifiers.h"
-#include "datainjectpkg.h"
 
 using namespace ASGenerator;
-namespace fs = std::filesystem;
+using namespace ASGenerator::Utils;
 
 static struct TestSetup {
     TestSetup()
@@ -45,7 +44,7 @@ TEST_CASE("Compressed empty file decompresses to empty string", "[zarchive]")
 
 TEST_CASE("Extracting a tarball", "[zarchive]")
 {
-    std::string archive = fs::path(getTestSamplesDir()) / "test.tar.xz";
+    std::string archive = fs::path(Utils::getTestSamplesDir()) / "test.tar.xz";
     REQUIRE(fs::exists(archive));
     ArchiveDecompressor ar;
 

@@ -32,7 +32,7 @@ static struct TestSetup {
 
 TEST_CASE("IconHandler", "[IconHandler]")
 {
-    auto hicolorThemeIndex = getDataPath("hicolor-theme-index.theme");
+    auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
 
     // Read theme index data
     std::vector<std::uint8_t> indexData;
@@ -81,7 +81,7 @@ TEST_CASE("IconHandler", "[IconHandler]")
 
 TEST_CASE("Theme parsing", "[Theme]")
 {
-    auto hicolorThemeIndex = getDataPath("hicolor-theme-index.theme");
+    auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
     REQUIRE(std::filesystem::exists(hicolorThemeIndex));
 
     std::vector<std::uint8_t> indexData;

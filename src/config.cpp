@@ -99,7 +99,7 @@ fs::path Config::templateDir() const
     tdir = getVendorTemplateDir(tdir, true);
 
     if (tdir.empty())
-        tdir = getVendorTemplateDir(getDataPath("templates"));
+        tdir = getVendorTemplateDir(Utils::getDataPath("templates"));
 
     return tdir;
 }
@@ -115,16 +115,16 @@ AscIconPolicy *Config::iconPolicy() const
 fs::path Config::getVendorTemplateDir(const std::string &dir, bool allowRoot) const
 {
     if (!projectName.empty()) {
-        auto tdir = (fs::path(dir) / toLower(projectName)).string();
-        if (existsAndIsDir(tdir))
+        auto tdir = (fs::path(dir) / Utils::toLower(projectName)).string();
+        if (Utils::existsAndIsDir(tdir))
             return tdir;
     }
 
     auto tdir = (fs::path(dir) / "default").string();
-    if (existsAndIsDir(tdir))
+    if (Utils::existsAndIsDir(tdir))
         return tdir;
 
-    if (allowRoot && existsAndIsDir(dir))
+    if (allowRoot && Utils::existsAndIsDir(dir))
         return dir;
 
     return {};
@@ -372,7 +372,7 @@ void Config::loadFromFile(
     std::string backendId = "debian";
     auto backendNode = getNodeByKey(root, "Backend");
     if (backendNode)
-        backendId = toLower(getNodeStringValue(backendNode));
+        backendId = Utils::toLower(getNodeStringValue(backendNode));
 
     if (backendId == "dummy") {
         backendName = "Dummy";
@@ -407,7 +407,7 @@ void Config::loadFromFile(
     // override the backend's default metadata type if requested by user
     auto metadataTypeNode = getNodeByKey(root, "MetadataType");
     if (metadataTypeNode) {
-        auto mdataTypeStr = toLower(getNodeStringValue(metadataTypeNode));
+        auto mdataTypeStr = Utils::toLower(getNodeStringValue(metadataTypeNode));
         if (mdataTypeStr == "yaml") {
             metadataType = DataType::YAML;
         } else if (mdataTypeStr == "xml") {
@@ -688,7 +688,7 @@ fs::path Config::getTmpDir() const
         else
             root = cacheRootDir();
 
-        m_tmpDir = fs::path(root) / "tmp" / std::format("asgen-{}", randomString(8));
+        m_tmpDir = fs::path(root) / "tmp" / std::format("asgen-{}", Utils::randomString(8));
 
         // make appstream-compose internal functions aware of the new temp dir
         asc_globals_set_tmp_dir(m_tmpDir.c_str());

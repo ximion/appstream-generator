@@ -46,7 +46,7 @@ void ArchPackageIndex::setPkgDescription(std::shared_ptr<ArchPackage> pkg, const
     if (pkgDesc.empty())
         return;
 
-    const std::string desc = std::format("<p>{}</p>", escapeXml(pkgDesc));
+    const std::string desc = std::format("<p>{}</p>", Utils::escapeXml(pkgDesc));
     pkg->setDescription(desc, "C");
 }
 
@@ -102,7 +102,7 @@ std::vector<std::shared_ptr<ArchPackage>> ArchPackageIndex::loadPackages(
 
             const std::string filesRaw = filesF.getEntry("FILES");
             if (!filesRaw.empty()) {
-                auto filesList = splitString(filesRaw, '\n');
+                auto filesList = Utils::splitString(filesRaw, '\n');
 
                 // add leading slash to files that don't have one
                 for (auto &file : filesList) {

@@ -63,7 +63,7 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
     while (std::getline(metaFile, line)) {
         if (line.starts_with("data")) {
             // data = "data";
-            auto splitResult = splitString(line, '"');
+            auto splitResult = Utils::splitString(line, '"');
             if (splitResult.size() == 3) {
                 dataFname = splitResult[1];
                 break;

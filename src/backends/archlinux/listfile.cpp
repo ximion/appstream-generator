@@ -29,7 +29,7 @@ ListFile::ListFile() {}
 void ListFile::loadData(const std::vector<std::uint8_t> &data)
 {
     std::string dataStr(data.begin(), data.end());
-    auto content = splitString(dataStr, '\n');
+    auto content = Utils::splitString(dataStr, '\n');
 
     std::string blockName;
     for (const auto &line : content) {

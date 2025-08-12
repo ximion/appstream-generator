@@ -316,7 +316,7 @@ IconHandler::IconHandler(
     // we inject our own copy here.
     if (tmpThemes.find("hicolor") == tmpThemes.end()) {
         logInfo("No packaged hicolor icon theme found, using built-in one.");
-        auto hicolorThemeIndex = getDataPath("hicolor-theme-index.theme");
+        auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
         if (!fs::exists(hicolorThemeIndex)) {
             logError(
                 "Hicolor icon theme index at '{}' was not found! We will not be able to handle icons in this theme.",
@@ -369,7 +369,7 @@ std::string IconHandler::getIconNameAndClear(AsComponent *cpt) const
 
     // a not-processed icon name is stored as "1x1px" icon, so we can
     // quickly identify it here.
-    auto icon = componentGetRawIcon(cpt);
+    auto icon = Utils::componentGetRawIcon(cpt);
     if (icon.has_value()) {
         if (as_icon_get_kind(icon.value()) == AS_ICON_KIND_LOCAL) {
             const auto filename = as_icon_get_filename(icon.value());

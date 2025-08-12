@@ -31,7 +31,6 @@
 
 namespace ASGenerator
 {
-
 inline constexpr std::size_t GENERIC_BUFFER_SIZE = 8192;
 namespace fs = std::filesystem;
 
@@ -116,6 +115,9 @@ struct ImageSize {
     bool operator==(const ImageSize &other) const = default;
     // clang-format on
 };
+
+namespace Utils
+{
 
 /**
  * Generate a random alphanumeric string.
@@ -273,6 +275,8 @@ std::string filenameFromURI(const std::string &uri);
  * Check if directory is empty
  */
 [[nodiscard]] bool dirEmpty(const std::string &dir);
+
+} // namespace Utils
 
 } // namespace ASGenerator
 

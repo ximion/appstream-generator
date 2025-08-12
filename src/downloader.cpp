@@ -143,7 +143,7 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
     std::ofstream &dest,
     std::uint32_t maxTryCount)
 {
-    if (!isRemote(url))
+    if (!Utils::isRemote(url))
         throw DownloadException("URL is not remote");
 
     std::optional<std::chrono::system_clock::time_point> lastModified;
@@ -236,7 +236,7 @@ std::optional<std::chrono::system_clock::time_point> Downloader::download(
 
 std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint32_t maxTryCount)
 {
-    if (!isRemote(url))
+    if (!Utils::isRemote(url))
         throw DownloadException("URL is not remote");
 
     std::vector<std::uint8_t> buffer;
@@ -319,7 +319,7 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
 
 void Downloader::downloadFile(const std::string &url, const std::string &dest, std::uint32_t maxTryCount)
 {
-    if (!isRemote(url))
+    if (!Utils::isRemote(url))
         throw DownloadException("URL is not remote");
 
     if (fs::exists(dest)) {

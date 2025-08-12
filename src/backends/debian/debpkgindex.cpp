@@ -38,7 +38,7 @@ DebianPackageIndex::DebianPackageIndex(const std::string &dir)
     : m_rootDir(dir)
 {
     m_pkgCache.clear();
-    if (!isRemote(dir) && !fs::exists(dir))
+    if (!Utils::isRemote(dir) && !fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
 
     const auto &conf = Config::get();
@@ -59,7 +59,7 @@ std::vector<std::string> DebianPackageIndex::findTranslations(const std::string 
 
     std::unordered_set<std::string> translations;
     try {
-        const auto inReleaseContents = getTextFileContents(inRelease);
+        const auto inReleaseContents = Utils::getTextFileContents(inRelease);
 
         for (const auto &entry : inReleaseContents) {
             std::smatch match;
@@ -82,7 +82,7 @@ std::string DebianPackageIndex::packageDescToAppStreamDesc(const std::vector<std
 
     bool first = true;
     for (const auto &line : lines) {
-        const auto trimmedLine = trimString(line);
+        const auto trimmedLine = Utils::trimString(line);
         if (trimmedLine == ".") {
             description += "</p>\n<p>";
             first = true;
@@ -94,7 +94,7 @@ std::string DebianPackageIndex::packageDescToAppStreamDesc(const std::vector<std
         else
             description += " ";
 
-        description += escapeXml(trimmedLine);
+        description += Utils::escapeXml(trimmedLine);
     }
     description += "</p>";
 
@@ -107,7 +107,7 @@ void DebianPackageIndex::loadPackageLongDescs(
     const std::string &section)
 {
     const auto langs = findTranslations(suite, section);
-    logDebug("Found translations for: {}", joinStrings(langs, ", "));
+    logDebug("Found translations for: {}", Utils::joinStrings(langs, ", "));
 
     for (const auto &lang : langs) {
         std::string fname;
@@ -149,7 +149,7 @@ void DebianPackageIndex::loadPackageLongDescs(
                 m_l10nTextIndex[textPkgId] = l10nTexts;
             }
 
-            const auto lines = splitString(rawDesc, '\n');
+            const auto lines = Utils::splitString(rawDesc, '\n');
             if (lines.size() < 2)
                 continue;
 
@@ -224,7 +224,7 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
 
         if (!rawDesc.empty()) {
             // parse old-style descriptions
-            const auto dSplit = splitString(rawDesc, '\n');
+            const auto dSplit = Utils::splitString(rawDesc, '\n');
             if (dSplit.size() >= 2) {
                 pkg->setSummary(dSplit[0], "C");
 
@@ -238,9 +238,9 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
         auto splitAndTrim = [](const std::string &str) -> std::vector<std::string> {
             if (str.empty())
                 return {};
-            auto parts = splitString(str, ';');
+            auto parts = Utils::splitString(str, ';');
             for (auto &part : parts) {
-                part = trimString(part);
+                part = Utils::trimString(part);
             }
             return parts;
         };
@@ -325,7 +325,7 @@ std::shared_ptr<Package> DebianPackageIndex::packageForFile(
         throw std::runtime_error(std::format("Unable to get control data for package {}", fname));
 
     const std::string rawDesc = tf->readField("Description");
-    const auto dSplit = splitString(rawDesc, '\n');
+    const auto dSplit = Utils::splitString(rawDesc, '\n');
     if (dSplit.size() >= 2) {
         pkg->setSummary(dSplit[0], "C");
 

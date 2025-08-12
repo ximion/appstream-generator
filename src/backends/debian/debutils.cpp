@@ -57,7 +57,7 @@ std::string downloadIfNecessary(
         const std::string fileName = (fs::path(prefix) / formattedSuffix).string();
         const std::string destFileName = (fs::path(destPrefix) / (formattedSuffix + "." + ext)).string();
 
-        if (isRemote(fileName)) {
+        if (Utils::isRemote(fileName)) {
             try {
                 downloader->downloadFile(fileName, destFileName);
                 return destFileName;

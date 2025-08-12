@@ -142,7 +142,7 @@ std::string DebPackage::getFilename()
     if (!m_localDebFname.empty())
         return m_localDebFname;
 
-    if (isRemote(m_debFname)) {
+    if (Utils::isRemote(m_debFname)) {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto &dl = Downloader::get();
         const fs::path path = m_tmpDir / fs::path(m_debFname).filename();
@@ -290,9 +290,9 @@ const std::vector<std::string> &DebPackage::contents()
     m_contentsL.clear();
     m_contentsL.reserve(20);
 
-    const auto lines = splitString(md5sums, '\n');
+    const auto lines = Utils::splitString(md5sums, '\n');
     for (const auto &line : lines) {
-        // Split on double space - need to use a different approach since splitString only takes char
+        // Split on double space - need to use a different approach since Utils::splitString only takes char
         const auto doublespace = line.find("  ");
         if (doublespace == std::string::npos || doublespace == 0)
             continue;

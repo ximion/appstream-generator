@@ -125,14 +125,14 @@ const std::vector<std::string> &DataInjectPackage::contents()
     if (!m_contents.empty())
         return m_contentsVector;
 
-    if (m_dataLocation.empty() || !existsAndIsDir(m_dataLocation)) {
+    if (m_dataLocation.empty() || !Utils::existsAndIsDir(m_dataLocation)) {
         m_contentsVector.clear();
         return m_contentsVector;
     }
 
     // find all icons
     const auto iconLocation = fs::path(m_dataLocation) / "icons";
-    if (existsAndIsDir(iconLocation)) {
+    if (Utils::existsAndIsDir(iconLocation)) {
         try {
             for (const auto &entry : fs::recursive_directory_iterator(iconLocation)) {
                 if (entry.is_regular_file()) {
@@ -154,7 +154,7 @@ const std::vector<std::string> &DataInjectPackage::contents()
     }
 
     // find metainfo files
-    if (existsAndIsDir(m_dataLocation)) {
+    if (Utils::existsAndIsDir(m_dataLocation)) {
         try {
             for (const auto &entry : fs::directory_iterator(m_dataLocation)) {
                 if (entry.is_regular_file()) {
@@ -172,7 +172,7 @@ const std::vector<std::string> &DataInjectPackage::contents()
         }
     }
 
-    if (m_archDataLocation.empty() || !existsAndIsDir(m_archDataLocation))
+    if (m_archDataLocation.empty() || !Utils::existsAndIsDir(m_archDataLocation))
         goto build_vector;
 
     // load arch-specific override metainfo files

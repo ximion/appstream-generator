@@ -35,7 +35,7 @@ ApkIndexBlockRange::ApkIndexBlockRange(const std::string &contents)
     : m_lineDelta(0),
       m_empty(false)
 {
-    m_lines = splitString(contents, '\n');
+    m_lines = Utils::splitString(contents, '\n');
     getNextBlock();
 }
 
@@ -61,7 +61,7 @@ void ApkIndexBlockRange::getNextBlock()
                 continue;
             }
 
-            const auto joinedPair = joinStrings(completePair, " ");
+            const auto joinedPair = Utils::joinStrings(completePair, " ");
             const auto colonPos = joinedPair.find(':');
             if (colonPos != std::string::npos) {
                 const auto key = joinedPair.substr(0, colonPos);
@@ -70,13 +70,13 @@ void ApkIndexBlockRange::getNextBlock()
             }
             completePair = {currentLine};
         } else {
-            completePair.push_back(trimString(currentLine));
+            completePair.push_back(Utils::trimString(currentLine));
         }
     }
 
     // Handle the last pair if we reached the end
     if (!completePair.empty()) {
-        const auto joinedPair = joinStrings(completePair, " ");
+        const auto joinedPair = Utils::joinStrings(completePair, " ");
         const auto colonPos = joinedPair.find(':');
         if (colonPos != std::string::npos) {
             const auto key = joinedPair.substr(0, colonPos);
@@ -91,7 +91,7 @@ void ApkIndexBlockRange::getNextBlock()
 
 void ApkIndexBlockRange::setCurrentBlock(const std::string &key, const std::string &value)
 {
-    const auto trimmedValue = trimString(value);
+    const auto trimmedValue = Utils::trimString(value);
 
     if (key == "P") {
         m_currentBlock.pkgname = trimmedValue;
@@ -172,7 +172,7 @@ std::string downloadIfNecessary(
     const std::string fullPath = (fs::path(apkRootPath) / fileName).string();
     const std::string cachePath = (fs::path(tmpDir) / cacheFileName).string();
 
-    if (isRemote(fullPath)) {
+    if (Utils::isRemote(fullPath)) {
         fs::create_directories(tmpDir);
         auto &dl = Downloader::get();
         dl.downloadFile(fullPath, cachePath);

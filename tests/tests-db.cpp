@@ -35,7 +35,7 @@ static struct TestSetup {
 TEST_CASE("ContentsStore basic operations", "[contentsstore]")
 {
     // Create temporary directory for test database
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
 
     SECTION("Constructor and basic lifecycle")
@@ -245,7 +245,7 @@ TEST_CASE("ContentsStore basic operations", "[contentsstore]")
 
 TEST_CASE("ContentsStore thread safety", "[contentsstore][threading]")
 {
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-mt-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-test-mt-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
 
     ContentsStore store;
@@ -282,8 +282,8 @@ TEST_CASE("ContentsStore thread safety", "[contentsstore][threading]")
 TEST_CASE("DataStore basic operations", "[datastore]")
 {
     // Create temporary directory for test database
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-datastore-test-{}", randomString(8));
-    auto mediaDir = fs::temp_directory_path() / std::format("asgen-media-test-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-datastore-test-{}", Utils::randomString(8));
+    auto mediaDir = fs::temp_directory_path() / std::format("asgen-media-test-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
     fs::create_directories(mediaDir);
 
@@ -654,8 +654,8 @@ Name:
 
 TEST_CASE("DataStore thread safety", "[datastore][threading]")
 {
-    auto tempDir = fs::temp_directory_path() / std::format("asgen-datastore-test-mt-{}", randomString(8));
-    auto mediaDir = fs::temp_directory_path() / std::format("asgen-media-test-mt-{}", randomString(8));
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-datastore-test-mt-{}", Utils::randomString(8));
+    auto mediaDir = fs::temp_directory_path() / std::format("asgen-media-test-mt-{}", Utils::randomString(8));
     fs::create_directories(tempDir);
     fs::create_directories(mediaDir);
 

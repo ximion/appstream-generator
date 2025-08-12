@@ -46,7 +46,7 @@ void loadHintsRegistry()
     }
 
     // find the hint definition file
-    auto hintsDefFile = getDataPath("asgen-hints.json");
+    auto hintsDefFile = Utils::getDataPath("asgen-hints.json");
     if (!std::filesystem::exists(hintsDefFile)) {
         logError(
             "Hints definition file '{}' was not found! This means we can not determine severity of issue tags and not "

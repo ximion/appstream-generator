@@ -88,7 +88,7 @@ std::string AlpinePackage::getFilename()
     if (!m_localPkgFName.empty())
         return m_localPkgFName;
 
-    if (isRemote(m_pkgFname)) {
+    if (Utils::isRemote(m_pkgFname)) {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto &dl = Downloader::get();
         const auto path = m_tmpDir / fs::path(m_pkgFname).filename();

@@ -81,7 +81,7 @@ std::string RPMPackage::getFilename()
     if (!m_localPkgFname.empty())
         return m_localPkgFname;
 
-    if (isRemote(m_pkgFname)) {
+    if (Utils::isRemote(m_pkgFname)) {
         std::lock_guard<std::mutex> lock(m_mutex);
         const auto &conf = Config::get();
         auto &dl = Downloader::get();
@@ -148,7 +148,7 @@ void RPMPackage::finish()
         m_archive->close();
 
     try {
-        if (isRemote(m_pkgFname) && fs::exists(m_localPkgFname)) {
+        if (Utils::isRemote(m_pkgFname) && fs::exists(m_localPkgFname)) {
             logDebug("Deleting temporary package file {}", m_localPkgFname.string());
             fs::remove(m_localPkgFname);
             m_localPkgFname.clear();

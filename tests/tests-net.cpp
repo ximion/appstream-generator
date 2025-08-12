@@ -57,7 +57,7 @@ TEST_CASE("Downloader functionality", "[downloader][network]")
 
     SECTION("File download functionality")
     {
-        const std::string testFileName = "/tmp/asgen-test-ffdp-" + randomString(4);
+        const std::string testFileName = "/tmp/asgen-test-ffdp-" + Utils::randomString(4);
 
         // Clean up file on exit
         auto cleanup = [&testFileName]() {
@@ -85,7 +85,7 @@ TEST_CASE("Downloader functionality", "[downloader][network]")
 
     SECTION("Download larger file")
     {
-        const std::string testFileName = "/tmp/asgen-test-debian-" + randomString(4);
+        const std::string testFileName = "/tmp/asgen-test-debian-" + Utils::randomString(4);
 
         auto cleanup = [&testFileName]() {
             if (std::filesystem::exists(testFileName)) {
@@ -109,7 +109,7 @@ TEST_CASE("Downloader functionality", "[downloader][network]")
 
     SECTION("Error handling for non-existent file")
     {
-        const std::string testFileName = "/tmp/asgen-dltest-" + randomString(4);
+        const std::string testFileName = "/tmp/asgen-dltest-" + Utils::randomString(4);
 
         auto cleanup = [&testFileName]() {
             if (std::filesystem::exists(testFileName)) {
@@ -130,7 +130,7 @@ TEST_CASE("Downloader functionality", "[downloader][network]")
 
     SECTION("HTTP to HTTPS redirect handling")
     {
-        const std::string testFileName = "/tmp/asgen-test-mozilla-" + randomString(4);
+        const std::string testFileName = "/tmp/asgen-test-mozilla-" + Utils::randomString(4);
 
         auto cleanup = [&testFileName]() {
             if (std::filesystem::exists(testFileName)) {
@@ -209,7 +209,7 @@ TEST_CASE("Downloader file skipping", "[downloader]")
 
     SECTION("Skip download if file already exists")
     {
-        const std::string testFileName = "/tmp/asgen-test-existing-" + randomString(4);
+        const std::string testFileName = "/tmp/asgen-test-existing-" + Utils::randomString(4);
 
         // Create a file first
         {

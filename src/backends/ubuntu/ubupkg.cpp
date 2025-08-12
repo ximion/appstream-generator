@@ -114,15 +114,15 @@ void LanguagePackProvider::extractLangpacks()
                 std::string line;
 
                 while (std::getline(file, line)) {
-                    line = trimString(line);
+                    line = Utils::trimString(line);
                     if (line.empty())
                         continue;
 
-                    const auto components = splitString(line, ' ');
+                    const auto components = Utils::splitString(line, ' ');
                     if (components.size() < 2)
                         continue;
 
-                    const auto localeCharset = splitString(components[0], '.');
+                    const auto localeCharset = Utils::splitString(components[0], '.');
                     if (localeCharset.empty())
                         continue;
 

@@ -38,7 +38,7 @@ namespace ASGenerator
 AlpinePackageIndex::AlpinePackageIndex(const std::string &dir)
     : m_rootDir(dir)
 {
-    if (!isRemote(dir) && !fs::exists(dir))
+    if (!Utils::isRemote(dir) && !fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
 
     const auto &conf = Config::get();
@@ -55,7 +55,7 @@ void AlpinePackageIndex::setPkgDescription(std::shared_ptr<AlpinePackage> pkg, c
     if (pkgDesc.empty())
         return;
 
-    const std::string desc = std::format("<p>{}</p>", escapeXml(pkgDesc));
+    const std::string desc = std::format("<p>{}</p>", Utils::escapeXml(pkgDesc));
     pkg->setDescription(desc, "C");
 }
 
@@ -68,7 +68,7 @@ std::string AlpinePackageIndex::downloadIfNecessary(
     const std::string fullPath = (fs::path(apkRootPath) / fileName).string();
     const std::string cachePath = (fs::path(tmpDir) / cacheFileName).string();
 
-    if (isRemote(fullPath)) {
+    if (Utils::isRemote(fullPath)) {
         fs::create_directories(tmpDir);
         auto &dl = Downloader::get();
         dl.downloadFile(fullPath, cachePath);
@@ -84,7 +84,7 @@ std::string AlpinePackageIndex::downloadIfNecessary(
 std::vector<ApkIndexEntry> AlpinePackageIndex::parseApkIndex(const std::string &indexString)
 {
     std::vector<ApkIndexEntry> entries;
-    const auto lines = splitString(indexString, '\n');
+    const auto lines = Utils::splitString(indexString, '\n');
 
     ApkIndexEntry currentEntry;
     for (const auto &line : lines) {

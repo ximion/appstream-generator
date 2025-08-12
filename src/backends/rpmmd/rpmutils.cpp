@@ -36,7 +36,7 @@ std::string downloadIfNecessary(const std::string &url, const std::string &destL
     if (downloader == nullptr)
         downloader = &Downloader::get();
 
-    if (isRemote(url)) {
+    if (Utils::isRemote(url)) {
         const std::string destFileName = (fs::path(destLocation) / fs::path(url).filename()).string();
         try {
             fs::create_directories(destLocation);

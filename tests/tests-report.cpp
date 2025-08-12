@@ -55,7 +55,7 @@ public:
         fs::create_directories(m_mediaDir);
 
         // Use the default templates
-        m_templateDir = getDataPath("templates/default");
+        m_templateDir = Utils::getDataPath("templates/default");
 
         // Create a test configuration file and load configuration
         auto configFile = createTestConfig();

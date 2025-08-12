@@ -83,7 +83,7 @@ TEST_CASE("RPMPackageIndex", "[backend][rpmmd]")
 {
     SECTION("Load RPM packages from test repository")
     {
-        auto samplesDir = getTestSamplesDir();
+        auto samplesDir = Utils::getTestSamplesDir();
         auto rpmmdDir = samplesDir / "rpmmd";
 
         RPMPackageIndex pi(rpmmdDir.string());

@@ -84,6 +84,8 @@ std::uint32_t ImageSize::toInt() const
     return height * scale;
 }
 
+namespace Utils
+{
 std::string randomString(std::uint32_t len)
 {
     if (len == 0)
@@ -457,5 +459,6 @@ bool dirEmpty(const std::string &dir)
 
     return true;
 }
+} // namespace Utils
 
 } // namespace ASGenerator

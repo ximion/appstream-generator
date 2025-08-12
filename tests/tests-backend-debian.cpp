@@ -45,7 +45,7 @@ public:
 
 TEST_CASE("DebianPackageIndex: findTranslations", "[debian][debpkgindex]")
 {
-    auto samplesDir = getTestSamplesDir();
+    auto samplesDir = Utils::getTestSamplesDir();
     auto debianSamplesDir = samplesDir / "debian";
 
     SECTION("Find translations for existing suite and section")
@@ -78,7 +78,7 @@ TEST_CASE("DebianPackageIndex: findTranslations", "[debian][debpkgindex]")
 
 TEST_CASE("DebianPackageIndex: packageDescToAppStreamDesc", "[debian][debpkgindex]")
 {
-    auto samplesDir = getTestSamplesDir();
+    auto samplesDir = Utils::getTestSamplesDir();
     auto debianSamplesDir = samplesDir / "debian";
 
     TestableDebianPackageIndex pi(debianSamplesDir.string());
@@ -297,7 +297,7 @@ TEST_CASE("Debian version comparison", "[debian][debutils]")
 
 TEST_CASE("DebianPackageIndex: Package loading and caching", "[debian][debpkgindex]")
 {
-    auto samplesDir = getTestSamplesDir();
+    auto samplesDir = Utils::getTestSamplesDir();
     auto debianSamplesDir = samplesDir / "debian";
     auto chromodorisMainDir = debianSamplesDir / "dists" / "chromodoris" / "main" / "binary-amd64";
 
@@ -339,7 +339,7 @@ TEST_CASE("DebianPackageIndex: Package loading and caching", "[debian][debpkgind
 
 TEST_CASE("DebianPackageIndex: Index file handling", "[debian][debpkgindex]")
 {
-    auto samplesDir = getTestSamplesDir();
+    auto samplesDir = Utils::getTestSamplesDir();
     auto debianSamplesDir = samplesDir / "debian";
 
     SECTION("Get index file path")

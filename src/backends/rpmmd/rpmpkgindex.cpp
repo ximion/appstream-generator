@@ -38,7 +38,7 @@ namespace ASGenerator
 RPMPackageIndex::RPMPackageIndex(const std::string &dir)
     : m_rootDir(dir)
 {
-    if (!isRemote(dir) && !fs::exists(dir))
+    if (!Utils::isRemote(dir) && !fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
 
     const auto &conf = Config::get();

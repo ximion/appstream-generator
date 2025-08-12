@@ -57,7 +57,7 @@ void TagFile::open(const std::string &fname, bool compressed)
 
 void TagFile::load(const std::string &data)
 {
-    m_content = splitString(data, '\n');
+    m_content = Utils::splitString(data, '\n');
     m_pos = 0;
     readCurrentBlockData();
 }
@@ -89,7 +89,7 @@ void TagFile::readCurrentBlockData()
         auto fieldData = m_content[i].substr(separatorIndex + 1);
 
         // remove whitespace
-        fieldData = trimString(fieldData);
+        fieldData = Utils::trimString(fieldData);
 
         // check if we have a multiline field
         for (auto j = i + 1; j < clen; j++) {

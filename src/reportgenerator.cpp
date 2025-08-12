@@ -54,7 +54,7 @@ ReportGenerator::ReportGenerator(DataStore *db)
     m_mediaPoolDir = m_dstore->mediaExportPoolDir();
     m_mediaPoolUrl = std::format("{}/pool", m_conf->mediaBaseUrl);
 
-    m_defaultTemplateDir = getDataPath("templates/default");
+    m_defaultTemplateDir = Utils::getDataPath("templates/default");
 
     m_versionInfo = std::format("{}, AS: {}", ASGEN_VERSION, as_version_string());
 }
@@ -392,7 +392,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
         // process component metadata for this package if there are any
         if (!gcids.empty()) {
             for (const auto &gcid : gcids) {
-                auto cidOpt = getCidFromGlobalID(gcid);
+                auto cidOpt = Utils::getCidFromGlobalID(gcid);
                 if (!cidOpt.has_value())
                     continue;
 
@@ -753,10 +753,10 @@ void ReportGenerator::updateIndexPages()
     auto staticSrcDir = fs::path(m_templateDir) / "static";
     if (fs::exists(staticSrcDir)) {
         auto staticDestDir = fs::path(m_htmlExportDir) / "static";
-        if (fs::exists(staticDestDir)) {
+        if (fs::exists(staticDestDir))
             fs::remove_all(staticDestDir);
-        }
-        copyDir(staticSrcDir, staticDestDir);
+
+        Utils::copyDir(staticSrcDir, staticDestDir);
     }
 }
 

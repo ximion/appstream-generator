@@ -416,7 +416,7 @@ void Engine::exportMetadata(
             for (const auto &gcid : gcids) {
                 {
                     std::lock_guard<std::mutex> lock(exportMutex);
-                    const auto cid = getCidFromGlobalID(gcid);
+                    const auto cid = Utils::getCidFromGlobalID(gcid);
                     if (cid.has_value())
                         cidGcidMap[cid.value()] = gcid;
                     else
@@ -428,7 +428,7 @@ void Engine::exportMetadata(
                     const auto gcidMediaPoolPath = m_dstore->mediaExportPoolDir() / gcid;
                     const auto gcidMediaSuitePath = mediaExportDir / gcid;
                     if (!fs::exists(gcidMediaSuitePath) && fs::exists(gcidMediaPoolPath))
-                        copyDir(gcidMediaPoolPath.string(), gcidMediaSuitePath.string(), true);
+                        Utils::copyDir(gcidMediaPoolPath.string(), gcidMediaSuitePath.string(), true);
                 }
             }
         }
@@ -438,9 +438,9 @@ void Engine::exportMetadata(
             std::lock_guard<std::mutex> lock(exportMutex);
             if (firstHintEntry) {
                 firstHintEntry = false;
-                hintsFile << rtrimString(hres);
+                hintsFile << Utils::rtrimString(hres);
             } else {
-                hintsFile << ",\n" << rtrimString(hres);
+                hintsFile << ",\n" << Utils::rtrimString(hres);
             }
         }
     });
