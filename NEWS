@@ -1,3 +1,30 @@
+Version 0.9.2
+~~~~~~~~~~~~~~
+Released: 2025-08-12
+
+Features:
+ * data: Add tooltip hover for plot graph in section_pages.html
+
+Bugfixes:
+ * snap: Don't include our glib
+ * freebsd backend: Start from meta.conf when gathering repository metadata
+ * freebsd: catch up with new pkg repository layout
+ * rpmmd: Port to dxml
+ * rpmmd: Download packages on-demand
+ * Sanitize UTF-8 before adding it to the database
+ * Drop removed no-bin-links argument from yarn invocation
+
+Miscellaneous:
+ * Add AdwaitaLegacy to themeNames
+ * snap: Update some dependency versions
+ * snap: Build using system LDC and glibd
+ * Install JS stuff with NPM
+ * metainfo: Add developer name
+
+Contributors:
+ Amin Bandali, Balló György, Gleb Popov, Joey Riches,
+ Matthias Klumpp
+
 Version 0.9.1
 ~~~~~~~~~~~~~~
 Released: 2023-11-11
