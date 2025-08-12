@@ -1,11 +1,13 @@
-{{#partial}}{title}Data for the {{suite}} suite{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ header_content }
+{% block title %}Data for the {{suite}} suite{% endblock %}
+
+{% block header_content %}
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>AppStream data for {{project_name}}/{{suite}}</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ head_extra }
+{% block head_extra %}
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/jquery/jquery.min.js"></script>
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.js"></script>
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.pie.js"></script>
@@ -23,108 +25,105 @@
     margin-top: -20px;
 }
 </style>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Select an archive section</h1>
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}
 
-    <h2>Sections</h2>
-    {{#sections}}
-      <h3><a href="{{section}}/index.html">{{section}}</a></h3>
-    {{/sections}}
+{% block content %}
+<h1>Select an archive section</h1>
 
-    <h2>Health of suite "{{suite}}"</h2>
+<h2>Sections</h2>
+{% for section in sections %}
+  <h3><a href="{{section.section}}/index.html">{{section.section}}</a></h3>
+{% endfor %}
 
-    <div class="wrapper">
-      <div class="graph-container">
-          {{#sections}}
-          <div align="center" class="float-left" style="height: 100%; float: left; width: 25%;">
-            <center><strong>{{section}}</strong></center>
-            <div id="placeholder_{{section}}" class="graph-placeholder" style="float:left; width:100%;"></div>
-          </div>
-          {{/sections}}
+<h2>Health of suite "{{suite}}"</h2>
+
+<div class="wrapper">
+  <div class="graph-container">
+      {% for section in sections %}
+      <div align="center" class="float-left" style="height: 100%; float: left; width: 25%;">
+        <center><strong>{{section.section}}</strong></center>
+        <div id="placeholder_{{section.section}}" class="graph-placeholder" style="float:left; width:100%;"></div>
       </div>
-    </div>
+      {% endfor %}
+  </div>
+</div>
 
-    <script>
-      $.getJSON("{{root_url}}/statistics.json", function(data) {
-        var sections = [];
-        {{#sections}}
-          sections.push("{{section}}");
-        {{/sections}}
+<script>
+  $.getJSON("{{root_url}}/statistics.json", function(data) {
+    var sections = [];
+    {% for section in sections %}
+      sections.push("{{section.section}}");
+    {% endfor %}
 
-        for (var i = 0; i < sections.length; i++) {
-          var sdata = data["{{suite}}"];
-          var sectionName = sections[i];
-          var secData = sdata[sectionName];
+    for (var i = 0; i < sections.length; i++) {
+      var sdata = data["{{suite}}"];
+      var sectionName = sections[i];
+      var secData = sdata[sectionName];
 
-          var resData = [
-              {
-                label: "Errors",
-                data: [ 1, secData["errors"][secData["errors"].length-1][1] ],
-                color: "#c05020"
-              },
-              {
-                label: "Warnings",
-                data: [ 1, secData["warnings"][secData["warnings"].length-1][1] ],
-                color: "#ffcc66"
-              },
-              {
-                label: "Infos",
-                data: [ 1, secData["infos"][secData["infos"].length-1][1] ],
-                color: "#6060c0"
-              },
-              {
-                label: "Valid Data",
-                data: [ 1, secData["metadata"][secData["metadata"].length-1][1] ],
-                color: "#30a420"
-              }
-          ];
+      var resData = [
+          {
+            label: "Errors",
+            data: [ 1, secData["errors"][secData["errors"].length-1][1] ],
+            color: "#c05020"
+          },
+          {
+            label: "Warnings",
+            data: [ 1, secData["warnings"][secData["warnings"].length-1][1] ],
+            color: "#ffcc66"
+          },
+          {
+            label: "Infos",
+            data: [ 1, secData["infos"][secData["infos"].length-1][1] ],
+            color: "#6060c0"
+          },
+          {
+            label: "Valid Data",
+            data: [ 1, secData["metadata"][secData["metadata"].length-1][1] ],
+            color: "#30a420"
+          }
+      ];
 
-          drawSummaryChart(resData, sectionName);
-        }
-      });
-    </script>
-    <script>
-      function labelFormatter(label, series) {
-          return "<div style='font-size:8pt; text-align:center; padding:2px; color:white;'>" + Math.round(series.percent) + "%</div>";
-      }
+      drawSummaryChart(resData, sectionName);
+    }
+  });
+</script>
+<script>
+  function labelFormatter(label, series) {
+      return "<div style='font-size:8pt; text-align:center; padding:2px; color:white;'>" + Math.round(series.percent) + "%</div>";
+  }
 
-      function drawSummaryChart(data, section) {
-        $.plot('#placeholder_' + section, data, {
-            series: {
-                pie: {
-                    innerRadius: 0.34,
+  function drawSummaryChart(data, section) {
+    $.plot('#placeholder_' + section, data, {
+        series: {
+            pie: {
+                innerRadius: 0.34,
+                show: true,
+
+                label: {
                     show: true,
-
-                    label: {
-                        show: true,
-                        radius: 3/5,
-                        formatter: labelFormatter,
-                        background: {
-                            opacity: 0.6,
-                            color: '#000'
-                        }
+                    radius: 3/5,
+                    formatter: labelFormatter,
+                    background: {
+                        opacity: 0.6,
+                        color: '#000'
                     }
                 }
-            },
+            }
+        },
 
-            grid: {
-                hoverable: true,
-                clickable: true,
-                margin: 0,
-                borderWidth: 0
-            },
+        grid: {
+            hoverable: true,
+            clickable: true,
+            margin: 0,
+            borderWidth: 0
+        },
 
-            legend: { show: false }
-        });
-      }
-    </script>
-
-{{/partial}}
-
-{{#partial}}{ float_right }
-<small>Last updated on: {{time}}</small>
-{{/partial}}
-
-{{> base}}
+        legend: { show: false }
+    });
+  }
+</script>
+{% endblock %}

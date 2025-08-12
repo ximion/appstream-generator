@@ -17,8 +17,6 @@ apt-get install -yq \
     gdb \
     gcc \
     g++ \
-    gdc \
-    ldc \
     git
 
 # install dependencies
@@ -35,28 +33,32 @@ eatmydata apt-get install -yq --no-install-recommends \
     libstemmer-dev \
     libxml2-dev \
     libyaml-dev \
+    libfyaml-dev \
     libxmlb-dev \
     libcurl4-gnutls-dev \
     libsystemd-dev \
     gperf \
     itstool
 
-eatmydata apt-get install -yq --no-install-recommends \
-    gir-to-d \
-    liblmdb-dev \
-    libarchive-dev \
-    libpango1.0-dev
-eatmydata apt-get install -yq libglibd-2.0-dev || true
-
 . /etc/os-release
 if [ "$ID" = "ubuntu" ]; then
-    gdk_pixbuf_dep="libgdk-pixbuf2.0-dev"
+    catch2_dep="catch2"
+    eatmydata apt-get install -yq --no-install-recommends g++-14 gcc-14
 else
-    gdk_pixbuf_dep="libgdk-pixbuf-2.0-dev"
+    catch2_dep="libcatch2-dev"
 fi;
 
 eatmydata apt-get install -yq --no-install-recommends \
-    $gdk_pixbuf_dep \
+    liblmdb-dev \
+    libarchive-dev \
+    libpango1.0-dev \
+    libtbb-dev \
+    libunwind-dev \
+    $catch2_dep
+eatmydata apt-get install -yq libglibd-2.0-dev || true
+
+eatmydata apt-get install -yq --no-install-recommends \
+    libgdk-pixbuf-2.0-dev \
     librsvg2-dev \
     libcairo2-dev \
     libfontconfig1-dev \

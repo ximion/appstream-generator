@@ -14,19 +14,17 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     gdb \
     gcc \
     gcc-c++ \
-    gcc-gdc \
     git-core \
     meson \
     gettext \
-    gir-to-d \
     gnupg \
     gperf \
     docbook-dtds \
     docbook-style-xsl \
-    ldc \
     libasan \
     libstemmer-devel \
     libubsan \
+    libunwind-devel \
     'pkgconfig(cairo)' \
     'pkgconfig(freetype2)' \
     'pkgconfig(fontconfig)' \
@@ -45,6 +43,9 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(lmdb)' \
     'pkgconfig(pango)' \
     'pkgconfig(yaml-0.1)' \
+    'pkgconfig(libfyaml)' \
+    'pkgconfig(tbb)' \
+    'pkgconfig(catch2)' \
     sed \
     xmlto \
     itstool \

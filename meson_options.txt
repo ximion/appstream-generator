@@ -2,18 +2,14 @@
 # Options for AppStream Generator
 #
 
-option('rpmmd',
-       type: 'boolean',
-       value: true,
-       description: 'Build the RPM-MD backend..'
-)
 option('download-js',
        type: 'boolean',
        value: true,
        description: 'Download JavaScript with NPM automatically.'
 )
-option('gir-dir',
-       type: 'string',
-       value: '',
-       description: 'Override the directory where gir-to-d searches for GIR files.'
+
+option('maintainer',
+       type : 'boolean',
+       value : false,
+       description : 'Enable maintainer mode (use strict compiler flags, e.g. -Werror)'
 )

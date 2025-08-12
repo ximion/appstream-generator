@@ -1,6 +1,8 @@
-{{#partial}}{title}Data for {{suite}}/{{section}}{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ head_extra }
+{% block title %}Data for {{suite}}/{{section}}{% endblock %}
+
+{% block head_extra %}
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/jquery/jquery.min.js"></script>
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.js"></script>
 <script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.time.js"></script>
@@ -21,174 +23,171 @@
     line-height: 1.2em;
 }
 </style>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ header_content }
+{% block header_content %}
 <span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
 <span>AppStream data for {{project_name}}/{{suite}}/{{section}}</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Overview for {{suite}}/{{section}}</h1>
+{% block float_right %}
+<small>Last updated on: {{time}}</small>
+{% endblock %}
 
-    <h2>Data</h2>
+{% block content %}
+<h1>Overview for {{suite}}/{{section}}</h1>
 
-    <h3><a href="issues/index.html">Issues</a> - Issues found while extracting the data</h3>
+<h2>Data</h2>
 
-    <h3><a href="metainfo/index.html">Metainfo</a> - Per-package view of the generated data</h3>
+<h3><a href="issues/index.html">Issues</a> - Issues found while extracting the data</h3>
+
+<h3><a href="metainfo/index.html">Metainfo</a> - Per-package view of the generated data</h3>
 
 
-    <h2>Health</h2>
-    <div class="wrapper">
+<h2>Health</h2>
+<div class="wrapper">
 
-      <h3>Issue overview</h3>
-      <div style="width: 80%;">
+  <h3>Issue overview</h3>
+  <div style="width: 80%;">
 
-        <div class="progress" style="margin-left: 20px;">
-          <div style="width: {{valid_percentage}}%" class="progress-bar progress-bar-green">
-            <span class="sr-only">{{valid_percentage}}% Valid</span>
-          </div>
-          <div style="width: {{info_percentage}}%" class="progress-bar progress-bar-blue">
-            <span class="sr-only">{{info_percentage}}% Infos</span>
-          </div>
-          <div style="width: {{warning_percentage}}%" class="progress-bar progress-bar-yellow">
-            <span class="sr-only">{{warning_percentage}}% Warnings</span>
-          </div>
-          <div style="width: {{error_percentage}}%" class="progress-bar progress-bar-red">
-            <span class="sr-only">{{error_percentage}}% Errors</span>
-          </div>
-        </div>
-
-        <div class="graph-container" style="width: 100%;">
-          <div id="placeholder" class="graph-placeholder" style="float:left; width:90%;"></div>
-          <div id="choices" style="float:right;"></div>
-        </div>
-
+    <div class="progress" style="margin-left: 20px;">
+      <div style="width: {{valid_percentage}}%" class="progress-bar progress-bar-green">
+        <span class="sr-only">{{valid_percentage}}% Valid</span>
       </div>
-
-      <ul>
-        <li>{{metainfo_count}} valid components</li>
-        <li>{{error_count}} errors</li>
-        <li>{{warning_count}} warnings</li>
-        <li>{{info_count}} infos/hints</li>
-      </ul>
-
+      <div style="width: {{info_percentage}}%" class="progress-bar progress-bar-blue">
+        <span class="sr-only">{{info_percentage}}% Infos</span>
+      </div>
+      <div style="width: {{warning_percentage}}%" class="progress-bar progress-bar-yellow">
+        <span class="sr-only">{{warning_percentage}}% Warnings</span>
+      </div>
+      <div style="width: {{error_percentage}}%" class="progress-bar progress-bar-red">
+        <span class="sr-only">{{error_percentage}}% Errors</span>
+      </div>
     </div>
 
-    <div id="placeholder" style="width:600px;height:300px;"></div>
-    <div id="tooltip" style="position:absolute;display:none;background:#fff;padding:6px;border:1px solid #ccc;color:#000;font-size:12px;border-radius:4px;"></div>
+    <div class="graph-container" style="width: 100%;">
+      <div id="placeholder" class="graph-placeholder" style="float:left; width:90%;"></div>
+      <div id="choices" style="float:right;"></div>
+    </div>
 
-    <script type="text/javascript">
-      function dataUseJSTime(data) {
-          return data.map(function(v) {
-              return [v[0] * 1000, v[1]];
-          });
-      }
+  </div>
 
-      $.getJSON("{{root_url}}/statistics.json", function(allData) {
-        data = allData["{{suite}}"]["{{section}}"];
+  <ul>
+    <li>{{metainfo_count}} valid components</li>
+    <li>{{error_count}} errors</li>
+    <li>{{warning_count}} warnings</li>
+    <li>{{info_count}} infos/hints</li>
+  </ul>
 
-        var datasets = {
-            "errors": {
-                color: "#c05020",
-                data: dataUseJSTime(data["errors"]),
-                label: "Errors",
-                id: "errors"
-            },
-            "warnings": {
-                color: "#ffcc66",
-                data: dataUseJSTime(data["warnings"]),
-                label: "Warnings"
-            },
-            "infos": {
-                color: "#6060c0",
-                data: dataUseJSTime(data["infos"]),
-                label: "Infos"
-            },
-            "valid": {
-                color: "#30a420",
-                data: dataUseJSTime(data["metadata"]),
-                label: "Valid data"
+</div>
+
+<div id="placeholder" style="width:600px;height:300px;"></div>
+<div id="tooltip" style="position:absolute;display:none;background:#fff;padding:6px;border:1px solid #ccc;color:#000;font-size:12px;border-radius:4px;"></div>
+
+<script type="text/javascript">
+  function dataUseJSTime(data) {
+      return data.map(function(v) {
+          return [v[0] * 1000, v[1]];
+      });
+  }
+
+  $.getJSON("{{root_url}}/statistics.json", function(allData) {
+    data = allData["{{suite}}"]["{{section}}"];
+
+    var datasets = {
+        "errors": {
+            color: "#c05020",
+            data: dataUseJSTime(data["errors"]),
+            label: "Errors",
+            id: "errors"
+        },
+        "warnings": {
+            color: "#ffcc66",
+            data: dataUseJSTime(data["warnings"]),
+            label: "Warnings"
+        },
+        "infos": {
+            color: "#6060c0",
+            data: dataUseJSTime(data["infos"]),
+            label: "Infos"
+        },
+        "valid": {
+            color: "#30a420",
+            data: dataUseJSTime(data["metadata"]),
+            label: "Valid data"
+        }
+    };
+
+    // insert checkboxes
+    var choiceContainer = $("#choices");
+    $.each(datasets, function(key, val) {
+        choiceContainer.append("<br/><input type='checkbox' name='" + key +
+            "' checked='checked' id='id" + key + "'></input>" +
+            "<label for='id" + key + "'>" + val.label + "</label>");
+    });
+
+    choiceContainer.find("input").click(plotAccordingToChoices);
+
+    function plotAccordingToChoices() {
+        var data = [];
+
+        choiceContainer.find("input:checked").each(function () {
+            var key = $(this).attr("name");
+            if (key && datasets[key]) {
+                data.push(datasets[key]);
             }
-        };
-
-        // insert checkboxes
-        var choiceContainer = $("#choices");
-        $.each(datasets, function(key, val) {
-            choiceContainer.append("<br/><input type='checkbox' name='" + key +
-                "' checked='checked' id='id" + key + "'></input>" +
-                "<label for='id" + key + "'>" + val.label + "</label>");
         });
 
-        choiceContainer.find("input").click(plotAccordingToChoices);
+        if (data.length > 0) {
+            $.plot("#placeholder", data, {
+                series: {
+                    lines: {
+                        show: true,
+                        fill: 0.1
+                    },
+                    fillBetween: "errors"
+                },
 
-        function plotAccordingToChoices() {
-            var data = [];
+                yaxis: {
+                    min: 0
+                },
 
-            choiceContainer.find("input:checked").each(function () {
-                var key = $(this).attr("name");
-                if (key && datasets[key]) {
-                    data.push(datasets[key]);
+                xaxis: {
+                    mode: "time",
+                    timeformat: "%y/%m/%d"
+                },
+
+                grid: {
+                    hoverable: true,
+                    clickable: true
+                },
+
+                legend: {
+                    position: 'nw'
                 }
             });
 
-            if (data.length > 0) {
-                $.plot("#placeholder", data, {
-                    series: {
-                        lines: {
-                            show: true,
-                            fill: 0.1
-                        },
-                        fillBetween: "errors"
-                    },
+        };
 
-                    yaxis: {
-                        min: 0
-                    },
+        $("#placeholder").bind("plothover", function (event, pos, item) {
+            if (item) {
+                const x = item.datapoint[0];
+                const y = item.datapoint[1];
+                const seriesLabel = item.series.label;
+                const date = new Date(x);
+                const dateStr = date.toLocaleDateString();
 
-                    xaxis: {
-                        mode: "time",
-                        timeformat: "%y/%m/%d"
-                    },
+                $("#tooltip")
+                    .html(`${seriesLabel}: ${y} on ${dateStr}`)
+                    .css({ top: item.pageY + 5, left: item.pageX + 5 })
+                    .fadeIn(200);
+            } else {
+                $("#tooltip").hide();
+            }
+        });
+    }
 
-                    grid: {
-                        hoverable: true,
-                        clickable: true
-                    },
-
-                    legend: {
-                        position: 'nw'
-                    }
-                });
-
-            };
-
-            $("#placeholder").bind("plothover", function (event, pos, item) {
-                if (item) {
-                    const x = item.datapoint[0];
-                    const y = item.datapoint[1];
-                    const seriesLabel = item.series.label;
-                    const date = new Date(x);
-                    const dateStr = date.toLocaleDateString();
-
-                    $("#tooltip")
-                        .html(`${seriesLabel}: ${y} on ${dateStr}`)
-                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
-                        .fadeIn(200);
-                } else {
-                    $("#tooltip").hide();
-                }
-            });
-        }
-
-        plotAccordingToChoices();
-      });
-    </script>
-
-{{/partial}}
-
-{{#partial}}{ float_right }
-<small>Last updated on: {{time}}</small>
-{{/partial}}
-
-{{> base}}
+    plotAccordingToChoices();
+  });
+</script>
+{% endblock %}

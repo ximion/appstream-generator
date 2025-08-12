@@ -1,10 +1,12 @@
-{{#partial}}{title}Start{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ header_content }
-<span>AppStream data hints for {{project_name}}</span>
-{{/partial}}
+{% block title %}Start{% endblock %}
 
-{{#partial}}{ content }
+{% block header_content %}
+AppStream data hints for {{project_name}}
+{% endblock %}
+
+{% block content %}
 <div class="wrapper">
 
     <h1>Welcome!</h1>
@@ -17,13 +19,13 @@
     </p>
 
     <h1>Select a suite</h1>
-    {{#suites}}
-      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
-    {{/suites}}
+    {% for suite in suites %}
+      <h3><a href="{{suite.suite}}/index.html">{{suite.suite}}</a></h3>
+    {% endfor %}
     <br/>
-    {{#oldsuites}}
-      <h3><a href="{{suite}}/index.html">{{suite}}</a></h3>
-    {{/oldsuites}}
+    {% for oldsuite in oldsuites %}
+      <h3><a href="{{oldsuite.suite}}/index.html">{{oldsuite.suite}}</a></h3>
+    {% endfor %}
 
     <br/><hr/>
     <img src="{{root_url}}/static/img/asgen.png" alt="AppStream Generator Logo" style="margin: 4px; float: right;" />
@@ -61,6 +63,4 @@
     </p>
 
 </div>
-{{/partial}}
-
-{{> base}}
+{% endblock %}

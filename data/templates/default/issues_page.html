@@ -1,75 +1,72 @@
-{{#partial}}{title}Issues for {{package_name}} in {{suite}}/{{section}}{{/partial}}
+{% extends "base.html" %}
 
-{{#partial}}{ float_right }
+{% block title %}Issues for {{package_name}} in {{suite}}/{{section}}{% endblock %}
+
+{% block float_right %}
 <small>Last updated on: {{time}}</small>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ header_content }
+{% block header_content %}
 <span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
-
 <span>{{package_name}}</span> <span style="font-size:16px;">[{{section}}]</span>
-{{/partial}}
+{% endblock %}
 
-{{#partial}}{ content }
-    <h1>Hints for {{package_name}} in {{section}}</h1>
+{% block content %}
+<h1>Hints for {{package_name}} in {{section}}</h1>
 
-    <div class="wrapper">
+<div class="wrapper">
 
+{% for entry in entries %}
+<h2>
+  {{entry.component_id}}
+  {% for arch in entry.architectures %}
+    <span style="font-size:12px;" class="label label-neutral">⚙ {{arch.arch}}</span>
+  {% endfor %}
+</h2>
 
-    {{#entries}}
-    <h2>
-      {{component_id}}
-      {{#architectures}}
-        <span style="font-size:12px;" class="label label-neutral">⚙ {{arch}}</span>
-      {{/architectures}}
-    </h2>
+  {% if entry.has_errors %}
+  <div class="infobox infobox-error">
+    <h2>Errors</h2>
+    <ul class="list-group">
+      {% for error in entry.errors %}
+        <li class="list-group-item list-group-item-info">
+        <strong>{{error.error_tag}}</strong><br/>
+        {{error.error_description}}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
-      {{#has_errors}}
-      <div class="infobox infobox-error">
-        <h2>Errors</h2>
-        <ul class="list-group">
-          {{#errors}}
-            <li class="list-group-item list-group-item-info">
-            <strong>{{error_tag}}</strong><br/>
-            {{{error_description}}}
-            </li>
-          {{/errors}}
-        </ul>
-      </div>
-      {{/has_errors}}
+  {% if entry.has_warnings %}
+  <div class="infobox infobox-warning">
+    <h2>Warnings</h2>
+    <ul class="list-group">
+      {% for warning in entry.warnings %}
+        <li class="list-group-item list-group-item-info">
+        <strong>{{warning.warning_tag}}</strong><br/>
+        {{warning.warning_description}}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
+  {% if entry.has_infos %}
+  <div class="infobox infobox-hint">
+    <h2>Hints</h2>
+    <ul class="list-group">
+      {% for info in entry.infos %}
+        <li class="list-group-item list-group-item-info">
+        <strong>{{info.info_tag}}</strong><br/>
+        {{info.info_description}}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
-      {{#has_warnings}}
-      <div class="infobox infobox-warning">
-        <h2>Warnings</h2>
-        <ul class="list-group">
-          {{#warnings}}
-            <li class="list-group-item list-group-item-info">
-            <strong>{{warning_tag}}</strong><br/>
-            {{{warning_description}}}
-            </li>
-          {{/warnings}}
-        </ul>
-      </div>
-      {{/has_warnings}}
+{% endfor %}
 
-      {{#has_infos}}
-      <div class="infobox infobox-hint">
-        <h2>Hints</h2>
-        <ul class="list-group">
-          {{#infos}}
-            <li class="list-group-item list-group-item-info">
-            <strong>{{info_tag}}</strong><br/>
-            {{{info_description}}}
-            </li>
-          {{/infos}}
-        </ul>
-      </div>
-      {{/has_infos}}
-
-    {{/entries}}
-
-    </div>
-{{/partial}}
-
-{{> base}}
+</div>
+{% endblock %}
