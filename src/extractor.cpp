@@ -139,7 +139,8 @@ DataExtractor::DataExtractor(
 DataExtractor::~DataExtractor()
 {
     g_object_unref(m_compose);
-    g_object_unref(m_l10nUnit);
+    if (m_l10nUnit)
+        g_object_unref(m_l10nUnit);
 }
 
 void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cunit, void *userData)
