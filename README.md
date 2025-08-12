@@ -55,7 +55,7 @@ The following libraries and tools are required to build the generator:
  * Inja [5]
  * Catch2 [6]
  * oneAPI TBB [7]
- * Yarn (optional) [8]
+ * NPM (optional) [8]
 
 [1]: http://mesonbuild.com/
 [2]: https://github.com/ximion/appstream
@@ -64,7 +64,7 @@ The following libraries and tools are required to build the generator:
 [5]: https://github.com/pantor/inja
 [6]: https://github.com/catchorg/Catch2
 [7]: https://uxlfoundation.github.io/oneTBB/
-[8]: https://yarnpkg.com/
+[8]: https://github.com/npm/cli
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
@@ -72,7 +72,7 @@ sudo apt install meson g++ \
     libappstream-dev libappstream-compose-dev libsoup2.4-dev libarchive-dev \
     libgdk-pixbuf2.0-dev librsvg2-dev libcairo2-dev libfreetype-dev libfontconfig1-dev \
     libpango1.0-dev liblmdb-dev libtbb-dev libcatch2-dev \
-    yarnpkg
+    npm
 ```
 
 ### Build instructions
