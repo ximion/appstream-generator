@@ -258,7 +258,13 @@ IconHandler::IconHandler(
     m_themeNames = {"hicolor"};
     if (!iconTheme.empty())
         m_themeNames.push_back(iconTheme);
-    m_themeNames.insert(m_themeNames.end(), {"Adwaita", "breeze"});
+    m_themeNames.insert(
+        m_themeNames.end(),
+        {
+            "Adwaita",       // GNOME
+            "AdwaitaLegacy", // GNOME
+            "breeze"         // KDE
+        });
 
     auto getPackage = [&pkgMap](const std::string &pkid) -> std::shared_ptr<Package> {
         auto it = pkgMap.find(pkid);
