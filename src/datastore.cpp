@@ -912,6 +912,10 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
             std::vector<std::uint8_t> binaryData(
                 static_cast<const std::uint8_t *>(dval.mv_data),
                 static_cast<const std::uint8_t *>(dval.mv_data) + dval.mv_size);
+            if (!binaryData.empty() && binaryData[0] == '{') {
+                // previously, data was stored in JSON, instead of reading that data, we ignore it now
+                continue;
+            }
             try {
                 auto entry = StatisticsEntry::deserialize(binaryData);
                 stats.push_back(entry);
