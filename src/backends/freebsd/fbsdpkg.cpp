@@ -25,6 +25,7 @@
 
 #include "../../logging.h"
 #include "../../zarchive.h"
+#include "../../config.h"
 
 namespace ASGenerator
 {
@@ -80,8 +81,11 @@ const std::unordered_map<std::string, std::string> &FreeBSDPackage::description(
 
 std::vector<std::uint8_t> FreeBSDPackage::getFileData(const std::string &fname)
 {
-    if (!m_pkgArchive->isOpen())
-        m_pkgArchive->open(getFilename());
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_pkgArchive->isOpen()) {
+        m_pkgArchive->open(m_pkgFname, Config::get().getTmpDir() / fs::path(m_pkgFname).filename());
+        m_pkgArchive->setOptimizeRepeatedReads(true);
+    }
 
     return m_pkgArchive->readData(fname);
 }

@@ -75,6 +75,57 @@ TEST_CASE("Extracting a tarball", "[zarchive]")
     REQUIRE(content == "hello");
 }
 
+TEST_CASE("Reading data from tarball using readData", "[zarchive]")
+{
+    std::string archive = fs::path(Utils::getTestSamplesDir()) / "test.tar.xz";
+    REQUIRE(fs::exists(archive));
+    ArchiveDecompressor ar;
+    ar.open(archive);
+
+    SECTION("Read specific files directly from archive")
+    {
+        // Test reading a known file from the test archive
+        auto data = ar.readData("b/a");
+        REQUIRE(!data.empty());
+
+        std::string content(data.begin(), data.end());
+        // Remove trailing newline if present
+        if (!content.empty() && content.back() == '\n')
+            content.pop_back();
+        REQUIRE(content == "hello");
+
+        // Test reading another file
+        auto data2 = ar.readData("c/d");
+        REQUIRE(!data2.empty());
+
+        std::string content2(data2.begin(), data2.end());
+        // Remove trailing newline if present
+        if (!content2.empty() && content2.back() == '\n')
+            content2.pop_back();
+        REQUIRE(content2 == "world");
+
+        // Read with starting slash
+        auto data3 = ar.readData("/c/d");
+        REQUIRE(!data3.empty());
+    }
+
+    SECTION("Read with path variations")
+    {
+        // Test that paths with leading slash work the same
+        auto data1 = ar.readData("b/a");
+        auto data2 = ar.readData("/b/a");
+
+        REQUIRE(data1 == data2);
+    }
+
+    SECTION("Read non-existent file throws exception")
+    {
+        REQUIRE_THROWS_AS(ar.readData("non/existent/file"), std::runtime_error);
+    }
+
+    ar.close();
+}
+
 TEST_CASE("Utils: getCidFromGlobalID", "[utils]")
 {
     REQUIRE(getCidFromGlobalID("f/fo/foobar.desktop/DEADBEEF").value() == "foobar.desktop");

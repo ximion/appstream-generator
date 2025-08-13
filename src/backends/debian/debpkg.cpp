@@ -187,8 +187,6 @@ std::shared_ptr<DebPackageLocaleTexts> DebPackage::localizedTexts()
 
 ArchiveDecompressor &DebPackage::openPayloadArchive()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
     if (m_dataArchive->isOpen())
         return *m_dataArchive;
 
@@ -205,7 +203,8 @@ ArchiveDecompressor &DebPackage::openPayloadArchive()
     }
     const std::string dataArchiveFname = files[0];
 
-    m_dataArchive->open(dataArchiveFname);
+    m_dataArchive->open(dataArchiveFname, m_tmpDir / "data");
+    m_dataArchive->setOptimizeRepeatedReads(true);
     return *m_dataArchive;
 }
 
@@ -253,6 +252,7 @@ ArchiveDecompressor &DebPackage::openControlArchive()
 
 std::vector<std::uint8_t> DebPackage::getFileData(const std::string &fname)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto &pa = openPayloadArchive();
     return pa.readData(fname);
 }
@@ -267,6 +267,7 @@ const std::vector<std::string> &DebPackage::contents()
         // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
         // aliases for certain icons. So, use the slow method for reading contents information here.
 
+        std::lock_guard<std::mutex> lock(m_mutex);
         auto &pa = openPayloadArchive();
         m_contentsL = pa.readContents();
         m_contentsRead = true;
@@ -343,13 +344,12 @@ void DebPackage::cleanupTemp()
             /* Whenever we delete the temporary directory, we need to
              * forget about the local file too, since (if it's remote) that
              * was downloaded into there. */
-            logDebug("Deleting temporary directory {}", m_tmpDir.string());
             m_localDebFname.clear();
             fs::remove_all(m_tmpDir);
         }
     } catch (const std::exception &e) {
         // we ignore any error
-        logDebug("Unable to remove temporary directory: {} ({})", m_tmpDir.string(), e.what());
+        logWarning("Unable to remove temporary directory: {} ({})", m_tmpDir.string(), e.what());
     }
 }
 

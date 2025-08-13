@@ -25,7 +25,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <cstdint>
 
 #include "../interfaces.h"
 #include "../../utils.h"

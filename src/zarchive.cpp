@@ -39,7 +39,18 @@
 namespace ASGenerator
 {
 
+/**
+ * Chunk size for reading data from the archive.
+ */
 constexpr size_t DEFAULT_BLOCK_SIZE = 65536;
+
+/**
+ * Size threshold for full extraction of the archive to a temporary directory.
+ * If the archive is larger than this, it will be extracted to a temporary directory
+ * for better performance on repeated reads.
+ */
+constexpr size_t FULL_EXTRACTION_SIZE_THRESHOLD = 24 * 1024 * 1024; // 24MB
+
 using ArchivePtr = std::unique_ptr<archive, decltype(&archive_read_free)>;
 
 static std::string getArchiveErrorMessage(archive *ar)
@@ -126,19 +137,88 @@ std::string decompressData(const std::vector<uint8_t> &data)
     return readArchiveData(ar.get());
 }
 
-void ArchiveDecompressor::open(const std::string &fname)
+void ArchiveDecompressor::open(const std::string &fname, const fs::path &tmpDir)
 {
-    archive_fname = fname;
+    m_archiveFname = fname;
+    m_isExtractedToTmp = false;
+
+    m_tmpDir = tmpDir;
+    if (m_tmpDir.empty())
+        m_tmpDir = fs::temp_directory_path() / std::format("zarchive-{}", Utils::randomString(8));
+
+    // Check if archive is larger than threshold, only then use the temp extraction method
+    m_canExtractToTmp = getArchiveSize() >= FULL_EXTRACTION_SIZE_THRESHOLD;
+}
+
+ArchiveDecompressor::~ArchiveDecompressor()
+{
+    cleanupTempDirectory();
 }
 
 bool ArchiveDecompressor::isOpen() const
 {
-    return !archive_fname.empty();
+    return !m_archiveFname.empty();
 }
 
 void ArchiveDecompressor::close()
 {
-    archive_fname.clear();
+    m_archiveFname.clear();
+    cleanupTempDirectory();
+}
+
+void ArchiveDecompressor::setOptimizeRepeatedReads(bool enable)
+{
+    m_optimizeRepeatedReads = enable;
+}
+
+size_t ArchiveDecompressor::getArchiveSize() const
+{
+    if (m_archiveFname.empty())
+        return 0;
+
+    try {
+        return fs::file_size(m_archiveFname);
+    } catch (const fs::filesystem_error &) {
+        return 0;
+    }
+}
+
+bool ArchiveDecompressor::tmpExtractIfPossible()
+{
+    if (m_isExtractedToTmp)
+        return true;
+    if (!m_canExtractToTmp || !m_optimizeRepeatedReads)
+        return false;
+
+    // Create extraction directory
+    if (!fs::exists(m_tmpDir)) {
+        fs::create_directories(m_tmpDir);
+        m_tmpDirOwned = true;
+    }
+
+    // Extract archive fully
+    const auto p = fs::relative(m_archiveFname, m_tmpDir);
+    logDebug(
+        "Extracting archive '{}' to temporary directory '{}'",
+        (p.parent_path().filename() / p.filename()).string(),
+        m_tmpDir.string());
+    extractArchive(m_tmpDir);
+
+    m_isExtractedToTmp = true;
+    return true;
+}
+
+void ArchiveDecompressor::cleanupTempDirectory()
+{
+    if (m_tmpDirOwned && fs::exists(m_tmpDir)) {
+        try {
+            fs::remove_all(m_tmpDir);
+        } catch (const fs::filesystem_error &e) {
+            logError("Failed to cleanup temporary directory '{}': {}", m_tmpDir.string(), e.what());
+        }
+        m_tmpDirOwned = false;
+    }
+    m_tmpDir.clear();
 }
 
 bool ArchiveDecompressor::pathMatches(const std::string &path1, const std::string &path2) const
@@ -205,12 +285,12 @@ archive *ArchiveDecompressor::openArchive()
     archive_read_support_filter_all(ar);
     archive_read_support_format_all(ar);
 
-    int ret = archive_read_open_filename(ar, archive_fname.c_str(), DEFAULT_BLOCK_SIZE);
+    int ret = archive_read_open_filename(ar, m_archiveFname.c_str(), DEFAULT_BLOCK_SIZE);
     if (ret != ARCHIVE_OK) {
         int ret_errno = archive_errno(ar);
         throw std::runtime_error(std::format(
             "Unable to open compressed file '{}': {}. error: {}",
-            archive_fname,
+            m_archiveFname,
             getArchiveErrorMessage(ar),
             std::strerror(ret_errno)));
     }
@@ -220,6 +300,24 @@ archive *ArchiveDecompressor::openArchive()
 
 bool ArchiveDecompressor::extractFileTo(const std::string &fname, const std::string &fdest)
 {
+    // Try optimization: if fully extracted, copy from filesystem
+    if (tmpExtractIfPossible()) {
+        fs::path extractedPath = m_tmpDir / fs::path(fname).relative_path();
+        try {
+            if (!fs::exists(extractedPath))
+                return false; // File not found in archive
+
+            // Copy the file from the extracted location to destination
+            fs::copy_file(extractedPath, fdest, fs::copy_options::overwrite_existing);
+
+            return true;
+        } catch (const fs::filesystem_error &e) {
+            logError("Failed to copy extracted file '{}' to '{}': {}", extractedPath.string(), fdest, e.what());
+            return false;
+        }
+    }
+
+    // Read from the archive file directly
     archive_entry *en = nullptr;
     ArchivePtr ar(openArchive(), archive_read_free);
 
@@ -248,7 +346,6 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
     while (archive_read_next_header(ar.get(), &en) == ARCHIVE_OK) {
         std::string pathname = fs::path(dest) / archive_entry_pathname(en);
 
-        /* at the moment we only handle directories and files */
         auto filetype = archive_entry_filetype(en);
         if (filetype == AE_IFDIR) {
             if (!fs::exists(pathname))
@@ -258,12 +355,43 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
 
         if (filetype == AE_IFREG) {
             extractEntryTo(ar.get(), pathname);
+        } else if (filetype == AE_IFLNK) {
+            // Handle symbolic links
+            const char *linkTarget = archive_entry_symlink(en);
+            if (linkTarget) {
+                // Ensure parent directory exists
+                fs::create_directories(fs::path(pathname).parent_path());
+
+                try {
+                    // Create symbolic link
+                    fs::create_symlink(linkTarget, pathname);
+                } catch (const fs::filesystem_error &e) {
+                    logError("Failed to create symlink '{}' -> '{}': {}", pathname, linkTarget, e.what());
+                }
+            }
         }
     }
 }
 
 std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
 {
+    // Try optimization: if fully extracted, read from filesystem
+    if (tmpExtractIfPossible()) {
+        fs::path extractedPath = m_tmpDir / fs::path(fname).relative_path();
+        try {
+            std::ifstream file(extractedPath, std::ios::binary);
+            if (!file)
+                throw std::runtime_error(std::format("Failed to open extracted file: {}", extractedPath.string()));
+
+            std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+            return data;
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::format("File '{}' was not found in the archive: {}", fname, e.what()));
+        }
+    }
+
+    // If we are here, we jump to the right file in the archive directly
     archive_entry *en = nullptr;
     ArchivePtr ar(openArchive(), archive_read_free);
 
@@ -413,6 +541,8 @@ void compressAndSave(const std::vector<uint8_t> &data, const std::string &fname,
     if (atype == ArchiveType::GZIP) {
         archive_write_add_filter_gzip(ar.get());
         archive_write_set_filter_option(ar.get(), "gzip", "timestamp", nullptr);
+    } else if (atype == ArchiveType::ZSTD) {
+        archive_write_add_filter_zstd(ar.get());
     } else {
         archive_write_add_filter_xz(ar.get());
     }
@@ -449,6 +579,8 @@ ArchiveCompressor::ArchiveCompressor(ArchiveType type)
     if (type == ArchiveType::GZIP) {
         archive_write_add_filter_gzip(ar);
         archive_write_set_filter_option(ar, "gzip", "timestamp", nullptr);
+    } else if (type == ArchiveType::ZSTD) {
+        archive_write_add_filter_zstd(ar);
     } else {
         archive_write_add_filter_xz(ar);
     }

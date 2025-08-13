@@ -85,7 +85,7 @@ std::string RPMPackage::getFilename()
         std::lock_guard<std::mutex> lock(m_mutex);
         const auto &conf = Config::get();
         auto &dl = Downloader::get();
-        const fs::path path = fs::path(conf.getTmpDir())
+        const fs::path path = conf.getTmpDir()
                               / std::format(
                                   "{}-{}_{}_{}", name(), ver(), arch(), fs::path(m_pkgFname).filename().string());
         dl.downloadFile(m_pkgFname, path);
@@ -124,8 +124,12 @@ void RPMPackage::setSummary(const std::string &text, const std::string &locale)
 
 std::vector<std::uint8_t> RPMPackage::getFileData(const std::string &fname)
 {
-    if (!m_archive->isOpen())
-        m_archive->open(getFilename());
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_archive->isOpen()) {
+        const auto pkgFilename = getFilename();
+        m_archive->open(pkgFilename, Config::get().getTmpDir() / fs::path(pkgFilename).filename());
+        m_archive->setOptimizeRepeatedReads(true);
+    }
 
     return m_archive->readData(fname);
 }
@@ -149,7 +153,6 @@ void RPMPackage::finish()
 
     try {
         if (Utils::isRemote(m_pkgFname) && fs::exists(m_localPkgFname)) {
-            logDebug("Deleting temporary package file {}", m_localPkgFname.string());
             fs::remove(m_localPkgFname);
             m_localPkgFname.clear();
         }

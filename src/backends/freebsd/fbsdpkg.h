@@ -68,6 +68,8 @@ private:
     // Mutable cache members for lazy initialization of summary/description
     mutable std::unordered_map<std::string, std::string> m_summaryCache;
     mutable std::unordered_map<std::string, std::string> m_descriptionCache;
+
+    mutable std::mutex m_mutex;
 };
 
 } // namespace ASGenerator
