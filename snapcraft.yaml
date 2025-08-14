@@ -22,7 +22,7 @@
 
 name: appstream-generator
 license: LGPL-3.0
-base: core22
+base: core24
 adopt-info: appstream-generator
 
 confinement: strict
@@ -55,29 +55,10 @@ layout:
 
 parts:
 
-  gir-to-d:
-    source: https://github.com/gtkd-developers/gir-to-d.git
-    source-type: git
-    source-tag: 'v0.23.2'
-    plugin: meson
-    meson-parameters:
-      - --prefix=/usr
-      - --buildtype=release
-    build-environment:
-      # obtained from https://raw.githubusercontent.com/archlinux/svntogit-community/packages/gir-to-d/trunk/PKGBUILD
-      - DC: ldc2
-      - LDFLAGS: "$(echo -ne $LDFLAGS | sed -e 's/-flto=auto/-flto=full/')"
-      - DFLAGS: "--allinst"
-      - DESTDIR: $CRAFT_PART_INSTALL
-    build-packages:
-      - build-essential
-      - ldc
-
-
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.0.2'
+    source-tag: 'v1.0.6'
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
@@ -122,9 +103,6 @@ parts:
       craftctl default
       # set version from Git
       craftctl set version=$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')
-      # adjust to an absolute path to help finding the GIR file from the AppStream part
-      sed -i 's|AppStream-1.0.gir|$CRAFT_STAGE/usr/share/gir-1.0/AppStream-1.0.gir|g' ${CRAFT_PART_SRC}/contrib/girwrap/APILookupAppStream.txt
-      sed -i 's|AppStreamCompose-1.0.gir|$CRAFT_STAGE/usr/share/gir-1.0/AppStreamCompose-1.0.gir|g' ${CRAFT_PART_SRC}/contrib/girwrap/APILookupAppStreamCompose.txt
     plugin: meson
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
@@ -134,7 +112,7 @@ parts:
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
       # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
-      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true -Drpmmd=false ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
+      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
       ninja -C "${CRAFT_PART_BUILD}" -j4
       meson test -C "${CRAFT_PART_BUILD}" --print-errorlogs --no-stdsplit --verbose
       DESTDIR=${CRAFT_PART_INSTALL} ninja -C "${CRAFT_PART_BUILD}" install
@@ -159,7 +137,7 @@ parts:
       - docbook-xml
       - ffmpeg
       - npm
-      - ldc
+      - catch2
       - libarchive-dev
       - libcairo2-dev
       - libcurl4-gnutls-dev
@@ -226,4 +204,3 @@ parts:
       - -usr/lib/*/pkgconfig/gthread-2.0.pc
     after:
       - appstream
-      - gir-to-d
