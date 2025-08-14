@@ -183,6 +183,8 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
                     url,
                     maxTryCount,
                     maxTryCount > 1 ? "times" : "time");
+                // Reset file position to beginning before retry to avoid appending to partial data
+                dest.seekp(0);
                 return downloadInternal(url, dest, maxTryCount - 1);
             } else {
                 throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
@@ -217,6 +219,8 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         if (maxTryCount > 0) {
             logDebug(
                 "Failed to download {}, will retry {} more {}", url, maxTryCount, maxTryCount > 1 ? "times" : "time");
+            // Reset file position to beginning before retry to avoid appending to partial data
+            dest.seekp(0);
             return downloadInternal(url, dest, maxTryCount - 1);
         } else {
             throw DownloadException(e.what());
