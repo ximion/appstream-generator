@@ -73,6 +73,30 @@ TEST_CASE("Extracting a tarball", "[zarchive]")
     if (!content.empty() && content.back() == '\n')
         content.pop_back();
     REQUIRE(content == "hello");
+
+    // Read regular file which has a hardlink pointing to it
+    std::string test_path = fs::path(tmpdir) / "test.txt";
+    REQUIRE(fs::exists(test_path));
+    std::ifstream f2(test_path);
+    REQUIRE(f2);
+    std::string test_content;
+    std::getline(f2, test_content);
+    // Remove trailing newline if present
+    if (!test_content.empty() && test_content.back() == '\n')
+        test_content.pop_back();
+    REQUIRE(test_content == "Wow!");
+
+    // Verify the hardlink contents matches the original file
+    std::string hardlink_path = fs::path(tmpdir) / "e" / "f";
+    REQUIRE(fs::exists(hardlink_path));
+    std::ifstream f3(hardlink_path);
+    REQUIRE(f3);
+    std::string hardlink_content;
+    std::getline(f3, hardlink_content);
+    // Remove trailing newline if present
+    if (!hardlink_content.empty() && hardlink_content.back() == '\n')
+        hardlink_content.pop_back();
+    REQUIRE(test_content == hardlink_content);
 }
 
 TEST_CASE("Reading data from tarball using readData", "[zarchive]")
@@ -107,6 +131,10 @@ TEST_CASE("Reading data from tarball using readData", "[zarchive]")
         // Read with starting slash
         auto data3 = ar.readData("/c/d");
         REQUIRE(!data3.empty());
+
+        // Ensure we follow hardlinks
+        auto data4 = ar.readData("e/f");
+        REQUIRE(!data4.empty());
     }
 
     SECTION("Read with path variations")
