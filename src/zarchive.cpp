@@ -353,6 +353,22 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
             continue;
         }
 
+        // Faithfully extract any hardlinks
+        if (const char *hardlinkTarget = archive_entry_hardlink(en)) {
+            fs::path targetPath = fs::path(dest) / hardlinkTarget;
+            fs::path linkPath = fs::path(pathname).lexically_normal();
+
+            fs::create_directories(linkPath.parent_path());
+
+            try {
+                fs::create_hard_link(targetPath, linkPath);
+            } catch (const fs::filesystem_error &e) {
+                logError("Failed to create hardlink '{}' -> '{}': {}",
+                         linkPath.string(), targetPath.string(), e.what());
+            }
+            continue;
+        }
+
         if (filetype == AE_IFREG) {
             extractEntryTo(ar.get(), pathname);
         } else if (filetype == AE_IFLNK) {
@@ -423,6 +439,22 @@ std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
                     logError("Unable to read destination data of symlink in archive: {}", e.what());
                     return {};
                 }
+            }
+
+            // Support reading hardlink regular entries
+            if (archive_entry_size(en) == 0) {
+                const char *hardlinkTarget = archive_entry_hardlink(en);
+                if (hardlinkTarget) {
+                    std::string hardlinkTargetStr(hardlinkTarget);
+
+                    try {
+                        return readData(hardlinkTargetStr);
+                    } catch (const std::exception &e) {
+                        logError("Unable to read data of hardlink target in archive: {}", e.what());
+                        return {};
+                    }
+                }
+                return {};
             }
 
             if (filetype != AE_IFREG) {
