@@ -160,6 +160,12 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         WriteCallbackData writeData{&dest, nullptr};
         HeaderCallbackData headerData{url.starts_with("https"), &lastModified};
 
+        // Get current position if resuming download
+        long long currentFileSize = 0;
+        if (dest.good()) {
+            currentFileSize = dest.tellp();
+        }
+
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
@@ -169,6 +175,11 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
+
+        if (currentFileSize > 0) {
+            logDebug("Resuming download of {} from offset {}", url, currentFileSize);
+            curl_easy_setopt(curl, CURLOPT_RESUME_FROM_LARGE, currentFileSize);
+        }
 
         if (!caInfo.empty())
             curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
@@ -183,8 +194,6 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
                     url,
                     maxTryCount,
                     maxTryCount > 1 ? "times" : "time");
-                // Reset file position to beginning before retry to avoid appending to partial data
-                dest.seekp(0);
                 return downloadInternal(url, dest, maxTryCount - 1);
             } else {
                 throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
@@ -194,7 +203,7 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         long responseCode;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
-        if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
+        if (responseCode != 200 && responseCode != 301 && responseCode != 302 && responseCode != 206) {
             curl_easy_cleanup(curl);
             if (responseCode == 0) {
                 // with some recent update of the D runtime or Curl, the status line isn't set anymore
@@ -289,7 +298,7 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
         long responseCode;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
-        if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
+        if (responseCode != 200 && responseCode != 301 && responseCode != 302 && responseCode != 206) {
             curl_easy_cleanup(curl);
             if (responseCode == 0) {
                 if (buffer.empty()) {
@@ -333,7 +342,7 @@ void Downloader::downloadFile(const std::string &url, const std::string &dest, s
 
     fs::create_directories(fs::path(dest).parent_path());
 
-    std::ofstream file(dest, std::ios::binary);
+    std::ofstream file(dest, std::ios::binary | std::ios::app);
     if (!file.is_open())
         throw DownloadException(std::format("Failed to open destination file: {}", dest));
 
