@@ -171,10 +171,12 @@ static bool packageIsInteresting(std::shared_ptr<Package> pkg)
     // Prefixes are defined as string_view for faster comparison
     constexpr std::string_view usr_share_apps = "/usr/share/applications/";
     constexpr std::string_view usr_share_meta = "/usr/share/metainfo/";
-    constexpr std::string_view usr_local_apps = "/usr/local/share/applications/";
-    constexpr std::string_view usr_local_meta = "/usr/local/share/metainfo/";
     constexpr std::string_view usr_share = "/usr/share/";
-    constexpr std::string_view usr_local = "/usr/local/share/";
+#ifdef EXTRA_PREFIX
+    constexpr std::string_view extra_prefix_apps = EXTRA_PREFIX "/share/applications/";
+    constexpr std::string_view extra_prefix_meta = EXTRA_PREFIX "/share/metainfo/";
+    constexpr std::string_view extra_prefix = EXTRA_PREFIX "/share/";
+#endif
 
     const auto contents = pkg->contents();
     for (const auto &c : contents) {
@@ -187,11 +189,14 @@ static bool packageIsInteresting(std::shared_ptr<Package> pkg)
             // Already know it starts with /usr/share/, check specific subdirs
             if (path_view.starts_with(usr_share_apps) || path_view.starts_with(usr_share_meta))
                 return true;
-        } else if (path_view.starts_with(usr_local)) {
-            // Already know it starts with /usr/local/share/, check specific subdirs
-            if (path_view.starts_with(usr_local_apps) || path_view.starts_with(usr_local_meta))
+        }
+#ifdef EXTRA_PREFIX
+        else if (path_view.starts_with(extra_prefix)) {
+            // Already know it starts with <extra_prefix>/share/, check specific subdirs
+            if (path_view.starts_with(extra_prefix_apps) || path_view.starts_with(extra_prefix_meta))
                 return true;
         }
+#endif
     }
 
     // Check for GStreamer codec info

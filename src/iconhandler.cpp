@@ -30,6 +30,7 @@
 #include <tbb/parallel_for_each.h>
 
 #include "config.h"
+#include "defines.h"
 #include "logging.h"
 #include "result.h"
 #include "utils.h"
@@ -130,6 +131,9 @@ Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData
 Theme::Theme(const std::string &name, std::shared_ptr<Package> pkg)
 {
     auto indexData = pkg->getFileData(std::format("/usr/share/icons/{}/index.theme", name));
+#ifdef EXTRA_PREFIX
+    indexData = pkg->getFileData(std::format(EXTRA_PREFIX "/share/icons/{}/index.theme", name));
+#endif
     *this = Theme(name, indexData);
 }
 
@@ -193,8 +197,13 @@ std::generator<std::string> Theme::matchingIconFilenames(
     for (const auto &themedir : m_directories) {
         if (directoryMatchesSize(themedir, size, relaxedScalingRules)) {
             for (const auto &ext : extensions) {
+#ifndef EXTRA_PREFIX
                 co_yield std::format(
                     "/usr/share/icons/{}/{}/{}.{}", m_name, std::get<std::string>(themedir.at("path")), iconName, ext);
+#else
+                co_yield std::format(
+                    EXTRA_PREFIX "/share/icons/{}/{}/{}.{}", m_name, std::get<std::string>(themedir.at("path")), iconName, ext);
+#endif
             }
         }
     }
@@ -288,7 +297,11 @@ IconHandler::IconHandler(
         const std::string &fname = info.first;
         const std::string &pkgid = info.second;
 
-        if (fname.starts_with("/usr/share/pixmaps/")) {
+        if (fname.starts_with("/usr/share/pixmaps/")
+#ifdef EXTRA_PREFIX
+            || fname.starts_with(EXTRA_PREFIX "/share/pixmaps/")
+#endif
+            ) {
             auto pkg = getPackage(pkgid);
             if (pkg) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
@@ -299,7 +312,11 @@ IconHandler::IconHandler(
 
         // optimization: check if we actually have an interesting path before
         // entering the slower loop below.
-        if (!fname.starts_with("/usr/share/icons/"))
+        if (!fname.starts_with("/usr/share/icons/")
+#ifdef EXTRA_PREFIX
+            && !fname.starts_with(EXTRA_PREFIX "/share/icons/")
+#endif
+            )
             return;
 
         auto pkg = getPackage(pkgid);
@@ -314,6 +331,15 @@ IconHandler::IconHandler(
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
                 m_iconFiles[fname] = pkg;
             }
+#ifdef EXTRA_PREFIX
+            else if (fname == std::format(EXTRA_PREFIX "/share/icons/{}/index.theme", name)) {
+                std::lock_guard<std::mutex> lock(themesMutex);
+                tmpThemes[name] = std::make_unique<Theme>(name, pkg);
+            } else if (fname.starts_with(std::format(EXTRA_PREFIX "/share/icons/{}", name))) {
+                std::lock_guard<std::mutex> lock(iconFilesMutex);
+                m_iconFiles[fname] = pkg;
+            }
+#endif
         }
     });
 
@@ -323,6 +349,12 @@ IconHandler::IconHandler(
     if (tmpThemes.find("hicolor") == tmpThemes.end()) {
         logInfo("No packaged hicolor icon theme found, using built-in one.");
         auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
+        if (!fs::exists(hicolorThemeIndex))
+            hicolorThemeIndex = "/usr/share/icons/hicolor/index.theme";
+#ifdef EXTRA_PREFIX
+        if (!fs::exists(hicolorThemeIndex))
+            hicolorThemeIndex = EXTRA_PREFIX "/share/icons/hicolor/index.theme";
+#endif
         if (!fs::exists(hicolorThemeIndex)) {
             logError(
                 "Hicolor icon theme index at '{}' was not found! We will not be able to handle icons in this theme.",
@@ -418,14 +450,22 @@ std::generator<std::string> IconHandler::possibleIconFilenames(
         // this is "wrong", but we support it for compatibility reasons.
         // However, we only ever use it to satisfy the 64x64px requirement
         for (const auto &extension : PossibleIconExts)
+#ifndef EXTRA_PREFIX
             co_yield std::format("/usr/share/icons/{}{}", iconName, extension);
+#else
+            co_yield std::format(EXTRA_PREFIX "/share/icons/{}{}", iconName, extension);
+#endif
 
         // check pixmaps directory for icons
         // we only ever use the pixmap directory contents to satisfy the minimum 64x64px icon
         // requirement. Otherwise we get weird upscaling to higher sizes or HiDPI sizes happening,
         // as later code tries to downscale "bigger" sizes.
         for (const auto &extension : PossibleIconExts)
+#ifndef EXTRA_PREFIX
             co_yield std::format("/usr/share/pixmaps/{}{}", iconName, extension);
+#else
+            co_yield std::format(EXTRA_PREFIX "/share/pixmaps/{}{}", iconName, extension);
+#endif
     }
 }
 

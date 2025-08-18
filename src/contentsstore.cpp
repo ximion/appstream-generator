@@ -27,6 +27,7 @@
 #include <cstring>
 #include <cmath>
 
+#include "defines.h"
 #include "config.h"
 #include "logging.h"
 
@@ -248,6 +249,13 @@ void ContentsStore::addContents(const std::string &pkid, const std::vector<std::
             iconInfo.push_back(f);
             continue;
         }
+
+#ifdef EXTRA_PREFIX
+        if (f.starts_with(EXTRA_PREFIX "/share/icons/") || f.starts_with(EXTRA_PREFIX "/share/pixmaps/")) {
+            iconInfo.push_back(f);
+            continue;
+        }
+#endif
 
         // create a huge index of all Gettext and Qt translation filenames
         if (f.ends_with(".mo") || f.ends_with(".qm")) {

@@ -28,6 +28,7 @@
 #include <glib.h>
 
 #include "config.h"
+#include "defines.h"
 #include "logging.h"
 #include "hintregistry.h"
 #include "result.h"
@@ -58,6 +59,9 @@ DataExtractor::DataExtractor(
 
     m_compose = asc_compose_new();
 
+#ifdef EXTRA_PREFIX
+    asc_compose_set_prefix(m_compose, EXTRA_PREFIX);
+#endif
     asc_compose_set_media_result_dir(m_compose, m_dstore->mediaExportPoolDir().string().c_str());
     asc_compose_set_media_baseurl(m_compose, "");
 

@@ -13,3 +13,9 @@ option('maintainer',
        value : false,
        description : 'Enable maintainer mode (use strict compiler flags, e.g. -Werror)'
 )
+
+option('extra-prefix',
+       type: 'string',
+       value: '',
+       description: 'Additional prefix where software might be installed'
+)
