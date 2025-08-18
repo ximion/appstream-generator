@@ -358,6 +358,8 @@ IconHandler::IconHandler(
     if (tmpThemes.find("hicolor") == tmpThemes.end()) {
         logInfo("No packaged hicolor icon theme found, using built-in one.");
         auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
+        if (!fs::exists(hicolorThemeIndex) && !m_extraPrefix.empty())
+            hicolorThemeIndex = m_extraPrefix + "/share/icons/hicolor/index.theme";
         if (!fs::exists(hicolorThemeIndex)) {
             logError(
                 "Hicolor icon theme index at '{}' was not found! We will not be able to handle icons in this theme.",
