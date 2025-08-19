@@ -64,4 +64,4 @@ jobs:
       run: sudo ./tests/ci/ci-install-extern.sh
 
     - name: Build & Test
-      run: DC=ldc2 ./tests/ci/build-and-test.sh
+      run: ./tests/ci/build-and-test.sh
