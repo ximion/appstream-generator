@@ -254,6 +254,9 @@ void ArchiveDecompressor::extractEntryTo(archive *ar, const std::string &fname)
     int64_t offset = 0;
     int64_t output_offset = 0;
 
+    // Ensure parent directory exists before opening the file
+    fs::create_directories(fs::path(fname).parent_path());
+
     std::ofstream f(fname, std::ios::binary);
     if (!f)
         throw std::runtime_error(std::format("Failed to open file for writing: {}", fname));
