@@ -45,6 +45,9 @@ conf_data = configuration_data()
 conf_data.set_quoted('DATADIR', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
 conf_data.set_quoted('ASGEN_VERSION', asgen_version)
 conf_data.set('HAVE_BACKWARD', backward_dep.found())
+if (get_option('extra-prefix') != '')
+  conf_data.set_quoted('EXTRA_PREFIX', fs.as_posix(get_option('extra-prefix')))
+endif
 defines_h = configure_file(
   output: 'defines.h',
   configuration: conf_data
