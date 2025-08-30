@@ -366,8 +366,8 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
             try {
                 fs::create_hard_link(targetPath, linkPath);
             } catch (const fs::filesystem_error &e) {
-                logError("Failed to create hardlink '{}' -> '{}': {}",
-                         linkPath.string(), targetPath.string(), e.what());
+                logError(
+                    "Failed to create hardlink '{}' -> '{}': {}", linkPath.string(), targetPath.string(), e.what());
             }
             continue;
         }
