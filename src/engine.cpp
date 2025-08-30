@@ -316,14 +316,9 @@ std::string Engine::getMetadataHead(const Suite &suite, const std::string &secti
     // Convert to lowercase
     std::transform(origin.begin(), origin.end(), origin.begin(), ::tolower);
 
-    // Get current time
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto tm = *std::gmtime(&time_t);
-
-    std::ostringstream timeStrStream;
-    timeStrStream << std::put_time(&tm, "%Y%m%dT%H%M%S");
-    const auto timeStr = timeStrStream.str();
+    // Get current time in ISO8601 UTC
+    auto now = std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now());
+    std::string timeNowIso8601 = std::format("{:%FT%TZ}", now);
 
     std::string mediaPoolUrl = fs::path(m_conf->mediaBaseUrl) / "pool";
     if (m_conf->feature.immutableSuites)
@@ -338,10 +333,10 @@ std::string Engine::getMetadataHead(const Suite &suite, const std::string &secti
         if (mediaBaseUrlAllowed)
             head += std::format(" media_baseurl=\"{}\"", mediaPoolUrl);
         if (m_conf->feature.metadataTimestamps)
-            head += std::format(" time=\"{}\"", timeStr);
+            head += std::format(" time=\"{}\"", timeNowIso8601);
         head += ">";
     } else {
-        head = "---\n";
+        head = "%YAML 1.2\n---\n";
         head += std::format(
             "File: DEP-11\n"
             "Version: '{}'\n"
@@ -353,7 +348,7 @@ std::string Engine::getMetadataHead(const Suite &suite, const std::string &secti
         if (suite.dataPriority != 0)
             head += std::format("\nPriority: {}", suite.dataPriority);
         if (m_conf->feature.metadataTimestamps)
-            head += std::format("\nTime: {}", timeStr);
+            head += std::format("\nTime: {}", timeNowIso8601);
     }
 
     return head;
