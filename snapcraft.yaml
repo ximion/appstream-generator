@@ -58,7 +58,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.0.6'
+    source-tag: 'v1.1.0'
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
@@ -79,12 +79,12 @@ parts:
       - libcurl4-gnutls-dev
       - liblzma-dev
       - libffi-dev
+      - libfyaml-dev
       - libgirepository1.0-dev
       - libglib2.0-dev
       - libstemmer-dev
       - libxml2-dev
       - libxmlb-dev
-      - libyaml-dev
       - libzstd-dev
       - xsltproc
     stage-packages:
@@ -92,7 +92,7 @@ parts:
      - libicu70
      - libstemmer0d
      - libxml2
-     - libyaml-0-2
+     - libfyaml0
      - libzstd1
 
   appstream-generator:

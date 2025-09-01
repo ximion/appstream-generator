@@ -32,7 +32,6 @@ eatmydata apt-get install -yq --no-install-recommends \
     libglib2.0-dev \
     libstemmer-dev \
     libxml2-dev \
-    libyaml-dev \
     libfyaml-dev \
     libxmlb-dev \
     libcurl4-gnutls-dev \
