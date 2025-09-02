@@ -596,7 +596,13 @@ bool IconHandler::storeIcon(
     } else {
         g_autoptr(GError) error = nullptr;
         g_autoptr(AscImage) img = asc_image_new_from_data(
-            iconData.data(), iconData.size(), 0, iconPath.ends_with(".svgz"), ASC_IMAGE_LOAD_FLAG_NONE, &error);
+            iconData.data(),
+            iconData.size(),
+            -1,
+            -1,
+            ASC_IMAGE_LOAD_FLAG_NONE,
+            iconPath.ends_with(".svgz") ? ASC_IMAGE_FORMAT_SVGZ : ASC_IMAGE_FORMAT_UNKNOWN,
+            &error);
 
         if (!img) {
             gres.addHint(
