@@ -568,28 +568,31 @@ bool IconHandler::storeIcon(
         return false;
     }
 
-    auto scaled_width = size.width * size.scale;
-    auto scaled_height = size.height * size.scale;
+    auto scaled_width = (int)size.width * (int)size.scale;
+    auto scaled_height = (int)size.height * (int)size.scale;
 
     if ((iformat == ASC_IMAGE_FORMAT_SVG) || (iformat == ASC_IMAGE_FORMAT_SVGZ)) {
         // create target directory
         fs::create_directories(path);
 
-        try {
-            g_autoptr(GInputStream)
-                stream = g_memory_input_stream_new_from_data(iconData.data(), iconData.size(), nullptr);
+        g_autoptr(GError) error = nullptr;
+        g_autoptr(GInputStream) stream = g_memory_input_stream_new_from_data(iconData.data(), iconData.size(), nullptr);
+        gboolean ret = asc_render_svg_to_file(
+            G_INPUT_STREAM(stream),
+            (gint)scaled_width,
+            (gint)scaled_height,
+            ASC_IMAGE_FORMAT_PNG,
+            iconStoreLocation.c_str(),
+            &error);
 
-            g_autoptr(AscCanvas) cv = asc_canvas_new(scaled_width, scaled_height);
-            asc_canvas_render_svg(cv, G_INPUT_STREAM(stream), nullptr);
-            asc_canvas_save_png(cv, iconStoreLocation.c_str(), nullptr);
-        } catch (const std::exception &e) {
+        if (!ret) {
             gres.addHint(
                 as_component_get_id(cpt),
                 "image-write-error",
                 {
                     {"fname",     fs::path(iconPath).filename()                },
                     {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
-                    {"error",     e.what()                                     }
+                    {"error",     error->message                               }
             });
             return false;
         }
