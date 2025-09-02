@@ -666,6 +666,8 @@ void Config::loadFromFile(
             "The currently used GdkPixbuf does not seem to support all image formats we require to run normally "
             "(png/svg/jpeg). This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
     }
+    if (!g_hash_table_contains(pbFormatNames, "jxl"))
+        logWarning("JPEG-XL image support not found!");
 }
 
 bool Config::isValid() const

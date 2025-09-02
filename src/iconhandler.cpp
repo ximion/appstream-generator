@@ -41,11 +41,11 @@ namespace ASGenerator
 
 // all image extensions that we recognize as possible for icons.
 // the most favorable file extension needs to come first to prefer it
-inline constexpr std::array<std::string_view, 7> PossibleIconExts =
-    {".png", ".jpg", ".svgz", ".svg", ".gif", ".ico", ".xpm"};
+inline constexpr std::array<std::string_view, 9> PossibleIconExts =
+    {".png", ".svgz", ".svg", ".jxl", ".jpg", ".jpeg", ".gif", ".ico", ".xpm"};
 
 // the image extensions that we will actually allow software to have.
-inline constexpr std::array<std::string_view, 5> AllowedIconExts = {".png", ".jpg", ".svgz", ".svg", ".xpm"};
+inline constexpr std::array<std::string_view, 5> AllowedIconExts = {".png", ".jxl", ".svgz", ".svg", ".xpm"};
 
 // Theme implementation
 Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData)
