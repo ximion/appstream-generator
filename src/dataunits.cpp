@@ -78,18 +78,11 @@ AsgPackageUnit *asg_package_unit_new(std::shared_ptr<Package> pkg)
 {
     AsgPackageUnit *unit = static_cast<AsgPackageUnit *>(g_object_new(ASG_TYPE_PACKAGE_UNIT, nullptr));
 
-    try {
-        unit->priv_data = new PackageUnitPrivate(pkg);
+    unit->priv_data = new PackageUnitPrivate(pkg);
 
-        // set identity
-        asc_unit_set_bundle_id(ASC_UNIT(unit), pkg->name().c_str());
-        asc_unit_set_bundle_kind(ASC_UNIT(unit), AS_BUNDLE_KIND_PACKAGE);
-
-    } catch (const std::exception &e) {
-        logError("Failed to create package unit: {}", e.what());
-        g_object_unref(unit);
-        return nullptr;
-    }
+    // set identity
+    asc_unit_set_bundle_id(ASC_UNIT(unit), pkg->name().c_str());
+    asc_unit_set_bundle_kind(ASC_UNIT(unit), AS_BUNDLE_KIND_PACKAGE);
 
     return unit;
 }
@@ -346,21 +339,14 @@ static gboolean asg_locale_unit_open_impl(AscUnit *unit, GError **error)
 
     std::shared_lock<std::shared_mutex> lock(priv->mutex);
 
-    try {
-        // Set up contents list from the file mapping keys
-        g_autoptr(GPtrArray) contents_array = g_ptr_array_new_with_free_func(g_free);
+    // Set up contents list from the file mapping keys
+    g_autoptr(GPtrArray) contents_array = g_ptr_array_new_with_free_func(g_free);
 
-        for (const auto &[filename, pkg] : priv->locale_file_pkg_map)
-            g_ptr_array_add(contents_array, g_strdup(filename.c_str()));
+    for (const auto &[filename, pkg] : priv->locale_file_pkg_map)
+        g_ptr_array_add(contents_array, g_strdup(filename.c_str()));
 
-        asc_unit_set_contents(unit, contents_array);
-        return TRUE;
-
-    } catch (const std::exception &e) {
-        logError("Failed to open locale unit: {}", e.what());
-        g_set_error(error, ASC_COMPOSE_ERROR, ASC_COMPOSE_ERROR_FAILED, "Failed to open locale unit: %s", e.what());
-        return FALSE;
-    }
+    asc_unit_set_contents(unit, contents_array);
+    return TRUE;
 }
 
 static void asg_locale_unit_close_impl(AscUnit *unit)

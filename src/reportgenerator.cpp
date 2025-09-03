@@ -468,9 +468,8 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
             try {
                 auto hintsJson = inja::json::parse(hintsData);
 
-                if (!hintsJson.contains("hints") || !hintsJson["hints"].is_object()) {
+                if (!hintsJson.contains("hints") || !hintsJson["hints"].is_object())
                     continue;
-                }
 
                 auto hintsNode = hintsJson["hints"];
 

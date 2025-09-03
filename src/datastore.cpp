@@ -523,9 +523,10 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
 
         // convert our component into metadata
         std::string data;
-        g_autoptr(GError) error = nullptr;
         try {
+            g_autoptr(GError) error = nullptr;
             g_autofree gchar *metadataStr = nullptr;
+
             if (dtype == DataType::XML)
                 metadataStr = as_metadata_components_to_catalog(m_mdata, AS_FORMAT_KIND_XML, &error);
             else
