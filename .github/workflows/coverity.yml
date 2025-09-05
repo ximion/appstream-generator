@@ -24,6 +24,9 @@ jobs:
     - name: Create Build Environment
       run: sudo ./tests/ci/install-deps-deb.sh
 
+    - name: Make & Install 3rd-party
+      run: sudo ./tests/ci/ci-install-extern.sh
+
     - name: Create Version String
       id: version
       run: |
