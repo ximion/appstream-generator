@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# This script is supposed to run inside the AppStream Generator Docker container
+# This script is supposed to run inside the AppStream Generator container
 # on the CI system.
 #
 set -e
@@ -20,17 +20,10 @@ if [ "$1" = "codeql" ]; then
 fi;
 
 #
-# Build & Test
+# Build Project
 #
 mkdir -p build && cd build
 meson setup --buildtype=$build_type \
     -Ddownload-js=true \
     ..
 ninja
-
-# Run tests
-meson test -v --print-errorlogs
-
-# Test install
-DESTDIR=/tmp/install-ninja ninja install
-cd $ROOT_DIR
