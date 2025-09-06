@@ -15,8 +15,13 @@ $CXX --version
 meson --version
 
 build_type=debugoptimized
-if [ "$1" = "debug" ]; then
+with_backward=true
+if [ "$1" = "codeql" ]; then
     build_type=debug
+fi;
+if [ "$1" = "coverity" ]; then
+    build_type=debug
+    with_backward=false
 fi;
 
 #
@@ -25,5 +30,6 @@ fi;
 mkdir -p build && cd build
 meson setup --buildtype=$build_type \
     -Ddownload-js=true \
+    -Dbackward=$with_backward \
     ..
 ninja

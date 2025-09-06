@@ -31,12 +31,15 @@ inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_optio
 libxml2_dep   = dependency('libxml-2.0') # for rpmmd
 catch2_dep    = dependency('catch2-with-main')
 
-backward_dep  = dependency('backward-cpp', fallback: ['backward-cpp', 'backward_dep'], required: false)
 backward_deps = []
-if backward_dep.found()
-    message('Using backward-cpp for stack traces')
-    libunwind_dep = dependency('libunwind')
-    backward_deps = [backward_dep, libunwind_dep]
+backward_dep = dependency('', required: false)
+if get_option('backward')
+    backward_dep  = dependency('backward-cpp', fallback: ['backward-cpp', 'backward_dep'], required: false)
+    if backward_dep.found()
+        message('Using backward-cpp for stack traces')
+        libunwind_dep = dependency('libunwind')
+        backward_deps = [backward_dep, libunwind_dep]
+    endif
 endif
 
 # Ensure we have a compiler that can handle the C++23 features we need

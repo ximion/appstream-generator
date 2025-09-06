@@ -8,8 +8,14 @@ option('download-js',
        description: 'Download JavaScript with NPM automatically.'
 )
 
+option('backward',
+       type : 'boolean',
+       value : true,
+       description : 'Use stack trace pretty-printing using backward-cpp.'
+)
+
 option('maintainer',
        type : 'boolean',
        value : false,
-       description : 'Enable maintainer mode (use strict compiler flags, e.g. -Werror)'
+       description : 'Compile in maintainer mode (use strict compiler flags, e.g. -Werror)'
 )
