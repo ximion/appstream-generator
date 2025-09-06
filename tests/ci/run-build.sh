@@ -15,7 +15,7 @@ $CXX --version
 meson --version
 
 build_type=debugoptimized
-if [ "$1" = "codeql" ]; then
+if [ "$1" = "debug" ]; then
     build_type=debug
 fi;
 

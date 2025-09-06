@@ -47,4 +47,4 @@ jobs:
         email: ${{ secrets.COVERITY_SCAN_EMAIL }}
         token: ${{ secrets.COVERITY_SCAN_TOKEN }}
         version: ${{ steps.version.outputs.git_version_full }}
-        command: './tests/ci/run-build.sh'
+        command: './tests/ci/run-build.sh debug'

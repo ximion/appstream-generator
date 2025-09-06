@@ -35,7 +35,7 @@ jobs:
       run: sudo ./tests/ci/ci-install-extern.sh
 
     - name: Build & Test
-      run: ./tests/ci/run-build.sh codeql
+      run: ./tests/ci/run-build.sh debug
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
