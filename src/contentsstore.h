@@ -80,9 +80,9 @@ public:
 
 private:
     MDB_env *dbEnv;
-    MDB_dbi dbContents;
-    MDB_dbi dbIcons;
-    MDB_dbi dbLocale;
+    MDB_dbi dbContents{0};
+    MDB_dbi dbIcons{0};
+    MDB_dbi dbLocale{0};
 
     bool m_opened;
     std::mutex m_mutex;
