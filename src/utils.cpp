@@ -452,13 +452,17 @@ bool dirEmpty(const std::string &dir)
     if (!fs::exists(dir))
         return true;
 
-    for (const auto &entry : fs::directory_iterator(dir)) {
-        (void)entry;  // Suppress unused variable warning
-        return false; // Found at least one entry
+    std::error_code ec;
+    auto iter = fs::directory_iterator(dir, ec);
+    if (ec) {
+        // If we can't read the directory (e.g., permission denied),
+        // we consider it non-empty to be safe
+        return false;
     }
 
-    return true;
+    return iter == fs::directory_iterator{};
 }
+
 } // namespace Utils
 
 } // namespace ASGenerator
