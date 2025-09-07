@@ -145,7 +145,7 @@ void Engine::processPackages(
 
             for (std::size_t i = range.begin(); i != range.end(); ++i) {
                 auto pkg = pkgs[i];
-                const auto pkid = pkg->id();
+                const auto &pkid = pkg->id();
 
                 if (m_dstore->packageExists(pkid))
                     continue;
@@ -176,7 +176,7 @@ static bool packageIsInteresting(std::shared_ptr<Package> pkg)
     constexpr std::string_view usr_share = "/usr/share/";
     constexpr std::string_view usr_local = "/usr/local/share/";
 
-    const auto contents = pkg->contents();
+    const auto &contents = pkg->contents();
     for (const auto &c : contents) {
         // Quick length check first - all interesting paths are at least 18 characters
         if (c.size() < 18)
@@ -242,7 +242,7 @@ bool Engine::seedContentsData(
             [&](const tbb::blocked_range<std::size_t> &range) {
                 for (size_t i = range.begin(); i != range.end(); ++i) {
                     auto pkg = baseSuitePkgs[i];
-                    const auto pkid = pkg->id();
+                    const auto &pkid = pkg->id();
 
                     if (!m_cstore->packageExists(pkid)) {
                         m_cstore->addContents(pkid, pkg->contents());
@@ -263,7 +263,7 @@ bool Engine::seedContentsData(
         [&](const tbb::blocked_range<std::size_t> &range) {
             for (std::size_t i = range.begin(); i != range.end(); ++i) {
                 auto pkg = packagesToProcess[i];
-                const auto pkid = pkg->id();
+                const auto &pkid = pkg->id();
 
                 std::vector<std::string> contents;
                 if (m_cstore->packageExists(pkid)) {
@@ -398,7 +398,7 @@ void Engine::exportMetadata(
     logDebug("Building final metadata and hints files.");
 
     tbb::parallel_for_each(pkgs.begin(), pkgs.end(), [&](std::shared_ptr<Package> pkg) {
-        const auto pkid = pkg->id();
+        const auto &pkid = pkg->id();
         auto gcids = m_dstore->getGCIDsForPackage(pkid);
         if (!gcids.empty()) {
             auto mres = m_dstore->getMetadataForPackage(m_conf->metadataType, pkid);
@@ -526,7 +526,7 @@ void Engine::exportIconTarballs(
     std::mutex iconMutex;
 
     tbb::parallel_for_each(pkgs.begin(), pkgs.end(), [&](std::shared_ptr<Package> pkg) {
-        const auto pkid = pkg->id();
+        const auto &pkid = pkg->id();
         auto gcids = m_dstore->getGCIDsForPackage(pkid);
         if (gcids.empty())
             return;
@@ -618,7 +618,7 @@ std::unordered_map<std::string, std::shared_ptr<Package>> Engine::getIconCandida
 
     std::unordered_map<std::string, std::shared_ptr<Package>> pkgMap;
     for (auto &pkg : pkgs) {
-        const auto pkid = pkg->id();
+        const auto &pkid = pkg->id();
         pkgMap[pkid] = pkg;
     }
 
@@ -669,7 +669,7 @@ std::shared_ptr<Package> Engine::processExtraMetainfoData(
 
 bool Engine::processSuiteSection(const Suite &suite, const std::string &section, std::shared_ptr<ReportGenerator> rgen)
 {
-    auto reportgen = rgen;
+    auto reportgen = std::move(rgen);
     if (!reportgen)
         reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
 
@@ -703,9 +703,9 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
         processPackages(pkgs, iconh, injMods);
 
         // Read injected data and add it to the database as a fake package
-        auto fakePkg = processExtraMetainfoData(suite, iconh, section, arch, injMods);
+        auto fakePkg = processExtraMetainfoData(suite, std::move(iconh), section, arch, injMods);
         if (fakePkg)
-            pkgs.push_back(fakePkg);
+            pkgs.push_back(std::move(fakePkg));
 
         // Export package data
         exportMetadata(suite, section, arch, pkgs);
@@ -829,7 +829,7 @@ bool Engine::processFile(
             m_dstore->mediaExportPoolDir(),
             getIconCandidatePackages(suite, sectionName, arch),
             suite.iconTheme);
-        processPackages(pkgs, iconh, nullptr);
+        processPackages(pkgs, std::move(iconh), nullptr);
     }
 
     return true;
@@ -900,7 +900,7 @@ void Engine::publishMetadataForSuiteSection(
     const std::string &section,
     std::shared_ptr<ReportGenerator> rgen)
 {
-    auto reportgen = rgen;
+    auto reportgen = std::move(rgen);
     if (!reportgen)
         reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
 
@@ -1107,13 +1107,13 @@ void Engine::removeHintsComponents(const std::string &suiteName)
     logVersionInfo();
 
     for (const auto &section : suite.sections) {
-        const auto architectures = suite.architectures;
+        const auto &architectures = suite.architectures;
 
         tbb::parallel_for_each(architectures.begin(), architectures.end(), [&](const std::string &arch) {
             auto pkgs = m_pkgIndex->packagesFor(suite.name, section, arch, false);
 
             for (const auto &pkg : pkgs) {
-                const auto pkid = pkg->id();
+                const auto &pkid = pkg->id();
 
                 if (!m_dstore->packageExists(pkid))
                     continue;

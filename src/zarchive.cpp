@@ -489,7 +489,7 @@ std::vector<std::string> ArchiveDecompressor::extractFilesByRegex(const std::reg
         if (std::regex_search(pathname, re)) {
             std::string fdest = (fs::path(destdir) / fs::path(pathname).filename()).string();
             extractEntryTo(ar.get(), fdest);
-            matches.push_back(fdest);
+            matches.push_back(std::move(fdest));
         } else {
             archive_read_data_skip(ar.get());
         }

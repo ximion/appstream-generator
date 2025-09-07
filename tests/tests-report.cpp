@@ -351,7 +351,7 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator render pages with 
             {"info-tag", "Info message"}
         };
 
-        dsum.hintEntries["testpkg1"]["test.component.1"] = hentry;
+        dsum.hintEntries["testpkg1"]["test.component.1"] = std::move(hentry);
 
         // Create mock package summary
         ReportGenerator::PkgSummary summary;

@@ -919,7 +919,7 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
             }
             try {
                 auto entry = StatisticsEntry::deserialize(binaryData);
-                stats.push_back(entry);
+                stats.push_back(std::move(entry));
             } catch (const std::exception &e) {
                 logWarning("Failed to deserialize statistics entry: {}", e.what());
                 continue;

@@ -451,7 +451,7 @@ std::unordered_set<std::string> ContentsStore::getPackageIdSet()
         while (mdb_cursor_get(cur, &pkey, nullptr, MDB_NEXT) == 0) {
             auto data = static_cast<const char *>(pkey.mv_data);
             std::string pkid(data);
-            pkgSet.insert(pkid);
+            pkgSet.insert(std::move(pkid));
         }
 
         mdb_cursor_close(cur);

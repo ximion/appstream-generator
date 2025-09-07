@@ -107,7 +107,7 @@ void TagFile::readCurrentBlockData()
             i = j; // skip forward
         }
 
-        m_currentBlock[fieldName] = fieldData;
+        m_currentBlock[fieldName] = std::move(fieldData);
     }
 }
 

@@ -165,7 +165,7 @@ void DebianPackageIndex::loadPackageLongDescs(
                 l10nTexts->setDescription(description, "C");
             l10nTexts->setDescription(description, lang);
 
-            pkg->setLocalizedTexts(l10nTexts);
+            pkg->setLocalizedTexts(std::move(l10nTexts));
         } while (tagf.nextSection());
     }
 }
@@ -267,7 +267,7 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
                 continue;
         }
 
-        pkgs[name] = pkg;
+        pkgs[name] = std::move(pkg);
     } while (tagf.nextSection());
 
     // load long descriptions

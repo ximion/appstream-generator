@@ -59,7 +59,7 @@ DebPackage::DebPackage(
       m_dataArchive(std::make_unique<ArchiveDecompressor>())
 {
     if (l10nTexts)
-        m_descTexts = l10nTexts;
+        m_descTexts = std::move(l10nTexts);
     else
         m_descTexts = std::make_shared<DebPackageLocaleTexts>();
 
@@ -177,7 +177,7 @@ void DebPackage::setSummary(const std::string &text, const std::string &locale)
 void DebPackage::setLocalizedTexts(std::shared_ptr<DebPackageLocaleTexts> l10nTexts)
 {
     assert(l10nTexts != nullptr);
-    m_descTexts = l10nTexts;
+    m_descTexts = std::move(l10nTexts);
 }
 
 std::shared_ptr<DebPackageLocaleTexts> DebPackage::localizedTexts()

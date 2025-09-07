@@ -91,7 +91,7 @@ std::vector<ApkIndexEntry> AlpinePackageIndex::parseApkIndex(const std::string &
         if (line.empty()) {
             // End of package entry
             if (!currentEntry.pkgname.empty()) {
-                entries.push_back(currentEntry);
+                entries.push_back(std::move(currentEntry));
                 currentEntry = ApkIndexEntry{};
             }
             continue;
@@ -130,7 +130,7 @@ std::vector<ApkIndexEntry> AlpinePackageIndex::parseApkIndex(const std::string &
 
     // Add the last entry if not empty
     if (!currentEntry.pkgname.empty())
-        entries.push_back(currentEntry);
+        entries.push_back(std::move(currentEntry));
 
     return entries;
 }
@@ -168,7 +168,7 @@ std::vector<std::shared_ptr<Package>> AlpinePackageIndex::loadPackages(
 
         pkg->setFilename((fs::path(m_rootDir) / suite / section / arch / fileName).string());
         pkg->setMaintainer(pkgInfo.maintainer);
-        setPkgDescription(pkg, pkgInfo.pkgdesc);
+        setPkgDescription(std::move(pkg), pkgInfo.pkgdesc);
     }
 
     // Perform a sanity check, so we will never emit invalid packages

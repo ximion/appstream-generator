@@ -292,7 +292,7 @@ IconHandler::IconHandler(
             auto pkg = getPackage(pkgid);
             if (pkg) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
-                m_iconFiles[fname] = pkg;
+                m_iconFiles[fname] = std::move(pkg);
             }
             return;
         }
@@ -312,7 +312,7 @@ IconHandler::IconHandler(
                 tmpThemes[name] = std::make_unique<Theme>(name, pkg);
             } else if (fname.starts_with(std::format("/usr/share/icons/{}", name))) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
-                m_iconFiles[fname] = pkg;
+                m_iconFiles[fname] = std::move(pkg);
             }
         }
     });
@@ -815,7 +815,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
         /// Returns true on success and sets lastIconName to the
         /// last icon name that has been handled.
         auto findAndStoreXdgIcon = [&](std::shared_ptr<Package> epkg = nullptr) -> bool {
-            auto iconRes = findIcons(iconName, m_enabledIconSizes, epkg);
+            auto iconRes = findIcons(iconName, m_enabledIconSizes, std::move(epkg));
             if (iconRes.empty())
                 return false;
 
@@ -847,7 +847,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
                 lastIconName = info.fname;
                 if (iconAllowed(lastIconName)) {
                     if (storeIcon(cpt, gres, cptMediaPath, info.pkg, lastIconName, size, iconState))
-                        iconsStored[size] = info;
+                        iconsStored[size] = std::move(info);
                 } else {
                     // the found icon is not suitable, but maybe we can scale a differently sized icon to the right one?
                     info = findIconScalableToSize(iconRes, size);
@@ -888,7 +888,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
                         iconName,
                         size.toString(),
                         m_defaultIconSize.toString());
-                    auto info = it->second;
+                    const auto &info = it->second;
                     lastIconName = info.fname;
                     if (storeIcon(
                             cpt, gres, cptMediaPath, info.pkg, lastIconName, m_defaultIconSize, m_defaultIconState)) {

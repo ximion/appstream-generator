@@ -59,7 +59,7 @@ public:
     bool contents_loaded = false;
 
     explicit PackageUnitPrivate(std::shared_ptr<Package> pkg)
-        : package(pkg)
+        : package(std::move(pkg))
     {
     }
 };
@@ -246,7 +246,7 @@ public:
     mutable std::shared_mutex mutex;
 
     explicit LocaleUnitPrivate(std::shared_ptr<ContentsStore> cstore, const std::vector<std::shared_ptr<Package>> &pkgs)
-        : contents_store(cstore)
+        : contents_store(std::move(cstore))
     {
         package_list = pkgs;
 
@@ -309,10 +309,10 @@ G_DEFINE_TYPE(AsgLocaleUnit, asg_locale_unit, ASC_TYPE_UNIT)
  */
 AsgLocaleUnit *asg_locale_unit_new(std::shared_ptr<ContentsStore> cstore, std::vector<std::shared_ptr<Package>> pkgList)
 {
-    AsgLocaleUnit *unit = static_cast<AsgLocaleUnit *>(g_object_new(ASG_TYPE_LOCALE_UNIT, nullptr));
+    auto unit = static_cast<AsgLocaleUnit *>(g_object_new(ASG_TYPE_LOCALE_UNIT, nullptr));
 
     try {
-        unit->priv_data = new LocaleUnitPrivate(cstore, pkgList);
+        unit->priv_data = new LocaleUnitPrivate(std::move(cstore), pkgList);
 
         // Set bundle information for locale unit
         asc_unit_set_bundle_id(ASC_UNIT(unit), "locale-data");

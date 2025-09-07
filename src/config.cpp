@@ -218,9 +218,8 @@ static std::vector<std::string> getNodeArrayValues(fy_node *node)
     void *iter = nullptr;
     while ((item = fy_node_sequence_iterate(node, &iter)) != nullptr) {
         auto value = getNodeStringValue(item);
-        if (!value.empty()) {
-            result.push_back(value);
-        }
+        if (!value.empty())
+            result.push_back(std::move(value));
     }
 
     return result;
@@ -467,9 +466,9 @@ void Config::loadFromFile(
 
             auto suiteExtraMIDir = extraMetainfoDir / suite.name;
             if (fs::exists(suiteExtraMIDir) && fs::is_directory(suiteExtraMIDir))
-                suite.extraMetainfoDir = suiteExtraMIDir;
+                suite.extraMetainfoDir = std::move(suiteExtraMIDir);
 
-            suites.push_back(suite);
+            suites.push_back(std::move(suite));
         }
     }
 

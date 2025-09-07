@@ -369,7 +369,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
     as_metadata_set_format_version(mdata, m_conf->formatVersion);
 
     for (const auto &pkg : pkgs) {
-        const auto pkid = pkg->id();
+        const auto &pkid = pkg->id();
 
         auto gcids = m_dstore->getGCIDsForPackage(pkid);
         auto hintsData = m_dstore->getHints(pkid);
@@ -458,8 +458,8 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                 }
 
                 me.archs.push_back(pkg->arch());
-                dsum.mdataEntries[pkg->name()][pkg->ver()][gcid] = me;
-                pkgsummary.cpts.push_back(std::format("{} - {}", cid, pkg->ver()));
+                dsum.mdataEntries[pkg->name()][pkg->ver()][gcid] = std::move(me);
+                pkgsummary.cpts.emplace_back(std::format("{} - {}", cid, pkg->ver()));
             }
         }
 
@@ -539,15 +539,15 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
 
                             // add the new hint to the right category
                             if (severity == AS_ISSUE_SEVERITY_INFO) {
-                                he.infos.push_back(HintTag{tag, msg});
+                                he.infos.emplace_back(tag, msg);
                                 pkgsummary.infoCount++;
                             } else if (severity == AS_ISSUE_SEVERITY_WARNING) {
-                                he.warnings.push_back(HintTag{tag, msg});
+                                he.warnings.emplace_back(tag, msg);
                                 pkgsummary.warningCount++;
                             } else if (severity == AS_ISSUE_SEVERITY_PEDANTIC) {
                                 // We ignore pedantic issues completely for now
                             } else {
-                                he.errors.push_back(HintTag{tag, msg});
+                                he.errors.emplace_back(tag, msg);
                                 pkgsummary.errorCount++;
                             }
                         }

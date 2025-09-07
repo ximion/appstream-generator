@@ -93,7 +93,7 @@ std::vector<std::shared_ptr<ArchPackage>> ArchPackageIndex::loadPackages(
             pkg->setMaintainer(descF.getEntry("PACKAGER"));
             pkg->setFilename((pkgRoot / descF.getEntry("FILENAME")).string());
 
-            setPkgDescription(pkg, descF.getEntry("DESC"));
+            setPkgDescription(std::move(pkg), descF.getEntry("DESC"));
 
         } else if (infoBaseName == "files") {
             // we have the files list

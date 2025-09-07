@@ -81,7 +81,7 @@ std::vector<std::shared_ptr<Package>> UbuntuPackageIndex::packagesFor(
             // Cast to UbuntuPackage
             auto ubuntuPkg = std::dynamic_pointer_cast<UbuntuPackage>(pkg);
             if (ubuntuPkg)
-                langpackPkgs.push_back(ubuntuPkg);
+                langpackPkgs.push_back(std::move(ubuntuPkg));
         }
     }
 

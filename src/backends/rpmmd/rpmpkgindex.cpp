@@ -133,7 +133,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                         if (dataType == "primary")
                             primaryIndexFiles.push_back(href);
                         else if (dataType == "filelists")
-                            filelistFiles.push_back(href);
+                            filelistFiles.push_back(std::move(href));
                     }
                 }
             }
@@ -239,7 +239,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                     continue;
                 }
 
-                pkgMap[pkgidCS] = pkg;
+                pkgMap[pkgidCS] = std::move(pkg);
             }
         }
 
@@ -294,9 +294,8 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                     if (fileElem->type == XML_ELEMENT_NODE
                         && std::strcmp(reinterpret_cast<const char *>(fileElem->name), "file") == 0) {
                         std::string filePath = getXmlElemText(fileElem);
-                        if (!filePath.empty()) {
-                            contents.push_back(filePath);
-                        }
+                        if (!filePath.empty())
+                            contents.push_back(std::move(filePath));
                     }
                 }
 

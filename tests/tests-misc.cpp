@@ -512,7 +512,7 @@ TEST_CASE("InjectedModifications", "[cptmodifiers]")
     dummySuite->extraMetainfoDir = getTestSamplesDir() / "extra-metainfo";
 
     auto injMods = std::make_unique<InjectedModifications>();
-    injMods->loadForSuite(dummySuite);
+    injMods->loadForSuite(std::move(dummySuite));
 
     REQUIRE(injMods->isComponentRemoved("com.example.removed"));
     REQUIRE_FALSE(injMods->isComponentRemoved("com.example.not_removed"));
