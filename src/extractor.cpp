@@ -354,8 +354,7 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
     asc_compose_finalize_results(m_compose);
 
     // do our own final validation
-    if (cptsPtrArray)
-        g_ptr_array_unref(g_steal_pointer(&cptsPtrArray));
+    g_ptr_array_unref(g_steal_pointer(&cptsPtrArray));
     cptsPtrArray = gres.fetchComponents();
     for (guint i = 0; i < cptsPtrArray->len; i++) {
         auto cpt = AS_COMPONENT(g_ptr_array_index(cptsPtrArray, i));
