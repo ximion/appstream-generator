@@ -101,7 +101,7 @@ T deserializeVariantMap(const std::vector<std::uint8_t> &binary_data, bool has_t
         throw std::runtime_error("Invalid data: buffer too small");
 
     size_t pos = 0;
-    T entry;
+    T entry{};
 
     // Check version
     const std::uint8_t version = binary_data[pos++];

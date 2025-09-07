@@ -277,15 +277,17 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
         CURLcode res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
-            curl_easy_cleanup(curl);
             if (maxTryCount > 0) {
                 logDebug(
                     "Failed to download {}, will retry {} more {}",
                     url,
                     maxTryCount,
                     maxTryCount > 1 ? "times" : "time");
+
+                curl_easy_cleanup(curl);
                 return download(url, maxTryCount - 1);
             } else {
+                curl_easy_cleanup(curl);
                 throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
             }
         }
@@ -294,13 +296,14 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
         if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
-            curl_easy_cleanup(curl);
             if (responseCode == 0) {
                 if (buffer.empty()) {
+                    curl_easy_cleanup(curl);
                     throw DownloadException(
                         std::format("No data was received from the remote end (Code: {}).", responseCode));
                 }
             } else {
+                curl_easy_cleanup(curl);
                 throw DownloadException(std::format("HTTP request returned status code {}", responseCode));
             }
         }
@@ -312,12 +315,14 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
         curl_easy_cleanup(curl);
         throw;
     } catch (const std::exception &e) {
-        curl_easy_cleanup(curl);
         if (maxTryCount > 0) {
             logDebug(
                 "Failed to download {}, will retry {} more {}", url, maxTryCount, maxTryCount > 1 ? "times" : "time");
+
+            curl_easy_cleanup(curl);
             return download(url, maxTryCount - 1);
         } else {
+            curl_easy_cleanup(curl);
             throw DownloadException(e.what());
         }
     }
