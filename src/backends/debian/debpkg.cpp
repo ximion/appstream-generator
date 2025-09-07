@@ -259,6 +259,7 @@ std::vector<std::uint8_t> DebPackage::getFileData(const std::string &fname)
 
 const std::vector<std::string> &DebPackage::contents()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (m_contentsRead)
         return m_contentsL;
 
@@ -267,7 +268,6 @@ const std::vector<std::string> &DebPackage::contents()
         // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
         // aliases for certain icons. So, use the slow method for reading contents information here.
 
-        std::lock_guard<std::mutex> lock(m_mutex);
         auto &pa = openPayloadArchive();
         m_contentsL = pa.readContents();
         m_contentsRead = true;

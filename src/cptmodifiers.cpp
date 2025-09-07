@@ -179,10 +179,10 @@ bool InjectedModifications::isComponentRemoved(const std::string &cid) const
 std::optional<std::unordered_map<std::string, std::string>> InjectedModifications::injectedCustomData(
     const std::string &cid) const
 {
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
     if (!m_hasInjectedCustom)
         return std::nullopt;
 
-    std::shared_lock<std::shared_mutex> lock(m_mutex);
     auto it = m_injectedCustomData.find(cid);
     if (it == m_injectedCustomData.end())
         return std::nullopt;
