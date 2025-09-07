@@ -127,7 +127,7 @@ Downloader &Downloader::get()
 }
 
 Downloader::Downloader()
-    : userAgent(std::format("appstream-generator/{}", ASGEN_VERSION)),
+    : userAgent(std::format("appstream-generator/{}", std::string(ASGEN_VERSION))),
       caInfo(Config::get().caInfo)
 {
     // Initialize curl globally (should be done once per process)
@@ -176,7 +176,6 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         CURLcode res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
-            curl_easy_cleanup(curl);
             if (maxTryCount > 0) {
                 logDebug(
                     "Failed to download {}, will retry {} more {}",
@@ -185,8 +184,11 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
                     maxTryCount > 1 ? "times" : "time");
                 // Reset file position to beginning before retry to avoid appending to partial data
                 dest.seekp(0);
+
+                curl_easy_cleanup(curl);
                 return downloadInternal(url, dest, maxTryCount - 1);
             } else {
+                curl_easy_cleanup(curl);
                 throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
             }
         }
@@ -195,15 +197,15 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
         if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
-            curl_easy_cleanup(curl);
             if (responseCode == 0) {
-                // with some recent update of the D runtime or Curl, the status line isn't set anymore
                 // just to be safe, check whether we received data before assuming everything went fine
                 if (dest.tellp() == 0) {
+                    curl_easy_cleanup(curl);
                     throw DownloadException(
                         std::format("No data was received from the remote end (Code: {}).", responseCode));
                 }
             } else {
+                curl_easy_cleanup(curl);
                 throw DownloadException(std::format("HTTP request returned status code {}", responseCode));
             }
         }
@@ -215,14 +217,16 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         curl_easy_cleanup(curl);
         throw;
     } catch (const std::exception &e) {
-        curl_easy_cleanup(curl);
         if (maxTryCount > 0) {
             logDebug(
                 "Failed to download {}, will retry {} more {}", url, maxTryCount, maxTryCount > 1 ? "times" : "time");
             // Reset file position to beginning before retry to avoid appending to partial data
             dest.seekp(0);
+
+            curl_easy_cleanup(curl);
             return downloadInternal(url, dest, maxTryCount - 1);
         } else {
+            curl_easy_cleanup(curl);
             throw DownloadException(e.what());
         }
     }
