@@ -30,7 +30,7 @@
 namespace ASGenerator
 {
 
-std::atomic_bool _verboseFlag{false};
+constinit std::atomic_bool _verboseFlag{false};
 
 void setVerbose(bool verbose) noexcept
 {
