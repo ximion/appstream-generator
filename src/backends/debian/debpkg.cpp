@@ -259,19 +259,21 @@ std::vector<std::uint8_t> DebPackage::getFileData(const std::string &fname)
 
 const std::vector<std::string> &DebPackage::contents()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_contentsRead)
-        return m_contentsL;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_contentsRead)
+            return m_contentsL;
 
-    if (m_pkgname.ends_with("icon-theme")) {
-        // the md5sums file does not contain symbolic links - while that is okay-ish for regular
-        // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
-        // aliases for certain icons. So, use the slow method for reading contents information here.
+        if (m_pkgname.ends_with("icon-theme")) {
+            // the md5sums file does not contain symbolic links - while that is okay-ish for regular
+            // packages, it is not acceptable for icon themes, since those rely on symlinks to provide
+            // aliases for certain icons. So, use the slow method for reading contents information here.
 
-        auto &pa = openPayloadArchive();
-        m_contentsL = pa.readContents();
-        m_contentsRead = true;
-        return m_contentsL;
+            auto &pa = openPayloadArchive();
+            m_contentsL = pa.readContents();
+            m_contentsRead = true;
+            return m_contentsL;
+        }
     }
 
     // use the md5sums file of the .deb control archive to determine
@@ -287,26 +289,30 @@ const std::vector<std::string> &DebPackage::contents()
         return m_contentsL;
     }
 
-    std::string md5sums(md5sumsData.begin(), md5sumsData.end());
-    m_contentsL.clear();
-    m_contentsL.reserve(20);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    const auto lines = Utils::splitString(md5sums, '\n');
-    for (const auto &line : lines) {
-        // Split on double space - need to use a different approach since Utils::splitString only takes char
-        const auto doublespace = line.find("  ");
-        if (doublespace == std::string::npos || doublespace == 0)
-            continue;
+        std::string md5sums(md5sumsData.begin(), md5sumsData.end());
+        m_contentsL.clear();
+        m_contentsL.reserve(20);
 
-        // The filename is everything after the first double space
-        const std::string filename = line.substr(doublespace + 2);
-        if (!filename.empty()) {
-            m_contentsL.push_back("/" + filename);
+        const auto lines = Utils::splitString(md5sums, '\n');
+        for (const auto &line : lines) {
+            // Split on double space - need to use a different approach since Utils::splitString only takes char
+            const auto doublespace = line.find("  ");
+            if (doublespace == std::string::npos || doublespace == 0)
+                continue;
+
+            // The filename is everything after the first double space
+            const std::string filename = line.substr(doublespace + 2);
+            if (!filename.empty()) {
+                m_contentsL.push_back("/" + filename);
+            }
         }
-    }
 
-    m_contentsRead = true;
-    return m_contentsL;
+        m_contentsRead = true;
+        return m_contentsL;
+    }
 }
 
 std::unique_ptr<TagFile> DebPackage::readControlInformation()
