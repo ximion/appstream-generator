@@ -662,7 +662,8 @@ void ArchiveCompressor::addFile(const std::string &fname, const std::optional<st
     std::string destName = dest ? *dest : fs::path(fname).filename().string();
 
     struct stat st;
-    lstat(fname.c_str(), &st);
+    if (lstat(fname.c_str(), &st) != 0)
+        logWarning("Unable to stat file '{}': {}", fname, std::strerror(errno));
 
     archive_entry_set_pathname(entry.get(), destName.c_str());
     archive_entry_set_size(entry.get(), st.st_size);

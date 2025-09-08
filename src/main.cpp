@@ -59,7 +59,8 @@ static void createXdgRuntimeDir()
     try {
         fs::create_directories(xdgRuntimeDir);
         // Set permissions to 700 (owner read/write/execute only)
-        chmod(xdgRuntimeDir, S_IRWXU);
+        if (chmod(xdgRuntimeDir, S_IRWXU) == -1)
+            logDebug("Failed to set permissions on XDG runtime dir: {}", std::strerror(errno));
     } catch (const std::filesystem::filesystem_error &e) {
         logWarning("Unable to create XDG runtime dir: {}", e.what());
         return;
