@@ -312,7 +312,7 @@ IconHandler::IconHandler(
                 tmpThemes[name] = std::make_unique<Theme>(name, pkg);
             } else if (fname.starts_with(std::format("/usr/share/icons/{}", name))) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
-                m_iconFiles[fname] = std::move(pkg);
+                m_iconFiles[fname] = pkg;
             }
         }
     });

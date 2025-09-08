@@ -131,7 +131,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                     std::string href = getXmlStrAttr(child, "href");
                     if (!href.empty()) {
                         if (dataType == "primary")
-                            primaryIndexFiles.push_back(href);
+                            primaryIndexFiles.push_back(std::move(href));
                         else if (dataType == "filelists")
                             filelistFiles.push_back(std::move(href));
                     }

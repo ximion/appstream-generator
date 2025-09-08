@@ -45,6 +45,9 @@ std::unique_ptr<Config> Config::instance_;
 std::once_flag Config::initialized_;
 
 Config::Config()
+    : backend(Backend::Unknown),
+      metadataType(DataType::XML),
+      maxScrFileSize(14)
 {
     // our default export format version
     formatVersion = AS_FORMAT_VERSION_V1_0;
@@ -551,16 +554,14 @@ void Config::loadFromFile(
 
     maxScrFileSize = 14; // 14MiB is the default maximum size
     auto maxScrFileSizeNode = getNodeByKey(root, "MaxScreenshotFileSize");
-    if (maxScrFileSizeNode) {
+    if (maxScrFileSizeNode)
         maxScrFileSize = getNodeIntValue(maxScrFileSizeNode);
-    }
 
     auto allowedCustomKeysNode = getNodeByKey(root, "AllowedCustomKeys");
     if (allowedCustomKeysNode) {
         auto keysList = getNodeArrayValues(allowedCustomKeysNode);
-        for (const auto &key : keysList) {
+        for (const auto &key : keysList)
             allowedCustomKeys[key] = true;
-        }
     }
 
     // Enable features which are default-enabled

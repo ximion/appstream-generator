@@ -360,7 +360,7 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator render pages with 
         summary.warningCount = 1;
         summary.infoCount = 1;
 
-        dsum.pkgSummaries["Test Maintainer"]["testpkg1"] = summary;
+        dsum.pkgSummaries["Test Maintainer"]["testpkg1"] = std::move(summary);
 
         REQUIRE_NOTHROW(m_reportGen->renderPagesFor("testsuite", "main", dsum));
 
@@ -393,14 +393,14 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator render pages with 
         mentry.data = "Type: desktop-application\nID: test.app.1\n";
         mentry.iconName = "test-icon.png";
 
-        dsum.mdataEntries["testpkg1"]["1.0.0"]["test.gcid.1"] = mentry;
+        dsum.mdataEntries["testpkg1"]["1.0.0"]["test.gcid.1"] = std::move(mentry);
 
         // Create mock package summary with components
         ReportGenerator::PkgSummary summary;
         summary.pkgname = "testpkg1";
         summary.cpts = {"test.app.1 - 1.0.0"};
 
-        dsum.pkgSummaries["Test Maintainer"]["testpkg1"] = summary;
+        dsum.pkgSummaries["Test Maintainer"]["testpkg1"] = std::move(summary);
 
         REQUIRE_NOTHROW(m_reportGen->renderPagesFor("testsuite", "main", dsum));
 
