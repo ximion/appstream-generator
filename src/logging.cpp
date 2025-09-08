@@ -30,16 +30,21 @@
 namespace ASGenerator
 {
 
-constinit std::atomic_bool _verboseFlag{false};
+// helper to avoid the "static initialization order fiasco"
+static std::atomic_bool &verboseFlag() noexcept
+{
+    static std::atomic_bool flag{false};
+    return flag;
+}
 
 void setVerbose(bool verbose) noexcept
 {
-    _verboseFlag.store(verbose);
+    verboseFlag().store(verbose, std::memory_order_relaxed);
 }
 
 bool isVerbose() noexcept
 {
-    return _verboseFlag.load();
+    return verboseFlag().load(std::memory_order_relaxed);
 }
 
 constexpr std::string_view logSeverityToString(LogSeverity severity) noexcept
