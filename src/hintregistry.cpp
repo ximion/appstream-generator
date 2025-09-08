@@ -24,12 +24,12 @@
 #include <format>
 #include <mutex>
 #include <unordered_set>
-#include <libfyaml.h>
 #include <appstream.h>
 #include <appstream-compose.h>
 
 #include "logging.h"
 #include "utils.h"
+#include "yaml-utils.h"
 
 namespace ASGenerator
 {
@@ -66,16 +66,10 @@ void loadHintsRegistry()
     file.close();
 
     // Parse JSON
-    fy_document *fyd = fy_document_build_from_string(nullptr, jsonData.c_str(), jsonData.length());
-    if (!fyd) {
-        logError("Failed to parse hints definition JSON file");
-        return;
-    }
-
-    fy_node *root = fy_document_root(fyd);
+    auto doc = Yaml::parseDocument(jsonData, true);
+    auto root = Yaml::documentRoot(doc);
     if (!root || fy_node_get_type(root) != FYNT_MAPPING) {
         logError("Invalid hints definition file format");
-        fy_document_destroy(fyd);
         return;
     }
 
@@ -92,31 +86,25 @@ void loadHintsRegistry()
             continue;
 
         // Get tag name
-        size_t tagLen = 0;
-        const char *tagStr = fy_node_get_scalar(keyNode, &tagLen);
-        if (!tagStr)
+        const auto tag = Yaml::nodeStrValue(keyNode);
+        if (tag.empty())
             continue;
-
-        std::string tag(tagStr, tagLen);
 
         if (fy_node_get_type(valueNode) != FYNT_MAPPING)
             continue;
 
         // Get severity
-        fy_node *severityNode = fy_node_mapping_lookup_by_string(valueNode, "severity", FY_NT);
+        auto severityNode = fy_node_mapping_lookup_by_string(valueNode, "severity", FY_NT);
         if (!severityNode)
             continue;
 
-        size_t severityLen = 0;
-        const char *severityStr = fy_node_get_scalar(severityNode, &severityLen);
-        if (!severityStr)
+        const auto severityStr = Yaml::nodeStrValue(severityNode);
+        if (severityStr.empty())
             continue;
-
-        std::string severityString(severityStr, severityLen);
-        auto severity = as_issue_severity_from_string(severityString.c_str());
+        auto severity = as_issue_severity_from_string(severityStr.c_str());
 
         // Get explanation text
-        fy_node *textNode = fy_node_mapping_lookup_by_string(valueNode, "text", FY_NT);
+        auto textNode = fy_node_mapping_lookup_by_string(valueNode, "text", FY_NT);
         if (!textNode)
             continue;
 
@@ -126,19 +114,15 @@ void loadHintsRegistry()
             fy_node *lineNode;
             void *textIter = nullptr;
             while ((lineNode = fy_node_sequence_iterate(textNode, &textIter)) != nullptr) {
-                size_t lineLen = 0;
-                const char *lineStr = fy_node_get_scalar(lineNode, &lineLen);
-                if (lineStr) {
-                    explanation += std::string(lineStr, lineLen) + "\n";
-                }
+                const auto line = Yaml::nodeStrValue(lineNode);
+                if (!line.empty())
+                    explanation += line + "\n";
             }
         } else {
             // Text is a single string
-            size_t textLen = 0;
-            const char *textStr = fy_node_get_scalar(textNode, &textLen);
-            if (textStr) {
-                explanation = std::string(textStr, textLen);
-            }
+            const auto text = Yaml::nodeStrValue(textNode);
+            if (!text.empty())
+                explanation = text;
         }
 
         bool overrideExisting = false;
@@ -151,7 +135,6 @@ void loadHintsRegistry()
             // Check if hints are already loaded by looking for a common tag
             if (!overrideExisting && asc_globals_hint_tag_severity(tag.c_str()) != AS_ISSUE_SEVERITY_UNKNOWN) {
                 logDebug("Global hints registry already loaded.");
-                fy_document_destroy(fyd);
                 return;
             }
             checkAlreadyLoaded = false;
@@ -162,7 +145,6 @@ void loadHintsRegistry()
     }
 
     registryLoaded = true;
-    fy_document_destroy(fyd);
 }
 
 void saveHintsRegistryToJsonFile(const std::string &fname)
@@ -170,12 +152,12 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
     std::lock_guard<std::mutex> lock(g_hintsRegistryMutex);
 
     // Create YAML document for JSON output
-    fy_document *fyd = fy_document_create(nullptr);
-    if (!fyd)
+    auto doc = Yaml::createDocument();
+    if (!doc)
         throw std::runtime_error("Failed to create document for hints registry export");
 
-    fy_node *root = fy_node_create_mapping(fyd);
-    fy_document_set_root(fyd, root);
+    fy_node *root = fy_node_create_mapping(doc.get());
+    fy_document_set_root(doc.get(), root);
 
     g_auto(GStrv) hintTags = asc_globals_get_hint_tags();
     for (guint i = 0; hintTags[i] != nullptr; i++) {
@@ -183,26 +165,26 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
         const auto hdef = retrieveHintDef(tag);
 
         // Create mapping for this hint
-        fy_node *hintMapping = fy_node_create_mapping(fyd);
+        fy_node *hintMapping = fy_node_create_mapping(doc.get());
 
         // Add text field
-        fy_node *textKey = fy_node_create_scalar(fyd, "text", FY_NT);
-        fy_node *textValue = fy_node_create_scalar_copy(fyd, hdef.explanation.c_str(), FY_NT);
+        fy_node *textKey = fy_node_create_scalar(doc.get(), "text", FY_NT);
+        fy_node *textValue = fy_node_create_scalar_copy(doc.get(), hdef.explanation.c_str(), FY_NT);
         fy_node_mapping_append(hintMapping, textKey, textValue);
 
         // Add severity field
-        fy_node *severityKey = fy_node_create_scalar(fyd, "severity", FY_NT);
-        fy_node *severityValue = fy_node_create_scalar(fyd, as_issue_severity_to_string(hdef.severity), FY_NT);
+        fy_node *severityKey = fy_node_create_scalar(doc.get(), "severity", FY_NT);
+        fy_node *severityValue = fy_node_create_scalar(doc.get(), as_issue_severity_to_string(hdef.severity), FY_NT);
         fy_node_mapping_append(hintMapping, severityKey, severityValue);
 
         // Add to root mapping
-        fy_node *tagKey = fy_node_create_scalar(fyd, tag, FY_NT);
+        fy_node *tagKey = fy_node_create_scalar(doc.get(), tag, FY_NT);
         fy_node_mapping_append(root, tagKey, hintMapping);
     }
 
     // Emit as JSON
     g_autofree char *json_output = fy_emit_document_to_string(
-        fyd, static_cast<fy_emitter_cfg_flags>(FYECF_MODE_JSON | FYECF_INDENT_DEFAULT));
+        doc.get(), static_cast<fy_emitter_cfg_flags>(FYECF_MODE_JSON | FYECF_INDENT_DEFAULT));
 
     if (json_output) {
         std::ofstream file(fname);
@@ -215,8 +197,6 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
     } else {
         throw std::runtime_error("Failed to emit hints registry as JSON");
     }
-
-    fy_document_destroy(fyd);
 }
 
 HintDefinition retrieveHintDef(const gchar *tag)

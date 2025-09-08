@@ -17,6 +17,7 @@ asgencpp_src = files(
   'reportgenerator.cpp',
   'result.cpp',
   'utils.cpp',
+  'yaml-utils.cpp',
   'zarchive.cpp',
   'backends/interfaces.cpp',
 )
@@ -37,6 +38,7 @@ asgencpp_hdr = files(
   'reportgenerator.h',
   'result.h',
   'utils.h',
+  'yaml-utils.h',
   'zarchive.h',
   'backends/interfaces.h',
 )

@@ -21,12 +21,12 @@
 
 #include <format>
 #include <algorithm>
-#include <libfyaml.h>
 #include <appstream.h>
 #include <appstream-compose.h>
 
 #include "hintregistry.h"
 #include "logging.h"
+#include "yaml-utils.h"
 
 namespace ASGenerator
 {
@@ -138,24 +138,24 @@ std::string GeneratorResult::hintsToJson() const
     }
 
     // Create the root document
-    fy_document *fyd = fy_document_create(nullptr);
-    if (!fyd) {
+    auto doc = Yaml::createDocument();
+    if (!doc) {
         logError("Failed to create YAML document for hints");
         return "";
     }
 
     // Create root mapping
-    fy_node *root = fy_node_create_mapping(fyd);
-    fy_document_set_root(fyd, root);
+    fy_node *root = fy_node_create_mapping(doc.get());
+    fy_document_set_root(doc.get(), root);
 
     // Add package field
-    fy_node *pkgKey = fy_node_create_scalar(fyd, "package", FY_NT);
-    fy_node *pkgValue = fy_node_create_scalar_copy(fyd, pkid().c_str(), FY_NT);
+    fy_node *pkgKey = fy_node_create_scalar(doc.get(), "package", FY_NT);
+    fy_node *pkgValue = fy_node_create_scalar_copy(doc.get(), pkid().c_str(), FY_NT);
     fy_node_mapping_append(root, pkgKey, pkgValue);
 
     // Create hints mapping
-    fy_node *hintsKey = fy_node_create_scalar(fyd, "hints", FY_NT);
-    fy_node *hintsMapping = fy_node_create_mapping(fyd);
+    fy_node *hintsKey = fy_node_create_scalar(doc.get(), "hints", FY_NT);
+    fy_node *hintsMapping = fy_node_create_mapping(doc.get());
     fy_node_mapping_append(root, hintsKey, hintsMapping);
 
     // Get component IDs with hints
@@ -168,28 +168,28 @@ std::string GeneratorResult::hintsToJson() const
             continue;
 
         // Create sequence for this component's hints
-        fy_node *cidKey = fy_node_create_scalar(fyd, cid.c_str(), FY_NT);
-        fy_node *hintSequence = fy_node_create_sequence(fyd);
+        fy_node *cidKey = fy_node_create_scalar(doc.get(), cid.c_str(), FY_NT);
+        fy_node *hintSequence = fy_node_create_sequence(doc.get());
         fy_node_mapping_append(hintsMapping, cidKey, hintSequence);
 
         for (guint i = 0; i < cptHints->len; i++) {
-            AscHint *hint = static_cast<AscHint *>(g_ptr_array_index(cptHints, i));
+            auto hint = static_cast<AscHint *>(g_ptr_array_index(cptHints, i));
 
             // Create mapping for this hint
-            fy_node *hintMapping = fy_node_create_mapping(fyd);
+            fy_node *hintMapping = fy_node_create_mapping(doc.get());
             fy_node_sequence_append(hintSequence, hintMapping);
 
             // Add tag
             const char *tag = asc_hint_get_tag(hint);
-            fy_node *tagKey = fy_node_create_scalar(fyd, "tag", FY_NT);
-            fy_node *tagValue = fy_node_create_scalar(fyd, tag, FY_NT);
+            fy_node *tagKey = fy_node_create_scalar(doc.get(), "tag", FY_NT);
+            fy_node *tagValue = fy_node_create_scalar(doc.get(), tag, FY_NT);
             fy_node_mapping_append(hintMapping, tagKey, tagValue);
 
             // Add vars
             GPtrArray *varsList = asc_hint_get_explanation_vars_list(hint);
             if (varsList && varsList->len > 0) {
-                fy_node *varsKey = fy_node_create_scalar(fyd, "vars", FY_NT);
-                fy_node *varsMapping = fy_node_create_mapping(fyd);
+                fy_node *varsKey = fy_node_create_scalar(doc.get(), "vars", FY_NT);
+                fy_node *varsMapping = fy_node_create_mapping(doc.get());
                 fy_node_mapping_append(hintMapping, varsKey, varsMapping);
 
                 for (guint j = 0; j < varsList->len; j += 2) {
@@ -197,8 +197,8 @@ std::string GeneratorResult::hintsToJson() const
                         const char *key = static_cast<const char *>(g_ptr_array_index(varsList, j));
                         const char *value = static_cast<const char *>(g_ptr_array_index(varsList, j + 1));
 
-                        fy_node *varKey = fy_node_create_scalar(fyd, key, FY_NT);
-                        fy_node *varValue = fy_node_create_scalar(fyd, value, FY_NT);
+                        fy_node *varKey = fy_node_create_scalar(doc.get(), key, FY_NT);
+                        fy_node *varValue = fy_node_create_scalar(doc.get(), value, FY_NT);
                         fy_node_mapping_append(varsMapping, varKey, varValue);
                     }
                 }
@@ -207,15 +207,12 @@ std::string GeneratorResult::hintsToJson() const
     }
 
     // Emit as JSON
-    char *json_output = fy_emit_document_to_string(fyd, FYECF_MODE_JSON);
+    g_autofree gchar *json_output = fy_emit_document_to_string(doc.get(), FYECF_MODE_JSON);
 
     std::string result;
-    if (json_output) {
+    if (json_output)
         result = std::string(json_output);
-        free(json_output);
-    }
 
-    fy_document_destroy(fyd);
     return result;
 }
 

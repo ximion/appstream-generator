@@ -29,11 +29,11 @@
 #include <filesystem>
 
 #include <appstream-compose.h>
-#include <libfyaml.h>
 #include <glib.h>
 
 #include "logging.h"
 #include "utils.h"
+#include "yaml-utils.h"
 
 namespace fs = std::filesystem;
 
@@ -144,108 +144,6 @@ static std::string readFileToString(const std::string &filename)
     return buffer.str();
 }
 
-static fy_document *parseJsonDocument(const std::string &jsonData)
-{
-    fy_parse_cfg cfg = {};
-    cfg.flags = FYPCF_JSON_FORCE; // Force JSON mode
-
-    auto fyp = fy_parser_create(&cfg);
-    if (!fyp) {
-        throw std::runtime_error("Failed to create YAML parser");
-    }
-
-    // Set the JSON string as input
-    if (fy_parser_set_string(fyp, jsonData.c_str(), jsonData.length()) != 0) {
-        fy_parser_destroy(fyp);
-        throw std::runtime_error("Failed to set parser input");
-    }
-
-    // Parse the document
-    auto fyd = fy_parse_load_document(fyp);
-    fy_parser_destroy(fyp);
-
-    if (!fyd)
-        throw std::runtime_error("Failed to parse JSON/YAML document");
-
-    return fyd;
-}
-
-static std::string getNodeStringValue(fy_node *node)
-{
-    if (!node || fy_node_get_type(node) != FYNT_SCALAR)
-        return "";
-
-    size_t len = 0;
-    const char *value = fy_node_get_scalar(node, &len);
-    return value ? std::string(value, len) : "";
-}
-
-static int64_t getNodeIntValue(fy_node *node, int64_t defaultValue = 0)
-{
-    if (!node || fy_node_get_type(node) != FYNT_SCALAR)
-        return defaultValue;
-
-    size_t len = 0;
-    const char *value = fy_node_get_scalar(node, &len);
-    if (!value)
-        return defaultValue;
-
-    try {
-        return std::stoll(value);
-    } catch (...) {
-        return defaultValue;
-    }
-}
-
-static bool getNodeBoolValue(fy_node *node, bool defaultValue = false)
-{
-    if (!node || fy_node_get_type(node) != FYNT_SCALAR)
-        return defaultValue;
-
-    const char *value = fy_node_get_scalar(node, nullptr);
-    if (!value)
-        return defaultValue;
-
-    std::string strValue(value);
-    return strValue == "true" || strValue == "1" || strValue == "yes";
-}
-
-static std::vector<std::string> getNodeArrayValues(fy_node *node)
-{
-    std::vector<std::string> result;
-
-    if (!node || fy_node_get_type(node) != FYNT_SEQUENCE)
-        return result;
-
-    fy_node *item;
-    void *iter = nullptr;
-    while ((item = fy_node_sequence_iterate(node, &iter)) != nullptr) {
-        auto value = getNodeStringValue(item);
-        if (!value.empty())
-            result.push_back(std::move(value));
-    }
-
-    return result;
-}
-
-static fy_node *getNodeByKey(fy_node *mapping, const std::string &key)
-{
-    if (!mapping || fy_node_get_type(mapping) != FYNT_MAPPING)
-        return nullptr;
-
-    fy_node_pair *pair;
-    void *iter = nullptr;
-    while ((pair = fy_node_mapping_iterate(mapping, &iter)) != nullptr) {
-        auto keyNode = fy_node_pair_key(pair);
-        auto keyValue = getNodeStringValue(keyNode);
-        if (keyValue == key) {
-            return fy_node_pair_value(pair);
-        }
-    }
-
-    return nullptr;
-}
-
 void Config::loadFromFile(
     const std::string &fname,
     const std::string &enforcedWorkspaceDir,
@@ -254,18 +152,16 @@ void Config::loadFromFile(
     // read the configuration JSON file
     auto jsonData = readFileToString(fname);
 
-    std::unique_ptr<fy_document, decltype(&fy_document_destroy)> document(
-        parseJsonDocument(jsonData), fy_document_destroy);
-
-    auto root = fy_document_root(document.get());
+    auto doc = Yaml::parseDocument(jsonData);
+    auto root = fy_document_root(doc.get());
 
     if (!root || fy_node_get_type(root) != FYNT_MAPPING) {
         throw std::runtime_error("Invalid JSON configuration file");
     }
 
-    auto workspaceDirNode = getNodeByKey(root, "WorkspaceDir");
+    auto workspaceDirNode = Yaml::nodeByKey(root, "WorkspaceDir");
     if (workspaceDirNode) {
-        m_workspaceDir = fs::path(getNodeStringValue(workspaceDirNode));
+        m_workspaceDir = fs::path(Yaml::nodeStrValue(workspaceDirNode));
     } else {
         m_workspaceDir = fs::path(fname).parent_path();
         if (m_workspaceDir.empty())
@@ -279,20 +175,20 @@ void Config::loadFromFile(
     if (!fs::path(m_workspaceDir).is_absolute())
         m_workspaceDir = fs::absolute(m_workspaceDir);
 
-    auto projectNameNode = getNodeByKey(root, "ProjectName");
-    projectName = projectNameNode ? getNodeStringValue(projectNameNode) : "Unknown";
+    auto projectNameNode = Yaml::nodeByKey(root, "ProjectName");
+    projectName = projectNameNode ? Yaml::nodeStrValue(projectNameNode) : "Unknown";
 
-    auto archiveRootNode = getNodeByKey(root, "ArchiveRoot");
+    auto archiveRootNode = Yaml::nodeByKey(root, "ArchiveRoot");
     if (!archiveRootNode) {
         throw std::runtime_error("ArchiveRoot is required in configuration");
     }
-    archiveRoot = getNodeStringValue(archiveRootNode);
+    archiveRoot = Yaml::nodeStrValue(archiveRootNode);
 
-    auto mediaBaseUrlNode = getNodeByKey(root, "MediaBaseUrl");
-    mediaBaseUrl = mediaBaseUrlNode ? getNodeStringValue(mediaBaseUrlNode) : "";
+    auto mediaBaseUrlNode = Yaml::nodeByKey(root, "MediaBaseUrl");
+    mediaBaseUrl = mediaBaseUrlNode ? Yaml::nodeStrValue(mediaBaseUrlNode) : "";
 
-    auto htmlBaseUrlNode = getNodeByKey(root, "HtmlBaseUrl");
-    htmlBaseUrl = htmlBaseUrlNode ? getNodeStringValue(htmlBaseUrlNode) : "";
+    auto htmlBaseUrlNode = Yaml::nodeByKey(root, "HtmlBaseUrl");
+    htmlBaseUrl = htmlBaseUrlNode ? Yaml::nodeStrValue(htmlBaseUrlNode) : "";
 
     // set root export directory
     if (enforcedExportDir.empty()) {
@@ -312,15 +208,15 @@ void Config::loadFromFile(
     hintsExportDir = "hints";
     htmlExportDir = "html";
 
-    auto exportDirsNode = getNodeByKey(root, "ExportDirs");
+    auto exportDirsNode = Yaml::nodeByKey(root, "ExportDirs");
     if (exportDirsNode && fy_node_get_type(exportDirsNode) == FYNT_MAPPING) {
         fy_node_pair *pair;
         void *iter = nullptr;
         while ((pair = fy_node_mapping_iterate(exportDirsNode, &iter)) != nullptr) {
             auto keyNode = fy_node_pair_key(pair);
             auto valueNode = fy_node_pair_value(pair);
-            auto key = getNodeStringValue(keyNode);
-            auto value = getNodeStringValue(valueNode);
+            auto key = Yaml::nodeStrValue(keyNode);
+            auto value = Yaml::nodeStrValue(valueNode);
 
             if (key == "Media") {
                 mediaExportDir = value;
@@ -348,18 +244,18 @@ void Config::loadFromFile(
 
     // a place where external metainfo data can be injected
     auto extraMetainfoDir = m_workspaceDir / "extra-metainfo";
-    auto extraMetainfoDirNode = getNodeByKey(root, "ExtraMetainfoDir");
+    auto extraMetainfoDirNode = Yaml::nodeByKey(root, "ExtraMetainfoDir");
     if (extraMetainfoDirNode)
-        extraMetainfoDir = getNodeStringValue(extraMetainfoDirNode);
+        extraMetainfoDir = Yaml::nodeStrValue(extraMetainfoDirNode);
 
-    auto caInfoNode = getNodeByKey(root, "CAInfo");
+    auto caInfoNode = Yaml::nodeByKey(root, "CAInfo");
     if (caInfoNode)
-        caInfo = getNodeStringValue(caInfoNode);
+        caInfo = Yaml::nodeStrValue(caInfoNode);
 
     // allow specifying the AppStream format version we build data for.
-    auto formatVersionNode = getNodeByKey(root, "FormatVersion");
+    auto formatVersionNode = Yaml::nodeByKey(root, "FormatVersion");
     if (formatVersionNode) {
-        auto versionStr = getNodeStringValue(formatVersionNode);
+        auto versionStr = Yaml::nodeStrValue(formatVersionNode);
         if (versionStr == "1.0") {
             formatVersion = AS_FORMAT_VERSION_V1_0;
         } else {
@@ -372,9 +268,9 @@ void Config::loadFromFile(
     // we default to the Debian backend for now
     metadataType = DataType::XML;
     std::string backendId = "debian";
-    auto backendNode = getNodeByKey(root, "Backend");
+    auto backendNode = Yaml::nodeByKey(root, "Backend");
     if (backendNode)
-        backendId = Utils::toLower(getNodeStringValue(backendNode));
+        backendId = Utils::toLower(Yaml::nodeStrValue(backendNode));
 
     if (backendId == "dummy") {
         backendName = "Dummy";
@@ -407,9 +303,9 @@ void Config::loadFromFile(
     }
 
     // override the backend's default metadata type if requested by user
-    auto metadataTypeNode = getNodeByKey(root, "MetadataType");
+    auto metadataTypeNode = Yaml::nodeByKey(root, "MetadataType");
     if (metadataTypeNode) {
-        auto mdataTypeStr = Utils::toLower(getNodeStringValue(metadataTypeNode));
+        auto mdataTypeStr = Utils::toLower(Yaml::nodeStrValue(metadataTypeNode));
         if (mdataTypeStr == "yaml") {
             metadataType = DataType::YAML;
         } else if (mdataTypeStr == "xml") {
@@ -421,14 +317,14 @@ void Config::loadFromFile(
 
     // suite selections
     bool hasImmutableSuites = false;
-    auto suitesNode = getNodeByKey(root, "Suites");
+    auto suitesNode = Yaml::nodeByKey(root, "Suites");
     if (suitesNode && fy_node_get_type(suitesNode) == FYNT_MAPPING) {
         fy_node_pair *pair;
         void *iter = nullptr;
         while ((pair = fy_node_mapping_iterate(suitesNode, &iter)) != nullptr) {
             auto keyNode = fy_node_pair_key(pair);
             auto valueNode = fy_node_pair_value(pair);
-            auto suiteName = getNodeStringValue(keyNode);
+            auto suiteName = Yaml::nodeStrValue(keyNode);
 
             Suite suite;
             suite.name = suiteName;
@@ -439,29 +335,29 @@ void Config::loadFromFile(
             if (suiteName == "pool")
                 throw std::runtime_error("The name 'pool' is forbidden for a suite.");
 
-            auto dataPriorityNode = getNodeByKey(valueNode, "dataPriority");
+            auto dataPriorityNode = Yaml::nodeByKey(valueNode, "dataPriority");
             if (dataPriorityNode)
-                suite.dataPriority = static_cast<int>(getNodeIntValue(dataPriorityNode));
+                suite.dataPriority = static_cast<int>(Yaml::nodeIntValue(dataPriorityNode));
 
-            auto baseSuiteNode = getNodeByKey(valueNode, "baseSuite");
+            auto baseSuiteNode = Yaml::nodeByKey(valueNode, "baseSuite");
             if (baseSuiteNode)
-                suite.baseSuite = getNodeStringValue(baseSuiteNode);
+                suite.baseSuite = Yaml::nodeStrValue(baseSuiteNode);
 
-            auto iconThemeNode = getNodeByKey(valueNode, "useIconTheme");
+            auto iconThemeNode = Yaml::nodeByKey(valueNode, "useIconTheme");
             if (iconThemeNode)
-                suite.iconTheme = getNodeStringValue(iconThemeNode);
+                suite.iconTheme = Yaml::nodeStrValue(iconThemeNode);
 
-            auto sectionsNode = getNodeByKey(valueNode, "sections");
+            auto sectionsNode = Yaml::nodeByKey(valueNode, "sections");
             if (sectionsNode)
-                suite.sections = getNodeArrayValues(sectionsNode);
+                suite.sections = Yaml::nodeArrayValues(sectionsNode);
 
-            auto architecturesNode = getNodeByKey(valueNode, "architectures");
+            auto architecturesNode = Yaml::nodeByKey(valueNode, "architectures");
             if (architecturesNode)
-                suite.architectures = getNodeArrayValues(architecturesNode);
+                suite.architectures = Yaml::nodeArrayValues(architecturesNode);
 
-            auto immutableNode = getNodeByKey(valueNode, "immutable");
+            auto immutableNode = Yaml::nodeByKey(valueNode, "immutable");
             if (immutableNode) {
-                suite.isImmutable = getNodeBoolValue(immutableNode);
+                suite.isImmutable = Yaml::nodeBoolValue(immutableNode);
                 if (suite.isImmutable) {
                     hasImmutableSuites = true;
                 }
@@ -475,19 +371,19 @@ void Config::loadFromFile(
         }
     }
 
-    auto oldsuitesNode = getNodeByKey(root, "Oldsuites");
+    auto oldsuitesNode = Yaml::nodeByKey(root, "Oldsuites");
     if (oldsuitesNode)
-        oldsuites = getNodeArrayValues(oldsuitesNode);
+        oldsuites = Yaml::nodeArrayValues(oldsuitesNode);
 
     // icon policy
-    auto iconsNode = getNodeByKey(root, "Icons");
+    auto iconsNode = Yaml::nodeByKey(root, "Icons");
     if (iconsNode && fy_node_get_type(iconsNode) == FYNT_MAPPING) {
         fy_node_pair *pair;
         void *iter = nullptr;
         while ((pair = fy_node_mapping_iterate(iconsNode, &iter)) != nullptr) {
             auto keyNode = fy_node_pair_key(pair);
             auto valueNode = fy_node_pair_value(pair);
-            auto iconString = getNodeStringValue(keyNode);
+            auto iconString = Yaml::nodeStrValue(keyNode);
 
             // Parse icon size in ImageSize constructor
             ImageSize iconSize;
@@ -520,13 +416,13 @@ void Config::loadFromFile(
             bool storeRemote = false;
             bool storeCached = false;
 
-            auto remoteNode = getNodeByKey(valueNode, "remote");
+            auto remoteNode = Yaml::nodeByKey(valueNode, "remote");
             if (remoteNode)
-                storeRemote = getNodeBoolValue(remoteNode);
+                storeRemote = Yaml::nodeBoolValue(remoteNode);
 
-            auto cachedNode = getNodeByKey(valueNode, "cached");
+            auto cachedNode = Yaml::nodeByKey(valueNode, "cached");
             if (cachedNode)
-                storeCached = getNodeBoolValue(cachedNode);
+                storeCached = Yaml::nodeBoolValue(cachedNode);
 
             AscIconState istate = ASC_ICON_STATE_IGNORED;
             if (storeRemote && storeCached) {
@@ -553,13 +449,13 @@ void Config::loadFromFile(
     }
 
     maxScrFileSize = 14; // 14MiB is the default maximum size
-    auto maxScrFileSizeNode = getNodeByKey(root, "MaxScreenshotFileSize");
+    auto maxScrFileSizeNode = Yaml::nodeByKey(root, "MaxScreenshotFileSize");
     if (maxScrFileSizeNode)
-        maxScrFileSize = getNodeIntValue(maxScrFileSizeNode);
+        maxScrFileSize = Yaml::nodeIntValue(maxScrFileSizeNode);
 
-    auto allowedCustomKeysNode = getNodeByKey(root, "AllowedCustomKeys");
+    auto allowedCustomKeysNode = Yaml::nodeByKey(root, "AllowedCustomKeys");
     if (allowedCustomKeysNode) {
-        auto keysList = getNodeArrayValues(allowedCustomKeysNode);
+        auto keysList = Yaml::nodeArrayValues(allowedCustomKeysNode);
         for (const auto &key : keysList)
             allowedCustomKeys[key] = true;
     }
@@ -578,15 +474,15 @@ void Config::loadFromFile(
     feature.screenshotVideos = true;
 
     // apply vendor feature settings
-    auto featuresNode = getNodeByKey(root, "Features");
+    auto featuresNode = Yaml::nodeByKey(root, "Features");
     if (featuresNode && fy_node_get_type(featuresNode) == FYNT_MAPPING) {
         fy_node_pair *pair;
         void *iter = nullptr;
         while ((pair = fy_node_mapping_iterate(featuresNode, &iter)) != nullptr) {
             auto keyNode = fy_node_pair_key(pair);
             auto valueNode = fy_node_pair_value(pair);
-            auto featureId = getNodeStringValue(keyNode);
-            auto featureValue = getNodeBoolValue(valueNode);
+            auto featureId = Yaml::nodeStrValue(keyNode);
+            auto featureValue = Yaml::nodeBoolValue(valueNode);
 
             if (featureId == "validateMetainfo") {
                 feature.validate = featureValue;

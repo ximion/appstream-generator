@@ -22,12 +22,12 @@
 #include <fstream>
 #include <filesystem>
 #include <format>
-#include <libfyaml.h>
 #include <appstream.h>
 
 #include "logging.h"
 #include "result.h"
 #include "utils.h"
+#include "yaml-utils.h"
 
 namespace ASGenerator
 {
@@ -70,18 +70,13 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
     file.close();
 
     // Parse JSON
-    fy_document *fyd = fy_document_build_from_string(nullptr, jsonData.c_str(), jsonData.length());
-    if (!fyd)
+    auto doc = Yaml::parseDocument(jsonData, true);
+    auto root = Yaml::documentRoot(doc);
+    if (!root || fy_node_get_type(root) != FYNT_MAPPING)
         throw std::runtime_error(std::format("Failed to parse modifications JSON file: {}", fname.string()));
 
-    fy_node *root = fy_document_root(fyd);
-    if (!root || fy_node_get_type(root) != FYNT_MAPPING) {
-        fy_document_destroy(fyd);
-        throw std::runtime_error(std::format("Invalid modifications file format: {}", fname.string()));
-    }
-
     // Process InjectCustom section
-    fy_node *injectCustomNode = fy_node_mapping_lookup_by_string(root, "InjectCustom", FY_NT);
+    auto injectCustomNode = fy_node_mapping_lookup_by_string(root, "InjectCustom", FY_NT);
     if (injectCustomNode && fy_node_get_type(injectCustomNode) == FYNT_MAPPING) {
         logDebug("Using injected custom entries from {}", fname.string());
 
@@ -113,15 +108,10 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
                     if (!customKeyNode || !customValueNode)
                         continue;
 
-                    size_t customKeyLen = 0;
-                    const char *customKeyStr = fy_node_get_scalar(customKeyNode, &customKeyLen);
-                    size_t customValueLen = 0;
-                    const char *customValueStr = fy_node_get_scalar(customValueNode, &customValueLen);
-
-                    if (customKeyStr && customValueStr) {
-                        customData[std::string(customKeyStr, customKeyLen)] = std::string(
-                            customValueStr, customValueLen);
-                    }
+                    auto customKey = Yaml::nodeStrValue(customKeyNode);
+                    auto customValue = Yaml::nodeStrValue(customValueNode);
+                    if (!customKey.empty() && !customValue.empty())
+                        customData[customKey] = std::move(customValue);
                 }
 
                 m_injectedCustomData[entryKey] = std::move(customData);
@@ -137,12 +127,9 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
         fy_node *cidNode;
         void *iter = nullptr;
         while ((cidNode = fy_node_sequence_iterate(removeNode, &iter)) != nullptr) {
-            size_t cidLen = 0;
-            const char *cidStr = fy_node_get_scalar(cidNode, &cidLen);
-            if (!cidStr)
+            auto cid = Yaml::nodeStrValue(cidNode);
+            if (cid.empty())
                 continue;
-
-            std::string cid(cidStr, cidLen);
 
             g_autoptr(AsComponent) cpt = as_component_new();
             as_component_set_kind(cpt, AS_COMPONENT_KIND_GENERIC);
@@ -155,8 +142,6 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
 
     m_hasRemovedCpts = !m_removedComponents.empty();
     m_hasInjectedCustom = !m_injectedCustomData.empty();
-
-    fy_document_destroy(fyd);
 }
 
 bool InjectedModifications::hasRemovedComponents() const
