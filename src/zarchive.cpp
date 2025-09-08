@@ -31,6 +31,7 @@
 #include <optional>
 #include <chrono>
 #include <format>
+#include <iostream>
 #include <sys/stat.h>
 
 #include "utils.h"
@@ -152,7 +153,11 @@ void ArchiveDecompressor::open(const std::string &fname, const fs::path &tmpDir)
 
 ArchiveDecompressor::~ArchiveDecompressor()
 {
-    cleanupTempDirectory();
+    try {
+        close();
+    } catch (const std::exception &e) {
+        std::cerr << "**BUG**: Unexpected exception when deleting ArchiveDecompressor: " << e.what() << std::endl;
+    }
 }
 
 bool ArchiveDecompressor::isOpen() const
