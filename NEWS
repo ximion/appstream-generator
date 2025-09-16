@@ -1,3 +1,35 @@
+Version 0.10.0
+~~~~~~~~~~~~~~
+Released: 2025-09-16
+
+Notes:
+ * This release switches from using the D programming language to C++23.
+   This change should simplify maintenance of the tool and allow it to
+   be more compatible with other tooling. C++23 adopted a lot of D's
+   features, so this is a pretty direct port - still, issues may exist
+   even though this release has been tested extensively. So, perform your
+   own tests and report any issues!
+
+Features:
+ * Translate the project from D to C++23
+ * zarchive: Support reading from hardlinks
+ * Use backward-cpp if available for automated crash backtraces
+ * Add optimization for repeated reads from large archives
+ * Add support for loading JPEG-XL icons
+
+Bugfixes:
+ * zarchive: Ensure parent path is created before opening file
+ * debian: Ensure legacy-style repos get package descriptions for components
+ * Create document timestamps in the right format
+ * iconhandler: Render SVG with new API and properly report errors again
+
+Miscellaneous:
+ * Add and enforce an npm lockfile
+ * Avoid some unnecessary data copies and refcounting where possible
+
+Contributors:
+ Joey Riches, LN Liberda, Matthias Klumpp
+
 Version 0.9.2
 ~~~~~~~~~~~~~~
 Released: 2025-08-12
