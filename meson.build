@@ -3,7 +3,7 @@ project('AppStream Generator', 'cpp',
     default_options : ['c_std=c23', 'cpp_std=c++23'],
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',
-    version : '0.10.0'
+    version : '0.10.1'
 )
 
 asgen_version = meson.project_version()
