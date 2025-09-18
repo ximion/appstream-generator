@@ -71,7 +71,7 @@ fy_node *documentRoot(YDocumentPtr &doc)
 std::string nodeStrValue(fy_node *node, std::string defaultValue)
 {
     if (!node || fy_node_get_type(node) != FYNT_SCALAR)
-        return std::move(defaultValue);
+        return defaultValue;
 
     size_t len = 0;
     const char *value = fy_node_get_scalar(node, &len);
