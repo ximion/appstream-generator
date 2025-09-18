@@ -24,7 +24,7 @@ tests_net = executable(
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
-test('Network', tests_net)
+test('Network', tests_net, args: ['--allow-running-no-tests'])
 
 # Report generator tests
 tests_report = executable(
