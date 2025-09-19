@@ -36,6 +36,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/blocked_range.h>
+#include <tbb/task_arena.h>
 #include <inja/inja.hpp>
 
 #include "datainjectpkg.h"
@@ -63,6 +64,13 @@ Engine::Engine()
     : m_conf(&Config::get()),
       m_forced(false)
 {
+    // Configure a TBB task arena to limit parallelism a little (use half the available CPU cores, or at least 6 threads)
+    // This avoids having too many parallel downloads on high-core-count machines, and also leaves some room for additional
+    // parallelism of the used libraries, e.g. for image processing.
+    const auto numCPU = std::thread::hardware_concurrency();
+    const auto maxThreads = std::max(numCPU > 6? 6L : numCPU, std::lround(numCPU * 0.60));
+    m_taskArena = std::make_unique<tbb::task_arena>(maxThreads);
+
     // Select backend
     switch (m_conf->backend) {
     case Backend::Dummy:
@@ -137,32 +145,34 @@ void Engine::processPackages(
     if (chunkSize <= 10)
         chunkSize = 10;
 
-    logDebug("Analyzing {} packages in batches of {}", pkgs.size(), chunkSize);
+    logDebug("Analyzing {} packages in batches of {} with {} parallel tasks", pkgs.size(), chunkSize, m_taskArena->max_concurrency());
 
-    tbb::parallel_for(
-        tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize), [&](const tbb::blocked_range<std::size_t> &range) {
-            auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, localeUnit, injMods);
+    m_taskArena->execute([&] {
+        tbb::parallel_for(
+            tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize), [&](const tbb::blocked_range<std::size_t> &range) {
+                auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, localeUnit, injMods);
 
-            for (std::size_t i = range.begin(); i != range.end(); ++i) {
-                auto pkg = pkgs[i];
-                const auto &pkid = pkg->id();
+                for (std::size_t i = range.begin(); i != range.end(); ++i) {
+                    auto pkg = pkgs[i];
+                    const auto &pkid = pkg->id();
 
-                if (m_dstore->packageExists(pkid))
-                    continue;
+                    if (m_dstore->packageExists(pkid))
+                        continue;
 
-                auto res = mde->processPackage(pkg);
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    // Write resulting data into the database
-                    m_dstore->addGeneratorResult(m_conf->metadataType, res);
+                    auto res = mde->processPackage(pkg);
+                    {
+                        std::lock_guard<std::mutex> lock(m_mutex);
+                        // Write resulting data into the database
+                        m_dstore->addGeneratorResult(m_conf->metadataType, res);
+                    }
+
+                    logInfo("Processed {}, components: {}, hints: {}", res.pkid(), res.componentsCount(), res.hintsCount());
+
+                    // We don't need content data from this package anymore
+                    pkg->finish();
                 }
-
-                logInfo("Processed {}, components: {}, hints: {}", res.pkid(), res.componentsCount(), res.hintsCount());
-
-                // We don't need content data from this package anymore
-                pkg->finish();
-            }
-        });
+            });
+    });
 }
 
 // Helper to check if a package may contain interesting metadata
@@ -215,7 +225,7 @@ bool Engine::seedContentsData(
     if (workUnitSize > 30)
         workUnitSize = 30;
 
-    logDebug("Scanning {} packages, work unit size {}", pkgs.size(), workUnitSize);
+    logDebug("Scanning {} packages, work unit size: {}, parallel tasks: {}", pkgs.size(), workUnitSize, m_taskArena->max_concurrency());
 
     // Check if the index has changed data, skip the update if there's nothing new
     if (pkgs.empty() && !m_pkgIndex->hasChanges(m_dstore, suite.name, section, arch) && !m_forced) {
@@ -224,6 +234,7 @@ bool Engine::seedContentsData(
     }
 
     logInfo("Scanning new packages for {}/{} [{}]", suite.name, section, arch);
+
 
     std::vector<std::shared_ptr<Package>> packagesToProcess = pkgs;
     if (packagesToProcess.empty())
@@ -237,68 +248,72 @@ bool Engine::seedContentsData(
         logInfo("Scanning new packages for base suite {}/{} [{}]", suite.baseSuite, section, arch);
         auto baseSuitePkgs = m_pkgIndex->packagesFor(suite.baseSuite, section, arch);
 
-        tbb::parallel_for(
-            tbb::blocked_range<std::size_t>(0, baseSuitePkgs.size(), workUnitSize),
-            [&](const tbb::blocked_range<std::size_t> &range) {
-                for (size_t i = range.begin(); i != range.end(); ++i) {
-                    auto pkg = baseSuitePkgs[i];
-                    const auto &pkid = pkg->id();
+        m_taskArena->execute([&] {
+            tbb::parallel_for(
+                tbb::blocked_range<std::size_t>(0, baseSuitePkgs.size(), workUnitSize),
+                [&](const tbb::blocked_range<std::size_t> &range) {
+                    for (size_t i = range.begin(); i != range.end(); ++i) {
+                        auto pkg = baseSuitePkgs[i];
+                        const auto &pkid = pkg->id();
 
-                    if (!m_cstore->packageExists(pkid)) {
-                        m_cstore->addContents(pkid, pkg->contents());
-                        logInfo("Scanned {} for base suite.", pkid);
+                        if (!m_cstore->packageExists(pkid)) {
+                            m_cstore->addContents(pkid, pkg->contents());
+                            logInfo("Scanned {} for base suite.", pkid);
+                        }
+
+                        // Chances are that we might never want to extract data from these packages, so remove their
+                        // temporary data for now - we can reopen the packages later if we actually need them.
+                        pkg->cleanupTemp();
                     }
-
-                    // Chances are that we might never want to extract data from these packages, so remove their
-                    // temporary data for now - we can reopen the packages later if we actually need them.
-                    pkg->cleanupTemp();
-                }
-            });
+                });
+        });
     }
 
     // And then scan the suite itself - here packages can be 'interesting'
     // in that they might end up in the output.
-    tbb::parallel_for(
-        tbb::blocked_range<std::size_t>(0, packagesToProcess.size(), workUnitSize),
-        [&](const tbb::blocked_range<std::size_t> &range) {
-            for (std::size_t i = range.begin(); i != range.end(); ++i) {
-                auto pkg = packagesToProcess[i];
-                const auto &pkid = pkg->id();
+    m_taskArena->execute([&] {
+        tbb::parallel_for(
+            tbb::blocked_range<std::size_t>(0, packagesToProcess.size(), workUnitSize),
+            [&](const tbb::blocked_range<std::size_t> &range) {
+                for (std::size_t i = range.begin(); i != range.end(); ++i) {
+                    auto pkg = packagesToProcess[i];
+                    const auto &pkid = pkg->id();
 
-                std::vector<std::string> contents;
-                if (m_cstore->packageExists(pkid)) {
-                    if (m_dstore->packageExists(pkid)) {
-                        // TODO: Unfortunately, packages can move between suites without changing their ID.
-                        // This means as soon as we have an interesting package, even if we already processed it,
-                        // we need to regenerate the output metadata.
-                        // For that to happen, we set interestingFound to true here. Later, a more elegant solution
-                        // would be desirable here, ideally one which doesn't force us to track which package is
-                        // in which suite as well.
-                        if (!m_dstore->isIgnored(pkid))
-                            interestingFound.store(true);
-                        return;
+                    std::vector<std::string> contents;
+                    if (m_cstore->packageExists(pkid)) {
+                        if (m_dstore->packageExists(pkid)) {
+                            // TODO: Unfortunately, packages can move between suites without changing their ID.
+                            // This means as soon as we have an interesting package, even if we already processed it,
+                            // we need to regenerate the output metadata.
+                            // For that to happen, we set interestingFound to true here. Later, a more elegant solution
+                            // would be desirable here, ideally one which doesn't force us to track which package is
+                            // in which suite as well.
+                            if (!m_dstore->isIgnored(pkid))
+                                interestingFound.store(true);
+                            return;
+                        }
+                        // We will complement the main database with ignore data, in case it
+                        // went missing.
+                        contents = m_cstore->getContents(pkid);
+                    } else {
+                        // Add contents to the index
+                        contents = pkg->contents();
+                        m_cstore->addContents(pkid, contents);
                     }
-                    // We will complement the main database with ignore data, in case it
-                    // went missing.
-                    contents = m_cstore->getContents(pkid);
-                } else {
-                    // Add contents to the index
-                    contents = pkg->contents();
-                    m_cstore->addContents(pkid, contents);
-                }
 
-                // Check if we can already mark this package as ignored, and print some log messages
-                if (!packageIsInteresting(pkg)) {
-                    m_dstore->setPackageIgnore(pkid);
-                    logInfo("Scanned {}, no interesting files found.", pkid);
-                    // We won't use this anymore
-                    pkg->finish();
-                } else {
-                    logInfo("Scanned {}, could be interesting.", pkid);
-                    interestingFound.store(true);
+                    // Check if we can already mark this package as ignored, and print some log messages
+                    if (!packageIsInteresting(pkg)) {
+                        m_dstore->setPackageIgnore(pkid);
+                        logInfo("Scanned {}, no interesting files found.", pkid);
+                        // We won't use this anymore
+                        pkg->finish();
+                    } else {
+                        logInfo("Scanned {}, could be interesting.", pkid);
+                        interestingFound.store(true);
+                    }
                 }
-            }
-        });
+            });
+    });
 
     // Ensure the contents store is in a consistent state on disk,
     // since it might be accessed from other threads after this function

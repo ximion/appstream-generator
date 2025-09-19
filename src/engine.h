@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <tbb/task_arena.h>
 
 #include "config.h"
 #include "datastore.h"
@@ -110,6 +111,7 @@ private:
     std::shared_ptr<ContentsStore> m_cstore;
     bool m_forced;
 
+    std::unique_ptr<tbb::task_arena> m_taskArena;
     mutable std::mutex m_mutex;
 
     void logVersionInfo();
