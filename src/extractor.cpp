@@ -152,6 +152,12 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cu
         auto cpt = AS_COMPONENT(g_ptr_array_index(cptsPtrArray, i));
         auto gcid = asc_result_gcid_for_component(cres, cpt);
 
+        if (gcid == nullptr) {
+            logWarning(
+                "Component {} has no global ID, skipping intermediate metadata check.", as_component_get_id(cpt));
+            continue;
+        }
+
         // don't run expensive operations later if the metadata already exists
         auto existingMData = self->m_dstore->getMetadata(self->m_dtype, gcid);
 
