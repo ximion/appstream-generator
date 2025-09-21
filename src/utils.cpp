@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <thread>
 #include <ranges>
+#include <format>
 #include <string_view>
 #include <filesystem>
 #include <cstring>
@@ -145,50 +146,235 @@ void hardlink(const std::string &srcFname, const std::string &destFname)
         throw std::runtime_error(std::format("Unable to create link: {}", std::strerror(errno)));
 }
 
-void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks)
+void copyFile(const fs::path &srcPath, const fs::path &destPath, bool useHardlinks, bool followSymlinks)
+{
+    // Create parent directory if it doesn't exist
+    std::error_code ec;
+    fs::create_directories(destPath.parent_path(), ec);
+    if (ec)
+        throw std::runtime_error(
+            std::format("Error creating parent directory for {}: {}", destPath.string(), ec.message()));
+
+    if (fs::is_symlink(srcPath)) {
+        if (followSymlinks) {
+            // Follow symlink and copy the target
+            auto target = fs::read_symlink(srcPath, ec);
+            if (ec)
+                throw std::runtime_error(std::format("Error reading symlink {}: {}", srcPath.string(), ec.message()));
+
+            if (target.is_absolute()) {
+                copyDir(target.string(), destPath.string(), useHardlinks, followSymlinks);
+            } else {
+                // Resolve relative symlink
+                auto resolvedTarget = srcPath.parent_path() / target;
+                try {
+                    copyDir(fs::canonical(resolvedTarget).string(), destPath.string(), useHardlinks, followSymlinks);
+                } catch (const fs::filesystem_error &e) {
+                    throw std::runtime_error(
+                        std::format("Error resolving symlink target {}: {}", resolvedTarget.string(), e.what()));
+                }
+            }
+        } else {
+            // Copy symlink as-is
+            auto target = fs::read_symlink(srcPath, ec);
+            if (ec)
+                throw std::runtime_error(std::format("Error reading symlink {}: {}", srcPath.string(), ec.message()));
+
+            fs::create_symlink(target, destPath, ec);
+            if (ec)
+                throw std::runtime_error(std::format("Error creating symlink {}:{}", destPath.string(), ec.message()));
+        }
+    } else if (fs::is_regular_file(srcPath)) {
+        if (useHardlinks) {
+            hardlink(srcPath.string(), destPath.string());
+        } else {
+            fs::copy_file(srcPath, destPath, ec);
+            if (ec)
+                throw std::runtime_error(
+                    std::format("Error copying file {} to {}: {}", srcPath.string(), destPath.string(), ec.message()));
+        }
+    }
+}
+
+void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks, bool followSymlinks)
 {
     fs::path srcPath(srcDir);
     fs::path destPath(destDir);
 
-    if (!fs::exists(destPath))
-        fs::create_directories(destPath);
-
-    if (!fs::is_directory(destPath))
-        throw std::runtime_error(std::format("{} is not a directory", destPath.string()));
-
+    // Handle single file case first
     if (!fs::is_directory(srcPath)) {
-        if (useHardlinks) {
-            hardlink(srcPath.string(), destPath.string());
-        } else {
-            fs::copy_file(srcPath, destPath);
-        }
-
+        copyFile(srcPath, destPath, useHardlinks, followSymlinks);
         return;
     }
 
-    std::vector<fs::path> files;
+    // Create destination directory
+    std::error_code ec;
+    if (!fs::exists(destPath)) {
+        fs::create_directories(destPath, ec);
+        if (ec)
+            throw std::runtime_error(
+                std::format("Error creating destination directory {}: {}", destPath.string(), ec.message()));
+    }
 
-    // Create directory structure and collect files
-    for (const auto &entry : fs::recursive_directory_iterator(srcPath)) {
-        const auto relativePath = fs::relative(entry.path(), srcPath);
+    if (!fs::is_directory(destPath))
+        throw std::runtime_error(destPath.string() + " is not a directory");
+
+    std::vector<fs::path> files;
+    std::vector<std::pair<fs::path, fs::path>> symlinks; // source, target pairs
+
+    // First pass: create directory structure and collect files/symlinks
+    // Note: When followSymlinks is true, we don't use follow_directory_symlink here
+    // because we want to handle symlinks explicitly for better control
+    for (const auto &entry : fs::recursive_directory_iterator(srcPath, fs::directory_options::none, ec)) {
+        if (ec)
+            throw std::runtime_error(std::format("Error traversing directory {}: {}", srcPath.string(), ec.message()));
+
+        const auto relativePath = fs::relative(entry.path(), srcPath, ec);
+        if (ec) {
+            throw std::runtime_error(
+                std::format("Error computing relative path for {}: {}", entry.path().string(), ec.message()));
+        }
+
         const auto destFile = destPath / relativePath;
 
-        if (entry.is_directory()) {
-            fs::create_directories(destFile);
+        if (entry.is_symlink()) {
+            if (followSymlinks) {
+                // When following symlinks, we need to check what the symlink points to
+                std::error_code symlinkEc;
+                auto target = fs::read_symlink(entry.path(), symlinkEc);
+                if (symlinkEc) {
+                    throw std::runtime_error(
+                        std::format("Error reading symlink {}: {}", entry.path().string(), symlinkEc.message()));
+                }
+
+                fs::path resolvedTarget;
+                if (target.is_absolute()) {
+                    resolvedTarget = target;
+                } else {
+                    resolvedTarget = entry.path().parent_path() / target;
+                }
+
+                // Check if the resolved target exists and what type it is
+                if (fs::exists(resolvedTarget)) {
+                    if (fs::is_directory(resolvedTarget)) {
+                        // Create destination directory and recursively copy the target
+                        fs::create_directories(destFile, symlinkEc);
+                        if (symlinkEc) {
+                            throw std::runtime_error(
+                                std::format("Error creating directory {}: {}", destFile.string(), symlinkEc.message()));
+                        }
+                        copyDir(
+                            fs::canonical(resolvedTarget).string(), destFile.string(), useHardlinks, followSymlinks);
+                    } else if (fs::is_regular_file(resolvedTarget)) {
+                        // Copy the file that the symlink points to
+                        files.push_back(entry.path());
+                    }
+                }
+                // If target doesn't exist, we skip it (broken symlink)
+            } else {
+                // Store symlink for later processing
+                symlinks.emplace_back(entry.path(), destFile);
+            }
+        } else if (entry.is_directory()) {
+            fs::create_directories(destFile, ec);
+            if (ec)
+                throw std::runtime_error(
+                    std::format("Error creating directory {}: {}", destFile.string(), ec.message()));
+
         } else if (entry.is_regular_file()) {
             files.push_back(entry.path());
         }
+        // Skip other file types (devices, pipes, etc.)
     }
 
-    // Copy or hardlink files
+    // Process symlinks (if not following them)
+    if (!followSymlinks) {
+        for (const auto &[srcLink, destLink] : symlinks) {
+            try {
+                std::error_code symlinkEc;
+                auto target = fs::read_symlink(srcLink, symlinkEc);
+                if (symlinkEc)
+                    throw std::runtime_error(
+                        std::format("Error reading symlink {}: {}", srcLink.string(), symlinkEc.message()));
+
+                // Create parent directory if needed
+                fs::create_directories(destLink.parent_path(), symlinkEc);
+                if (symlinkEc) {
+                    throw std::runtime_error(std::format(
+                        "Error creating parent directory for {}: {}", destLink.string(), symlinkEc.message()));
+                }
+
+                fs::create_symlink(target, destLink, symlinkEc);
+                if (symlinkEc) {
+                    throw std::runtime_error(
+                        std::format("Error creating symlink {}: {}", destLink.string(), symlinkEc.message()));
+                }
+            } catch (const std::exception &e) {
+                throw std::runtime_error(std::format("Error processing symlink {}: {}", srcLink.string(), e.what()));
+            }
+        }
+    }
+
+    // Copy or hardlink files in parallel
     tbb::parallel_for_each(files.begin(), files.end(), [&](const fs::path &file) {
-        const auto relativePath = fs::relative(file, srcPath);
+        std::error_code fileEc;
+        const auto relativePath = fs::relative(file, srcPath, fileEc);
+        if (fileEc)
+            throw std::runtime_error(
+                std::format("Error computing relative path for {}: {}", file.string(), fileEc.message()));
+
         const auto destFile = destPath / relativePath;
 
-        if (useHardlinks) {
-            hardlink(file.string(), destFile.string());
-        } else {
-            fs::copy_file(file, destFile);
+        // Ensure parent directory exists
+        fs::create_directories(destFile.parent_path(), fileEc);
+        if (fileEc) {
+            throw std::runtime_error(
+                std::format("Error creating parent directory for {}: {}", destFile.string(), fileEc.message()));
+        }
+
+        try {
+            if (followSymlinks && fs::is_symlink(file)) {
+                // Handle symlinked files when following symlinks
+                auto target = fs::read_symlink(file, fileEc);
+                if (fileEc)
+                    throw std::runtime_error(
+                        std::format("Error reading symlink {}: {}", file.string(), fileEc.message()));
+
+                fs::path resolvedTarget;
+                if (target.is_absolute()) {
+                    resolvedTarget = target;
+                } else {
+                    resolvedTarget = file.parent_path() / target;
+                }
+
+                if (fs::exists(resolvedTarget) && fs::is_regular_file(resolvedTarget)) {
+                    if (useHardlinks) {
+                        hardlink(fs::canonical(resolvedTarget).string(), destFile.string());
+                    } else {
+                        fs::copy_file(fs::canonical(resolvedTarget), destFile, fileEc);
+                        if (fileEc) {
+                            throw std::runtime_error(std::format(
+                                "Error copying symlinked file {} to {}: {}",
+                                resolvedTarget.string(),
+                                destFile.string(),
+                                fileEc.message()));
+                        }
+                    }
+                }
+            } else {
+                // Regular file copying
+                if (useHardlinks) {
+                    hardlink(file.string(), destFile.string());
+                } else {
+                    fs::copy_file(file, destFile, fileEc);
+                    if (fileEc) {
+                        throw std::runtime_error(std::format(
+                            "Error copying file {} to {}: {}", file.string(), destFile.string(), fileEc.message()));
+                    }
+                }
+            }
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::format("Error processing file {}: {}", file.string(), e.what()));
         }
     });
 }

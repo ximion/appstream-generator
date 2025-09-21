@@ -150,16 +150,28 @@ std::optional<std::string> getCidFromGlobalID(const std::string &gcid);
 void hardlink(const std::string &srcFname, const std::string &destFname);
 
 /**
+ * Copy a file, optionally using hardlinks.
+ *
+ * @param srcPath Source file to copy.
+ * @param destPath Path to the destination file.
+ * @param useHardlinks Use hardlinks instead of copying the file.
+ * @param followSymlinks Follow symbolic links and copy their targets.
+ */
+void copyFile(const fs::path &srcPath, const fs::path &destPath, bool useHardlinks = false, bool followSymlinks = true);
+
+/**
  * Copy a directory using multiple threads.
- * This function follows symbolic links,
- * and replaces them with actual directories
- * in destDir.
  *
  * @param srcDir Source directory to copy.
  * @param destDir Path to the destination directory.
  * @param useHardlinks Use hardlinks instead of copying files.
+ * @param followSymlinks Follow symbolic links and copy their targets.
  */
-void copyDir(const std::string &srcDir, const std::string &destDir, bool useHardlinks = false);
+void copyDir(
+    const std::string &srcDir,
+    const std::string &destDir,
+    bool useHardlinks = false,
+    bool followSymlinks = true);
 
 fs::path getExecutableDir();
 
