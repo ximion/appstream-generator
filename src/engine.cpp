@@ -64,11 +64,11 @@ Engine::Engine()
     : m_conf(&Config::get()),
       m_forced(false)
 {
-    // Configure a TBB task arena to limit parallelism a little (use half the available CPU cores, or at least 6 threads)
-    // This avoids having too many parallel downloads on high-core-count machines, and also leaves some room for additional
-    // parallelism of the used libraries, e.g. for image processing.
+    // Configure a TBB task arena to limit parallelism a little (use half the available CPU cores, or at least 6
+    // threads) This avoids having too many parallel downloads on high-core-count machines, and also leaves some room
+    // for additional parallelism of the used libraries, e.g. for image processing.
     const auto numCPU = std::thread::hardware_concurrency();
-    const auto maxThreads = std::max(numCPU > 6? 6L : numCPU, std::lround(numCPU * 0.60));
+    const auto maxThreads = std::max(numCPU > 6 ? 6L : numCPU, std::lround(numCPU * 0.60));
     m_taskArena = std::make_unique<tbb::task_arena>(maxThreads);
 
     // Select backend
@@ -145,11 +145,16 @@ void Engine::processPackages(
     if (chunkSize <= 10)
         chunkSize = 10;
 
-    logDebug("Analyzing {} packages in batches of {} with {} parallel tasks", pkgs.size(), chunkSize, m_taskArena->max_concurrency());
+    logDebug(
+        "Analyzing {} packages in batches of {} with {} parallel tasks",
+        pkgs.size(),
+        chunkSize,
+        m_taskArena->max_concurrency());
 
     m_taskArena->execute([&] {
         tbb::parallel_for(
-            tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize), [&](const tbb::blocked_range<std::size_t> &range) {
+            tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize),
+            [&](const tbb::blocked_range<std::size_t> &range) {
                 auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, localeUnit, injMods);
 
                 for (std::size_t i = range.begin(); i != range.end(); ++i) {
@@ -166,7 +171,8 @@ void Engine::processPackages(
                         m_dstore->addGeneratorResult(m_conf->metadataType, res);
                     }
 
-                    logInfo("Processed {}, components: {}, hints: {}", res.pkid(), res.componentsCount(), res.hintsCount());
+                    logInfo(
+                        "Processed {}, components: {}, hints: {}", res.pkid(), res.componentsCount(), res.hintsCount());
 
                     // We don't need content data from this package anymore
                     pkg->finish();
@@ -225,7 +231,11 @@ bool Engine::seedContentsData(
     if (workUnitSize > 30)
         workUnitSize = 30;
 
-    logDebug("Scanning {} packages, work unit size: {}, parallel tasks: {}", pkgs.size(), workUnitSize, m_taskArena->max_concurrency());
+    logDebug(
+        "Scanning {} packages, work unit size: {}, parallel tasks: {}",
+        pkgs.size(),
+        workUnitSize,
+        m_taskArena->max_concurrency());
 
     // Check if the index has changed data, skip the update if there's nothing new
     if (pkgs.empty() && !m_pkgIndex->hasChanges(m_dstore, suite.name, section, arch) && !m_forced) {
@@ -234,7 +244,6 @@ bool Engine::seedContentsData(
     }
 
     logInfo("Scanning new packages for {}/{} [{}]", suite.name, section, arch);
-
 
     std::vector<std::shared_ptr<Package>> packagesToProcess = pkgs;
     if (packagesToProcess.empty())

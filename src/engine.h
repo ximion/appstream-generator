@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+
 #include <tbb/task_arena.h>
 
 #include "config.h"
@@ -112,6 +113,7 @@ private:
     bool m_forced;
 
     std::unique_ptr<tbb::task_arena> m_taskArena;
+
     mutable std::mutex m_mutex;
 
     void logVersionInfo();
