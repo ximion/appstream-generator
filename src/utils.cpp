@@ -175,20 +175,34 @@ void copyFile(const fs::path &srcPath, const fs::path &destPath, bool useHardlin
                 }
             }
         } else {
-            // Copy symlink as-is
+            // Copy symlink as-is - remove existing file/symlink first if it exists
+            if (fs::exists(destPath)) {
+                fs::remove(destPath, ec);
+                if (ec)
+                    throw std::runtime_error(
+                        std::format("Error removing existing file {}: {}", destPath.string(), ec.message()));
+            }
+
             auto target = fs::read_symlink(srcPath, ec);
             if (ec)
                 throw std::runtime_error(std::format("Error reading symlink {}: {}", srcPath.string(), ec.message()));
 
             fs::create_symlink(target, destPath, ec);
             if (ec)
-                throw std::runtime_error(std::format("Error creating symlink {}:{}", destPath.string(), ec.message()));
+                throw std::runtime_error(std::format("Error creating symlink {}: {}", destPath.string(), ec.message()));
         }
     } else if (fs::is_regular_file(srcPath)) {
         if (useHardlinks) {
+            // For hardlinks, remove existing file first if it exists
+            if (fs::exists(destPath)) {
+                fs::remove(destPath, ec);
+                if (ec)
+                    throw std::runtime_error(
+                        std::format("Error removing existing file {}: {}", destPath.string(), ec.message()));
+            }
             hardlink(srcPath.string(), destPath.string());
         } else {
-            fs::copy_file(srcPath, destPath, ec);
+            fs::copy_file(srcPath, destPath, fs::copy_options::overwrite_existing, ec);
             if (ec)
                 throw std::runtime_error(
                     std::format("Error copying file {} to {}: {}", srcPath.string(), destPath.string(), ec.message()));
@@ -304,6 +318,15 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
                         "Error creating parent directory for {}: {}", destLink.string(), symlinkEc.message()));
                 }
 
+                // Remove existing file/symlink first if it exists
+                if (fs::exists(destLink)) {
+                    fs::remove(destLink, symlinkEc);
+                    if (symlinkEc) {
+                        throw std::runtime_error(
+                            std::format("Error removing existing file {}: {}", destLink.string(), symlinkEc.message()));
+                    }
+                }
+
                 fs::create_symlink(target, destLink, symlinkEc);
                 if (symlinkEc) {
                     throw std::runtime_error(
@@ -349,9 +372,18 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
 
                 if (fs::exists(resolvedTarget) && fs::is_regular_file(resolvedTarget)) {
                     if (useHardlinks) {
+                        // Remove existing file first if it exists for hardlinks
+                        if (fs::exists(destFile)) {
+                            fs::remove(destFile, fileEc);
+                            if (fileEc) {
+                                throw std::runtime_error(std::format(
+                                    "Error removing existing file {}: {}", destFile.string(), fileEc.message()));
+                            }
+                        }
                         hardlink(fs::canonical(resolvedTarget).string(), destFile.string());
                     } else {
-                        fs::copy_file(fs::canonical(resolvedTarget), destFile, fileEc);
+                        fs::copy_file(
+                            fs::canonical(resolvedTarget), destFile, fs::copy_options::overwrite_existing, fileEc);
                         if (fileEc) {
                             throw std::runtime_error(std::format(
                                 "Error copying symlinked file {} to {}: {}",
@@ -364,9 +396,17 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
             } else {
                 // Regular file copying
                 if (useHardlinks) {
+                    // Remove existing file first if it exists for hardlinks
+                    if (fs::exists(destFile)) {
+                        fs::remove(destFile, fileEc);
+                        if (fileEc) {
+                            throw std::runtime_error(std::format(
+                                "Error removing existing file {}: {}", destFile.string(), fileEc.message()));
+                        }
+                    }
                     hardlink(file.string(), destFile.string());
                 } else {
-                    fs::copy_file(file, destFile, fileEc);
+                    fs::copy_file(file, destFile, fs::copy_options::overwrite_existing, fileEc);
                     if (fileEc) {
                         throw std::runtime_error(std::format(
                             "Error copying file {} to {}: {}", file.string(), destFile.string(), fileEc.message()));
