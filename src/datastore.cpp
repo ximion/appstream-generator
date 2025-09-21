@@ -423,6 +423,12 @@ std::string DataStore::getValue(MDB_dbi dbi, MDB_val dkey)
         }
         checkError(res, "mdb_cursor_get");
 
+        if (dval.mv_data == nullptr || dval.mv_size == 0) {
+            mdb_cursor_close(cur);
+            quitTransaction(txn);
+            return {};
+        }
+
         std::string result(static_cast<const char *>(dval.mv_data), dval.mv_size - 1); // exclude null terminator
         mdb_cursor_close(cur);
         quitTransaction(txn);
