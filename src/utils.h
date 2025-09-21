@@ -147,7 +147,7 @@ std::optional<std::string> getCidFromGlobalID(const std::string &gcid);
 /**
  * Create a hard link between two files.
  */
-void hardlink(const std::string &srcFname, const std::string &destFname);
+void hardlink(const fs::path &srcPath, const fs::path &destPath);
 
 /**
  * Copy a single file, handling symlinks and overwriting existing files safely.
@@ -160,7 +160,7 @@ void hardlink(const std::string &srcFname, const std::string &destFname);
 void copyFile(const fs::path &srcPath, const fs::path &destPath, bool useHardlinks = false, bool followSymlinks = true);
 
 /**
- * Copy a directory using multiple threads.
+ * Copy a directory.
  * This function safely overwrites existing files at the destination.
  *
  * @param srcDir Source directory to copy.
