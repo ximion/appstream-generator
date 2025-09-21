@@ -231,8 +231,8 @@ bool ArchiveDecompressor::pathMatches(const std::string &path1, const std::strin
     if (path1 == path2)
         return true;
 
-    auto abs1 = fs::weakly_canonical(fs::path("/") / path1);
-    auto abs2 = fs::weakly_canonical(fs::path("/") / path2);
+    const auto abs1 = (fs::path("/") / path1).lexically_normal();
+    const auto abs2 = (fs::path("/") / path2).lexically_normal();
 
     return abs1 == abs2;
 }
