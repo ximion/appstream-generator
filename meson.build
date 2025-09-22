@@ -27,6 +27,7 @@ archive_dep   = dependency('libarchive', version : '>= 3.2')
 curl_dep      = dependency('libcurl')
 fyaml_dep     = dependency('libfyaml', version : '>= 0.8')
 tbb_dep       = dependency('tbb')
+icu_dep       = dependency('icu-uc')
 inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
 libxml2_dep   = dependency('libxml-2.0') # for rpmmd
 catch2_dep    = dependency('catch2-with-main')

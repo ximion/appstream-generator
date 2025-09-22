@@ -248,6 +248,14 @@ std::string filenameFromURI(const std::string &uri);
 [[nodiscard]] std::string escapeXml(const std::string &s) noexcept;
 
 /**
+ * Sanitize a string to ensure it is valid UTF-8.
+ *
+ * @param s The string to sanitize.
+ * @return The sanitized string with invalid UTF-8 characters removed.
+ */
+[[nodiscard]] std::string sanitizeUtf8(const std::string &s) noexcept;
+
+/**
  * Convert a string to lowercase.
  *
  * @param s The string to convert to lowercase.

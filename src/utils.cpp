@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <unicode/unistr.h>
 #include <tbb/parallel_for_each.h>
 
 #include "logging.h"
@@ -384,8 +385,62 @@ std::string filenameFromURI(const std::string &uri)
 
 std::string escapeXml(const std::string &s) noexcept
 {
-    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), s.size());
-    return std::string(escapedStr);
+    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), (ssize_t)s.size());
+    std::string result(escapedStr);
+    return result;
+}
+
+std::string sanitizeUtf8(const std::string &s) noexcept
+{
+
+    const auto *p = reinterpret_cast<const uint8_t *>(s.data());
+    int32_t i = 0;
+    const int32_t n = static_cast<int32_t>(s.size());
+
+    std::string out;
+    out.reserve(s.size());
+
+    auto append_utf8 = [&out](UChar32 c) {
+        if (c <= 0x7F) {
+            out.push_back(static_cast<char>(c));
+        } else if (c <= 0x7FF) {
+            out.push_back(static_cast<char>(0xC0 | (c >> 6)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+        } else if (c <= 0xFFFF) {
+            out.push_back(static_cast<char>(0xE0 | (c >> 12)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+        } else {
+            out.push_back(static_cast<char>(0xF0 | (c >> 18)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 12) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+        }
+    };
+
+    while (i < n) {
+        UChar32 c;
+        U8_NEXT(p, i, n, c); // safe; advances i
+
+        if (c < 0) {
+            // Ill-formed sequence: skip the offending byte (U8_NEXT already advanced).
+            continue;
+        }
+
+        // Drop U+FFFD (explicit replacements and literal chars)
+        if (c == 0xFFFD)
+            continue;
+
+        // Drop control chars except HT (0x09), LF (0x0A), CR (0x0D).
+        // This covers both C0 (<0x20) and C1 (0x7F..0x9F).
+        if (((c < 0x20) || (c == 0x7F) || (c >= 0x80 && c <= 0x9F)) && c != 0x09 && c != 0x0A && c != 0x0D) {
+            continue;
+        }
+
+        append_utf8(c);
+    }
+
+    return out;
 }
 
 std::string toLower(const std::string &s)

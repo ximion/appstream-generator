@@ -525,3 +525,60 @@ TEST_CASE("InjectedModifications", "[cptmodifiers]")
     REQUIRE(customData->at("mars") == "phobos");
     REQUIRE(customData->at("saturn") == "thrym");
 }
+
+TEST_CASE("Utils: UTF-8 sanitization", "[utils]")
+{
+    SECTION("Remove invalid characters")
+    {
+        std::string input = "Zipper est un outil\x14 pour extraire";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == "Zipper est un outil pour extraire");
+        REQUIRE(sanitized.length() == input.length() - 1); // One character removed
+    }
+
+    SECTION("Preserve valid UTF-8 characters")
+    {
+        std::string input = "Café résumé naïve";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == input); // Should be unchanged
+    }
+
+    SECTION("Preserve valid control characters")
+    {
+        std::string input = "Valid text with tab\t, newline\n, and carriage return\r.";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == input); // Should be unchanged
+    }
+
+    SECTION("Remove multiple invalid control characters")
+    {
+        std::string input =
+            "Text\x01with\x14invalid\x1F"
+            "characters";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == "Textwithinvalidcharacters");
+    }
+
+    SECTION("Handle invalid UTF-8 sequences")
+    {
+        std::string input = "Valid text \xFF\xFE invalid UTF-8";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == "Valid text  invalid UTF-8");
+
+        // Should be shorter due to removed invalid bytes
+        REQUIRE(sanitized.length() < input.length());
+    }
+
+    SECTION("Preserve 4-byte UTF-8 emoji")
+    {
+        std::string input = "Hello 🌍 World! 😀";
+        std::string sanitized = Utils::sanitizeUtf8(input);
+
+        REQUIRE(sanitized == input); // Should preserve emoji characters
+    }
+}
