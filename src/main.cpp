@@ -26,6 +26,7 @@
 #include <string>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <clocale>
 
 #include <glib.h>
 
@@ -163,6 +164,14 @@ int main(int argc, char **argv)
     g_autofree gchar *wdir = nullptr;
     g_autofree gchar *exportDir = nullptr;
     g_autofree gchar *configFname = nullptr;
+
+    // Initialize locale for proper UTF-8 handling
+    if (!setlocale(LC_ALL, "")) {
+        // If system locale fails, try to set a UTF-8 locale explicitly
+        logInfo("No locale set, falling back to C.UTF-8.");
+        if (!setlocale(LC_ALL, "C.UTF-8") && !setlocale(LC_ALL, "en_US.UTF-8"))
+            logWarning("Warning: Could not set UTF-8 locale. UTF-8 text may be corrupted.");
+    }
 
 #ifdef HAVE_BACKWARD
     backward::SignalHandling sh;

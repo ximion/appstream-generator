@@ -94,7 +94,7 @@ std::string DebianPackageIndex::packageDescToAppStreamDesc(const std::vector<std
         else
             description += " ";
 
-        description += Utils::escapeXml(Utils::sanitizeUtf8(trimmedLine));
+        description += Utils::escapeXml(trimmedLine);
     }
     description += "</p>";
 
