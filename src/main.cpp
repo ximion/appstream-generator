@@ -172,6 +172,17 @@ int main(int argc, char **argv)
         if (!setlocale(LC_ALL, "C.UTF-8") && !setlocale(LC_ALL, "en_US.UTF-8"))
             logWarning("Warning: Could not set UTF-8 locale. UTF-8 text may be corrupted.");
     }
+    // Make sure nothing localizes numbers by accident
+    std::setlocale(LC_NUMERIC, "C");
+
+    try {
+        std::locale loc("");
+        std::locale::global(loc);
+        std::cout.imbue(loc);
+        std::cerr.imbue(loc);
+    } catch (...) {
+        // Non-fatal; iostreams will just use the classic locale
+    }
 
 #ifdef HAVE_BACKWARD
     backward::SignalHandling sh;
