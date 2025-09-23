@@ -428,11 +428,8 @@ void Engine::exportMetadata(
             auto mres = m_dstore->getMetadataForPackage(m_conf->metadataType, pkid);
             if (!mres.empty()) {
                 std::lock_guard<std::mutex> lock(exportMutex);
-                // FIXME: We sanitize the returned metadata here, because if asgen was run on systems
-                // with broken locale, we ended up with bad UTF-8 in the database. This issue needs more
-                // investigation and a proper resoltition, so this is only a temporary fix.
                 for (const auto &md : mres)
-                    mdataFile << Utils::sanitizeUtf8(md) << "\n";
+                    mdataFile << md << "\n";
             }
 
             for (const auto &gcid : gcids) {

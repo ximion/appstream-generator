@@ -427,10 +427,6 @@ std::string sanitizeUtf8(const std::string &s) noexcept
             continue;
         }
 
-        // Drop U+FFFD (explicit replacements and literal chars)
-        if (c == 0xFFFD)
-            continue;
-
         // Drop control chars except HT (0x09), LF (0x0A), CR (0x0D).
         // This covers both C0 (<0x20) and C1 (0x7F..0x9F).
         if (((c < 0x20) || (c == 0x7F) || (c >= 0x80 && c <= 0x9F)) && c != 0x09 && c != 0x0A && c != 0x0D) {
