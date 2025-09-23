@@ -638,7 +638,7 @@ void DataStore::removePackage(const std::string &pkid)
 std::unordered_set<std::string> DataStore::getActiveGCIDs()
 {
     MDB_val dkey, dval;
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction(MDB_RDONLY);
     try {
@@ -669,9 +669,49 @@ std::unordered_set<std::string> DataStore::getActiveGCIDs()
     }
 }
 
+std::unordered_map<std::string, std::vector<std::string>> DataStore::getPackagesForGCIDs(
+    std::unordered_set<std::string> gcids)
+{
+    MDB_val dkey, dval;
+    MDB_cursor *cur = nullptr;
+
+    std::unordered_map<std::string, std::vector<std::string>> result;
+    MDB_txn *txn = newTransaction(MDB_RDONLY);
+    try {
+        int res = mdb_cursor_open(txn, m_dbPackages, &cur);
+        checkError(res, "mdb_cursor_open (gcids)");
+
+        while (mdb_cursor_get(cur, &dkey, &dval, MDB_NEXT) == 0) {
+            const std::string pkval(static_cast<const char *>(dval.mv_data), dval.mv_size - 1);
+            if (pkval == "ignore" || pkval == "seen")
+                continue;
+
+            const std::string pkid(static_cast<const char *>(dkey.mv_data), dkey.mv_size - 1);
+            const auto gcidList = Utils::splitString(pkval, '\n');
+            for (const auto &gcid : gcidList) {
+                if (gcids.contains(gcid)) {
+                    if (result.contains(pkid))
+                        result[pkid].push_back(gcid);
+                    else
+                        result[pkid] = {gcid};
+                }
+            }
+        }
+
+        mdb_cursor_close(cur);
+        quitTransaction(txn);
+        return result;
+    } catch (...) {
+        if (cur)
+            mdb_cursor_close(cur);
+        quitTransaction(txn);
+        throw;
+    }
+}
+
 void DataStore::dropOrphanedData(MDB_dbi dbi, const std::unordered_set<std::string> &activeGCIDs)
 {
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction();
     try {
@@ -799,7 +839,7 @@ void DataStore::cleanupCruft()
 
 std::unordered_set<std::string> DataStore::getPackageIdSet()
 {
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction();
     try {
@@ -872,7 +912,7 @@ std::vector<std::uint8_t> DataStore::getBinaryValue(MDB_dbi dbi, const std::stri
 {
     MDB_val dbkey = makeDbValue(key);
     MDB_val dval;
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction(MDB_RDONLY);
     try {
@@ -906,7 +946,7 @@ std::vector<std::uint8_t> DataStore::getBinaryValue(MDB_dbi dbi, const std::stri
 std::vector<StatisticsEntry> DataStore::getStatistics()
 {
     MDB_val dkey, dval;
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction(MDB_RDONLY);
     try {
@@ -1045,7 +1085,7 @@ void DataStore::removeRepoInfo(const std::string &suite, const std::string &sect
 std::vector<std::string> DataStore::getPkidsMatching(const std::string &prefix)
 {
     MDB_val dkey;
-    MDB_cursor *cur;
+    MDB_cursor *cur = nullptr;
 
     MDB_txn *txn = newTransaction(MDB_RDONLY);
     try {

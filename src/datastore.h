@@ -172,6 +172,12 @@ public:
     void cleanupCruft();
 
     /**
+     * Get map of package-IDs to global component IDs based on given GCID list
+     */
+    std::unordered_map<std::string, std::vector<std::string>> getPackagesForGCIDs(
+        std::unordered_set<std::string> gcids);
+
+    /**
      * Get set of all package IDs in database
      */
     std::unordered_set<std::string> getPackageIdSet();

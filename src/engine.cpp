@@ -1159,11 +1159,13 @@ void Engine::forgetPackage(const std::string &identifier)
 {
     const auto slashCount = std::count(identifier.begin(), identifier.end(), '/');
 
+    std::unordered_set<std::string> affectedGCIDs;
     if (slashCount == 2) {
         // We have a package-id, so we can do a targeted remove
         const auto pkid = identifier;
         logDebug("Considering {} to be a package-id.", pkid);
 
+        affectedGCIDs.insert_range(m_dstore->getGCIDsForPackage(pkid));
         if (m_cstore->packageExists(pkid))
             m_cstore->removePackage(pkid);
         if (m_dstore->packageExists(pkid))
@@ -1172,6 +1174,7 @@ void Engine::forgetPackage(const std::string &identifier)
     } else {
         auto pkids = m_dstore->getPkidsMatching(identifier);
         for (const auto &pkid : pkids) {
+            affectedGCIDs.insert_range(m_dstore->getGCIDsForPackage(pkid));
             m_dstore->removePackage(pkid);
             if (m_cstore->packageExists(pkid))
                 m_cstore->removePackage(pkid);
@@ -1181,6 +1184,20 @@ void Engine::forgetPackage(const std::string &identifier)
 
     // Remove orphaned data and media
     m_dstore->cleanupCruft();
+
+    // Report if data is kept because packages keep the GCIDs around
+    std::cout << "Packages still using the same data from the removed package(s):" << std::endl;
+    auto pkgsForGCIDs = m_dstore->getPackagesForGCIDs(affectedGCIDs);
+    if (pkgsForGCIDs.empty()) {
+        std::cout << "  - None" << std::endl;
+    } else {
+        for (const auto &it : pkgsForGCIDs) {
+            std::cout << "  - " << it.first << ": ";
+            for (const auto &gcid : it.second)
+                std::cout << gcid << " ";
+            std::cout << std::endl;
+        }
+    }
 }
 
 bool Engine::printPackageInfo(const std::string &identifier)

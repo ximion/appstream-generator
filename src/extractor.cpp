@@ -276,8 +276,7 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
             std::format("Expected 1 result for data extraction, but retrieved {}.", resultsArray->len));
 
     // create result wrapper
-    auto ascResult = ASC_RESULT(g_ptr_array_index(resultsArray, 0));
-    GeneratorResult gres(ascResult, pkg);
+    GeneratorResult gres(ASC_RESULT(g_ptr_array_index(resultsArray, 0)), pkg);
 
     // process icons and perform additional refinements
     g_autoptr(GPtrArray) cptsPtrArray = gres.fetchComponents();
