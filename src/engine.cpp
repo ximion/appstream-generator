@@ -1165,7 +1165,9 @@ void Engine::forgetPackage(const std::string &identifier)
         const auto pkid = identifier;
         logDebug("Considering {} to be a package-id.", pkid);
 
-        affectedGCIDs.insert_range(m_dstore->getGCIDsForPackage(pkid));
+        const auto gcids = m_dstore->getGCIDsForPackage(pkid);
+        affectedGCIDs.insert(gcids.begin(), gcids.end());
+
         if (m_cstore->packageExists(pkid))
             m_cstore->removePackage(pkid);
         if (m_dstore->packageExists(pkid))
@@ -1174,7 +1176,9 @@ void Engine::forgetPackage(const std::string &identifier)
     } else {
         auto pkids = m_dstore->getPkidsMatching(identifier);
         for (const auto &pkid : pkids) {
-            affectedGCIDs.insert_range(m_dstore->getGCIDsForPackage(pkid));
+            const auto gcids = m_dstore->getGCIDsForPackage(pkid);
+            affectedGCIDs.insert(gcids.begin(), gcids.end());
+
             m_dstore->removePackage(pkid);
             if (m_cstore->packageExists(pkid))
                 m_cstore->removePackage(pkid);
