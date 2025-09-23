@@ -106,10 +106,7 @@ public:
      * Type of this package (whether it actually exists or is a fake/virtual package)
      * You pretty much always want PHYSICAL.
      */
-    virtual PackageKind kind() const noexcept
-    {
-        return PackageKind::Physical;
-    }
+    virtual PackageKind kind() const noexcept;
 
     /**
      * A associative array containing package descriptions.
@@ -125,11 +122,7 @@ public:
      *
      * E.g.: {"en": "foo the bar"}
      */
-    virtual const std::unordered_map<std::string, std::string> &summary() const
-    {
-        static const std::unordered_map<std::string, std::string> empty_map;
-        return empty_map;
-    }
+    virtual const std::unordered_map<std::string, std::string> &summary() const;
 
     /**
      * Local filename of the package. This string is only used for
@@ -164,10 +157,7 @@ public:
      */
     virtual void finish() = 0;
 
-    virtual std::optional<GStreamer> gst() const
-    {
-        return std::nullopt;
-    }
+    virtual std::optional<GStreamer> gst() const;
 
     /**
      * Retrieve backend-specific translations.
@@ -176,15 +166,9 @@ public:
      */
     virtual std::unordered_map<std::string, std::string> getDesktopFileTranslations(
         GKeyFile *desktopFile,
-        const std::string &text)
-    {
-        return {};
-    }
+        const std::string &text);
 
-    virtual bool hasDesktopFileTranslations() const
-    {
-        return false;
-    }
+    virtual bool hasDesktopFileTranslations() const;
 
     /**
      * Get the unique identifier for this package.

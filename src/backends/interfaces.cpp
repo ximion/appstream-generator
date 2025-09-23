@@ -55,6 +55,34 @@ bool GStreamer::isNotEmpty() const noexcept
         m_decoders.empty() && m_encoders.empty() && m_elements.empty() && m_uriSinks.empty() && m_uriSources.empty());
 }
 
+PackageKind Package::kind() const noexcept
+{
+    return PackageKind::Physical;
+}
+
+const std::unordered_map<std::string, std::string> &Package::summary() const
+{
+    static const std::unordered_map<std::string, std::string> empty_map;
+    return empty_map;
+}
+
+std::optional<GStreamer> Package::gst() const
+{
+    return std::nullopt;
+}
+
+std::unordered_map<std::string, std::string> Package::getDesktopFileTranslations(
+    GKeyFile *desktopFile,
+    const std::string &text)
+{
+    return {};
+}
+
+bool Package::hasDesktopFileTranslations() const
+{
+    return false;
+}
+
 // Package implementation
 const std::string &Package::id() const
 {
