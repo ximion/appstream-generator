@@ -119,6 +119,11 @@ private:
     void logVersionInfo();
 
     /**
+     * Throw an error if the libfyaml version is bad.
+     */
+    void checkLibfyamlVersion();
+
+    /**
      * Extract metadata from a software container (usually a distro package).
      * The result is automatically stored in the database.
      */

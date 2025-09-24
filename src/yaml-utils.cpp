@@ -149,6 +149,19 @@ YDocumentPtr createDocument()
     return YDocumentPtr(doc, fy_document_destroy);
 }
 
+std::string libfyamlVersion() noexcept
+{
+    const auto versionRaw = fy_library_version();
+    if (versionRaw == nullptr)
+        return {};
+
+    std::string version(versionRaw);
+    if (version == "UNKNOWN")
+        return {};
+
+    return version;
+}
+
 } // namespace Yaml
 
 } // namespace ASGenerator

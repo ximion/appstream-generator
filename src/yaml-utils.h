@@ -43,6 +43,8 @@ fy_node *nodeByKey(fy_node *mapping, const std::string &key);
 
 YDocumentPtr createDocument();
 
+std::string libfyamlVersion() noexcept;
+
 } // namespace Yaml
 
 } // namespace ASGenerator

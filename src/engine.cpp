@@ -45,6 +45,7 @@
 #include "logging.h"
 #include "result.h"
 #include "utils.h"
+#include "yaml-utils.h"
 #include "zarchive.h"
 #include "backends/interfaces.h"
 
@@ -129,6 +130,22 @@ void Engine::logVersionInfo()
     // Get AppStream version
     const char *asVersion = as_version_string();
     logInfo("AppStream Generator {}, AS: {}{}", ASGEN_VERSION, asVersion, backendInfo);
+}
+
+void Engine::checkLibfyamlVersion()
+{
+    const auto version = Yaml::libfyamlVersion();
+    if (version.empty()) {
+        logWarning("Unable to determine libfyaml version! Please ensure you have at least version 0.9 installed!");
+        return;
+    }
+
+    if (as_vercmp_simple(version.c_str(), "0.9") < 0) {
+        throw std::runtime_error(std::format(
+            "libfyaml version {} is too old, at least version 0.9 is required! Please upgrade libfyaml, as versions <= "
+            "0.8 have known bugs in unicode handling and may generate corrupted UTF-8 data.",
+            version));
+    }
 }
 
 void Engine::processPackages(
@@ -823,6 +840,9 @@ bool Engine::processFile(
         return false;
     }
 
+    // ensure our libfyaml version is new enough
+    checkLibfyamlVersion();
+
     std::unordered_map<std::string, std::vector<std::shared_ptr<Package>>> pkgByArch;
     for (const auto &fname : files) {
         auto pkg = m_pkgIndex->packageForFile(fname, suiteName, sectionName);
@@ -870,6 +890,7 @@ void Engine::run(const std::string &suiteName)
     auto suite = suiteCheck.suite;
 
     logVersionInfo();
+    checkLibfyamlVersion();
 
     auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
 
@@ -897,6 +918,7 @@ void Engine::run(const std::string &suiteName, const std::string &sectionName)
     auto suite = suiteCheck.suite;
 
     logVersionInfo();
+    checkLibfyamlVersion();
 
     bool sectionValid = false;
     for (const auto &section : suite.sections) {
