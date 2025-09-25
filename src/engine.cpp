@@ -326,7 +326,7 @@ bool Engine::seedContentsData(
                             // in which suite as well.
                             if (!m_dstore->isIgnored(pkid))
                                 interestingFound.store(true);
-                            return;
+                            continue;
                         }
                         // We will complement the main database with ignore data, in case it
                         // went missing.
