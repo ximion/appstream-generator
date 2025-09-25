@@ -155,6 +155,13 @@ void Engine::processPackages(
 {
     g_autoptr(AsgLocaleUnit) localeUnit = asg_locale_unit_new(m_cstore, pkgs);
 
+    {
+        g_autoptr(GError) error = NULL;
+        if (!asc_unit_open(ASC_UNIT(localeUnit), &error))
+            throw std::runtime_error(
+                std::format("Failed to open locale unit: {}", error ? error->message : "Unknown error"));
+    }
+
     const auto numProcessors = std::thread::hardware_concurrency();
     std::size_t chunkSize = pkgs.size() / numProcessors / 10;
     if (chunkSize > 100)
@@ -196,6 +203,9 @@ void Engine::processPackages(
                 }
             });
     });
+
+    // not strictly necessary, but let's close the unit explicitly
+    asc_unit_close(ASC_UNIT(localeUnit));
 }
 
 // Helper to check if a package may contain interesting metadata

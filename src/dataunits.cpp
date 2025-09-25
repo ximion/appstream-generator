@@ -286,9 +286,8 @@ public:
             Package *pkg = nullptr;
             if (!pkgid.empty()) {
                 auto pkgIt = pkgMap.find(pkgid);
-                if (pkgIt != pkgMap.end()) {
+                if (pkgIt != pkgMap.end())
                     pkg = pkgIt->second;
-                }
             }
 
             if (pkg != nullptr)
