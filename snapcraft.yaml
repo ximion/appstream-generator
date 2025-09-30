@@ -149,6 +149,7 @@ parts:
       usr/lib/${CRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     after:
       - appstream
+      - libfyaml
     build-packages:
       - g++-14
       - gcc-14
