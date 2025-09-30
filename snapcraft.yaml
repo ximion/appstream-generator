@@ -42,13 +42,13 @@ apps:
       - home
     environment:
       GSETTINGS_SCHEMA_DIR: "$SNAP/usr/share/glib-2.0/schemas"
-      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/gio/modules"
+      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gio/modules"
 
 layout:
   /usr/share/appstream:
     bind: $SNAP/usr/share/appstream
-  /usr/lib/$CRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0:
-    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/gdk-pixbuf-2.0
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0
   /usr/share/i18n:
     bind: $SNAP/usr/share/i18n
   /usr/share/mime:
@@ -119,8 +119,8 @@ parts:
       craftctl set version=$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')
     plugin: meson
     build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/pkgconfig/
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig/
       - PATH: $CRAFT_STAGE/usr/bin/${PATH:+:$PATH}
       - CC: gcc-14
       - CXX: g++-14
