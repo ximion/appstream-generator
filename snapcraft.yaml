@@ -82,6 +82,8 @@ parts:
       - -Dcompose=true
       - -Dapidocs=false
       - -Dsystemd=false
+    after:
+      - libfyaml
     build-packages:
       - build-essential
       - docbook-xml
@@ -101,8 +103,8 @@ parts:
       - libzstd-dev
       - xsltproc
     stage-packages:
-     - libcurl3-gnutls
-     - libicu70
+     - libcurl3t64-gnutls
+     - libicu74
      - libstemmer0d
      - libxml2
      - libzstd1
@@ -145,6 +147,8 @@ parts:
       done
       update-mime-database -V usr/share/mime/
       usr/lib/${CRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
+    after:
+      - appstream
     build-packages:
       - g++-14
       - gcc-14
@@ -171,26 +175,26 @@ parts:
       - freeglut3
       - gdb
       - glib-networking
-      - libarchive13
+      - libarchive13t64
       - libc-bin
       - libcairo2
-      - libcurl3-gnutls
+      - libcurl3t64-gnutls
       - libdatrie1
       - libfontconfig1
       - libfreetype6
       - libgdk-pixbuf2.0-0
-      - libglib2.0-0
+      - libglib2.0-0t64
       - libglib2.0-bin
-      - libglibd-2.0-0
       - libglu1-mesa
       - libgraphite2-3
       - libharfbuzz0b
+      - libjxl-gdk-pixbuf
       - liblmdb0
       - libpango-1.0-0
       - libpangocairo-1.0-0
       - libpangoft2-1.0-0
       - libpixman-1-0
-      - libpng16-16
+      - libpng16-16t64
       - librsvg2-2
       - librsvg2-common
       - libslang2
@@ -218,5 +222,3 @@ parts:
       - -usr/lib/*/pkgconfig/gmodule*
       - -usr/lib/*/pkgconfig/gobject-2.0.pc
       - -usr/lib/*/pkgconfig/gthread-2.0.pc
-    after:
-      - appstream
