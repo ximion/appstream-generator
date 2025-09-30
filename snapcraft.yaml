@@ -120,12 +120,20 @@ parts:
     build-environment:
       - CC: gcc-14
       - CXX: g++-14
+      - PKG_CONFIG_PATH: >
+          $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:
+          $CRAFT_STAGE/usr/lib/pkgconfig:
+          $CRAFT_STAGE/usr/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+      - LD_LIBRARY_PATH: >
+          $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:
+          $CRAFT_STAGE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     plugin: meson
     meson-parameters:
       - --prefix=/usr
       - --buildtype=debugoptimized
       - -Ddownload-js=true
     override-build: |
+      set -eux
       craftctl default
       meson test -C "${CRAFT_PART_BUILD}" --print-errorlogs --no-stdsplit --verbose
     override-prime: |
@@ -165,6 +173,7 @@ parts:
       - liblmdb-dev
       - libpango1.0-dev
       - librsvg2-dev
+      - pkgconf
       - xsltproc
     stage-packages:
       - ffmpeg
