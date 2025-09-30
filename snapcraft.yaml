@@ -61,10 +61,12 @@ parts:
     source-type: git
     source-tag: 'v0.9'
     plugin: autotools
-    build-environment:
-      - DESTDIR: $CRAFT_PART_INSTALL
     autotools-configure-parameters:
       - --prefix=/usr/
+      - --disable-static
+      - --enable-shared
+    make-parameters:
+      - V=1
     build-packages:
       - build-essential
       - pkgconf
@@ -120,6 +122,7 @@ parts:
     build-environment:
       - CC: gcc-14
       - CXX: g++-14
+      - NINJAFLAGS: -v
       - PKG_CONFIG_PATH: >
           $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:
           $CRAFT_STAGE/usr/lib/pkgconfig:
