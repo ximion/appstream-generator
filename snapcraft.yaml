@@ -117,21 +117,17 @@ parts:
       craftctl default
       # set version from Git
       craftctl set version=$(git describe --always | sed -e 's/v//;s/-/+git/;y/-/./')
-    plugin: meson
     build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig/
-      - PATH: $CRAFT_STAGE/usr/bin/${PATH:+:$PATH}
       - CC: gcc-14
       - CXX: g++-14
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=debugoptimized
+      - -Ddownload-js=true
     override-build: |
-      # actually build asgen - we need to run everything manually here,
-      # because snapcraft will kill the build if run with maximum amount of ninja jobs,
-      # and I found no way to limit the amount of permitted ninja jobs other than overriding everything
-      meson --prefix=/usr --buildtype=debugoptimized -Ddownload-js=true ${CRAFT_PART_BUILD} ${CRAFT_PART_SRC}
-      ninja -C "${CRAFT_PART_BUILD}" -j4
+      craftctl default
       meson test -C "${CRAFT_PART_BUILD}" --print-errorlogs --no-stdsplit --verbose
-      DESTDIR=${CRAFT_PART_INSTALL} ninja -C "${CRAFT_PART_BUILD}" install
     override-prime: |
       set -eux
       craftctl default
@@ -166,7 +162,6 @@ parts:
       - libfreetype6-dev
       - libgdk-pixbuf2.0-dev
       - libglib2.0-dev
-      - libglibd-2.0-dev
       - liblmdb-dev
       - libpango1.0-dev
       - librsvg2-dev
