@@ -188,7 +188,7 @@ parts:
       - libglu1-mesa
       - libgraphite2-3
       - libharfbuzz0b
-      - libjxl-gdk-pixbuf
+      #- libjxl-gdk-pixbuf
       - liblmdb0
       - libpango-1.0-0
       - libpangocairo-1.0-0
