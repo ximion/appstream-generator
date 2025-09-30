@@ -65,8 +65,6 @@ parts:
       - --prefix=/usr/
       - --disable-static
       - --enable-shared
-    make-parameters:
-      - V=1
     build-packages:
       - build-essential
       - pkgconf
