@@ -28,8 +28,9 @@ adopt-info: appstream-generator
 confinement: strict
 grade: stable
 
-architectures:
-  - build-on: [amd64]
+platforms:
+  amd64:
+  arm64:
 
 apps:
   appstream-generator:
