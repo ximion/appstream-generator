@@ -172,7 +172,6 @@ parts:
       - xsltproc
     stage-packages:
       - ffmpeg
-      - freeglut3
       - gdb
       - glib-networking
       - libarchive13t64
@@ -186,6 +185,7 @@ parts:
       - libglib2.0-0t64
       - libglib2.0-bin
       - libglu1-mesa
+      - libglut3.12
       - libgraphite2-3
       - libharfbuzz0b
       #- libjxl-gdk-pixbuf
