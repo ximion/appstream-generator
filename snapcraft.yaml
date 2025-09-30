@@ -55,6 +55,19 @@ layout:
 
 parts:
 
+  libfyaml:
+    source: https://github.com/pantoniou/libfyaml.git
+    source-type: git
+    source-tag: 'v0.9'
+    plugin: autotools
+    build-environment:
+      - DESTDIR: $CRAFT_PART_INSTALL
+    autotools-configure-parameters:
+      - --prefix=/usr/
+    build-packages:
+      - build-essential
+      - pkgconf
+
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
@@ -79,7 +92,6 @@ parts:
       - libcurl4-gnutls-dev
       - liblzma-dev
       - libffi-dev
-      - libfyaml-dev
       - libgirepository1.0-dev
       - libglib2.0-dev
       - libstemmer-dev
@@ -92,7 +104,6 @@ parts:
      - libicu70
      - libstemmer0d
      - libxml2
-     - libfyaml0
      - libzstd1
 
   appstream-generator:
@@ -108,6 +119,8 @@ parts:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/:$CRAFT_STAGE/usr/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
       - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET/pkgconfig/
       - PATH: $CRAFT_STAGE/usr/bin/${PATH:+:$PATH}
+      - CC: gcc-14
+      - CXX: g++-14
     override-build: |
       # actually build asgen - we need to run everything manually here,
       # because snapcraft will kill the build if run with maximum amount of ninja jobs,
@@ -132,6 +145,8 @@ parts:
       update-mime-database -V usr/share/mime/
       usr/lib/${CRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     build-packages:
+      - g++-14
+      - gcc-14
       - curl
       - docbook-xsl
       - docbook-xml
