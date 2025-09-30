@@ -164,6 +164,7 @@ parts:
       - npm
       - catch2
       - libarchive-dev
+      - libbackward-cpp-dev
       - libcairo2-dev
       - libcurl4-gnutls-dev
       - libfontconfig1-dev
@@ -173,6 +174,9 @@ parts:
       - liblmdb-dev
       - libpango1.0-dev
       - librsvg2-dev
+      - libtbb-dev
+      - libunwind-dev
+      - libxml2-dev
       - pkgconf
       - xsltproc
     stage-packages:
