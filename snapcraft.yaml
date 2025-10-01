@@ -77,6 +77,13 @@ parts:
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
+      - PKG_CONFIG_PATH: >
+          $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:
+          $CRAFT_STAGE/usr/lib/pkgconfig:
+          $CRAFT_STAGE/usr/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+      - LD_LIBRARY_PATH: >
+          $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:
+          $CRAFT_STAGE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     meson-parameters:
       - --prefix=/usr
       - --buildtype=debugoptimized
