@@ -889,6 +889,44 @@ bool Engine::processFile(
     return true;
 }
 
+void Engine::run()
+{
+    logVersionInfo();
+    checkLibfyamlVersion();
+
+    bool dataChanged = false;
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+
+    for (const auto &suite : m_conf->suites) {
+        if (suite.isImmutable) {
+            logDebug("Skipping immutable suite: {}", suite.name);
+            continue;
+        }
+
+        // The `checkSuiteUsable` method will print an error
+        // message in case the suite isn't usable.
+        auto suiteCheck = checkSuiteUsable(suite.name);
+        if (!suiteCheck.suiteUsable)
+            continue;
+
+        printHeaderBox(std::format("Processing: {}", suite.name));
+
+        // process the suite
+        for (const auto &section : suite.sections) {
+            printSectionBox(std::format("{}: {}", suite.name, section));
+            const bool ret = processSuiteSection(suite, section, reportgen);
+            if (ret)
+                dataChanged = true;
+        }
+    }
+
+    // Render index pages & statistics
+    printHeaderBox("Updating Global Data");
+    reportgen->updateIndexPages();
+    if (dataChanged)
+        reportgen->exportStatistics();
+}
+
 void Engine::run(const std::string &suiteName)
 {
     // Fetch suite and exit in case we can't write to it.

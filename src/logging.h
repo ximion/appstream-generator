@@ -99,4 +99,16 @@ inline void logError(std::string_view msg)
     logMessageImpl(LogSeverity::ERROR, std::string{msg});
 }
 
+/**
+ * Print a header box with the given title to stdout.
+ * @param title Title text
+ */
+void printHeaderBox(std::string_view title);
+
+/**
+ * Print a section box with the given title to stdout.
+ * @param title Title text
+ */
+void printSectionBox(std::string_view title);
+
 } // namespace ASGenerator

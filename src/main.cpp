@@ -103,11 +103,16 @@ static int executeCommand(const std::string &command, const std::vector<std::str
     engine->setForced(forceAction);
 
     if (command == "run" || command == "process") {
-        ensureSuiteAndOrSectionParameterSet(args);
-        if (args.size() == 3)
-            engine->run(args[2]);
-        else
-            engine->run(args[2], args[3]);
+        if (args.size() == 2) {
+            // process all suites
+            engine->run();
+        } else {
+            ensureSuiteAndOrSectionParameterSet(args);
+            if (args.size() == 3)
+                engine->run(args[2]);
+            else
+                engine->run(args[2], args[3]);
+        }
     } else if (command == "process-file") {
         if (args.size() < 5) {
             std::cerr << "Invalid number of parameters: You need to specify a suite name, a section name and at least "
@@ -208,7 +213,7 @@ int main(int argc, char **argv)
     g_option_context_set_description(
         context,
         "Subcommands:\n"
-        "  run SUITE [SECTION]     - Process new metadata for the given distribution suite and publish it.\n"
+        "  run [SUITE] [SECTION]   - Process new metadata for the given distribution suite and publish it.\n"
         "  process-file SUITE SECTION FILE1 [FILE2 ...]\n"
         "                          - Process new metadata for the given package file.\n"
         "  cleanup                 - Cleanup old metadata and media files.\n"

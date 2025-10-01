@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -76,6 +77,58 @@ void logMessageImpl(LogSeverity severity, const std::string &message)
     time_stream << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
 
     sync_out << time_stream.str() << " - " << logSeverityToString(severity) << ": " << message << '\n';
+}
+
+static void printTextbox(
+    std::string_view title,
+    std::string_view tl,
+    std::string_view hline,
+    std::string_view tr,
+    std::string_view vline,
+    std::string_view bl,
+    std::string_view br)
+{
+    const auto tlen = title.length();
+    const auto hline_count = 10 + tlen;
+
+    std::string output;
+    output.reserve(128 + tlen + hline_count * hline.length() * 2); // Rough estimate
+
+    // Top line
+    output += '\n';
+    output += tl;
+    for (size_t i = 0; i < hline_count; ++i)
+        output += hline;
+    output += tr;
+    output += '\n';
+
+    // Middle line with title
+    output += vline;
+    output += "  ";
+    output += title;
+    output += std::string(8, ' ');
+    output += vline;
+    output += '\n';
+
+    // Bottom line
+    output += bl;
+    for (size_t i = 0; i < hline_count; ++i)
+        output += hline;
+    output += br;
+    output += '\n';
+
+    std::cout.write(output.data(), output.size());
+    std::cout.flush();
+}
+
+void printHeaderBox(std::string_view title)
+{
+    printTextbox(title, "╔", "═", "╗", "║", "╚", "╝");
+}
+
+void printSectionBox(std::string_view title)
+{
+    printTextbox(title, "┌", "─", "┐", "│", "└", "┘");
 }
 
 } // namespace ASGenerator

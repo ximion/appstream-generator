@@ -69,6 +69,11 @@ public:
         const std::vector<std::string> &files);
 
     /**
+     * Run the metadata extractor on all suitable suites.
+     */
+    void run();
+
+    /**
      * Run the metadata extractor on a suite and all of its sections.
      */
     void run(const std::string &suiteName);
