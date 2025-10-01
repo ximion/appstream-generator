@@ -121,6 +121,8 @@ parts:
       - CC: gcc-14
       - CXX: g++-14
       - NINJAFLAGS: -v
+      - PATH: >
+          $CRAFT_STAGE/usr/bin:$CRAFT_STAGE/usr/sbin:${PATH}
       - PKG_CONFIG_PATH: >
           $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:
           $CRAFT_STAGE/usr/lib/pkgconfig:
