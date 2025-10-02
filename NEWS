@@ -1,3 +1,30 @@
+Version 0.10.1
+~~~~~~~~~~~~~~
+Released: 2025-10-02
+
+Features:
+ * engine: Limit default parallelism for main processing operations
+ * Skip intermediate data check if gcid is empty
+ * Print if data remains after manually removing a package
+ * engine: Add function to process all suitable data at once
+
+Bugfixes:
+ * tests: Allow network test to have all tests skipped
+ * utils: Just use C++ standard library for copying directories
+ * Guard against null values in the database
+ * zarchive: Properly normalize paths
+ * yaml: Make sure Time field is always read as string
+ * Explicitly set up UTF-8 locale
+ * Ensure we aren't running on a bad libfyaml
+ * engine: Actually open the locale unit, so it can be used to find locale
+ * Don't just skip processing most new packages
+
+Miscellaneous:
+ * Update the snapcraft file
+
+Contributors:
+ Matthias Klumpp
+
 Version 0.10.0
 ~~~~~~~~~~~~~~
 Released: 2025-09-16
