@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <format>
 
+#include "defines.h"
 #include "logging.h"
 #include "utils.h"
 
@@ -141,7 +142,10 @@ const std::vector<std::string> &DataInjectPackage::contents()
 
                     if (extension == ".svg" || extension == ".svgz" || extension == ".png") {
                         const auto iconBasePath = fs::relative(iconFname, iconLocation);
-                        const auto fakePath = fs::path("/usr/share/icons/hicolor") / iconBasePath;
+                        auto fakePath = fs::path("/usr/share/icons/hicolor") / iconBasePath;
+#ifdef EXTRA_PREFIX
+                        fakePath = fs::path(EXTRA_PREFIX "/share/icons/hicolor") / iconBasePath;
+#endif
                         m_contents[fakePath.string()] = iconFname.string();
                     }
                 }
@@ -162,7 +166,10 @@ const std::vector<std::string> &DataInjectPackage::contents()
                     if (miFname.extension() == ".xml") {
                         const auto miBasename = miFname.filename().string();
                         logDebug("Found injected metainfo [{}]: {}", "all", miBasename);
-                        const auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
+                        auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
+#ifdef EXTRA_PREFIX
+                        fakePath = fs::path(EXTRA_PREFIX "/share/metainfo") / miBasename;
+#endif
                         m_contents[fakePath.string()] = miFname.string();
                     }
                 }
@@ -182,7 +189,10 @@ const std::vector<std::string> &DataInjectPackage::contents()
                 const auto &miFname = entry.path();
                 if (miFname.extension() == ".xml") {
                     const auto miBasename = miFname.filename().string();
-                    const auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
+                    auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
+#ifdef EXTRA_PREFIX
+                    fakePath = fs::path(EXTRA_PREFIX "/share/metainfo") / miBasename;
+#endif
                     const auto fakePathStr = fakePath.string();
 
                     if (m_contents.find(fakePathStr) != m_contents.end()) {
