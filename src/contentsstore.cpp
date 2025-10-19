@@ -35,10 +35,24 @@ namespace fs = std::filesystem;
 namespace ASGenerator
 {
 
-ContentsStore::ContentsStore()
+ContentsStore::ContentsStore(const std::string &prefixPath)
     : dbEnv(nullptr),
       m_opened(false)
 {
+    // we always want the default icon locations to be searched
+    m_knownIconPaths = {
+        "/usr/share/icons/",
+        "/usr/share/pixmaps/",
+    };
+
+    // add additional icon locations based on the given prefix
+    if (!prefixPath.empty()) {
+        const auto prefix = Utils::normalizePath(prefixPath);
+        if (prefix != "/usr") {
+            m_knownIconPaths.push_back(std::format("{}/icons/", prefix));
+            m_knownIconPaths.push_back(std::format("{}/pixmaps/", prefix));
+        }
+    }
 }
 
 ContentsStore::~ContentsStore()
@@ -236,6 +250,16 @@ bool ContentsStore::packageExists(const std::string &pkid)
     }
 }
 
+bool ContentsStore::pathIsIconLocation(const std::string &path) const
+{
+    for (const auto &ip : m_knownIconPaths) {
+        if (path.starts_with(ip))
+            return true;
+    }
+
+    return false;
+}
+
 void ContentsStore::addContents(const std::string &pkid, const std::vector<std::string> &contents)
 {
     // filter out icon filenames and filenames of icon-related stuff (e.g. theme.index),
@@ -244,7 +268,7 @@ void ContentsStore::addContents(const std::string &pkid, const std::vector<std::
     std::vector<std::string> localeInfo;
 
     for (const auto &f : contents) {
-        if (f.starts_with("/usr/share/icons/") || f.starts_with("/usr/share/pixmaps/")) {
+        if (pathIsIconLocation(f)) {
             iconInfo.push_back(f);
             continue;
         }

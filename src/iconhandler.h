@@ -46,8 +46,8 @@ class GeneratorResult;
 class Theme
 {
 public:
-    explicit Theme(const std::string &name, const std::vector<std::uint8_t> &indexData);
-    explicit Theme(const std::string &name, std::shared_ptr<Package> pkg);
+    explicit Theme(const std::string &name, const std::vector<std::uint8_t> &indexData, const std::string &prefix = {});
+    explicit Theme(const std::string &name, std::shared_ptr<Package> pkg, const std::string &prefix = {});
 
     const std::string &name() const;
     const auto &directories() const
@@ -78,6 +78,7 @@ public:
 
 private:
     std::string m_name;
+    std::string m_prefix;
     std::vector<std::unordered_map<std::string, std::variant<int, std::string>>> m_directories;
 };
 
@@ -92,7 +93,8 @@ public:
         ContentsStore &ccache,
         const fs::path &mediaPath,
         const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
-        const std::string &iconTheme = "");
+        const std::string &iconTheme = "",
+        const std::string &extraPrefix = "");
 
     ~IconHandler();
 
@@ -112,6 +114,7 @@ private:
     std::vector<std::unique_ptr<Theme>> m_themes;
     std::unordered_map<std::string, std::shared_ptr<Package>> m_iconFiles;
     std::vector<std::string> m_themeNames;
+    std::string m_extraPrefix;
 
     AscIconPolicy *m_iconPolicy;
     ImageSize m_defaultIconSize;

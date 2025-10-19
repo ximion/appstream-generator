@@ -297,6 +297,16 @@ std::string filenameFromURI(const std::string &uri);
  */
 [[nodiscard]] bool dirEmpty(const std::string &dir);
 
+/**
+ * Normalize a filesystem path and ensure it does not end with a trailing slash.
+ */
+[[nodiscard]] std::string normalizePath(const std::string &path);
+[[nodiscard]] fs::path normalizePath(const fs::path &path);
+[[nodiscard]] inline std::string normalizePath(const char *path)
+{
+    return normalizePath(std::string(path));
+}
+
 } // namespace Utils
 
 } // namespace ASGenerator

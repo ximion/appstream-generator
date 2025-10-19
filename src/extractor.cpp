@@ -44,7 +44,8 @@ DataExtractor::DataExtractor(
     std::shared_ptr<DataStore> db,
     std::shared_ptr<IconHandler> iconHandler,
     AsgLocaleUnit *localeUnit,
-    std::shared_ptr<InjectedModifications> modInjInfo)
+    std::shared_ptr<InjectedModifications> modInjInfo,
+    const std::string &prefix)
     : m_compose(nullptr),
       m_dstore(std::move(db)),
       m_iconh(std::move(iconHandler)),
@@ -60,6 +61,12 @@ DataExtractor::DataExtractor(
 
     asc_compose_set_media_result_dir(m_compose, m_dstore->mediaExportPoolDir().string().c_str());
     asc_compose_set_media_baseurl(m_compose, "");
+
+    // set custom prefix for processing, if one was given
+    if (!prefix.empty()) {
+        const auto normPrefix = Utils::normalizePath(prefix);
+        asc_compose_set_prefix(m_compose, normPrefix.c_str());
+    }
 
     // Set callback for intermediate metadata checking
     asc_compose_set_check_metadata_early_func(m_compose, &checkMetadataIntermediate, this);

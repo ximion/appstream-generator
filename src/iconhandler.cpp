@@ -48,11 +48,16 @@ inline constexpr std::array<std::string_view, 9> PossibleIconExts =
 inline constexpr std::array<std::string_view, 5> AllowedIconExts = {".png", ".jxl", ".svgz", ".svg", ".xpm"};
 
 // Theme implementation
-Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData)
-    : m_name(name)
+Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData, const std::string &prefix)
+    : m_name(name),
+      m_prefix(prefix)
 {
     g_autoptr(GKeyFile) index = g_key_file_new();
     g_autoptr(GError) error = nullptr;
+
+    // default prefix if none set
+    if (m_prefix.empty())
+        m_prefix = "/usr";
 
     std::string indexText(indexData.begin(), indexData.end());
     if (!g_key_file_load_from_data(index, indexText.c_str(), indexText.length(), G_KEY_FILE_NONE, &error))
@@ -127,10 +132,14 @@ Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData
     });
 }
 
-Theme::Theme(const std::string &name, std::shared_ptr<Package> pkg)
+Theme::Theme(const std::string &name, std::shared_ptr<Package> pkg, const std::string &prefix)
 {
-    auto indexData = pkg->getFileData(std::format("/usr/share/icons/{}/index.theme", name));
-    *this = Theme(name, indexData);
+    std::vector<std::uint8_t> indexData;
+    if (prefix.empty())
+        indexData = pkg->getFileData(std::format("/usr/share/icons/{}/index.theme", name));
+    else
+        indexData = pkg->getFileData(std::format("{}/icons/{}/index.theme", prefix, name));
+    *this = Theme(name, indexData, prefix);
 }
 
 const std::string &Theme::name() const
@@ -194,7 +203,12 @@ std::generator<std::string> Theme::matchingIconFilenames(
         if (directoryMatchesSize(themedir, size, relaxedScalingRules)) {
             for (const auto &ext : extensions) {
                 co_yield std::format(
-                    "/usr/share/icons/{}/{}/{}.{}", m_name, std::get<std::string>(themedir.at("path")), iconName, ext);
+                    "{}/share/icons/{}/{}/{}.{}",
+                    m_prefix,
+                    m_name,
+                    std::get<std::string>(themedir.at("path")),
+                    iconName,
+                    ext);
             }
         }
     }
@@ -205,7 +219,8 @@ IconHandler::IconHandler(
     ContentsStore &ccache,
     const fs::path &mediaPath,
     const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
-    const std::string &iconTheme)
+    const std::string &iconTheme,
+    const std::string &extraPrefix)
     : m_mediaExportPath(mediaPath),
       m_iconPolicy(nullptr),
       m_defaultIconSize(64),
@@ -280,15 +295,27 @@ IconHandler::IconHandler(
     for (const auto &[key, _] : pkgMap)
         pkgKeys.push_back(key);
 
-    auto filesPkids = ccache.getIconFilesMap(pkgKeys);
+    // Some backends may install icons in paths with a different prefix, and we
+    // want to search them in addition to the canonical paths.
+    m_extraPrefix = Utils::normalizePath(extraPrefix);
+    if (m_extraPrefix == "/usr")
+        m_extraPrefix.clear();
+    std::string extraPixmapPath;
+    std::string extraIconsPath;
+    if (!m_extraPrefix.empty()) {
+        extraIconsPath = std::format("{}/icons/", m_extraPrefix);
+        extraPixmapPath = std::format("{}/pixmaps/", m_extraPrefix);
+    }
 
     // Process files in parallel, but synchronize theme and icon file access
     std::mutex themesMutex, iconFilesMutex;
+    auto filesPkids = ccache.getIconFilesMap(pkgKeys);
     tbb::parallel_for_each(filesPkids.begin(), filesPkids.end(), [&](const auto &info) {
         const std::string &fname = info.first;
         const std::string &pkgid = info.second;
 
-        if (fname.starts_with("/usr/share/pixmaps/")) {
+        if (fname.starts_with("/usr/share/pixmaps/")
+            || (!m_extraPrefix.empty() && fname.starts_with(extraPixmapPath))) {
             auto pkg = getPackage(pkgid);
             if (pkg) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
@@ -299,7 +326,7 @@ IconHandler::IconHandler(
 
         // optimization: check if we actually have an interesting path before
         // entering the slower loop below.
-        if (!fname.starts_with("/usr/share/icons/"))
+        if (!fname.starts_with("/usr/share/icons/") || (!m_extraPrefix.empty() && !fname.starts_with(extraIconsPath)))
             return;
 
         auto pkg = getPackage(pkgid);
@@ -313,6 +340,14 @@ IconHandler::IconHandler(
             } else if (fname.starts_with(std::format("/usr/share/icons/{}", name))) {
                 std::lock_guard<std::mutex> lock(iconFilesMutex);
                 m_iconFiles[fname] = pkg;
+            } else if (!m_extraPrefix.empty()) {
+                if (fname == std::format("{}{}/index.theme", extraIconsPath, name)) {
+                    std::lock_guard<std::mutex> lock(themesMutex);
+                    tmpThemes[name] = std::make_unique<Theme>(name, pkg, m_extraPrefix);
+                } else if (fname.starts_with(extraIconsPath + name)) {
+                    std::lock_guard<std::mutex> lock(iconFilesMutex);
+                    m_iconFiles[fname] = pkg;
+                }
             }
         }
     });
@@ -426,6 +461,14 @@ std::generator<std::string> IconHandler::possibleIconFilenames(
         // as later code tries to downscale "bigger" sizes.
         for (const auto &extension : PossibleIconExts)
             co_yield std::format("/usr/share/pixmaps/{}{}", iconName, extension);
+
+        // do the same things for the extra prefix directory, if we have one
+        if (!m_extraPrefix.empty()) {
+            for (const auto &extension : PossibleIconExts)
+                co_yield std::format("{}/share/icons/{}{}", m_extraPrefix, iconName, extension);
+            for (const auto &extension : PossibleIconExts)
+                co_yield std::format("{}/share/pixmaps/{}{}", m_extraPrefix, iconName, extension);
+        }
     }
 }
 

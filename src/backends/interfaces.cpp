@@ -102,4 +102,9 @@ std::string Package::toString() const
     return id();
 }
 
+std::string PackageIndex::dataPrefix() const
+{
+    return "/usr";
+}
+
 } // namespace ASGenerator

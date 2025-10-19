@@ -99,6 +99,10 @@ Engine::Engine()
         throw std::runtime_error("No backend specified, can not continue!");
     }
 
+    // set preferred prefix for this backend
+    m_backendPathPrefix = Utils::normalizePath(m_pkgIndex->dataPrefix());
+    m_backendPrefixNotUsr = m_backendPathPrefix != "/usr";
+
     // Load global registry of issue hint templates
     loadHintsRegistry();
 
@@ -107,7 +111,7 @@ Engine::Engine()
     m_dstore->open(*m_conf);
 
     // Open package contents cache
-    m_cstore = std::make_shared<ContentsStore>();
+    m_cstore = std::make_shared<ContentsStore>(m_backendPathPrefix);
     m_cstore->open(*m_conf);
 }
 
@@ -179,7 +183,8 @@ void Engine::processPackages(
         tbb::parallel_for(
             tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize),
             [&](const tbb::blocked_range<std::size_t> &range) {
-                auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, localeUnit, injMods);
+                auto mde = std::make_unique<DataExtractor>(
+                    m_dstore, iconh, localeUnit, injMods, m_backendPrefixNotUsr ? m_backendPathPrefix : "");
 
                 for (std::size_t i = range.begin(); i != range.end(); ++i) {
                     auto pkg = pkgs[i];
@@ -209,20 +214,25 @@ void Engine::processPackages(
 }
 
 // Helper to check if a package may contain interesting metadata
-static bool packageIsInteresting(std::shared_ptr<Package> pkg)
+bool Engine::packageIsInteresting(std::shared_ptr<Package> pkg)
 {
-    // Prefixes are defined as string_view for faster comparison
+    // Common prefixes that we will always check
     constexpr std::string_view usr_share_apps = "/usr/share/applications/";
     constexpr std::string_view usr_share_meta = "/usr/share/metainfo/";
-    constexpr std::string_view usr_local_apps = "/usr/local/share/applications/";
-    constexpr std::string_view usr_local_meta = "/usr/local/share/metainfo/";
     constexpr std::string_view usr_share = "/usr/share/";
-    constexpr std::string_view usr_local = "/usr/local/share/";
+
+    // Additional data to check if a custom prefix has been set
+    std::string extra_apps_path;
+    std::string extra_meta_path;
+    if (m_backendPrefixNotUsr) {
+        extra_apps_path = m_backendPathPrefix + "/share/applications/";
+        extra_meta_path = m_backendPathPrefix + "/share/metainfo/";
+    }
 
     const auto &contents = pkg->contents();
     for (const auto &c : contents) {
-        // Quick length check first - all interesting paths are at least 18 characters
-        if (c.size() < 18)
+        // Quick length check first - all interesting paths are at least 16 characters
+        if (c.size() < 16)
             continue;
 
         std::string_view path_view{c};
@@ -230,9 +240,9 @@ static bool packageIsInteresting(std::shared_ptr<Package> pkg)
             // Already know it starts with /usr/share/, check specific subdirs
             if (path_view.starts_with(usr_share_apps) || path_view.starts_with(usr_share_meta))
                 return true;
-        } else if (path_view.starts_with(usr_local)) {
-            // Already know it starts with /usr/local/share/, check specific subdirs
-            if (path_view.starts_with(usr_local_apps) || path_view.starts_with(usr_local_meta))
+        } else if (m_backendPrefixNotUsr && path_view.starts_with(m_backendPathPrefix)) {
+            // Already know it starts with the backend prefix, check specific subdirs
+            if (path_view.starts_with(extra_apps_path) || path_view.starts_with(extra_meta_path))
                 return true;
         }
     }

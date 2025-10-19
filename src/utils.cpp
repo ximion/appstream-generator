@@ -528,6 +528,28 @@ bool dirEmpty(const std::string &dir)
     return iter == fs::directory_iterator{};
 }
 
+std::string normalizePath(const std::string &path)
+{
+    if (path.empty())
+        return path;
+    auto str = fs::path(path).lexically_normal().string();
+    if (str.length() > 1 && str.back() == '/')
+        str.pop_back();
+
+    return str;
+}
+
+fs::path normalizePath(const fs::path &path)
+{
+    if (path.empty())
+        return path;
+    auto str = path.lexically_normal().string();
+    if (str.length() > 1 && str.back() == '/')
+        str.pop_back();
+
+    return str;
+}
+
 } // namespace Utils
 
 } // namespace ASGenerator

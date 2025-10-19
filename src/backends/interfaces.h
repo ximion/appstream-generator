@@ -91,9 +91,6 @@ enum class PackageKind {
  */
 class Package
 {
-private:
-    mutable std::string m_pkid;
-
 public:
     virtual ~Package() = default;
 
@@ -191,6 +188,9 @@ public:
 
 protected:
     Package() = default;
+
+private:
+    mutable std::string m_pkid;
 };
 
 /**
@@ -243,6 +243,12 @@ public:
         const std::string &suite,
         const std::string &section,
         const std::string &arch) = 0;
+
+    /**
+     * Prefix used to search for metadata and icons.
+     * Defaults to "/usr".
+     */
+    [[nodiscard]] virtual std::string dataPrefix() const;
 
     // Delete copy constructor and assignment operator
     PackageIndex(const PackageIndex &) = delete;

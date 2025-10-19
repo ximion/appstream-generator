@@ -186,6 +186,14 @@ TEST_CASE("Utils: getTextFileContents and getFileContents read file data", "[uti
     fs::remove(tmpfile);
 }
 
+TEST_CASE("Utils: normalizePath", "[utils]")
+{
+    REQUIRE(normalizePath("/usr") == "/usr");
+    REQUIRE(normalizePath("/usr/") == "/usr");
+    REQUIRE(normalizePath("/usr//") == "/usr");
+    REQUIRE(normalizePath("/usr/test/..//") == "/usr");
+}
+
 TEST_CASE("Selectively reading tarball", "[zarchive]")
 {
     std::string archive = fs::path(getTestSamplesDir()) / "test.tar.xz";

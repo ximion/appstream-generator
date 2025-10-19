@@ -39,7 +39,7 @@ class Config;
 class ContentsStore
 {
 public:
-    ContentsStore();
+    ContentsStore(const std::string &prefixPath = "");
     ~ContentsStore();
 
     void open(const std::string &dir);
@@ -87,11 +87,14 @@ private:
     bool m_opened;
     std::mutex m_mutex;
 
+    std::vector<std::string> m_knownIconPaths;
+
     void checkError(int rc, const std::string &msg);
     MDB_val makeDbValue(const std::string &data);
     MDB_txn *newTransaction(unsigned int flags = 0);
     void commitTransaction(MDB_txn *txn);
     void quitTransaction(MDB_txn *txn);
+    bool pathIsIconLocation(const std::string &path) const;
 
     std::unordered_map<std::string, std::string> getFilesMap(
         const std::vector<std::string> &pkids,

@@ -115,6 +115,8 @@ private:
     std::unique_ptr<PackageIndex> m_pkgIndex;
     std::shared_ptr<DataStore> m_dstore;
     std::shared_ptr<ContentsStore> m_cstore;
+    std::string m_backendPathPrefix;
+    bool m_backendPrefixNotUsr;
     bool m_forced;
 
     std::unique_ptr<tbb::task_arena> m_taskArena;
@@ -127,6 +129,11 @@ private:
      * Throw an error if the libfyaml version is bad.
      */
     void checkLibfyamlVersion();
+
+    /**
+     * Helper method to check if package contains data we may want to process.
+     */
+    bool packageIsInteresting(std::shared_ptr<Package> pkg);
 
     /**
      * Extract metadata from a software container (usually a distro package).
