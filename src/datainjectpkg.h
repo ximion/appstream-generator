@@ -36,7 +36,7 @@ namespace ASGenerator
 class DataInjectPackage final : public Package
 {
 public:
-    DataInjectPackage(const std::string &pname, const std::string &parch);
+    DataInjectPackage(const std::string &pname, const std::string &parch, const std::string &prefix);
 
     std::string name() const override;
     std::string ver() const override;
@@ -63,6 +63,7 @@ private:
     std::string m_pkgmaintainer;
     std::unordered_map<std::string, std::string> m_desc;
     std::unordered_map<std::string, std::string> m_contents;
+    std::string m_fakePrefix;
     std::string m_dataLocation;
     std::string m_archDataLocation;
 

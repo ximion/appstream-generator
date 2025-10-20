@@ -705,7 +705,7 @@ std::shared_ptr<Package> Engine::processExtraMetainfoData(
         logInfo("Loading additional metainfo from local directory for {}/{}/{}", suite.name, section, arch);
 
     // We create a dummy package to hold information for the injected components
-    auto diPkg = std::make_shared<DataInjectPackage>(EXTRA_METAINFO_FAKE_PKGNAME, arch);
+    auto diPkg = std::make_shared<DataInjectPackage>(EXTRA_METAINFO_FAKE_PKGNAME, arch, m_backendPathPrefix);
     diPkg->setDataLocation(extraMIDir.string());
     diPkg->setArchDataLocation(archExtraMIDir.string());
     diPkg->setMaintainer("AppStream Generator Maintainer");

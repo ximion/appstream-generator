@@ -29,10 +29,14 @@
 namespace ASGenerator
 {
 
-DataInjectPackage::DataInjectPackage(const std::string &pname, const std::string &parch)
+DataInjectPackage::DataInjectPackage(const std::string &pname, const std::string &parch, const std::string &prefix)
     : m_pkgname(pname),
-      m_pkgarch(parch)
+      m_pkgarch(parch),
+      m_fakePrefix(prefix)
 {
+    if (m_fakePrefix.empty())
+        m_fakePrefix = "/usr";
+    m_fakePrefix = Utils::normalizePath(m_fakePrefix);
 }
 
 std::string DataInjectPackage::name() const
@@ -162,8 +166,8 @@ const std::vector<std::string> &DataInjectPackage::contents()
                     if (miFname.extension() == ".xml") {
                         const auto miBasename = miFname.filename().string();
                         logDebug("Found injected metainfo [{}]: {}", "all", miBasename);
-                        const auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
-                        m_contents[fakePath.string()] = miFname.string();
+                        const auto fakePath = std::format("{}/share/metainfo/{}", m_fakePrefix, miBasename);
+                        m_contents[fakePath] = miFname.string();
                     }
                 }
             }
@@ -182,16 +186,15 @@ const std::vector<std::string> &DataInjectPackage::contents()
                 const auto &miFname = entry.path();
                 if (miFname.extension() == ".xml") {
                     const auto miBasename = miFname.filename().string();
-                    const auto fakePath = fs::path("/usr/share/metainfo") / miBasename;
-                    const auto fakePathStr = fakePath.string();
+                    const auto fakePath = std::format("{}/share/metainfo/{}", m_fakePrefix, miBasename);
 
-                    if (m_contents.find(fakePathStr) != m_contents.end()) {
+                    if (m_contents.find(fakePath) != m_contents.end()) {
                         logDebug("Found injected metainfo [{}]: {} (replacing generic one)", arch(), miBasename);
                     } else {
                         logDebug("Found injected metainfo [{}]: {}", arch(), miBasename);
                     }
 
-                    m_contents[fakePathStr] = miFname.string();
+                    m_contents[fakePath] = miFname.string();
                 }
             }
         }
