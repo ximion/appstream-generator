@@ -251,7 +251,7 @@ fs::path getDataPath(const std::string &fname)
         return resPath;
 
     // Uh, let's just give up
-    return fs::path("/usr") / "share" / "appstream" / fname;
+    return fs::path(INSTALL_PREFIX) / "share" / "appstream" / fname;
 }
 
 bool existsAndIsDir(const std::string &path)

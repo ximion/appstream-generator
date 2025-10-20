@@ -44,6 +44,7 @@ asgencpp_hdr = files(
 )
 
 conf_data = configuration_data()
+conf_data.set_quoted('INSTALL_PREFIX', get_option('prefix'))
 conf_data.set_quoted('DATADIR', join_paths(get_option('prefix'), get_option('datadir'), 'appstream'))
 conf_data.set_quoted('ASGEN_VERSION', asgen_version)
 conf_data.set('HAVE_BACKWARD', backward_dep.found())
