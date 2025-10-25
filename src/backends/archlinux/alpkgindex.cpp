@@ -55,7 +55,7 @@ std::vector<std::shared_ptr<ArchPackage>> ArchPackageIndex::loadPackages(
     const std::string &section,
     const std::string &arch)
 {
-    const auto pkgRoot = m_rootDir / suite / section / "os" / arch;
+    const auto pkgRoot = m_rootDir / section / "os" / arch;
     const auto listsTarFname = pkgRoot / std::format("{}.files.tar.gz", section);
 
     if (!fs::exists(listsTarFname)) {
