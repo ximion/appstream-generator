@@ -69,4 +69,4 @@ tests_backend_misc = executable(
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
-test('Backend - Misc Tests', tests_backend_misc)
+test('Backend - Misc Tests', tests_backend_misc, args: ['--order', 'decl'])
