@@ -332,9 +332,11 @@ TEST_CASE("Image size operations", "[utils][imagesize]")
     }
 }
 
-TEST_CASE("HintRegistry functionality", "[hintregistry]")
+TEST_CASE("GeneratorResult functionality", "[result]")
 {
-    using namespace ASGenerator;
+    /**
+     * HINTS REGISTRY
+     */
 
     SECTION("Load hints registry")
     {
@@ -415,13 +417,15 @@ TEST_CASE("HintRegistry functionality", "[hintregistry]")
         // Clean up
         fs::remove(tempFile);
     }
-}
 
-TEST_CASE("GeneratorResult functionality", "[result]")
-{
-    using namespace ASGenerator;
+    /**
+     * GENERATOR RESULT
+     */
 
     auto pkg = std::make_shared<DummyPackage>("foobar", "1.0.0", "amd64");
+
+    // Ensure hints registry is loaded
+    REQUIRE_NOTHROW(loadHintsRegistry());
 
     SECTION("Basic GeneratorResult operations")
     {
@@ -438,9 +442,6 @@ TEST_CASE("GeneratorResult functionality", "[result]")
     SECTION("Add hints to result")
     {
         GeneratorResult result(pkg);
-
-        // Ensure hints registry is loaded
-        loadHintsRegistry();
 
         // Add a hint with component ID
         std::unordered_map<std::string, std::string> vars = {
@@ -464,7 +465,6 @@ TEST_CASE("GeneratorResult functionality", "[result]")
     SECTION("Generate hints JSON")
     {
         GeneratorResult result(pkg);
-        loadHintsRegistry();
 
         // Add some hints
         const std::unordered_map<std::string, std::string> &vars = {
@@ -497,7 +497,6 @@ TEST_CASE("GeneratorResult functionality", "[result]")
     SECTION("Move semantics")
     {
         GeneratorResult result1(pkg);
-        loadHintsRegistry();
         result1.addHint("test.component", "icon-not-found");
 
         // Test move constructor
