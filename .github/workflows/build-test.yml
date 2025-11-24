@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Create Build Environment
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-testing .
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Create Build Environment
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-stable .
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Create Build Environment
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-fedora-latest .
@@ -70,7 +70,7 @@ jobs:
       CC: gcc-14
       CXX: g++-14
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Create Build Environment
       run: sudo ./tests/ci/install-deps-deb.sh
