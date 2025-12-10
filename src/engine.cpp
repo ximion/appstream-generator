@@ -761,7 +761,7 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
         // Process new packages
         auto pkgs = m_pkgIndex->packagesFor(suite.name, section, arch);
         auto iconh = std::make_shared<IconHandler>(
-            *m_cstore, m_dstore->mediaExportPoolDir(), getIconCandidatePackages(suite, section, arch), suite.iconTheme);
+            *m_cstore, m_dstore->mediaExportPoolDir(), getIconCandidatePackages(suite, section, arch), suite.iconTheme, m_pkgIndex->dataPrefix());
         processPackages(pkgs, iconh, injMods);
 
         // Read injected data and add it to the database as a fake package
