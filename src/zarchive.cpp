@@ -516,7 +516,7 @@ std::vector<std::string> ArchiveDecompressor::readContents()
         if (!pathname.empty() && pathname.back() == '/')
             continue;
 
-        contents.push_back(fs::weakly_canonical(fs::path("/") / pathname).string());
+        contents.push_back((fs::path("/") / pathname).lexically_normal().string());
     }
 
     return contents;
@@ -538,7 +538,7 @@ std::generator<ArchiveDecompressor::ArchiveEntry> ArchiveDecompressor::read()
             continue;
 
         ArchiveEntry entry;
-        entry.fname = fs::weakly_canonical(fs::path("/") / pathname).string();
+        entry.fname = (fs::path("/") / pathname).lexically_normal().string();
         auto filetype = archive_entry_filetype(en);
 
         // check if we are dealing with a symlink
