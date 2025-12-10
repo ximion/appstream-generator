@@ -59,8 +59,6 @@ endif
 #
 # Compiler flags
 #
-add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'c')
-add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'cpp')
 
 if get_option('maintainer')
     maintainer_c_args = [
