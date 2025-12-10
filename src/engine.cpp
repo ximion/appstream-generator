@@ -70,7 +70,7 @@ Engine::Engine()
     // threads) This avoids having too many parallel downloads on high-core-count machines, and also leaves some room
     // for additional parallelism of the used libraries, e.g. for image processing.
     const auto numCPU = std::thread::hardware_concurrency();
-    const auto maxThreads = std::max((long) numCPU > 6 ? 6L : numCPU, std::lround(numCPU * 0.60));
+    const auto maxThreads = std::max((long)numCPU > 6 ? 6L : numCPU, std::lround(numCPU * 0.60));
     m_taskArena = std::make_unique<tbb::task_arena>(maxThreads);
 
     // Select backend
