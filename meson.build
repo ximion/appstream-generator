@@ -52,6 +52,8 @@ elif cxx.get_id() == 'clang'
     if not cxx.version().version_compare('>=18.0')
         error('Clang 18 or newer is required to build this project')
     endif
+    # Clang/libc++ needs an additional flag to enable some experimental stuff
+    add_project_arguments('-fexperimental-library', language: 'cpp')
 endif
 
 #
