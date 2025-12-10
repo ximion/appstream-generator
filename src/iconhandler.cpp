@@ -138,7 +138,7 @@ Theme::Theme(const std::string &name, std::shared_ptr<Package> pkg, const std::s
     if (prefix.empty())
         indexData = pkg->getFileData(std::format("/usr/share/icons/{}/index.theme", name));
     else
-        indexData = pkg->getFileData(std::format("{}/icons/{}/index.theme", prefix, name));
+        indexData = pkg->getFileData(std::format("{}/share/icons/{}/index.theme", prefix, name));
     *this = Theme(name, indexData, prefix);
 }
 
@@ -303,8 +303,8 @@ IconHandler::IconHandler(
     std::string extraPixmapPath;
     std::string extraIconsPath;
     if (!m_extraPrefix.empty()) {
-        extraIconsPath = std::format("{}/icons/", m_extraPrefix);
-        extraPixmapPath = std::format("{}/pixmaps/", m_extraPrefix);
+        extraIconsPath = std::format("{}/share/icons/", m_extraPrefix);
+        extraPixmapPath = std::format("{}/share/pixmaps/", m_extraPrefix);
     }
 
     // Process files in parallel, but synchronize theme and icon file access

@@ -49,8 +49,8 @@ ContentsStore::ContentsStore(const std::string &prefixPath)
     if (!prefixPath.empty()) {
         const auto prefix = Utils::normalizePath(prefixPath);
         if (prefix != "/usr") {
-            m_knownIconPaths.push_back(std::format("{}/icons/", prefix));
-            m_knownIconPaths.push_back(std::format("{}/pixmaps/", prefix));
+            m_knownIconPaths.push_back(std::format("{}/share/icons/", prefix));
+            m_knownIconPaths.push_back(std::format("{}/share/pixmaps/", prefix));
         }
     }
 }
