@@ -326,7 +326,7 @@ IconHandler::IconHandler(
 
         // optimization: check if we actually have an interesting path before
         // entering the slower loop below.
-        if (!fname.starts_with("/usr/share/icons/") || (!m_extraPrefix.empty() && !fname.starts_with(extraIconsPath)))
+        if (!fname.starts_with("/usr/share/icons/") && (!m_extraPrefix.empty() && !fname.starts_with(extraIconsPath)))
             return;
 
         auto pkg = getPackage(pkgid);
