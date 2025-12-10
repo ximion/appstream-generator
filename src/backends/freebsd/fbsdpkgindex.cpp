@@ -20,6 +20,8 @@
 
 #include "fbsdpkgindex.h"
 
+#include <dlfcn.h>
+
 #include <filesystem>
 #include <fstream>
 #include <format>
@@ -36,6 +38,16 @@ FreeBSDPackageIndex::FreeBSDPackageIndex(const std::string &dir)
 {
     if (!fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
+
+    auto* libUtil = ::dlopen("libutil.so", RTLD_LAZY);
+    if (!libUtil)
+        return;
+
+    auto* getlocalbase = reinterpret_cast<const char* (*)(void)>(dlsym(libUtil, "getlocalbase"));
+    if (!getlocalbase)
+        return;
+
+    m_dataPrefix = getlocalbase();
 }
 
 void FreeBSDPackageIndex::release()
@@ -150,6 +162,15 @@ bool FreeBSDPackageIndex::hasChanges(
     // For simplicity, always assume changes for FreeBSD
     // In a real implementation, you'd check modification times of meta.conf and data files
     return true;
+}
+
+std::string FreeBSDPackageIndex::dataPrefix() const
+{
+    if (!m_dataPrefix.empty())
+        return m_dataPrefix;
+
+    // Fall back to a sane default
+    return "/usr/local";
 }
 
 } // namespace ASGenerator

@@ -59,8 +59,11 @@ public:
         const std::string &section,
         const std::string &arch) override;
 
+    std::string dataPrefix() const override;
+
 private:
     fs::path m_rootDir;
+    std::string m_dataPrefix;
     std::unordered_map<std::string, std::vector<std::shared_ptr<Package>>> m_pkgCache;
     std::mutex m_cacheMutex; // Thread safety for cache access
 
