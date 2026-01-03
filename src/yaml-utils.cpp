@@ -87,9 +87,10 @@ int64_t nodeIntValue(fy_node *node, int64_t defaultValue)
     const char *value = fy_node_get_scalar(node, &len);
     if (!value)
         return defaultValue;
-
+    
+    std::string strValue(value, len);
     try {
-        return std::stoll(value);
+        return std::stoll(strValue);
     } catch (...) {
         return defaultValue;
     }
@@ -100,11 +101,12 @@ bool nodeBoolValue(fy_node *node, bool defaultValue)
     if (!node || fy_node_get_type(node) != FYNT_SCALAR)
         return defaultValue;
 
-    const char *value = fy_node_get_scalar(node, nullptr);
+    size_t len = 0;
+    const char *value = fy_node_get_scalar(node, &len);
     if (!value)
         return defaultValue;
 
-    std::string strValue(value);
+    std::string strValue(value, len);
     return strValue == "true" || strValue == "1" || strValue == "yes";
 }
 
