@@ -39,7 +39,9 @@ class ArchiveDecompressor;
 class FreeBSDPackage : public Package
 {
 public:
-    FreeBSDPackage(const std::string &pkgRoot, const nlohmann::json &j);
+    static FreeBSDPackage* CreateFromWorkdir(const std::string &workDir);
+
+    FreeBSDPackage(const std::string &repoRoot, const nlohmann::json &j);
     ~FreeBSDPackage() override = default;
 
     std::string name() const override;
@@ -60,11 +62,15 @@ public:
     PackageKind kind() const noexcept override;
 
 private:
-    nlohmann::json m_pkgjson;
+    FreeBSDPackage();
+
+    nlohmann::json m_pkgJson;
     fs::path m_pkgFname;
     PackageKind m_kind;
     std::unique_ptr<ArchiveDecompressor> m_pkgArchive;
     std::vector<std::string> m_contentsL;
+    bool m_isWorkdirPackage = false;
+    fs::path m_stageDir;
 
     // Mutable cache members for lazy initialization of summary/description
     mutable std::unordered_map<std::string, std::string> m_summaryCache;

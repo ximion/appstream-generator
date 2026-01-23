@@ -60,8 +60,8 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
     const std::string &section,
     const std::string &arch)
 {
-    const auto pkgRoot = m_rootDir / suite;
-    const auto metaFname = pkgRoot / "meta.conf";
+    const auto repoRoot = m_rootDir / suite;
+    const auto metaFname = repoRoot / "meta.conf";
     std::string dataFname;
 
     if (!fs::exists(metaFname)) {
@@ -83,7 +83,7 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
         }
     }
 
-    const auto dataTarFname = pkgRoot / (dataFname + ".pkg");
+    const auto dataTarFname = repoRoot / (dataFname + ".pkg");
     if (!fs::exists(dataTarFname)) {
         logError("Package lists file '{}' does not exist.", dataTarFname.string());
         return {};
@@ -114,7 +114,7 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
     if (dataJson.contains("packages") && dataJson["packages"].is_array()) {
         for (const auto &entry : dataJson["packages"]) {
             if (entry.is_object()) {
-                auto pkg = std::make_shared<FreeBSDPackage>(pkgRoot.string(), entry);
+                auto pkg = std::make_shared<FreeBSDPackage>(repoRoot.string(), entry);
                 packages.push_back(std::static_pointer_cast<Package>(pkg));
             }
         }
@@ -149,7 +149,11 @@ std::shared_ptr<Package> FreeBSDPackageIndex::packageForFile(
     const std::string &suite,
     const std::string &section)
 {
-    // Not implemented for FreeBSD backend
+    if (!fs::exists(fname) || !fs::is_directory(fname)) {
+        logError("Path '{}' does not exist or is not a directory", fname);
+        return nullptr;
+    }
+
     return nullptr;
 }
 
