@@ -20,6 +20,7 @@ cd /tmp/build/appstream/build && \
         -Dmaintainer=true \
         -Dapt-support=true \
         -Dcompose=true \
+        -Dbash-completion=false \
         -Dapidocs=false \
         ..
 cd /tmp/build/appstream/build && \
