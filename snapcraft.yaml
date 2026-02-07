@@ -59,16 +59,16 @@ parts:
   libfyaml:
     source: https://github.com/pantoniou/libfyaml.git
     source-type: git
-    source-tag: 'v0.9'
-    plugin: autotools
-    autotools-configure-parameters:
-      - --prefix=/usr/
-      - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-      - --disable-static
-      - --enable-shared
+    source-tag: 'v0.9.4'
+    plugin: cmake
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DENABLE_NETWORK=OFF
+      - -DENABLE_LIBCLANG=OFF
     build-packages:
       - build-essential
       - pkgconf
+      - cmake
 
   appstream:
     source: https://github.com/ximion/appstream.git
