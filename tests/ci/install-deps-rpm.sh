@@ -10,6 +10,7 @@ dnf makecache
 
 # install dependencies
 dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
+    cmake \
     curl \
     gdb \
     gcc \
