@@ -22,6 +22,7 @@ apt-get install -yq \
 # install dependencies
 eatmydata apt-get install -yq --no-install-recommends \
     meson \
+    cmake \
     gettext \
     gobject-introspection \
     gtk-doc-tools \

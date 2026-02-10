@@ -28,6 +28,7 @@ fi;
 
 # build & install the current Git snapshot of AppStream
 git clone --depth=1 https://github.com/ximion/appstream.git
+cd appstream
 mkdir build && cd build
 meson setup --prefix=/usr \
         -Dmaintainer=true \
