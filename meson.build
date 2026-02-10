@@ -25,12 +25,13 @@ ascompose_dep = dependency('appstream-compose', version: '>= 1.1.0')
 lmdb_dep      = dependency('lmdb', version: '>= 0.9.22')
 archive_dep   = dependency('libarchive', version: '>= 3.2')
 curl_dep      = dependency('libcurl')
-fyaml_dep     = dependency('libfyaml', version: '>= 0.8')
+fyaml_dep     = dependency('libfyaml', version: '>= 0.9.2')
 tbb_dep       = dependency('tbb')
 icu_dep       = dependency('icu-uc')
-inja_dep      = dependency('inja', fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
 libxml2_dep   = dependency('libxml-2.0') # for rpmmd
 catch2_dep    = dependency('catch2-with-main')
+inja_dep      = dependency('inja', version: '>= 3.5.0',
+                            fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
 
 backward_deps = []
 backward_dep = dependency('', required: false)
