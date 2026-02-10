@@ -146,10 +146,12 @@ void Engine::checkLibfyamlVersion()
     }
 
     if (as_vercmp_simple(version.c_str(), "0.9") < 0) {
-        throw std::runtime_error(std::format(
-            "libfyaml version {} is too old, at least version 0.9 is required! Please upgrade libfyaml, as versions <= "
-            "0.8 have known bugs in unicode handling and may generate corrupted UTF-8 data.",
-            version));
+        throw std::runtime_error(
+            std::format(
+                "libfyaml version {} is too old, at least version 0.9 is required! Please upgrade libfyaml, as "
+                "versions <= "
+                "0.8 have known bugs in unicode handling and may generate corrupted UTF-8 data.",
+                version));
     }
 }
 
@@ -761,7 +763,11 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
         // Process new packages
         auto pkgs = m_pkgIndex->packagesFor(suite.name, section, arch);
         auto iconh = std::make_shared<IconHandler>(
-            *m_cstore, m_dstore->mediaExportPoolDir(), getIconCandidatePackages(suite, section, arch), suite.iconTheme, m_pkgIndex->dataPrefix());
+            *m_cstore,
+            m_dstore->mediaExportPoolDir(),
+            getIconCandidatePackages(suite, section, arch),
+            suite.iconTheme,
+            m_pkgIndex->dataPrefix());
         processPackages(pkgs, iconh, injMods);
 
         // Read injected data and add it to the database as a fake package

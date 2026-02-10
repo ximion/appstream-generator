@@ -87,7 +87,7 @@ int64_t nodeIntValue(fy_node *node, int64_t defaultValue)
     const char *value = fy_node_get_scalar(node, &len);
     if (!value)
         return defaultValue;
-    
+
     std::string strValue(value, len);
     try {
         return std::stoll(strValue);

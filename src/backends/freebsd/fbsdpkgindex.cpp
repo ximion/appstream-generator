@@ -39,11 +39,11 @@ FreeBSDPackageIndex::FreeBSDPackageIndex(const std::string &dir)
     if (!fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
 
-    auto* libUtil = ::dlopen("libutil.so", RTLD_LAZY);
+    auto *libUtil = ::dlopen("libutil.so", RTLD_LAZY);
     if (!libUtil)
         return;
 
-    auto* getlocalbase = reinterpret_cast<const char* (*)(void)>(dlsym(libUtil, "getlocalbase"));
+    auto *getlocalbase = reinterpret_cast<const char *(*)(void)>(dlsym(libUtil, "getlocalbase"));
     if (!getlocalbase)
         return;
 

@@ -139,8 +139,9 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
 
             inja::json architectures = inja::json::array();
             for (const auto &arch : hentry.archs) {
-                architectures.push_back(inja::json{
-                    {"arch", arch}
+                architectures.push_back(
+                    inja::json{
+                        {"arch", arch}
                 });
             }
             entry["architectures"] = architectures;
@@ -150,9 +151,10 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 entry["has_errors"] = true;
                 inja::json errors = inja::json::array();
                 for (const auto &error : hentry.errors) {
-                    errors.push_back(inja::json{
-                        {"error_tag",         error.tag    },
-                        {"error_description", error.message}
+                    errors.push_back(
+                        inja::json{
+                            {"error_tag",         error.tag    },
+                            {"error_description", error.message}
                     });
                 }
                 entry["errors"] = errors;
@@ -163,9 +165,10 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 entry["has_warnings"] = true;
                 inja::json warnings = inja::json::array();
                 for (const auto &warning : hentry.warnings) {
-                    warnings.push_back(inja::json{
-                        {"warning_tag",         warning.tag    },
-                        {"warning_description", warning.message}
+                    warnings.push_back(
+                        inja::json{
+                            {"warning_tag",         warning.tag    },
+                            {"warning_description", warning.message}
                     });
                 }
                 entry["warnings"] = warnings;
@@ -176,9 +179,10 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 entry["has_infos"] = true;
                 inja::json infos = inja::json::array();
                 for (const auto &info : hentry.infos) {
-                    infos.push_back(inja::json{
-                        {"info_tag",         info.tag    },
-                        {"info_description", info.message}
+                    infos.push_back(
+                        inja::json{
+                            {"info_tag",         info.tag    },
+                            {"info_description", info.message}
                     });
                 }
                 entry["infos"] = infos;
@@ -208,8 +212,9 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
 
                 inja::json architectures = inja::json::array();
                 for (const auto &arch : mentry.archs) {
-                    architectures.push_back(inja::json{
-                        {"arch", arch}
+                    architectures.push_back(
+                        inja::json{
+                            {"arch", arch}
                     });
                 }
                 cpt["architectures"] = architectures;
@@ -318,8 +323,9 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
 
             inja::json components = inja::json::array();
             for (const auto &cid : pkgSummary.cpts) {
-                components.push_back(inja::json{
-                    {"cid", cid}
+                components.push_back(
+                    inja::json{
+                        {"cid", cid}
                 });
             }
             pkg["components"] = components;
@@ -717,8 +723,9 @@ void ReportGenerator::updateIndexPages()
 
     inja::json suitesArray = inja::json::array();
     for (const auto &suite : suites) {
-        suitesArray.push_back(inja::json{
-            {"suite", suite.name}
+        suitesArray.push_back(
+            inja::json{
+                {"suite", suite.name}
         });
 
         inja::json secCtx;
@@ -726,8 +733,9 @@ void ReportGenerator::updateIndexPages()
 
         inja::json sectionsArray = inja::json::array();
         for (const auto &section : suite.sections) {
-            sectionsArray.push_back(inja::json{
-                {"section", section}
+            sectionsArray.push_back(
+                inja::json{
+                    {"section", section}
             });
         }
         secCtx["sections"] = sectionsArray;

@@ -111,11 +111,12 @@ std::string decompressFile(const std::string &fname)
     int ret = archive_read_open_filename(ar.get(), fname.c_str(), DEFAULT_BLOCK_SIZE);
     if (ret != ARCHIVE_OK) {
         int ret_errno = archive_errno(ar.get());
-        throw std::runtime_error(std::format(
-            "Unable to open compressed file '{}': {}. error: {}",
-            fname,
-            getArchiveErrorMessage(ar.get()),
-            std::strerror(ret_errno)));
+        throw std::runtime_error(
+            std::format(
+                "Unable to open compressed file '{}': {}. error: {}",
+                fname,
+                getArchiveErrorMessage(ar.get()),
+                std::strerror(ret_errno)));
     }
 
     return readArchiveData(ar.get(), fname);
@@ -296,11 +297,12 @@ archive *ArchiveDecompressor::openArchive()
     int ret = archive_read_open_filename(ar, m_archiveFname.c_str(), DEFAULT_BLOCK_SIZE);
     if (ret != ARCHIVE_OK) {
         int ret_errno = archive_errno(ar);
-        throw std::runtime_error(std::format(
-            "Unable to open compressed file '{}': {}. error: {}",
-            m_archiveFname,
-            getArchiveErrorMessage(ar),
-            std::strerror(ret_errno)));
+        throw std::runtime_error(
+            std::format(
+                "Unable to open compressed file '{}': {}. error: {}",
+                m_archiveFname,
+                getArchiveErrorMessage(ar),
+                std::strerror(ret_errno)));
     }
 
     return ar;
