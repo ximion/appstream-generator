@@ -1,4 +1,4 @@
 [wrap-git]
 directory = inja
 url = https://github.com/pantor/inja.git
-revision = v3.4.0
+revision = v3.5.0
