@@ -13,7 +13,7 @@ mkdir /tmp/build
 cd /tmp/build
 
 . /etc/os-release
-if [ "$VERSION_CODENAME" = "trixie" ] || [ "$VERSION_CODENAME" = "noble" ]; then
+if [ "$VERSION_CODENAME" = "trixie" ] || [ "$VERSION_CODENAME" = "noble" ] || [ "$ID" = "fedora" ]; then
     # upgrade libfyaml on Debian Stable and Ubuntu LTS
     git clone --depth=1 --branch=v0.9.4 https://github.com/pantoniou/libfyaml.git
     cd libfyaml
