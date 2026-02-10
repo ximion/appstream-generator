@@ -1,3 +1,26 @@
+Version 0.10.2
+~~~~~~~~~~~~~~
+Released: 2026-02-10
+
+Features:
+ * Allow backends to define a custom, non-default data prefix
+
+Bugfixes:
+ * arch: Do not include suite name in pkgRoot
+ * freebsd: implement dataPrefix() using getlocalbase()
+ * freebsd: Implement packageForFile() by accepting a port's STAGEDIR
+ * Pass -fexperimental-library when building with Clang and libc++
+ * Fix icons and pixmaps paths when using prefix != /usr
+ * tests: Combine results and registry tests to make them order-independent
+ * archive: Don't use weakly_canonical on archive-content files for normalization
+ * node{Bool,Int}Value: prevent read past scalar token
+
+Miscellaneous:
+ * report: Use Inja's HTML-autoescape feature
+
+Contributors:
+ Antonio Rojas, Gleb Popov, Matthias Klumpp, Miao Wang
+
 Version 0.10.1
 ~~~~~~~~~~~~~~
 Released: 2025-10-02
