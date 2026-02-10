@@ -31,9 +31,9 @@
 namespace ASGenerator
 {
 
-FreeBSDPackage* FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
+FreeBSDPackage *FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
 {
-    auto* ret = new FreeBSDPackage();
+    auto *ret = new FreeBSDPackage();
 
     uint count = 0;
     for (const auto &entry : fs::directory_iterator(fs::path(workDir) / "pkg")) {
@@ -66,7 +66,7 @@ FreeBSDPackage* FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
     auto ad = std::make_unique<ArchiveDecompressor>();
     ad->open(ret->m_pkgFname, Config::get().getTmpDir() / fs::path(ret->m_pkgFname).filename());
 
-    const auto jsonData = ad->readData("+COMPACT_MANIFEST");;
+    const auto jsonData = ad->readData("+COMPACT_MANIFEST");
     const std::string jsonString(jsonData.begin(), jsonData.end());
 
     nlohmann::json dataJson;
@@ -191,8 +191,8 @@ PackageKind FreeBSDPackage::kind() const noexcept
 }
 
 FreeBSDPackage::FreeBSDPackage()
-    : m_kind(PackageKind::Physical)
-    , m_isWorkdirPackage(true)
+    : m_kind(PackageKind::Physical),
+      m_isWorkdirPackage(true)
 {
 }
 

@@ -39,7 +39,7 @@ class ArchiveDecompressor;
 class FreeBSDPackage : public Package
 {
 public:
-    static FreeBSDPackage* CreateFromWorkdir(const std::string &workDir);
+    static FreeBSDPackage *CreateFromWorkdir(const std::string &workDir);
 
     FreeBSDPackage(const std::string &repoRoot, const nlohmann::json &j);
     ~FreeBSDPackage() override = default;
