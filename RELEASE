@@ -2,12 +2,12 @@ AppStream Generator Release Notes
 
 1. Write NEWS entries for AppStream Generator in the same format as usual.
 
-git shortlog v0.10.1.. | grep -i -v trivial | grep -v Merge > NEWS.new
+git shortlog v0.10.2.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
 --------------------------------------------------------------------------------
-Version 0.10.2
+Version 0.10.3
 ~~~~~~~~~~~~~~
-Released: 2025-xx-xx
+Released: 2026-xx-xx
 
 Notes:
 
@@ -22,8 +22,8 @@ Contributors:
 
 2. Commit changes in Git:
 
-git commit -a -m "Release version 0.10.2"
-git tag -s -f -m "Release 0.10.2" v0.10.2 <gpg password>
+git commit -a -m "Release version 0.10.3"
+git tag -s -f -m "Release 0.10.3" v0.10.3 <gpg password>
 git push --tags
 git push
 
@@ -37,7 +37,7 @@ git push
 5. Send an email to appstream@lists.freedesktop.org
 
 =================================================
-AppStream Generator 0.10.2 released!
+AppStream Generator 0.10.3 released!
 
 Tarballs available here: https://github.com/ximion/appstream-generator/releases
 
