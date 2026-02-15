@@ -370,7 +370,7 @@ IconHandler::IconHandler(
                 indexData.resize(f.tellg());
                 f.seekg(0, std::ios::beg);
                 f.read(reinterpret_cast<char *>(indexData.data()), indexData.size());
-                tmpThemes["hicolor"] = std::make_unique<Theme>("hicolor", indexData);
+                tmpThemes["hicolor"] = std::make_unique<Theme>("hicolor", indexData, m_extraPrefix);
             }
         }
     }
