@@ -40,7 +40,7 @@ FreeBSDPackage *FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
         if (!entry.is_regular_file())
             continue;
 
-        if (entry.path().extension() != "pkg")
+        if (entry.path().extension() != ".pkg")
             continue;
 
         count++;
@@ -164,9 +164,9 @@ const std::vector<std::string> &FreeBSDPackage::contents()
     if (m_isWorkdirPackage) {
         std::vector<std::string> ret;
 
-        for (const auto &entry : fs::directory_iterator(m_stageDir)) {
+        for (const auto &entry : fs::recursive_directory_iterator(m_stageDir)) {
             auto relPath = fs::relative(entry.path(), m_stageDir);
-            ret.push_back(relPath);
+            ret.push_back(fs::path("/") / relPath);
         }
 
         m_contentsL = ret;
