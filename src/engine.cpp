@@ -899,7 +899,8 @@ bool Engine::processFile(
             *m_cstore,
             m_dstore->mediaExportPoolDir(),
             getIconCandidatePackages(suite, sectionName, arch),
-            suite.iconTheme);
+            suite.iconTheme,
+            m_pkgIndex->dataPrefix());
         processPackages(pkgs, std::move(iconh), nullptr);
     }
 
