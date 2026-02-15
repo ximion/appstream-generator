@@ -154,7 +154,7 @@ std::shared_ptr<Package> FreeBSDPackageIndex::packageForFile(
         return nullptr;
     }
 
-    return nullptr;
+    return std::shared_ptr<FreeBSDPackage>(FreeBSDPackage::CreateFromWorkdir(fname));
 }
 
 bool FreeBSDPackageIndex::hasChanges(
