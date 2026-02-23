@@ -403,7 +403,7 @@ std::string Engine::getMetadataHead(const Suite &suite, const std::string &secti
         head = "%YAML 1.2\n---\n";
         head += std::format(
             "File: DEP-11\n"
-            "Version: '{}'\n"
+            "Version: \"{}\"\n"
             "Origin: {}",
             m_conf->formatVersionStr(),
             origin);
@@ -412,7 +412,7 @@ std::string Engine::getMetadataHead(const Suite &suite, const std::string &secti
         if (suite.dataPriority != 0)
             head += std::format("\nPriority: {}", suite.dataPriority);
         if (m_conf->feature.metadataTimestamps)
-            head += std::format("\nTime: '{}'", timeNowIso8601);
+            head += std::format("\nTime: \"{}\"", timeNowIso8601);
     }
 
     return head;
