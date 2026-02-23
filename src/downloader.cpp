@@ -167,8 +167,8 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headerData);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 300L);
 
         if (!caInfo.empty())
             curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
