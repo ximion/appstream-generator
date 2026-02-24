@@ -62,6 +62,7 @@ parts:
     source-tag: 'v0.9.4'
     plugin: cmake
     cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DENABLE_NETWORK=OFF
       - -DENABLE_LIBCLANG=OFF
