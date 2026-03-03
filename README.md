@@ -44,6 +44,7 @@ The following libraries and tools are required to build the generator:
  * Meson (>= 1.0) [1]
  * AppStream [2]
  * libarchive (>= 3.2) [3]
+ * libfyaml
  * LMDB [4]
  * Curl
  * Cairo
@@ -71,7 +72,7 @@ On Debian and derivatives of it, all build requirements can be installed using t
 sudo apt install meson g++ \
     libappstream-dev libappstream-compose-dev libsoup2.4-dev libarchive-dev \
     libgdk-pixbuf2.0-dev librsvg2-dev libcairo2-dev libfreetype-dev libfontconfig1-dev \
-    libpango1.0-dev liblmdb-dev libtbb-dev libcatch2-dev \
+    libpango1.0-dev liblmdb-dev libtbb-dev libcatch2-dev libfyaml-dev \
     npm
 ```
 
