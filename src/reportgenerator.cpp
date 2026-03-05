@@ -214,13 +214,11 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                 for (const auto &arch : mentry.archs) {
                     architectures.push_back(
                         inja::json{
-                            {"arch", arch}
+                            {"arch", Utils::escapeXml(arch)}
                     });
                 }
                 cpt["architectures"] = architectures;
-                cpt["metadata"] = Utils::escapeXml(
-                    mentry.data); // FIXME: Set html-autoescape in Inja once we can depend on a newer version, and don't
-                                  // use explicit escapeXml() here
+                cpt["metadata"] = Utils::escapeXml(mentry.data);
 
                 auto cptMediaPath = m_mediaPoolDir / gcid;
                 auto cptMediaUrl = std::format("{}/{}", m_mediaPoolUrl, gcid);

@@ -385,9 +385,31 @@ std::string filenameFromURI(const std::string &uri)
 
 std::string escapeXml(const std::string &s) noexcept
 {
-    g_autofree gchar *escapedStr = g_markup_escape_text(s.c_str(), (ssize_t)s.size());
-    std::string result(escapedStr);
-    return result;
+    std::string buf;
+    buf.reserve(1.1 * s.size());
+    for (size_t pos = 0; pos != s.size(); ++pos) {
+        switch (s[pos]) {
+        case '&':
+            buf.append("&amp;");
+            break;
+        case '\"':
+            buf.append("&quot;");
+            break;
+        case '\'':
+            buf.append("&apos;");
+            break;
+        case '<':
+            buf.append("&lt;");
+            break;
+        case '>':
+            buf.append("&gt;");
+            break;
+        default:
+            buf.append(&s[pos], 1);
+            break;
+        }
+    }
+    return buf;
 }
 
 std::string sanitizeUtf8(const std::string &s) noexcept
