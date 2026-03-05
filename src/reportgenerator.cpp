@@ -50,9 +50,6 @@ ReportGenerator::ReportGenerator(DataStore *db)
     // Enable searching for included templates in files if we have a template directory
     m_injaEnv.set_search_included_templates_in_files(!m_conf->templateDir().empty());
 
-    // escape HTML automatically
-    m_injaEnv.set_html_autoescape(true);
-
     m_htmlExportDir = m_conf->htmlExportDir;
     m_mediaPoolDir = m_dstore->mediaExportPoolDir();
     m_mediaPoolUrl = std::format("{}/pool", m_conf->mediaBaseUrl);
@@ -101,7 +98,6 @@ void ReportGenerator::renderPage(const std::string &pageID, const std::string &e
         defaultEnv = std::make_unique<inja::Environment>(m_defaultTemplateDir.string() + "/");
         // Configure the default environment to search for included templates in files
         defaultEnv->set_search_included_templates_in_files(true);
-        defaultEnv->set_html_autoescape(true);
         activeEnv = defaultEnv.get();
     }
 
@@ -222,7 +218,9 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
                     });
                 }
                 cpt["architectures"] = architectures;
-                cpt["metadata"] = mentry.data;
+                cpt["metadata"] = Utils::escapeXml(
+                    mentry.data); // FIXME: Set html-autoescape in Inja once we can depend on a newer version, and don't
+                                  // use explicit escapeXml() here
 
                 auto cptMediaPath = m_mediaPoolDir / gcid;
                 auto cptMediaUrl = std::format("{}/{}", m_mediaPoolUrl, gcid);
