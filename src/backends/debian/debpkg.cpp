@@ -143,7 +143,15 @@ std::string DebPackage::getFilename()
         return m_localDebFname;
 
     if (Utils::isRemote(m_debFname)) {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // Several callers (getFileData, extractPackage, ...) hold m_mutex while they call
+        // into openPayloadArchive() -> getFilename().
+        // Acquiring m_mutex again on the same thread would be a self-deadlock, so we use
+        // a dedicated mutex for downloading.
+        std::lock_guard<std::mutex> lock(m_downloadMutex);
+        // Re-check after acquiring the lock: another thread may have already downloaded the file.
+        if (!m_localDebFname.empty())
+            return m_localDebFname;
+
         auto &dl = Downloader::get();
         const fs::path path = m_tmpDir / fs::path(m_debFname).filename();
         dl.downloadFile(m_debFname, path.string());

@@ -120,6 +120,7 @@ private:
     fs::path m_localDebFname;
 
     mutable std::mutex m_mutex;
+    mutable std::mutex m_downloadMutex;
 
     ArchiveDecompressor &openPayloadArchive();
     ArchiveDecompressor &openControlArchive();
