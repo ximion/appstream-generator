@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -132,7 +132,7 @@ public:
     virtual std::string getFilename() = 0;
 
     /**
-     * A list payload files this package contains.
+     * A list of payload files this package contains.
      */
     virtual const std::vector<std::string> &contents() = 0;
 

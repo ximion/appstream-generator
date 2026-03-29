@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -28,6 +28,7 @@
 #include <cmath>
 #include <ctime>
 #include <algorithm>
+#include <nlohmann/json.hpp>
 
 #include "logging.h"
 #include "result.h"
@@ -36,178 +37,90 @@
 namespace ASGenerator
 {
 
-// Helper function for binary serialization of variant maps
-static std::vector<std::uint8_t> serializeVariantMap(
-    const std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> &data,
-    std::optional<std::size_t> timestamp = std::nullopt)
+using json = nlohmann::json;
+
+std::vector<std::byte> RepoInfo::serialize() const
 {
-    std::vector<std::uint8_t> buffer;
-    buffer.reserve(1024);
-
-    // Version byte for future compatibility
-    buffer.push_back(1);
-
-    // Serialize timestamp if provided (for StatisticsEntry)
-    if (timestamp) {
-        const auto time_bytes = reinterpret_cast<const std::uint8_t *>(&*timestamp);
-        buffer.insert(buffer.end(), time_bytes, time_bytes + sizeof(std::size_t));
-    }
-
-    // Serialize data map count (4 bytes)
-    const auto data_count = static_cast<std::uint32_t>(data.size());
-    const auto count_bytes = reinterpret_cast<const std::uint8_t *>(&data_count);
-    buffer.insert(buffer.end(), count_bytes, count_bytes + sizeof(std::uint32_t));
-
-    // Serialize each key-value pair
+    json payload = json::object();
     for (const auto &[key, value] : data) {
-        // Key length (2 bytes) + key string
-        const auto key_len = static_cast<std::uint16_t>(key.length());
-        const auto key_len_bytes = reinterpret_cast<const std::uint8_t *>(&key_len);
-        buffer.insert(buffer.end(), key_len_bytes, key_len_bytes + sizeof(std::uint16_t));
-        buffer.insert(buffer.end(), key.begin(), key.end());
-
-        // Value type (1 byte) + value data
-        std::visit(
-            [&buffer](const auto &val) {
-                using T = std::decay_t<decltype(val)>;
-                if constexpr (std::is_same_v<T, std::int64_t>) {
-                    buffer.push_back(1); // int64 type
-                    const auto val_bytes = reinterpret_cast<const std::uint8_t *>(&val);
-                    buffer.insert(buffer.end(), val_bytes, val_bytes + sizeof(std::int64_t));
-                } else if constexpr (std::is_same_v<T, double>) {
-                    buffer.push_back(2); // double type
-                    const auto val_bytes = reinterpret_cast<const std::uint8_t *>(&val);
-                    buffer.insert(buffer.end(), val_bytes, val_bytes + sizeof(double));
-                } else if constexpr (std::is_same_v<T, std::string>) {
-                    buffer.push_back(3); // string type
-                    const auto str_len = static_cast<std::uint16_t>(val.length());
-                    const auto str_len_bytes = reinterpret_cast<const std::uint8_t *>(&str_len);
-                    buffer.insert(buffer.end(), str_len_bytes, str_len_bytes + sizeof(std::uint16_t));
-                    buffer.insert(buffer.end(), val.begin(), val.end());
-                }
-            },
-            value);
+        std::visit([&payload, &key](const auto &v) { payload[key] = v; }, value);
     }
 
-    return buffer;
+    const auto serialized = payload.dump();
+    return {
+        std::bit_cast<const std::byte *>(serialized.data()),
+        std::bit_cast<const std::byte *>(serialized.data()) + serialized.size()};
 }
 
-// Helper function for binary deserialization of variant maps
-template<typename T>
-T deserializeVariantMap(const std::vector<std::uint8_t> &binary_data, bool has_timestamp = false)
+RepoInfo RepoInfo::deserialize(const std::vector<std::byte> &data)
 {
-    const size_t min_size = has_timestamp ? 13 : 5; // version + [time +] count
-    if (binary_data.size() < min_size)
-        throw std::runtime_error("Invalid data: buffer too small");
+    if (data.empty())
+        return {};
 
-    size_t pos = 0;
-    T entry{};
+    const std::string payload(std::bit_cast<const char *>(data.data()), data.size());
+    const auto j = json::parse(payload);
+    if (!j.is_object())
+        throw std::runtime_error("Invalid repository info data: expected JSON object");
 
-    // Check version
-    const std::uint8_t version = binary_data[pos++];
-    if (version != 1)
-        throw std::runtime_error(std::format("Unsupported version: {}", static_cast<int>(version)));
-
-    // Read timestamp if present (for StatisticsEntry)
-    if constexpr (std::is_same_v<T, StatisticsEntry>) {
-        if (has_timestamp) {
-            std::memcpy(&entry.time, &binary_data[pos], sizeof(std::size_t));
-            pos += sizeof(std::size_t);
+    RepoInfo info;
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        const auto &value = it.value();
+        if (value.is_string()) {
+            info.data[it.key()] = value.get<std::string>();
+        } else if (value.is_number_integer()) {
+            info.data[it.key()] = value.get<std::int64_t>();
+        } else if (value.is_number_float()) {
+            info.data[it.key()] = value.get<double>();
+        } else {
+            throw std::runtime_error(
+                std::format("Invalid repository info value type for '{}': only string/int64/double are supported", it.key()));
         }
     }
 
-    // Read data count
-    std::uint32_t data_count;
-    std::memcpy(&data_count, &binary_data[pos], sizeof(std::uint32_t));
-    pos += sizeof(std::uint32_t);
+    return info;
+}
 
-    // Read key-value pairs
-    for (std::uint32_t i = 0; i < data_count; ++i) {
-        if (pos + 2 > binary_data.size())
-            throw std::runtime_error("Invalid data: truncated key length");
+static std::vector<std::byte> serializeStatsEntryData(const StatisticsEntry &entry)
+{
+    json statsData = json::object();
+    for (const auto &[key, value] : entry.data) {
+        std::visit([&statsData, &key](const auto &v) { statsData[key] = v; }, value);
+    }
 
-        // Read key
-        std::uint16_t key_len;
-        std::memcpy(&key_len, &binary_data[pos], sizeof(std::uint16_t));
-        pos += sizeof(std::uint16_t);
+    const auto serialized = statsData.dump();
+    return {
+        std::bit_cast<const std::byte *>(serialized.data()),
+        std::bit_cast<const std::byte *>(serialized.data()) + serialized.size()};
+}
 
-        if (pos + key_len > binary_data.size())
-            throw std::runtime_error("Invalid data: truncated key");
+static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::vector<std::byte> &data)
+{
+    if (data.empty())
+        throw std::runtime_error("Invalid statistics data: buffer is empty");
 
-        std::string key(reinterpret_cast<const char *>(&binary_data[pos]), key_len);
-        pos += key_len;
+    StatisticsEntry entry;
+    entry.time = timestamp;
 
-        if (pos >= binary_data.size())
-            throw std::runtime_error("Invalid data: missing value type");
+    const std::string payload(std::bit_cast<const char *>(data.data()), data.size());
+    const auto j = json::parse(payload);
+    if (!j.is_object())
+        throw std::runtime_error("Invalid statistics data: expected JSON object");
 
-        // Read value based on type
-        const std::uint8_t value_type = binary_data[pos++];
-        switch (value_type) {
-        case 1: { // int64
-            if (pos + sizeof(std::int64_t) > binary_data.size())
-                throw std::runtime_error("Invalid data: truncated int64 value");
-
-            std::int64_t value;
-            std::memcpy(&value, &binary_data[pos], sizeof(std::int64_t));
-            pos += sizeof(std::int64_t);
-            entry.data[key] = value;
-            break;
-        }
-        case 2: { // double
-            if (pos + sizeof(double) > binary_data.size())
-                throw std::runtime_error("Invalid data: truncated double value");
-
-            double value;
-            std::memcpy(&value, &binary_data[pos], sizeof(double));
-            pos += sizeof(double);
-            entry.data[key] = value;
-            break;
-        }
-        case 3: { // string
-            if (pos + sizeof(std::uint16_t) > binary_data.size())
-                throw std::runtime_error("Invalid data: truncated string length");
-
-            std::uint16_t str_len;
-            std::memcpy(&str_len, &binary_data[pos], sizeof(std::uint16_t));
-            pos += sizeof(std::uint16_t);
-
-            if (pos + str_len > binary_data.size())
-                throw std::runtime_error("Invalid data: truncated string value");
-
-            std::string value(reinterpret_cast<const char *>(&binary_data[pos]), str_len);
-            pos += str_len;
-            entry.data[key] = value;
-            break;
-        }
-        default: {
-            throw std::runtime_error(std::format("Unknown value type: {}", static_cast<int>(value_type)));
-        }
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        const auto &value = it.value();
+        if (value.is_string()) {
+            entry.data[it.key()] = value.get<std::string>();
+        } else if (value.is_number_integer()) {
+            entry.data[it.key()] = value.get<std::int64_t>();
+        } else if (value.is_number_float()) {
+            entry.data[it.key()] = value.get<double>();
+        } else {
+            throw std::runtime_error(
+                std::format("Invalid statistics value type for '{}': only string/int64/double are supported", it.key()));
         }
     }
 
     return entry;
-}
-
-// Binary serialization implementation for RepoInfo
-std::vector<std::uint8_t> RepoInfo::serialize() const
-{
-    return serializeVariantMap(data);
-}
-
-RepoInfo RepoInfo::deserialize(const std::vector<std::uint8_t> &binary_data)
-{
-    return deserializeVariantMap<RepoInfo>(binary_data, false);
-}
-
-// Binary serialization implementation for StatisticsEntry
-std::vector<std::uint8_t> StatisticsEntry::serialize() const
-{
-    return serializeVariantMap(data, time);
-}
-
-StatisticsEntry StatisticsEntry::deserialize(const std::vector<std::uint8_t> &binary_data)
-{
-    return deserializeVariantMap<StatisticsEntry>(binary_data, true);
 }
 
 DataStore::DataStore()
@@ -890,12 +803,12 @@ void DataStore::removePackages(const std::unordered_set<std::string> &pkidSet)
     }
 }
 
-void DataStore::putBinaryValue(MDB_dbi dbi, const std::string &key, const std::vector<std::uint8_t> &value)
+void DataStore::putBinaryValue(MDB_dbi dbi, const std::string &key, const std::vector<std::byte> &value)
 {
     MDB_val dbkey = makeDbValue(key);
     MDB_val dbvalue;
     dbvalue.mv_size = value.size();
-    dbvalue.mv_data = const_cast<std::uint8_t *>(value.data());
+    dbvalue.mv_data = const_cast<std::byte *>(value.data());
 
     MDB_txn *txn = newTransaction();
     try {
@@ -908,7 +821,7 @@ void DataStore::putBinaryValue(MDB_dbi dbi, const std::string &key, const std::v
     }
 }
 
-std::vector<std::uint8_t> DataStore::getBinaryValue(MDB_dbi dbi, const std::string &key)
+std::vector<std::byte> DataStore::getBinaryValue(MDB_dbi dbi, const std::string &key)
 {
     MDB_val dbkey = makeDbValue(key);
     MDB_val dval;
@@ -928,9 +841,9 @@ std::vector<std::uint8_t> DataStore::getBinaryValue(MDB_dbi dbi, const std::stri
         }
         checkError(res, "mdb_cursor_get");
 
-        std::vector<std::uint8_t> result(
-            static_cast<const std::uint8_t *>(dval.mv_data),
-            static_cast<const std::uint8_t *>(dval.mv_data) + dval.mv_size);
+        std::vector<std::byte> result(
+            static_cast<const std::byte *>(dval.mv_data),
+            static_cast<const std::byte *>(dval.mv_data) + dval.mv_size);
         mdb_cursor_close(cur);
         quitTransaction(txn);
 
@@ -956,15 +869,24 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
         std::vector<StatisticsEntry> stats;
         stats.reserve(256);
         while (mdb_cursor_get(cur, &dkey, &dval, MDB_NEXT) == 0) {
-            std::vector<std::uint8_t> binaryData(
-                static_cast<const std::uint8_t *>(dval.mv_data),
-                static_cast<const std::uint8_t *>(dval.mv_data) + dval.mv_size);
-            if (!binaryData.empty() && binaryData[0] == '{') {
-                // previously, data was stored in JSON, instead of reading that data, we ignore it now
+            if (dkey.mv_size != sizeof(std::int64_t)) {
+                logWarning("Skipping statistics entry with invalid key size: {}", dkey.mv_size);
                 continue;
             }
+            std::int64_t keyTimeRaw = 0;
+            std::memcpy(&keyTimeRaw, dkey.mv_data, sizeof(keyTimeRaw));
+            std::time_t timestamp = static_cast<std::time_t>(keyTimeRaw);
+
+            std::vector<std::byte> binaryData(
+                static_cast<const std::byte *>(dval.mv_data),
+                static_cast<const std::byte *>(dval.mv_data) + dval.mv_size);
+            if (!binaryData.empty() && static_cast<uint8_t>(binaryData[0]) == 1) {
+                // previously, data was stored in binary, instead of reading that data, we ignore it now
+                continue;
+            }
+
             try {
-                auto entry = StatisticsEntry::deserialize(binaryData);
+                auto entry = deserializeStatsEntry(timestamp, binaryData);
                 stats.push_back(std::move(entry));
             } catch (const std::exception &e) {
                 logWarning("Failed to deserialize statistics entry: {}", e.what());
@@ -984,11 +906,12 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
     }
 }
 
-void DataStore::removeStatistics(std::size_t time)
+void DataStore::removeStatistics(std::time_t time)
 {
+    std::int64_t keyTime = time;
     MDB_val dbkey;
-    dbkey.mv_size = sizeof(std::size_t);
-    dbkey.mv_data = const_cast<std::size_t *>(&time);
+    dbkey.mv_size = sizeof(std::int64_t);
+    dbkey.mv_data = &keyTime;
 
     MDB_txn *txn = newTransaction();
     try {
@@ -1004,22 +927,31 @@ void DataStore::removeStatistics(std::size_t time)
 
 void DataStore::addStatistics(const StatisticsEntry &stats)
 {
+    std::int64_t keyTime = stats.time;
     MDB_val dbkey;
-    dbkey.mv_size = sizeof(std::size_t);
-    dbkey.mv_data = const_cast<std::size_t *>(&stats.time);
+    dbkey.mv_size = sizeof(std::int64_t);
+    dbkey.mv_data = &keyTime;
 
-    auto serializedData = stats.serialize();
+    auto statsDataBytes = serializeStatsEntryData(stats);
     MDB_val dbvalue;
-    dbvalue.mv_size = serializedData.size();
-    dbvalue.mv_data = serializedData.data();
+    dbvalue.mv_size = statsDataBytes.size();
+    dbvalue.mv_data = statsDataBytes.data();
 
     MDB_txn *txn = newTransaction();
     try {
         int res = mdb_put(txn, m_dbStats, &dbkey, &dbvalue, MDB_APPEND);
         if (res == MDB_KEYEXIST) {
-            // this point in time already exists, so we need to extend it with additional data
-            logWarning("Statistics entry for timestamp {} already exists, overwriting", stats.time);
-            res = mdb_put(txn, m_dbStats, &dbkey, &dbvalue, 0);
+            // this point in time already exists, but we do not allow overriding data - so we lie and shift
+            // the timestamp one second forward in time, to get a free slot
+            logWarning("Statistics entry for timestamp {} already exists, skipping a second", stats.time);
+
+            quitTransaction(txn);
+
+            StatisticsEntry newStats;
+            newStats.time = stats.time + 1;
+            newStats.data = stats.data;
+            addStatistics(newStats);
+            return;
         }
         checkError(res, "mdb_put (stats)");
         commitTransaction(txn);
@@ -1044,6 +976,10 @@ RepoInfo DataStore::getRepoInfo(const std::string &suite, const std::string &sec
     const auto binaryData = getBinaryValue(m_dbRepoInfo, repoid);
     if (binaryData.empty())
         return RepoInfo{};
+    if (static_cast<uint8_t>(binaryData[0]) == 1) {
+        logDebug("Ignoring legacy binary repository info entry for {}", repoid);
+        return RepoInfo{};
+    }
 
     try {
         return RepoInfo::deserialize(binaryData);

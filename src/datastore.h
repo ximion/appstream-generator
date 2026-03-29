@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -39,24 +39,26 @@ namespace ASGenerator
 class GeneratorResult;
 
 /**
+ * Type alias for generic metadata values used in DataStore.
+ */
+using MetaValue = std::variant<std::int64_t, std::string, double>;
+
+/**
  * Statistics entry
  */
 struct StatisticsEntry {
-    std::size_t time;
-    std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> data;
-
-    std::vector<std::uint8_t> serialize() const;
-    static StatisticsEntry deserialize(const std::vector<std::uint8_t> &binary_data);
+    std::time_t time{0};
+    std::unordered_map<std::string, MetaValue> data;
 };
 
 /**
  * Repository info entry
  */
 struct RepoInfo {
-    std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> data;
+    std::unordered_map<std::string, MetaValue> data;
 
-    std::vector<std::uint8_t> serialize() const;
-    static RepoInfo deserialize(const std::vector<std::uint8_t> &binary_data);
+    std::vector<std::byte> serialize() const;
+    static RepoInfo deserialize(const std::vector<std::byte> &data);
 };
 
 /**
@@ -195,7 +197,7 @@ public:
     /**
      * Remove statistics entry for given time
      */
-    void removeStatistics(std::size_t time);
+    void removeStatistics(std::time_t time);
 
     /**
      * Add statistics entry
@@ -310,12 +312,12 @@ private:
     /**
      * Put binary value into database
      */
-    void putBinaryValue(MDB_dbi dbi, const std::string &key, const std::vector<std::uint8_t> &value);
+    void putBinaryValue(MDB_dbi dbi, const std::string &key, const std::vector<std::byte> &value);
 
     /**
      * Get binary value from database
      */
-    std::vector<std::uint8_t> getBinaryValue(MDB_dbi dbi, const std::string &key);
+    std::vector<std::byte> getBinaryValue(MDB_dbi dbi, const std::string &key);
 };
 
 } // namespace ASGenerator

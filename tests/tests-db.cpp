@@ -407,7 +407,7 @@ Name:
         DataStore store;
         store.open(tempDir.string(), mediaDir.string());
 
-        // Create test statistics data using the new binary format
+        // Create test statistics data to serialize
         std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> statsData = {
             {"suite",         std::string("testing")},
             {"section",       std::string("main")   },

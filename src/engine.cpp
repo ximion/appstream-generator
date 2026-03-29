@@ -1096,8 +1096,8 @@ void Engine::cleanupStatistics()
         return a.time < b.time;
     });
 
-    std::unordered_map<std::string, std::vector<std::uint8_t>> lastStatData;
-    std::unordered_map<std::string, std::size_t> lastTime;
+    std::unordered_map<std::string, std::unordered_map<std::string, MetaValue>> lastStatData;
+    std::unordered_map<std::string, std::time_t> lastTime;
 
     for (const auto &entry : allStats) {
         // We don't clean up combined statistics entries, and therefore need to reset
@@ -1115,19 +1115,18 @@ void Engine::cleanupStatistics()
             "{}-{}", std::get<std::string>(suiteIt->second), std::get<std::string>(sectionIt->second));
 
         if (lastStatData.find(ssid) == lastStatData.end()) {
-            lastStatData[ssid] = entry.serialize();
+            lastStatData[ssid] = entry.data;
             lastTime[ssid] = entry.time;
             continue;
         }
 
-        auto sdata = entry.serialize();
-        if (lastStatData[ssid] == sdata) {
+        if (lastStatData[ssid] == entry.data) {
             logInfo("Removing superfluous statistics entry: {}", lastTime[ssid]);
             m_dstore->removeStatistics(lastTime[ssid]);
         }
 
         lastTime[ssid] = entry.time;
-        lastStatData[ssid] = std::move(sdata);
+        lastStatData[ssid] = entry.data;
     }
 }
 
