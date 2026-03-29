@@ -36,6 +36,7 @@
 #include "logging.h"
 #include "utils.h"
 #include "hintregistry.h"
+#include "zarchive.h"
 
 namespace ASGenerator
 {
@@ -678,14 +679,22 @@ void ReportGenerator::exportStatistics()
         jsonOutput[suiteName] = suiteJson;
     }
 
-    auto fname = fs::path(m_htmlExportDir) / "statistics.json";
-    fs::create_directories(fname.parent_path());
+    auto jsonFname = fs::path(m_htmlExportDir) / "statistics.json";
+    auto jsonGzFname = fs::path(m_htmlExportDir) / "statistics.json.gz";
+    fs::create_directories(jsonGzFname.parent_path());
 
-    std::ofstream sf(fname);
-    // Use dump() without indentation for compact output
-    sf << jsonOutput.dump();
-    sf.flush();
-    sf.close();
+    const auto jsonData = jsonOutput.dump();
+
+    try {
+        std::vector<uint8_t> jsonBytes(jsonData.begin(), jsonData.end());
+        compressAndSave(jsonBytes, jsonGzFname.string(), ArchiveType::GZIP);
+
+        // drop older, uncompressed statistics file
+        if (fs::exists(jsonFname))
+            fs::remove(jsonFname);
+    } catch (const std::exception &e) {
+        logWarning("Failed to write gzip-compressed statistics data: {}", e.what());
+    }
 }
 
 void ReportGenerator::processFor(

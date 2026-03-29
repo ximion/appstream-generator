@@ -53,7 +53,23 @@
 </div>
 
 <script>
-  $.getJSON("{{root_url}}/statistics.json", function(data) {
+  async function loadStatisticsCompressed() {
+    const response = await fetch("{{root_url}}/statistics.json.gz");
+
+    if (!response.ok)
+      throw new Error("Failed to fetch statistics: " + response.status + " " + response.statusText);
+    if (!window.DecompressionStream)
+      throw new Error("This browser does not support DecompressionStream (gzip)");
+
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = response.body.pipeThrough(ds);
+    const decompressedResponse = new Response(decompressedStream);
+    const jsonText = await decompressedResponse.text();
+
+    return JSON.parse(jsonText);
+  }
+
+  loadStatisticsCompressed().then(function(data) {
     var sections = [];
     {% for section in sections %}
       sections.push("{{section.section}}");
@@ -89,6 +105,8 @@
 
       drawSummaryChart(resData, sectionName);
     }
+  }).catch(function(err) {
+    console.error(err);
   });
 </script>
 <script>

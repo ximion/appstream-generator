@@ -25,6 +25,7 @@
 #include "backends/dummy/dummypkg.h"
 #include "result.h"
 #include "hintregistry.h"
+#include "zarchive.h"
 
 using namespace ASGenerator;
 
@@ -299,11 +300,9 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator Statistics")
 
         REQUIRE_NOTHROW(m_reportGen->exportStatistics());
 
-        auto statsFile = m_htmlDir / "statistics.json";
+        auto statsFile = m_htmlDir / "statistics.json.gz";
         REQUIRE(fs::exists(statsFile));
-
-        std::ifstream file(statsFile);
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        const auto content = decompressFile(statsFile.string());
 
         REQUIRE(content.find("testsuite") != std::string::npos);
         REQUIRE(content.find("main") != std::string::npos);
