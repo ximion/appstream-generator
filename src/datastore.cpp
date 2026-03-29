@@ -48,8 +48,8 @@ std::vector<std::byte> RepoInfo::serialize() const
 
     const auto serialized = payload.dump();
     return {
-        std::bit_cast<const std::byte *>(serialized.data()),
-        std::bit_cast<const std::byte *>(serialized.data()) + serialized.size()};
+        reinterpret_cast<const std::byte *>(serialized.data()),
+        reinterpret_cast<const std::byte *>(serialized.data()) + serialized.size()};
 }
 
 RepoInfo RepoInfo::deserialize(const std::vector<std::byte> &data)
@@ -57,7 +57,7 @@ RepoInfo RepoInfo::deserialize(const std::vector<std::byte> &data)
     if (data.empty())
         return {};
 
-    const std::string payload(std::bit_cast<const char *>(data.data()), data.size());
+    const std::string payload(reinterpret_cast<const char *>(data.data()), data.size());
     const auto j = json::parse(payload);
     if (!j.is_object())
         throw std::runtime_error("Invalid repository info data: expected JSON object");
@@ -89,8 +89,8 @@ static std::vector<std::byte> serializeStatsEntryData(const StatisticsEntry &ent
 
     const auto serialized = statsData.dump();
     return {
-        std::bit_cast<const std::byte *>(serialized.data()),
-        std::bit_cast<const std::byte *>(serialized.data()) + serialized.size()};
+        reinterpret_cast<const std::byte *>(serialized.data()),
+        reinterpret_cast<const std::byte *>(serialized.data()) + serialized.size()};
 }
 
 static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::vector<std::byte> &data)
@@ -101,7 +101,7 @@ static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::v
     StatisticsEntry entry;
     entry.time = timestamp;
 
-    const std::string payload(std::bit_cast<const char *>(data.data()), data.size());
+    const std::string payload(reinterpret_cast<const char *>(data.data()), data.size());
     const auto j = json::parse(payload);
     if (!j.is_object())
         throw std::runtime_error("Invalid statistics data: expected JSON object");
