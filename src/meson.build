@@ -63,6 +63,7 @@ asgen_deps = [
   curl_dep,
   tbb_dep,
   icu_dep,
+  nljson_dep,
   inja_dep,
   libxml2_dep,
 ]

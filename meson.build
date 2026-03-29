@@ -30,6 +30,7 @@ tbb_dep       = dependency('tbb')
 icu_dep       = dependency('icu-uc')
 libxml2_dep   = dependency('libxml-2.0') # for rpmmd
 catch2_dep    = dependency('catch2-with-main')
+nljson_dep    = dependency('nlohmann_json', version: '>= 3.11.2')
 inja_dep      = dependency('inja', version: '>= 3.5.0',
                             fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
 

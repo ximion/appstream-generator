@@ -52,11 +52,12 @@ eatmydata apt-get install -yq --no-install-recommends \
     liblmdb-dev \
     libarchive-dev \
     libpango1.0-dev \
+    nlohmann-json3-dev \
     libtbb-dev \
     libbackward-cpp-dev \
     libunwind-dev \
     $catch2_dep
-eatmydata apt-get install -yq libglibd-2.0-dev || true
+eatmydata apt-get install -yq inja-dev || true
 
 eatmydata apt-get install -yq --no-install-recommends \
     libgdk-pixbuf-2.0-dev \
