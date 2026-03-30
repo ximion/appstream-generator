@@ -6,11 +6,12 @@
 To generate AppStream distribution metadata for your repository, create a local
 mirror of the repository first.
 Then create a new folder, and write a `asgen-config.json` configuration file for the
-metadata generator. Details on the file and an example can be found in [the asgen-config docs](asgen-config.md).
+metadata generator.
+Details on the file and an example can be found in [the asgen-config docs](asgen-config.md).
 
 After the config file has been written, you can generate the metadata as follows:
 ```Bash
-cd /srv/asgen/workspace # path where the asgen-config.json file is located
+cd /srv/asgen/workspace # path where the asgen-config.{json,yaml} file is located
 appstream-generator process chromodoris # replace "chromodoris" with the name of the suite you want to analyze
 ```
 The generator is assuming you have enough memory and disk space on your machine to cache stuff.

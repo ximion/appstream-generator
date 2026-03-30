@@ -149,14 +149,14 @@ void Config::loadFromFile(
     const std::string &enforcedWorkspaceDir,
     const std::string &enforcedExportDir)
 {
-    // read the configuration JSON file
-    auto jsonData = readFileToString(fname);
+    // read configuration file content (JSON or YAML)
+    auto configData = readFileToString(fname);
 
-    auto doc = Yaml::parseDocument(jsonData);
+    auto doc = Yaml::parseDocument(configData);
     auto root = fy_document_root(doc.get());
 
     if (!root || fy_node_get_type(root) != FYNT_MAPPING) {
-        throw std::runtime_error("Invalid JSON configuration file");
+        throw std::runtime_error("Invalid configuration file: Expected a mapping object");
     }
 
     auto workspaceDirNode = Yaml::nodeByKey(root, "WorkspaceDir");

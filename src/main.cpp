@@ -22,6 +22,7 @@
 #include <iostream>
 #include <filesystem>
 #include <format>
+#include <array>
 #include <vector>
 #include <string>
 #include <unistd.h>
@@ -157,6 +158,25 @@ static int executeCommand(const std::string &command, const std::vector<std::str
     return 0;
 }
 
+static std::string findDefaultConfigFile(const std::string &workspaceDir)
+{
+    const fs::path workspacePath(workspaceDir);
+    const std::array<std::string, 3> candidates = {
+        "asgen-config.json",
+        "asgen-config.yaml",
+        "asgen-config.yml",
+    };
+
+    for (const auto &candidate : candidates) {
+        const auto fullPath = workspacePath / candidate;
+        if (fs::exists(fullPath))
+            return fullPath.string();
+    }
+
+    // Keep historical default for the error message if no config exists.
+    return (workspacePath / "asgen-config.json").string();
+}
+
 /**
  * Main function
  */
@@ -272,7 +292,7 @@ int main(int argc, char **argv)
         } else {
             workspaceDir = fs::current_path().string();
         }
-        configFilename = fs::path(workspaceDir) / "asgen-config.json";
+        configFilename = findDefaultConfigFile(workspaceDir);
     }
 
     std::string workspaceDirStr = wdir ? wdir : "";

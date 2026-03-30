@@ -65,8 +65,9 @@
 			for simple cases.
 		</para>
 		<para>
-			To use <command>&package;</command>, a <filename>asgen-config.json</filename> file is required. Its format is described in detail
-			in <ulink url="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config.json documentation</ulink>.
+			To use <command>&package;</command>, a configuration file is required. JSON and YAML are supported
+			(for example <filename>asgen-config.json</filename> or <filename>asgen-config.yaml</filename>).
+      Its format is described in detail in <ulink url="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config documentation</ulink>.
 		</para>
 		<para>
 			The generator supports a wide range of features that can individually configured to fit the needs of different projects and adjust the generated
@@ -169,8 +170,9 @@
 				<listitem>
 					<para>Define a configuration file.</para>
 					<para>
-						Explicitly set a generator configuration JSON file. If this flag is omitted, the <filename>asgen-config.json</filename> file
-						in the current workspace directory is used.
+						Explicitly set a generator configuration file (JSON or YAML). If this flag is omitted, the generator
+						looks for <filename>asgen-config.json</filename>, then <filename>asgen-config.yaml</filename>, then
+						<filename>asgen-config.yml</filename> in the current workspace directory.
 					</para>
 					<para>
 						If no workspace directory is defined in the configuration file itself, the directory it is located in is used
