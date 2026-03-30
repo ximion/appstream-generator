@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -40,6 +40,8 @@
 
 namespace ASGenerator
 {
+
+using json = nlohmann::json;
 
 ReportGenerator::ReportGenerator(DataStore *db)
     : m_dstore(db),
@@ -471,7 +473,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
         // process hints for this package, if there are any
         if (!hintsData.empty()) {
             try {
-                auto hintsJson = inja::json::parse(hintsData);
+                auto hintsJson = json::parse(hintsData);
 
                 if (!hintsJson.contains("hints") || !hintsJson["hints"].is_object())
                     continue;
@@ -650,7 +652,7 @@ void ReportGenerator::exportStatistics()
         suiteData[suite][section + "_metadata"].push_back({timestamp, totalMetadata});
     }
 
-    inja::json jsonOutput = inja::json::object();
+    auto jsonOutput = json::object();
     for (const auto &[suiteName, sections] : suiteData) {
         // Group by section
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::array<int64_t, 2>>>>
@@ -664,13 +666,13 @@ void ReportGenerator::exportStatistics()
             }
         }
 
-        inja::json suiteJson = inja::json::object();
+        auto suiteJson = json::object();
         for (const auto &[sectionName, dataTypes] : sectionGroups) {
-            inja::json sectionJson = inja::json::object();
+            auto sectionJson = json::object();
             for (const auto &[dataType, dataPoints] : dataTypes) {
-                inja::json dataArray = inja::json::array();
+                auto dataArray = json::array();
                 for (const auto &point : dataPoints) {
-                    dataArray.push_back(inja::json::array({point[0], point[1]}));
+                    dataArray.push_back(json::array({point[0], point[1]}));
                 }
                 sectionJson[dataType] = dataArray;
             }

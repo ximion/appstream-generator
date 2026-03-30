@@ -43,7 +43,11 @@ std::vector<std::byte> RepoInfo::serialize() const
 {
     json payload = json::object();
     for (const auto &[key, value] : data) {
-        std::visit([&payload, &key](const auto &v) { payload[key] = v; }, value);
+        std::visit(
+            [&payload, &key](const auto &v) {
+                payload[key] = v;
+            },
+            value);
     }
 
     const auto serialized = payload.dump();
@@ -73,7 +77,8 @@ RepoInfo RepoInfo::deserialize(const std::vector<std::byte> &data)
             info.data[it.key()] = value.get<double>();
         } else {
             throw std::runtime_error(
-                std::format("Invalid repository info value type for '{}': only string/int64/double are supported", it.key()));
+                std::format(
+                    "Invalid repository info value type for '{}': only string/int64/double are supported", it.key()));
         }
     }
 
@@ -84,7 +89,11 @@ static std::vector<std::byte> serializeStatsEntryData(const StatisticsEntry &ent
 {
     json statsData = json::object();
     for (const auto &[key, value] : entry.data) {
-        std::visit([&statsData, &key](const auto &v) { statsData[key] = v; }, value);
+        std::visit(
+            [&statsData, &key](const auto &v) {
+                statsData[key] = v;
+            },
+            value);
     }
 
     const auto serialized = statsData.dump();
@@ -116,7 +125,8 @@ static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::v
             entry.data[it.key()] = value.get<double>();
         } else {
             throw std::runtime_error(
-                std::format("Invalid statistics value type for '{}': only string/int64/double are supported", it.key()));
+                std::format(
+                    "Invalid statistics value type for '{}': only string/int64/double are supported", it.key()));
         }
     }
 
@@ -842,8 +852,7 @@ std::vector<std::byte> DataStore::getBinaryValue(MDB_dbi dbi, const std::string 
         checkError(res, "mdb_cursor_get");
 
         std::vector<std::byte> result(
-            static_cast<const std::byte *>(dval.mv_data),
-            static_cast<const std::byte *>(dval.mv_data) + dval.mv_size);
+            static_cast<const std::byte *>(dval.mv_data), static_cast<const std::byte *>(dval.mv_data) + dval.mv_size);
         mdb_cursor_close(cur);
         quitTransaction(txn);
 
