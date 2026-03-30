@@ -370,6 +370,11 @@ IconHandler::IconHandler(
                 indexData.resize(f.tellg());
                 f.seekg(0, std::ios::beg);
                 f.read(reinterpret_cast<char *>(indexData.data()), indexData.size());
+
+                // If we hit this fallback, we place the hicolor theme in the extraPrefix location, if any is defined.
+                // This will make us hit the paths in extraPrefix first, before falling back to /usr, which is likely
+                // what the user intended here. Since no packaged hicolor theme is present, this is the best assumption
+                // we can make at this point.
                 tmpThemes["hicolor"] = std::make_unique<Theme>("hicolor", indexData, m_extraPrefix);
             }
         }
