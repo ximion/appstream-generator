@@ -74,7 +74,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.1.0'
+    source-tag: 'v1.1.2'
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
