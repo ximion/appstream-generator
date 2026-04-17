@@ -15,17 +15,14 @@ jobs:
         include:
           - display_name: Debian 13
             suite: trixie
-            components: main
             runner: ubuntu-latest
             arch: amd64
           - display_name: Debian Testing
             suite: forky
-            components: main
             runner: ubuntu-latest
             arch: amd64
           - display_name: Debian Testing
             suite: forky
-            components: main
             runner: ubuntu-24.04-arm
             arch: arm64
           - display_name: Ubuntu 26.04
