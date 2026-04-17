@@ -36,6 +36,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(glibd-2.0)' \
     'pkgconfig(gobject-introspection-1.0)' \
     'pkgconfig(libarchive)' \
+    'pkgconfig(libblake3)' \
     'pkgconfig(libcurl)' \
     'pkgconfig(librsvg-2.0)' \
     'pkgconfig(libxml-2.0)' \
