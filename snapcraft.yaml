@@ -34,7 +34,7 @@ platforms:
 
 apps:
   appstream-generator:
-    command: usr/bin/appstream-generator
+    command: usr/bin/appstream-generator.wrapper
     extensions: [gnome]
     common-id: org.freedesktop.appstream.generator
     plugs:
@@ -239,3 +239,42 @@ parts:
       - -usr/lib/*/pkgconfig/gmodule*
       - -usr/lib/*/pkgconfig/gobject-2.0.pc
       - -usr/lib/*/pkgconfig/gthread-2.0.pc
+
+  # This is a work-around for the broken Gdk Pixbuf in the Gnome SDK
+  #
+  #   https://github.com/ubuntu/gnome-sdk/issues/357
+  #
+  # that would manifest in appstream-generator's failure to generate
+  # screenshots with
+  #
+  #   ERROR: The currently used GdkPixbuf does not seem to support all image
+  #   formats we require to run normally (png/svg/jpeg). This may be a problem
+  #   with your installation of appstream-generator or gdk-pixbuf.
+  #
+  # This part merely ensures appstream-generator is run with
+  # GDK_PIXBUF_MODULE{DIR,_FILE} pointing to the libraries staged in this snap.
+  #
+  # If
+  #
+  #   https://github.com/canonical/snapcraft-desktop-integration/pull/41
+  #
+  # goes in, this part can be deleted and replaced by
+  #
+  #   - GDK_PIXBUF_MODULEDIR: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders"
+  #   - GDK_PIXBUF_MODULE_FILE: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+  #
+  # in apps.*.environment for the sake of elegance and clarity.
+  launcher:
+    plugin: nil
+    override-prime: |
+      mkdir -p $CRAFT_PRIME
+      launcher=$CRAFT_PRIME/usr/bin/appstream-generator.wrapper
+
+      cat > "$launcher" <<EOF
+      #!/bin/sh
+      export GDK_PIXBUF_MODULEDIR=\$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders
+      export GDK_PIXBUF_MODULE_FILE=\$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders.cache
+      \$SNAP/usr/bin/appstream-generator "\$@"
+      EOF
+
+      chmod +x "$launcher"
