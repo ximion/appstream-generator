@@ -6,46 +6,72 @@ permissions:
 on: [push, pull_request]
 
 jobs:
-  build-debian-testing:
-    name: Debian Testing
-    runs-on: ubuntu-latest
+  build-deblike:
+    name: ${{ matrix.display_name }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - display_name: Debian 13
+            suite: trixie
+            components: main
+            runner: ubuntu-latest
+            arch: amd64
+          - display_name: Debian Testing
+            suite: forky
+            components: main
+            runner: ubuntu-latest
+            arch: amd64
+          - display_name: Debian Testing
+            suite: forky
+            components: main
+            runner: ubuntu-24.04-arm
+            arch: arm64
+          - display_name: Ubuntu 26.04
+            suite: resolute
+            components: main universe
+            runner: ubuntu-latest
+            arch: amd64
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Create Build Environment
-      run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-testing .
+      uses: ximion/debspawn-action/setup@v1.0.0
+      with:
+        suite: ${{ matrix.suite }}
+        components: ${{ matrix.components }}
+        packages: >-
+          git
+          curl
+          ca-certificates
+        script: |
+          # install build dependencies
+          ./tests/ci/install-deps-deb.sh
+          # install 3rd-party stuff
+          ./tests/ci/ci-install-extern.sh
 
     - name: Build
-      run: podman run -a stdout -a stderr -e CXX=g++ -v `pwd`:/build asgen
-           ./tests/ci/run-build.sh
+      uses: ximion/debspawn-action/run@v1
+      with:
+        suite: ${{ matrix.suite }}
+        summary: "Build on ${{ matrix.display_name }}"
+        commands: |
+          CC=gcc CXX=g++ ./tests/ci/run-build.sh
 
     - name: Tests
-      run: podman run -a stdout -a stderr -e CXX=g++ -v `pwd`:/build asgen
-           ./tests/ci/run-tests.sh
-
-
-  build-debian-stable:
-    name: Debian Stable
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Create Build Environment
-      run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-debian-stable .
-
-    - name: Build
-      run: podman run -a stdout -a stderr -e CXX=g++ -v `pwd`:/build asgen
-           ./tests/ci/run-build.sh
-
-    - name: Tests
-      run: podman run -a stdout -a stderr -e CXX=g++ -v `pwd`:/build asgen
-           ./tests/ci/run-tests.sh
-
+      uses: ximion/debspawn-action/run@v1
+      with:
+        suite: ${{ matrix.suite }}
+        summary: "Test on ${{ matrix.display_name }}"
+        commands: |
+          ./tests/ci/run-tests.sh
 
   build-fedora-latest:
-    name: Fedora Latest
+    name: Fedora Latest (amd64)
     runs-on: ubuntu-latest
 
     steps:
@@ -61,25 +87,3 @@ jobs:
     - name: Tests
       run: podman run -a stdout -a stderr -e CXX=g++ -v `pwd`:/build asgen
            ./tests/ci/run-tests.sh
-
-
-  build-ubuntu-lts:
-    name: Ubuntu LTS
-    runs-on: ubuntu-24.04
-    env:
-      CC: gcc-14
-      CXX: g++-14
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Create Build Environment
-      run: sudo ./tests/ci/install-deps-deb.sh
-
-    - name: Make & Install 3rd-party
-      run: sudo ./tests/ci/ci-install-extern.sh
-
-    - name: Build
-      run: ./tests/ci/run-build.sh
-
-    - name: Tests
-      run: ./tests/ci/run-tests.sh

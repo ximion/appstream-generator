@@ -2,7 +2,7 @@
 #
 # Install AppStream Generator build dependencies
 #
-set -e
+set -eu
 set -x
 
 export DEBIAN_FRONTEND=noninteractive
@@ -23,22 +23,21 @@ apt-get install -yq \
 eatmydata apt-get install -yq --no-install-recommends \
     meson \
     cmake \
+    ninja-build \
     gettext \
-    gobject-introspection \
-    gtk-doc-tools \
-    xsltproc \
-    docbook-xsl \
-    docbook-xml \
-    libgirepository1.0-dev \
+    itstool \
     libglib2.0-dev \
-    libstemmer-dev \
     libxml2-dev \
     libfyaml-dev \
     libxmlb-dev \
+    liblzma-dev \
+    libzstd-dev \
     libcurl4-gnutls-dev \
     libsystemd-dev \
-    gperf \
-    itstool
+    libgirepository1.0-dev \
+    xmlto \
+    libstemmer-dev \
+    gperf
 
 . /etc/os-release
 if [ "$ID" = "ubuntu" ]; then
@@ -48,6 +47,7 @@ else
     catch2_dep="libcatch2-dev"
 fi;
 
+# asgen-specific dependencies
 eatmydata apt-get install -yq --no-install-recommends \
     liblmdb-dev \
     libarchive-dev \
@@ -59,14 +59,16 @@ eatmydata apt-get install -yq --no-install-recommends \
     $catch2_dep
 eatmydata apt-get install -yq inja-dev || true
 
+# compose dependencies
 eatmydata apt-get install -yq --no-install-recommends \
     libgdk-pixbuf-2.0-dev \
     librsvg2-dev \
     libcairo2-dev \
     libfontconfig1-dev \
     libpango1.0-dev
+eatmydata apt-get install -yq libblake3-dev || true
 
-# install misc stuff
+# Web and CI stuff, misc depends
 eatmydata apt-get install -yq --no-install-recommends \
     curl \
     gnupg \
