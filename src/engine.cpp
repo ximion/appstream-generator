@@ -375,9 +375,13 @@ bool Engine::seedContentsData(
 std::string Engine::getMetadataHead(const Suite &suite, const std::string &section)
 {
     std::string head;
-    auto origin = std::format("{}-{}-{}", m_conf->projectName, suite.name, section);
 
-    // Convert to lowercase
+    // Determine origin as a lowercase string
+    std::string origin;
+    if (section.empty())
+        origin = std::format("{}-{}", m_conf->projectName, suite.name);
+    else
+        origin = std::format("{}-{}-{}", m_conf->projectName, suite.name, section);
     std::transform(origin.begin(), origin.end(), origin.begin(), ::tolower);
 
     // Get current time in ISO8601 UTC
