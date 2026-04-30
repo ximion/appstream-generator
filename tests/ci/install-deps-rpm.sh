@@ -33,7 +33,6 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(glib-2.0)' \
     'pkgconfig(gobject-2.0)' \
     'pkgconfig(gio-2.0)' \
-    'pkgconfig(glibd-2.0)' \
     'pkgconfig(gobject-introspection-1.0)' \
     'pkgconfig(libarchive)' \
     'pkgconfig(libblake3)' \
