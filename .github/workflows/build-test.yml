@@ -32,7 +32,7 @@ jobs:
             arch: amd64
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Create Build Environment
       run: cd tests/ci/ && podman build -t asgen -f ./Dockerfile-fedora-latest .
