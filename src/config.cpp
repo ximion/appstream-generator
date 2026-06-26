@@ -375,6 +375,15 @@ void Config::loadFromFile(
     if (oldsuitesNode)
         oldsuites = Yaml::nodeArrayValues(oldsuitesNode);
 
+    indexCmpRule = IndexCmpRule::Mtime;
+    auto icr = Yaml::nodeByKey(root, "IndexCompareRule");
+    if (icr) {
+        std::string compareRule = Yaml::nodeStrValue(icr);
+        if (Utils::toLower(compareRule) == "checksum") {
+            indexCmpRule = IndexCmpRule::Checksum;
+        }
+    }
+
     // icon policy
     auto iconsNode = Yaml::nodeByKey(root, "Icons");
     if (iconsNode && fy_node_get_type(iconsNode) == FYNT_MAPPING) {
