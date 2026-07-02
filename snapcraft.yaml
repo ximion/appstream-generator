@@ -164,6 +164,7 @@ parts:
       - libpango1.0-dev
       - librsvg2-dev
       - libtbb-dev
+      - libcrypto++-dev
       - libunwind-dev
       - libxml2-dev
       - pkgconf
