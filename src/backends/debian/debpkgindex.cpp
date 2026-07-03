@@ -24,6 +24,7 @@
 #include <regex>
 #include <format>
 #include <execution>
+#include <appstream-compose.h>
 
 #include "../../config.h"
 #include "../../logging.h"
@@ -360,7 +361,15 @@ bool DebianPackageIndex::hasChanges(
     const auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
 
     auto repoInfo = dstore->getRepoInfo(suite, section, arch);
-    auto checksum = Utils::checksumOfFile(indexFname);
+
+    // Calculate the checksum of the index file contents
+    std::string indexData;
+    std::ifstream inFile;
+    inFile.open(indexFname, std::ios::binary);
+    indexData.assign(std::istreambuf_iterator<char>(inFile),
+                     std::istreambuf_iterator<char>());
+    auto checksum = asc_compute_content_checksum_for_data(indexData.c_str(),
+                                                          indexData.length());
 
     // Update mtime and checksum in repo info when we exit this function
     auto updateRepoInfo = [&]() {
