@@ -359,7 +359,7 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
         auto filetype = archive_entry_filetype(en);
         if (filetype == AE_IFDIR) {
             if (!fs::exists(pathname))
-                fs::create_directory(pathname);
+                fs::create_directories(pathname);
             continue;
         }
 
