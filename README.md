@@ -44,7 +44,6 @@ The following libraries and tools are required to build the generator:
  * Meson (>= 1.0) [1]
  * AppStream [2]
  * libarchive (>= 3.2) [3]
- * libcrypto
  * libfyaml
  * LMDB [4]
  * Curl

@@ -37,8 +37,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <openssl/evp.h>
-
 #include <unicode/unistr.h>
 #include <tbb/parallel_for_each.h>
 
@@ -572,32 +570,6 @@ fs::path normalizePath(const fs::path &path)
         str.pop_back();
 
     return str;
-}
-
-std::string checksumOfFile(const std::string &path) {
-    std::string checksum;
-    size_t n;
-    const size_t BUFSIZE = 1<<12;
-    std::vector<unsigned char> buf(BUFSIZE);
-    unsigned char digest[EVP_MAX_MD_SIZE];
-    unsigned int digest_len = 0;
-    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    FILE* f = std::fopen(path.c_str(), "rb");
-
-    EVP_DigestInit_ex(ctx, EVP_sha1(), nullptr);
-    while ((n = std::fread(buf.data(), sizeof(buf[0]), BUFSIZE, f)) > 0) {
-        EVP_DigestUpdate(ctx, buf.data(), n);
-    }
-    EVP_DigestFinal_ex(ctx, digest, &digest_len);
-    EVP_MD_CTX_free(ctx);
-    std::fclose(f);
-
-    for (unsigned int i = 0; i < digest_len; i++) {
-        char hex[3];
-        std::sprintf(hex, "%02x", digest[i]);
-        checksum += hex;
-    }
-    return checksum;
 }
 
 } // namespace Utils

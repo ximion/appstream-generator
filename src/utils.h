@@ -307,13 +307,6 @@ std::string filenameFromURI(const std::string &uri);
     return normalizePath(std::string(path));
 }
 
-/**
- * Returns the checksum of a file in hexadecimal format.
- *
- * @param path Path of the file to be checksumed.
- */
-[[nodiscard]] std::string checksumOfFile(const std::string &path);
-
 } // namespace Utils
 
 } // namespace ASGenerator
