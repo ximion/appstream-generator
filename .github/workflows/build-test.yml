@@ -23,7 +23,7 @@ jobs:
             arch: amd64
           - display_name: Debian Testing
             suite: forky
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
             arch: arm64
           - display_name: Ubuntu 26.04
             suite: resolute
