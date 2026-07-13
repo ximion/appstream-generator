@@ -82,6 +82,11 @@ enum class Backend {
     FreeBSD
 };
 
+enum class IndexCmpRule {
+    Mtime,
+    Checksum
+};
+
 /**
  * Generator features that can be toggled by the user.
  */
@@ -124,6 +129,7 @@ public:
 
     std::string backendName;
     Backend backend;
+    IndexCmpRule indexCmpRule;
     std::vector<Suite> suites;
     std::vector<std::string> oldsuites;
     DataType metadataType;

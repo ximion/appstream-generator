@@ -24,6 +24,7 @@
 #include <regex>
 #include <format>
 #include <execution>
+#include <appstream-compose.h>
 
 #include "../../config.h"
 #include "../../logging.h"
@@ -361,26 +362,62 @@ bool DebianPackageIndex::hasChanges(
 
     auto repoInfo = dstore->getRepoInfo(suite, section, arch);
 
-    // Update mtime in repo info when we exit this function
+    // Calculate the checksum of the index file contents
+    std::string indexData;
+    std::ifstream inFile;
+    inFile.open(indexFname, std::ios::binary);
+    indexData.assign(std::istreambuf_iterator<char>(inFile),
+                     std::istreambuf_iterator<char>());
+    auto checksum = asc_compute_content_checksum_for_data(indexData.c_str(),
+                                                          indexData.length());
+
+    // Update mtime and checksum in repo info when we exit this function
     auto updateRepoInfo = [&]() {
         repoInfo.data["mtime"] = static_cast<std::int64_t>(currentTime);
+        repoInfo.data["checksum"] = static_cast<std::string>(checksum);
         dstore->setRepoInfo(suite, section, arch, repoInfo);
     };
 
-    auto mtimeIt = repoInfo.data.find("mtime");
-    if (mtimeIt == repoInfo.data.end()) {
-        m_indexChanged[indexFname] = true;
-        updateRepoInfo();
-        return true;
+    const auto &conf = Config::get();
+    if (conf.indexCmpRule == ASGenerator::IndexCmpRule::Mtime) {
+        auto mtimeIt = repoInfo.data.find("mtime");
+        if (mtimeIt == repoInfo.data.end()) {
+            logDebug("No timestamp found for {}. The index was presumably not "
+                     "fetched yet.", indexFname);
+            m_indexChanged[indexFname] = true;
+            updateRepoInfo();
+            return true;
+        }
+        const auto pastTime = std::get<std::int64_t>(mtimeIt->second);
+        if (pastTime != currentTime) {
+            logDebug("{}'s timestamp does not match its remote counterpart; "
+                     "The remote will be fetched and replace it.", indexFname);
+            m_indexChanged[indexFname] = true;
+            updateRepoInfo();
+            return true;
+        }
+    } else if (conf.indexCmpRule == ASGenerator::IndexCmpRule::Checksum) {
+        auto cksum = repoInfo.data.find("checksum");
+        if (cksum == repoInfo.data.end()) {
+            logDebug("No checksum found for {}, the latter was presumably not "
+                     "fetched yet.", indexFname);
+            m_indexChanged[indexFname] = true;
+            updateRepoInfo();
+            return true;
+        }
+        const auto pastCksum = std::get<std::string>(cksum->second);
+        if (pastCksum != checksum) {
+            logDebug("{}'s checksum does not match its remote counterpart; "
+                     "The remote will be fetched and replace it.", indexFname);
+            m_indexChanged[indexFname] = true;
+            updateRepoInfo();
+            return true;
+        }
+    } else {
+        throw std::runtime_error("Unexpected value for IndexCompareRule");
     }
-
-    const auto pastTime = std::get<std::int64_t>(mtimeIt->second);
-    if (pastTime != currentTime) {
-        m_indexChanged[indexFname] = true;
-        updateRepoInfo();
-        return true;
-    }
-
+    logDebug("No changes detected when comparing the cached index file {} "
+             "with the remote one.", indexFname);
     m_indexChanged[indexFname] = false;
     updateRepoInfo();
     return false;
