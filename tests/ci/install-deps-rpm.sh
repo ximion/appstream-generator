@@ -20,8 +20,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     gettext \
     gnupg \
     gperf \
-    docbook-dtds \
-    docbook-style-xsl \
+    docbook5-style-xsl \
     libasan \
     libstemmer-devel \
     libubsan \

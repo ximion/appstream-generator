@@ -24,6 +24,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     meson \
     cmake \
     ninja-build \
+    docbook-xsl-ns \
     gettext \
     itstool \
     libglib2.0-dev \
