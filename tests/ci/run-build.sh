@@ -8,10 +8,7 @@ export LANG=C.UTF-8
 
 ROOT_DIR=$(pwd)
 
-echo "C compiler: $CC"
-echo "C++ compiler: $CXX"
 set -v
-$CXX --version
 meson --version
 
 build_type=debugoptimized
