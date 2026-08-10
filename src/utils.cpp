@@ -195,16 +195,35 @@ void copyDir(const std::string &srcDir, const std::string &destDir, bool useHard
                 std::format("Error creating destination directory {}: {}", destPath.string(), ec.message()));
     }
 
-    fs::copy_options copy_opts = fs::copy_options::recursive;
-    if (!followSymlinks)
-        copy_opts |= fs::copy_options::copy_symlinks;
-    if (useHardlinks)
-        copy_opts |= fs::copy_options::create_hard_links;
+    // Copy file by file to handle read-only source directories (e.g. files in nix store)
+    for (const auto &entry : fs::recursive_directory_iterator(
+             srcPath, followSymlinks ? fs::directory_options::follow_directory_symlink : fs::directory_options::none)) {
+        auto relPath = fs::relative(entry.path(), srcPath);
+        auto destEntry = destPath / relPath;
 
-    fs::copy(srcPath, destPath, copy_opts, ec);
-    if (ec) {
-        throw std::runtime_error(
-            std::format("Failed to copy directory {} to {}: {}", srcPath.string(), destPath.string(), ec.message()));
+        if (entry.is_directory()) {
+            fs::create_directories(destEntry, ec);
+        } else if (entry.is_symlink() && !followSymlinks) {
+            auto target = fs::read_symlink(entry.path(), ec);
+            if (!ec) {
+                if (fs::exists(destEntry))
+                    fs::remove(destEntry, ec);
+                fs::create_symlink(target, destEntry, ec);
+            }
+        } else if (entry.is_regular_file()) {
+            if (useHardlinks) {
+                if (fs::exists(destEntry))
+                    fs::remove(destEntry, ec);
+                fs::create_hard_link(entry.path(), destEntry, ec);
+            } else {
+                fs::copy_file(entry.path(), destEntry, fs::copy_options::overwrite_existing, ec);
+            }
+        }
+
+        if (ec) {
+            throw std::runtime_error(
+                std::format("Failed to copy {} to {}: {}", entry.path().string(), destEntry.string(), ec.message()));
+        }
     }
 }
 

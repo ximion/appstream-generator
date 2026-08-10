@@ -58,6 +58,7 @@
 #include "backends/archlinux/alpkgindex.h"
 #include "backends/rpmmd/rpmpkgindex.h"
 #include "backends/freebsd/fbsdpkgindex.h"
+#include "backends/nix/nixpkgindex.h"
 
 namespace ASGenerator
 {
@@ -95,6 +96,9 @@ Engine::Engine()
         break;
     case Backend::FreeBSD:
         m_pkgIndex = std::make_unique<FreeBSDPackageIndex>(m_conf->archiveRoot);
+        break;
+    case Backend::Nix:
+        m_pkgIndex = std::make_unique<NixPackageIndex>(m_conf->archiveRoot);
         break;
     default:
         throw std::runtime_error("No backend specified, can not continue!");
