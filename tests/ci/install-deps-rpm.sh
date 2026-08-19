@@ -39,6 +39,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(librsvg-2.0)' \
     'pkgconfig(libxml-2.0)' \
     'pkgconfig(libsystemd)' \
+    'pkgconfig(wayland-client)' \
     'pkgconfig(nlohmann_json)' \
     'pkgconfig(xmlb)' \
     'pkgconfig(lmdb)' \

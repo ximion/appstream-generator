@@ -36,6 +36,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     libcurl4-gnutls-dev \
     libsystemd-dev \
     libgirepository1.0-dev \
+    libwayland-dev \
     xmlto \
     libstemmer-dev \
     gperf
