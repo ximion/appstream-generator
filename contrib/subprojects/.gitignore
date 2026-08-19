@@ -1,4 +1,5 @@
 inja/
 packagecache/
 backward-cpp-*/
+quill-*/
 .wraplock

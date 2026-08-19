@@ -44,7 +44,8 @@ namespace ASGenerator
 using json = nlohmann::json;
 
 ReportGenerator::ReportGenerator(DataStore *db)
-    : m_dstore(db),
+    : m_log(getLogger("report")),
+      m_dstore(db),
       m_conf(&Config::get()),
       m_templateDir(m_conf->templateDir()),
       m_injaEnv(
@@ -104,7 +105,7 @@ void ReportGenerator::renderPage(const std::string &pageID, const std::string &e
         activeEnv = defaultEnv.get();
     }
 
-    logDebug("Rendering HTML page: {}", exportName);
+    LOG_DEBUG(m_log, "Rendering HTML page: {}", exportName);
     try {
         auto data = activeEnv->render_file(pageID + ".html", fullContext);
 
@@ -112,18 +113,18 @@ void ReportGenerator::renderPage(const std::string &pageID, const std::string &e
         f << data;
         f.close();
     } catch (const std::exception &e) {
-        logError("Failed to render template {}: {}", pageID, e.what());
+        LOG_ERROR(m_log, "Failed to render template {}: {}", pageID, e.what());
     }
 }
 
 void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::string &section, const DataSummary &dsum)
 {
     if (m_templateDir.empty()) {
-        logError("Can not render HTML: No page templates found.");
+        LOG_ERROR(m_log, "Can not render HTML: No page templates found.");
         return;
     }
 
-    logInfo("Rendering HTML for {}/{}", suiteName, section);
+    LOG_INFO(m_log, "Rendering HTML for {}/{}", suiteName, section);
     std::regex maintRE(R"([àáèéëêòöøîìùñ~/\\(\\" '])");
 
     // write issue hint pages
@@ -368,7 +369,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
 {
     DataSummary dsum;
 
-    logInfo("Collecting data about hints and available metainfo for {}/{}", suiteName, section);
+    LOG_INFO(m_log, "Collecting data about hints and available metainfo for {}/{}", suiteName, section);
 
     auto dtype = m_conf->metadataType;
     g_autoptr(AsMetadata) mdata = as_metadata_new();
@@ -443,7 +444,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                     as_metadata_parse_data(mdata, me.data.c_str(), -1, AS_FORMAT_KIND_XML, &error);
 
                 if (error != nullptr) {
-                    logWarning("Failed to parse metadata for {}: {}", gcid, error->message);
+                    LOG_WARNING(m_log, "Failed to parse metadata for {}: {}", gcid, error->message);
                     continue;
                 }
 
@@ -519,7 +520,8 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                             g_autoptr(GError) error = nullptr;
                             hint = asc_hint_new_for_tag(tag.c_str(), &error);
                             if (hint == nullptr) {
-                                logError(
+                                LOG_ERROR(
+                                    m_log,
                                     "Encountered invalid tag '{}' in component '{}' of package '{}': {}",
                                     tag,
                                     cid,
@@ -566,7 +568,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                     dsum.hintEntries[pkg->name()][he.identifier] = he;
                 }
             } catch (const std::exception &e) {
-                logError("Failed to parse hints JSON for package {}: {}", pkid, e.what());
+                LOG_ERROR(m_log, "Failed to parse hints JSON for package {}: {}", pkid, e.what());
             }
         }
 
@@ -597,7 +599,7 @@ void ReportGenerator::saveStatistics(const std::string &suiteName, const std::st
 
 void ReportGenerator::exportStatistics()
 {
-    logInfo("Exporting statistical data.");
+    LOG_INFO(m_log, "Exporting statistical data.");
 
     // return all statistics we have from the database
     auto statsCollection = m_dstore->getStatistics();
@@ -695,7 +697,7 @@ void ReportGenerator::exportStatistics()
         if (fs::exists(jsonFname))
             fs::remove(jsonFname);
     } catch (const std::exception &e) {
-        logWarning("Failed to write gzip-compressed statistics data: {}", e.what());
+        LOG_WARNING(m_log, "Failed to write gzip-compressed statistics data: {}", e.what());
     }
 }
 
@@ -719,7 +721,7 @@ void ReportGenerator::processFor(
 
 void ReportGenerator::updateIndexPages()
 {
-    logInfo("Updating HTML index pages and static data.");
+    LOG_INFO(m_log, "Updating HTML index pages and static data.");
 
     // render main overview
     inja::json context;

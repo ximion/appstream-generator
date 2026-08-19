@@ -24,11 +24,23 @@
 #include <unordered_map>
 #include <optional>
 #include <memory>
-#include <cstdint>
 #include <glib.h>
+
+#include "../logging.h"
 
 namespace ASGenerator
 {
+
+#define logBackend ::ASGenerator::getBackendRootLogger()
+
+/**
+ * Retrieve a global, generic backend logger.
+ */
+inline quill::Logger *getBackendRootLogger()
+{
+    static quill::Logger *const logger = getLogger("backend");
+    return logger;
+}
 
 class DataStore;
 
@@ -255,7 +267,8 @@ public:
     PackageIndex &operator=(const PackageIndex &) = delete;
 
 protected:
-    PackageIndex() = default;
+    quill::Logger *m_log;
+    PackageIndex(const std::string &name = "backend");
 };
 
 } // namespace ASGenerator

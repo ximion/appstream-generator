@@ -35,7 +35,8 @@ namespace ASGenerator
 {
 
 DebianPackageIndex::DebianPackageIndex(const std::string &dir)
-    : m_rootDir(dir)
+    : PackageIndex("debian"),
+      m_rootDir(dir)
 {
     m_pkgCache.clear();
     if (!Utils::isRemote(dir) && !fs::exists(dir))
@@ -67,7 +68,7 @@ std::vector<std::string> DebianPackageIndex::findTranslations(const std::string 
                 translations.insert(match[1].str());
         }
     } catch (const std::exception &ex) {
-        logWarning("Could not get {}, will assume 'en' is available.", inRelease);
+        LOG_WARNING(m_log, "Could not get {}, will assume 'en' is available.", inRelease);
         return {"en"};
     }
 
@@ -107,7 +108,7 @@ void DebianPackageIndex::loadPackageLongDescs(
     const std::string &section)
 {
     const auto langs = findTranslations(suite, section);
-    logDebug("Found translations for: {}", Utils::joinStrings(langs, ", "));
+    LOG_DEBUG(m_log, "Found translations for: {}", Utils::joinStrings(langs, ", "));
 
     for (const auto &lang : langs) {
         std::string fname;
@@ -117,7 +118,7 @@ void DebianPackageIndex::loadPackageLongDescs(
         try {
             fname = downloadIfNecessary(m_rootDir, m_tmpDir, fullPath);
         } catch (const std::exception &ex) {
-            logDebug("No translations for {} in {}/{}", lang, suite, section);
+            LOG_DEBUG(m_log, "No translations for {} in {}/{}", lang, suite, section);
             continue;
         }
 
@@ -195,13 +196,13 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
 {
     auto indexFname = getIndexFile(suite, section, arch);
     if (!fs::exists(indexFname)) {
-        logWarning("Archive package index file '{}' does not exist.", indexFname);
+        LOG_WARNING(m_log, "Archive package index file '{}' does not exist.", indexFname);
         return {};
     }
 
     TagFile tagf;
     tagf.open(indexFname);
-    logDebug("Opened: {}", indexFname);
+    LOG_DEBUG(m_log, "Opened: {}", indexFname);
 
     std::unordered_map<std::string, std::shared_ptr<DebPackage>> pkgs;
 
@@ -256,7 +257,7 @@ std::vector<std::shared_ptr<DebPackage>> DebianPackageIndex::loadPackages(
             pkg->setGst(gst);
 
         if (!pkg->isValid()) {
-            logWarning("Found invalid package ({})! Skipping it.", pkg->toString());
+            LOG_WARNING(m_log, "Found invalid package ({})! Skipping it.", pkg->toString());
             continue;
         }
 

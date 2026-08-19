@@ -64,6 +64,7 @@ namespace ASGenerator
 
 Engine::Engine()
     : m_conf(&Config::get()),
+      m_log(getLogger("engine")),
       m_forced(false)
 {
     // Configure a TBB task arena to limit parallelism a little (use half the available CPU cores, or at least 6
@@ -134,14 +135,15 @@ void Engine::logVersionInfo()
 
     // Get AppStream version
     const char *asVersion = as_version_string();
-    logInfo("AppStream Generator {}, AS: {}{}", ASGEN_VERSION, asVersion, backendInfo);
+    LOG_INFO(logRoot, "AppStream Generator {}, AS: {}{}", ASGEN_VERSION, asVersion, backendInfo);
 }
 
 void Engine::checkLibfyamlVersion()
 {
     const auto version = Yaml::libfyamlVersion();
     if (version.empty()) {
-        logWarning("Unable to determine libfyaml version! Please ensure you have at least version 0.9 installed!");
+        LOG_WARNING(
+            m_log, "Unable to determine libfyaml version! Please ensure you have at least version 0.9 installed!");
         return;
     }
 
@@ -176,7 +178,8 @@ void Engine::processPackages(
     if (chunkSize <= 10)
         chunkSize = 10;
 
-    logDebug(
+    LOG_DEBUG(
+        m_log,
         "Analyzing {} packages in batches of {} with {} parallel tasks",
         pkgs.size(),
         chunkSize,
@@ -203,8 +206,12 @@ void Engine::processPackages(
                         m_dstore->addGeneratorResult(m_conf->metadataType, res);
                     }
 
-                    logInfo(
-                        "Processed {}, components: {}, hints: {}", res.pkid(), res.componentsCount(), res.hintsCount());
+                    LOG_INFO(
+                        m_log,
+                        "Processed {}, components: {}, hints: {}",
+                        res.pkid(),
+                        res.componentsCount(),
+                        res.hintsCount());
 
                     // We don't need content data from this package anymore
                     pkg->finish();
@@ -271,7 +278,8 @@ bool Engine::seedContentsData(
     if (workUnitSize > 30)
         workUnitSize = 30;
 
-    logDebug(
+    LOG_DEBUG(
+        m_log,
         "Scanning {} packages, work unit size: {}, parallel tasks: {}",
         pkgs.size(),
         workUnitSize,
@@ -279,11 +287,12 @@ bool Engine::seedContentsData(
 
     // Check if the index has changed data, skip the update if there's nothing new
     if (pkgs.empty() && !m_pkgIndex->hasChanges(m_dstore, suite.name, section, arch) && !m_forced) {
-        logDebug("Skipping contents cache update for {}/{} [{}], index has not changed.", suite.name, section, arch);
+        LOG_DEBUG(
+            m_log, "Skipping contents cache update for {}/{} [{}], index has not changed.", suite.name, section, arch);
         return false;
     }
 
-    logInfo("Scanning new packages for {}/{} [{}]", suite.name, section, arch);
+    LOG_INFO(m_log, "Scanning new packages for {}/{} [{}]", suite.name, section, arch);
 
     std::vector<std::shared_ptr<Package>> packagesToProcess = pkgs;
     if (packagesToProcess.empty())
@@ -294,7 +303,7 @@ bool Engine::seedContentsData(
 
     // First get the contents (only) of all packages in the base suite
     if (!suite.baseSuite.empty()) {
-        logInfo("Scanning new packages for base suite {}/{} [{}]", suite.baseSuite, section, arch);
+        LOG_INFO(m_log, "Scanning new packages for base suite {}/{} [{}]", suite.baseSuite, section, arch);
         auto baseSuitePkgs = m_pkgIndex->packagesFor(suite.baseSuite, section, arch);
 
         m_taskArena->execute([&] {
@@ -307,7 +316,7 @@ bool Engine::seedContentsData(
 
                         if (!m_cstore->packageExists(pkid)) {
                             m_cstore->addContents(pkid, pkg->contents());
-                            logInfo("Scanned {} for base suite.", pkid);
+                            LOG_INFO(m_log, "Scanned {} for base suite.", pkid);
                         }
 
                         // Chances are that we might never want to extract data from these packages, so remove their
@@ -353,11 +362,11 @@ bool Engine::seedContentsData(
                     // Check if we can already mark this package as ignored, and print some log messages
                     if (!packageIsInteresting(pkg)) {
                         m_dstore->setPackageIgnore(pkid);
-                        logInfo("Scanned {}, no interesting files found.", pkid);
+                        LOG_INFO(m_log, "Scanned {}, no interesting files found.", pkid);
                         // We won't use this anymore
                         pkg->finish();
                     } else {
-                        logInfo("Scanned {}, could be interesting.", pkid);
+                        LOG_INFO(m_log, "Scanned {}, could be interesting.", pkid);
                         interestingFound.store(true);
                     }
                 }
@@ -438,7 +447,7 @@ void Engine::exportMetadata(
     // Prepare hints file
     hintsFile << "[\n";
 
-    logInfo("Exporting data for {} ({}/{})", suite.name, section, arch);
+    LOG_INFO(m_log, "Exporting data for {} ({}/{})", suite.name, section, arch);
 
     // Add metadata document header
     mdataFile << getMetadataHead(suite, section) << "\n";
@@ -463,7 +472,7 @@ void Engine::exportMetadata(
     bool firstHintEntry = true;
     std::mutex exportMutex;
 
-    logDebug("Building final metadata and hints files.");
+    LOG_DEBUG(m_log, "Building final metadata and hints files.");
 
     tbb::parallel_for_each(pkgs.begin(), pkgs.end(), [&](std::shared_ptr<Package> pkg) {
         const auto &pkid = pkg->id();
@@ -483,7 +492,7 @@ void Engine::exportMetadata(
                     if (cid.has_value())
                         cidGcidMap[cid.value()] = gcid;
                     else
-                        logError("Could not extract component-ID from GCID: {}", gcid);
+                        LOG_ERROR(m_log, "Could not extract component-ID from GCID: {}", gcid);
                 }
 
                 // Hardlink data from the pool to the suite-specific directories
@@ -518,7 +527,7 @@ void Engine::exportMetadata(
     const auto hintsBaseFname = hintsExportDir / std::format("Hints-{}.json", arch);
 
     // Write metadata
-    logInfo("Writing metadata for {}/{} [{}]", suite.name, section, arch);
+    LOG_INFO(m_log, "Writing metadata for {}/{} [{}]", suite.name, section, arch);
 
     // Add the closing XML tag for XML metadata
     if (m_conf->metadataType == DataType::XML)
@@ -540,7 +549,7 @@ void Engine::exportMetadata(
     compressAndSave(cidIndexData, cidIndexFname.string() + ".gz", ArchiveType::GZIP);
 
     // Write hints
-    logInfo("Writing hints for {}/{} [{}]", suite.name, section, arch);
+    LOG_INFO(m_log, "Writing hints for {}/{} [{}]", suite.name, section, arch);
 
     // Finalize the JSON hints document
     hintsFile << "\n]\n";
@@ -588,7 +597,7 @@ void Engine::exportIconTarballs(
         iconTarFiles[iconSize.toString()].reserve(256);
     }
 
-    logInfo("Creating icon tarballs for: {}/{}", suite.name, section);
+    LOG_INFO(m_log, "Creating icon tarballs for: {}/{}", suite.name, section);
     std::unordered_set<std::string> processedDirs;
     std::mutex dirMutex;
     std::mutex iconMutex;
@@ -650,7 +659,7 @@ void Engine::exportIconTarballs(
 
         iconTar->close();
     }
-    logInfo("Icon tarballs built for: {}/{}", suite.name, section);
+    LOG_INFO(m_log, "Icon tarballs built for: {}/{}", suite.name, section);
 }
 
 std::unordered_map<std::string, std::shared_ptr<Package>> Engine::getIconCandidatePackages(
@@ -707,9 +716,9 @@ std::shared_ptr<Package> Engine::processExtraMetainfoData(
     const auto archExtraMIDir = extraMIDir / arch;
 
     if (suite.extraMetainfoDir.empty())
-        logInfo("Injecting component removal requests for {}/{}/{}", suite.name, section, arch);
+        LOG_INFO(m_log, "Injecting component removal requests for {}/{}/{}", suite.name, section, arch);
     else
-        logInfo("Loading additional metainfo from local directory for {}/{}/{}", suite.name, section, arch);
+        LOG_INFO(m_log, "Loading additional metainfo from local directory for {}/{}/{}", suite.name, section, arch);
 
     // We create a dummy package to hold information for the injected components
     auto diPkg = std::make_shared<DataInjectPackage>(EXTRA_METAINFO_FAKE_PKGNAME, arch, m_backendPathPrefix);
@@ -760,7 +769,12 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
 
         // Check if the suite/section/arch has actually changed
         if (!foundInteresting) {
-            logInfo("Skipping {}/{} [{}], no interesting new packages since last update.", suite.name, section, arch);
+            LOG_INFO(
+                m_log,
+                "Skipping {}/{} [{}], no interesting new packages since last update.",
+                suite.name,
+                section,
+                arch);
             continue;
         }
 
@@ -788,7 +802,7 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
         sectionPkgs.insert(sectionPkgs.end(), pkgs.begin(), pkgs.end());
 
         // Log progress
-        logInfo("Completed metadata processing of {}/{} [{}]", suite.name, section, arch);
+        LOG_INFO(m_log, "Completed metadata processing of {}/{} [{}]", suite.name, section, arch);
     }
 
     // Finalize
@@ -821,25 +835,25 @@ SuiteUsabilityResult Engine::checkSuiteUsable(const std::string &suiteName)
     }
 
     if (!suiteFound) {
-        logError("Suite '{}' was not found.", suiteName);
+        LOG_ERROR(m_log, "Suite '{}' was not found.", suiteName);
         return res;
     }
 
     if (res.suite.isImmutable) {
         // We also can't process anything if there are no architectures defined
-        logError("Suite '{}' is marked as immutable. No changes are allowed.", res.suite.name);
+        LOG_ERROR(m_log, "Suite '{}' is marked as immutable. No changes are allowed.", res.suite.name);
         return res;
     }
 
     if (res.suite.sections.empty()) {
         // If we have no sections, we can't do anything but exit...
-        logError("Suite '{}' has no sections. Can not continue.", res.suite.name);
+        LOG_ERROR(m_log, "Suite '{}' has no sections. Can not continue.", res.suite.name);
         return res;
     }
 
     if (res.suite.architectures.empty()) {
         // We also can't process anything if there are no architectures defined
-        logError("Suite '{}' has no architectures defined. Can not continue.", res.suite.name);
+        LOG_ERROR(m_log, "Suite '{}' has no architectures defined. Can not continue.", res.suite.name);
         return res;
     }
 
@@ -867,7 +881,7 @@ bool Engine::processFile(
         }
     }
     if (!sectionValid) {
-        logError("Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
+        LOG_ERROR(m_log, "Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
         return false;
     }
 
@@ -878,7 +892,8 @@ bool Engine::processFile(
     for (const auto &fname : files) {
         auto pkg = m_pkgIndex->packageForFile(fname, suiteName, sectionName);
         if (!pkg) {
-            logError(
+            LOG_ERROR(
+                m_log,
                 "Could not get package representation for file '{}' from backend '{}': The backend might not support "
                 "this feature.",
                 fname,
@@ -894,7 +909,7 @@ bool Engine::processFile(
 
         // Skip if the new package files have no interesting data
         if (!foundInteresting) {
-            logInfo("Skipping {}/{} [{}], no interesting new packages.", suite.name, sectionName, arch);
+            LOG_INFO(m_log, "Skipping {}/{} [{}], no interesting new packages.", suite.name, sectionName, arch);
             continue;
         }
 
@@ -921,7 +936,7 @@ void Engine::run()
 
     for (const auto &suite : m_conf->suites) {
         if (suite.isImmutable) {
-            logDebug("Skipping immutable suite: {}", suite.name);
+            LOG_DEBUG(m_log, "Skipping immutable suite: {}", suite.name);
             continue;
         }
 
@@ -998,7 +1013,7 @@ void Engine::run(const std::string &suiteName, const std::string &sectionName)
         }
     }
     if (!sectionValid) {
-        logError("Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
+        LOG_ERROR(m_log, "Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
         return;
     }
 
@@ -1032,7 +1047,7 @@ void Engine::publishMetadataForSuiteSection(
         sectionPkgs.insert(sectionPkgs.end(), pkgs.begin(), pkgs.end());
 
         // Log progress
-        logInfo("Completed publishing of data for {}/{} [{}]", suite.name, section, arch);
+        LOG_INFO(m_log, "Completed publishing of data for {}/{} [{}]", suite.name, section, arch);
     }
 
     // Export icons for the found packages in this section
@@ -1082,7 +1097,7 @@ void Engine::publish(const std::string &suiteName, const std::string &sectionNam
         }
     }
     if (!sectionValid) {
-        logError("Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
+        LOG_ERROR(m_log, "Section '{}' does not exist in suite '{}'. Can not continue.", sectionName, suite.name);
         return;
     }
 
@@ -1126,7 +1141,7 @@ void Engine::cleanupStatistics()
         }
 
         if (lastStatData[ssid] == entry.data) {
-            logInfo("Removing superfluous statistics entry: {}", lastTime[ssid]);
+            LOG_INFO(m_log, "Removing superfluous statistics entry: {}", lastTime[ssid]);
             m_dstore->removeStatistics(lastTime[ssid]);
         }
 
@@ -1139,12 +1154,12 @@ void Engine::runCleanup()
 {
     logVersionInfo();
 
-    logInfo("Cleaning up left over temporary data.");
+    LOG_INFO(m_log, "Cleaning up left over temporary data.");
     const auto tmpDir = m_conf->cacheRootDir() / "tmp";
     if (fs::exists(tmpDir))
         fs::remove_all(tmpDir);
 
-    logInfo("Collecting information.");
+    LOG_INFO(m_log, "Collecting information.");
 
     // Get sets of all packages registered in the database
     std::unordered_set<std::string> pkidsContents;
@@ -1158,7 +1173,8 @@ void Engine::runCleanup()
         [&]() {
             pkidsData = m_dstore->getPackageIdSet();
         });
-    logInfo("We have data on a total of {} packages (content lists on {})", pkidsData.size(), pkidsContents.size());
+    LOG_INFO(
+        m_log, "We have data on a total of {} packages (content lists on {})", pkidsData.size(), pkidsContents.size());
 
     // Build a set of all valid packages
     for (const auto &suite : m_conf->suites) {
@@ -1192,7 +1208,11 @@ void Engine::runCleanup()
     // Release index resources
     m_pkgIndex->release();
 
-    logInfo("Cleaning up superseded data ({} hints/data, {} content lists).", pkidsData.size(), pkidsContents.size());
+    LOG_INFO(
+        m_log,
+        "Cleaning up superseded data ({} hints/data, {} content lists).",
+        pkidsData.size(),
+        pkidsContents.size());
 
     // Remove packages from the caches which are no longer in the archive
     tbb::parallel_invoke(
@@ -1204,11 +1224,11 @@ void Engine::runCleanup()
         });
 
     // Remove orphaned data and media
-    logInfo("Cleaning up obsolete media.");
+    LOG_INFO(m_log, "Cleaning up obsolete media.");
     m_dstore->cleanupCruft();
 
     // Cleanup duplicate statistical entries
-    logInfo("Cleaning up excess statistical data.");
+    LOG_INFO(m_log, "Cleaning up excess statistical data.");
     cleanupStatistics();
 }
 
@@ -1254,7 +1274,7 @@ void Engine::forgetPackage(const std::string &identifier)
     if (slashCount == 2) {
         // We have a package-id, so we can do a targeted remove
         const auto pkid = identifier;
-        logDebug("Considering {} to be a package-id.", pkid);
+        LOG_DEBUG(m_log, "Considering {} to be a package-id.", pkid);
 
         const auto gcids = m_dstore->getGCIDsForPackage(pkid);
         affectedGCIDs.insert(gcids.begin(), gcids.end());
@@ -1263,7 +1283,7 @@ void Engine::forgetPackage(const std::string &identifier)
             m_cstore->removePackage(pkid);
         if (m_dstore->packageExists(pkid))
             m_dstore->removePackage(pkid);
-        logInfo("Removed package with ID: {}", pkid);
+        LOG_INFO(m_log, "Removed package with ID: {}", pkid);
     } else {
         auto pkids = m_dstore->getPkidsMatching(identifier);
         for (const auto &pkid : pkids) {
@@ -1273,7 +1293,7 @@ void Engine::forgetPackage(const std::string &identifier)
             m_dstore->removePackage(pkid);
             if (m_cstore->packageExists(pkid))
                 m_cstore->removePackage(pkid);
-            logInfo("Removed package with ID: {}", pkid);
+            LOG_INFO(m_log, "Removed package with ID: {}", pkid);
         }
     }
 
@@ -1281,6 +1301,7 @@ void Engine::forgetPackage(const std::string &identifier)
     m_dstore->cleanupCruft();
 
     // Report if data is kept because packages keep the GCIDs around
+    flushLogs();
     std::cout << "Packages still using the same data from the removed package(s):" << std::endl;
     auto pkgsForGCIDs = m_dstore->getPackagesForGCIDs(affectedGCIDs);
     if (pkgsForGCIDs.empty()) {
@@ -1298,6 +1319,10 @@ void Engine::forgetPackage(const std::string &identifier)
 bool Engine::printPackageInfo(const std::string &identifier)
 {
     const auto slashCount = std::count(identifier.begin(), identifier.end(), '/');
+
+    // everything below is written to stdout directly, so make sure no log
+    // message is still pending and ends up in the middle of our output
+    flushLogs();
 
     if (slashCount != 2) {
         std::cout << "Please enter a package-id in the format <name>/<version>/<arch>\n";

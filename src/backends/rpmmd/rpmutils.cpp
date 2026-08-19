@@ -22,7 +22,7 @@
 #include <filesystem>
 #include <format>
 
-#include "../../logging.h"
+#include "../interfaces.h"
 #include "../../downloader.h"
 #include "../../utils.h"
 
@@ -43,7 +43,7 @@ std::string downloadIfNecessary(const std::string &url, const std::string &destL
             downloader->downloadFile(url, destFileName);
             return destFileName;
         } catch (const std::exception &e) {
-            logDebug("Unable to download: {}", e.what());
+            LOG_DEBUG(logBackend, "Unable to download: {}", e.what());
             throw std::runtime_error(std::format("Could not obtain file {}", url));
         }
     } else {

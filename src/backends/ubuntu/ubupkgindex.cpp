@@ -23,8 +23,6 @@
 #include <format>
 #include <algorithm>
 
-#include "../../logging.h"
-
 namespace ASGenerator
 {
 

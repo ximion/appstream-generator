@@ -47,7 +47,8 @@ std::once_flag Config::initialized_;
 Config::Config()
     : backend(Backend::Unknown),
       metadataType(DataType::XML),
-      maxScrFileSize(14)
+      maxScrFileSize(14),
+      m_log(getLogger("config"))
 {
     // our default export format version
     formatVersion = AS_FORMAT_VERSION_V1_0;
@@ -195,7 +196,7 @@ void Config::loadFromFile(
         m_exportDir = fs::path(m_workspaceDir) / "export";
     } else {
         m_exportDir = enforcedExportDir;
-        logInfo("Using data export directory root from the command-line: {}", m_exportDir.string());
+        LOG_INFO(m_log, "Using data export directory root from the command-line: {}", m_exportDir.string());
     }
 
     if (!m_exportDir.is_absolute())
@@ -227,7 +228,7 @@ void Config::loadFromFile(
             } else if (key == "Html") {
                 htmlExportDir = value;
             } else {
-                logWarning("Unknown export directory specifier in config: {}", key);
+                LOG_WARNING(m_log, "Unknown export directory specifier in config: {}", key);
             }
         }
     }
@@ -259,7 +260,8 @@ void Config::loadFromFile(
         if (versionStr == "1.0") {
             formatVersion = AS_FORMAT_VERSION_V1_0;
         } else {
-            logWarning(
+            LOG_WARNING(
+                m_log,
                 "Configuration tried to set unknown AppStream format version '{}'. Falling back to default version.",
                 versionStr);
         }
@@ -311,7 +313,7 @@ void Config::loadFromFile(
         } else if (mdataTypeStr == "xml") {
             metadataType = DataType::XML;
         } else {
-            logError("Invalid value '{}' for MetadataType setting.", mdataTypeStr);
+            LOG_ERROR(m_log, "Invalid value '{}' for MetadataType setting.", mdataTypeStr);
         }
     }
 
@@ -396,7 +398,10 @@ void Config::loadFromFile(
                 isBadIconSize = true;
             }
             if (isBadIconSize) {
-                logError("Malformed icon size '{}' found in configuration, icon policy has been ignored.", iconString);
+                LOG_ERROR(
+                    m_log,
+                    "Malformed icon size '{}' found in configuration, icon policy has been ignored.",
+                    iconString);
                 continue;
             }
 
@@ -409,7 +414,10 @@ void Config::loadFromFile(
                 }
             }
             if (!isAllowed) {
-                logError("Invalid icon size '{}' selected in configuration, icon policy has been ignored.", iconString);
+                LOG_ERROR(
+                    m_log,
+                    "Invalid icon size '{}' selected in configuration, icon policy has been ignored.",
+                    iconString);
                 continue;
             }
 
@@ -436,7 +444,8 @@ void Config::loadFromFile(
             // sanity check
             if (iconSize == ImageSize(64)) {
                 if (!storeCached) {
-                    logError(
+                    LOG_ERROR(
+                        m_log,
                         "The icon size 64x64 must always be present and be allowed to be cached. Ignored user "
                         "configuration.");
                     continue;
@@ -518,9 +527,9 @@ void Config::loadFromFile(
     if (feature.optipng) {
         if (optipngBinary.empty()) {
             feature.optipng = false;
-            logError("Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
+            LOG_ERROR(m_log, "Disabled feature `optimizePNGSize`: The `optipng` binary was not found.");
         } else {
-            logDebug("Using `optipng`: {}", optipngBinary);
+            LOG_DEBUG(m_log, "Using `optipng`: {}", optipngBinary);
         }
     }
     asc_globals_set_use_optipng(feature.optipng);
@@ -528,9 +537,9 @@ void Config::loadFromFile(
     if (feature.screenshotVideos) {
         if (ffprobeBinary.empty()) {
             feature.screenshotVideos = false;
-            logError("Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
+            LOG_ERROR(m_log, "Disabled feature `screenshotVideos`: The `ffprobe` binary was not found.");
         } else {
-            logDebug("Using `ffprobe`: {}", ffprobeBinary);
+            LOG_DEBUG(m_log, "Using `ffprobe`: {}", ffprobeBinary);
         }
     }
 
@@ -538,32 +547,34 @@ void Config::loadFromFile(
         // since disallowing network access might have quite a lot of sideeffects, we print
         // a message to the logs to make debugging easier.
         // in general, running with noDownloads is discouraged.
-        logWarning("Configuration does not permit downloading files. Several features will not be available.");
+        LOG_WARNING(m_log, "Configuration does not permit downloading files. Several features will not be available.");
     }
 
     if (!feature.immutableSuites) {
         // Immutable suites won't work if the feature is disabled - log this error
         if (hasImmutableSuites) {
-            logError(
+            LOG_ERROR(
+                m_log,
                 "Suites are defined as immutable, but the `immutableSuites` feature is disabled. Immutability will not "
                 "work!");
         }
     }
 
     if (!feature.validate)
-        logWarning("MetaInfo validation has been disabled in configuration.");
+        LOG_WARNING(m_log, "MetaInfo validation has been disabled in configuration.");
 
     // sanity check to warn if our GdkPixbuf does not support the minimum amount
     // of image formats we need
     g_autoptr(GHashTable) pbFormatNames = asc_image_supported_format_names();
     if (!g_hash_table_contains(pbFormatNames, "png") || !g_hash_table_contains(pbFormatNames, "svg")
         || !g_hash_table_contains(pbFormatNames, "jpeg")) {
-        logError(
+        LOG_ERROR(
+            m_log,
             "The currently used GdkPixbuf does not seem to support all image formats we require to run normally "
             "(png/svg/jpeg). This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
     }
     if (!g_hash_table_contains(pbFormatNames, "jxl"))
-        logWarning("JPEG-XL image support not found!");
+        LOG_WARNING(m_log, "JPEG-XL image support not found!");
 }
 
 bool Config::isValid() const

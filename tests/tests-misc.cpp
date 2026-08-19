@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 
 #include <fstream>
@@ -13,7 +12,6 @@
 #include <thread>
 #include <appstream-compose.h>
 
-#include "logging.h"
 #include "utils.h"
 #include "zarchive.h"
 #include "hintregistry.h"
@@ -23,14 +21,6 @@
 
 using namespace ASGenerator;
 using namespace ASGenerator::Utils;
-
-static struct TestSetup {
-    TestSetup()
-    {
-        // Enable verbose logging for tests
-        setVerbose(true);
-    }
-} testSetup;
 
 TEST_CASE("Compressed empty file decompresses to empty string", "[zarchive]")
 {

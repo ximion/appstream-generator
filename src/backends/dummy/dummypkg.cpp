@@ -19,8 +19,6 @@
 
 #include "dummypkg.h"
 
-#include "../../logging.h"
-
 namespace ASGenerator
 {
 

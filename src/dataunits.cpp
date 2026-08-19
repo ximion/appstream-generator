@@ -113,7 +113,7 @@ static gboolean asg_package_unit_open_impl(AscUnit *unit, GError **error)
         return TRUE;
 
     } catch (const std::exception &e) {
-        logError("Failed to open package unit: {}", e.what());
+        LOG_ERROR(logRoot, "Failed to open package unit: {}", e.what());
         g_set_error(error, ASC_COMPOSE_ERROR, ASC_COMPOSE_ERROR_FAILED, "Failed to open package unit: %s", e.what());
         return FALSE;
     }
@@ -183,7 +183,7 @@ static GBytes *asg_package_unit_read_data_impl(AscUnit *unit, const gchar *filen
         return g_bytes_new_take(data_copy, data.size());
 
     } catch (const std::exception &e) {
-        logError("Failed to read data from package unit: {}", e.what());
+        LOG_ERROR(logRoot, "Failed to read data from package unit: {}", e.what());
         g_set_error(error, ASC_COMPOSE_ERROR, ASC_COMPOSE_ERROR_FAILED, "Failed to read data: %s", e.what());
         return nullptr;
     }
@@ -318,7 +318,7 @@ AsgLocaleUnit *asg_locale_unit_new(std::shared_ptr<ContentsStore> cstore, std::v
         asc_unit_set_bundle_kind(ASC_UNIT(unit), AS_BUNDLE_KIND_UNKNOWN);
 
     } catch (const std::exception &e) {
-        logError("Failed to create locale unit: {}", e.what());
+        LOG_ERROR(logRoot, "Failed to create locale unit: {}", e.what());
         g_object_unref(unit);
         return nullptr;
     }
@@ -404,7 +404,7 @@ static GBytes *asg_locale_unit_read_data_impl(AscUnit *unit, const gchar *filena
         return g_bytes_new_take(data_copy, data.size());
 
     } catch (const std::exception &e) {
-        logError("Failed to read data from locale unit: {}", e.what());
+        LOG_ERROR(logRoot, "Failed to read data from locale unit: {}", e.what());
         g_set_error(error, ASC_COMPOSE_ERROR, ASC_COMPOSE_ERROR_FAILED, "Failed to read data: %s", e.what());
         return nullptr;
     }

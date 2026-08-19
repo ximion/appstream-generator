@@ -221,14 +221,15 @@ IconHandler::IconHandler(
     const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
     const std::string &iconTheme,
     const std::string &extraPrefix)
-    : m_mediaExportPath(mediaPath),
+    : m_log(getLogger("iconhandler")),
+      m_mediaExportPath(mediaPath),
       m_iconPolicy(nullptr),
       m_defaultIconSize(64),
       m_defaultIconState(ASC_ICON_STATE_IGNORED),
       m_allowIconUpscaling(false),
       m_allowRemoteIcons(false)
 {
-    logDebug("Creating new IconHandler");
+    LOG_DEBUG(m_log, "Creating new IconHandler");
     auto &conf = Config::get();
 
     m_iconFiles.clear();
@@ -356,10 +357,11 @@ IconHandler::IconHandler(
     // hicolor theme definition. Since we always need it to be there to properly process icons,
     // we inject our own copy here.
     if (tmpThemes.find("hicolor") == tmpThemes.end()) {
-        logInfo("No packaged hicolor icon theme found, using built-in one.");
+        LOG_INFO(m_log, "No packaged hicolor icon theme found, using built-in one.");
         auto hicolorThemeIndex = Utils::getDataPath("hicolor-theme-index.theme");
         if (!fs::exists(hicolorThemeIndex)) {
-            logError(
+            LOG_ERROR(
+                m_log,
                 "Hicolor icon theme index at '{}' was not found! We will not be able to handle icons in this theme.",
                 hicolorThemeIndex.string());
         } else {
@@ -389,7 +391,7 @@ IconHandler::IconHandler(
             m_themes.push_back(std::move(it->second));
     }
 
-    logDebug("Created new IconHandler.");
+    LOG_DEBUG(m_log, "Created new IconHandler.");
 }
 
 IconHandler::~IconHandler()
@@ -831,7 +833,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
     auto cptMediaPath = m_mediaExportPath / gcid;
 
     if (iconName.starts_with("/")) {
-        logDebug("Looking for icon '{}' for '{}::{}' (path)", iconName, gres.pkid(), as_component_get_id(cpt));
+        LOG_DEBUG(m_log, "Looking for icon '{}' for '{}::{}' (path)", iconName, gres.pkid(), as_component_get_id(cpt));
 
         const auto &contents = gres.getPackage()->contents();
         if (std::ranges::find(contents, iconName) != contents.end()) {
@@ -848,7 +850,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
         });
         return false;
     } else {
-        logDebug("Looking for icon '{}' for '{}::{}' (XDG)", iconName, gres.pkid(), as_component_get_id(cpt));
+        LOG_DEBUG(m_log, "Looking for icon '{}' for '{}::{}' (XDG)", iconName, gres.pkid(), as_component_get_id(cpt));
 
         iconName = fs::path(iconName).filename();
 
@@ -921,7 +923,8 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
             // by the AppStream spec by downscaling a larger icon that we
             // might have found.
             if (iconsStored.find(ImageSize(64)) != iconsStored.end()) {
-                logDebug("Found icon {} - {} in XDG directories, 64x64px size is present", gres.pkid(), iconName);
+                LOG_DEBUG(
+                    m_log, "Found icon {} - {} in XDG directories, 64x64px size is present", gres.pkid(), iconName);
                 return true;
             } else {
                 for (const auto &size : m_enabledIconSizes) {
@@ -930,7 +933,8 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
                         continue;
                     if (size < ImageSize(64))
                         continue;
-                    logInfo(
+                    LOG_INFO(
+                        m_log,
                         "Downscaling icon {} - {} from {} to {}",
                         gres.pkid(),
                         iconName,
@@ -958,7 +962,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
         }
 
         if (success) {
-            logDebug("Icon {} - {} found in XDG dirs", gres.pkid(), iconName);
+            LOG_DEBUG(m_log, "Icon {} - {} found in XDG dirs", gres.pkid(), iconName);
 
             // we found a valid stock icon, so set that additionally to the cached one
             g_autoptr(AsIcon) icon = as_icon_new();
@@ -968,7 +972,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
 
             return true;
         } else {
-            logDebug("Icon {} - {} not found in required size(s) in XDG dirs", gres.pkid(), iconName);
+            LOG_DEBUG(m_log, "Icon {} - {} not found in required size(s) in XDG dirs", gres.pkid(), iconName);
 
             if (!lastIconName.empty() && !iconAllowed(lastIconName)) {
                 gres.addHint(

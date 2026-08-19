@@ -46,7 +46,8 @@ DataExtractor::DataExtractor(
     AsgLocaleUnit *localeUnit,
     std::shared_ptr<InjectedModifications> modInjInfo,
     const std::string &prefix)
-    : m_compose(nullptr),
+    : m_log(getLogger("extractor")),
+      m_compose(nullptr),
       m_dstore(std::move(db)),
       m_iconh(std::move(iconHandler)),
       m_modInj(std::move(modInjInfo)),
@@ -160,8 +161,10 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cu
         auto gcid = asc_result_gcid_for_component(cres, cpt);
 
         if (gcid == nullptr) {
-            logWarning(
-                "Component {} has no global ID, skipping intermediate metadata check.", as_component_get_id(cpt));
+            LOG_WARNING(
+                self->m_log,
+                "Component {} has no global ID, skipping intermediate metadata check.",
+                as_component_get_id(cpt));
             continue;
         }
 

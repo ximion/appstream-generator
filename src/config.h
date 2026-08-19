@@ -28,6 +28,7 @@
 
 #include <appstream.h>
 
+#include "logging.h"
 #include "utils.h"
 
 typedef struct _AscIconPolicy AscIconPolicy;
@@ -163,6 +164,7 @@ public:
     Config &operator=(const Config &) = delete;
 
 private:
+    quill::Logger *m_log;
     static std::unique_ptr<Config> instance_;
     static std::once_flag initialized_;
     Config();

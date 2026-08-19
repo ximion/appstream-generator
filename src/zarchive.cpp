@@ -157,7 +157,7 @@ ArchiveDecompressor::~ArchiveDecompressor()
     try {
         close();
     } catch (const std::exception &e) {
-        std::cerr << "**BUG**: Unexpected exception when deleting ArchiveDecompressor: " << e.what() << std::endl;
+        LOG_CRITICAL(logRoot, "**BUG**: Unexpected exception when deleting ArchiveDecompressor: {}", e.what());
     }
 }
 
@@ -204,7 +204,8 @@ bool ArchiveDecompressor::tmpExtractIfPossible()
 
     // Extract archive fully
     const auto p = fs::relative(m_archiveFname, m_tmpDir);
-    logDebug(
+    LOG_DEBUG(
+        logRoot,
         "Extracting archive '{}' to temporary directory '{}'",
         (p.parent_path().filename() / p.filename()).string(),
         m_tmpDir.string());
@@ -220,7 +221,7 @@ void ArchiveDecompressor::cleanupTempDirectory()
         try {
             fs::remove_all(m_tmpDir);
         } catch (const fs::filesystem_error &e) {
-            logError("Failed to cleanup temporary directory '{}': {}", m_tmpDir.string(), e.what());
+            LOG_ERROR(logRoot, "Failed to cleanup temporary directory '{}': {}", m_tmpDir.string(), e.what());
         }
         m_tmpDirOwned = false;
     }
@@ -322,7 +323,8 @@ bool ArchiveDecompressor::extractFileTo(const std::string &fname, const std::str
 
             return true;
         } catch (const fs::filesystem_error &e) {
-            logError("Failed to copy extracted file '{}' to '{}': {}", extractedPath.string(), fdest, e.what());
+            LOG_ERROR(
+                logRoot, "Failed to copy extracted file '{}' to '{}': {}", extractedPath.string(), fdest, e.what());
             return false;
         }
     }
@@ -373,8 +375,12 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
             try {
                 fs::create_hard_link(targetPath, linkPath);
             } catch (const fs::filesystem_error &e) {
-                logError(
-                    "Failed to create hardlink '{}' -> '{}': {}", linkPath.string(), targetPath.string(), e.what());
+                LOG_ERROR(
+                    logRoot,
+                    "Failed to create hardlink '{}' -> '{}': {}",
+                    linkPath.string(),
+                    targetPath.string(),
+                    e.what());
             }
             continue;
         }
@@ -392,7 +398,7 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
                     // Create symbolic link
                     fs::create_symlink(linkTarget, pathname);
                 } catch (const fs::filesystem_error &e) {
-                    logError("Failed to create symlink '{}' -> '{}': {}", pathname, linkTarget, e.what());
+                    LOG_ERROR(logRoot, "Failed to create symlink '{}' -> '{}': {}", pathname, linkTarget, e.what());
                 }
             }
         }
@@ -446,7 +452,7 @@ std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
                 try {
                     return readData(linkTargetStr);
                 } catch (const std::exception &e) {
-                    logError("Unable to read destination data of symlink in archive: {}", e.what());
+                    LOG_ERROR(logRoot, "Unable to read destination data of symlink in archive: {}", e.what());
                     return {};
                 }
             }
@@ -460,7 +466,7 @@ std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
                     try {
                         return readData(hardlinkTargetStr);
                     } catch (const std::exception &e) {
-                        logError("Unable to read data of hardlink target in archive: {}", e.what());
+                        LOG_ERROR(logRoot, "Unable to read data of hardlink target in archive: {}", e.what());
                         return {};
                     }
                 }
@@ -471,7 +477,7 @@ std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
                 // we really don't want to extract special files from a tarball - usually, those shouldn't
                 // be present anyway.
                 // This should probably be an error, but return nothing for now.
-                logError("Tried to extract non-regular file '{}' from the archive", fname);
+                LOG_ERROR(logRoot, "Tried to extract non-regular file '{}' from the archive", fname);
                 return {};
             }
 
@@ -670,7 +676,7 @@ void ArchiveCompressor::addFile(const std::string &fname, const std::optional<st
 
     struct stat st;
     if (lstat(fname.c_str(), &st) != 0)
-        logWarning("Unable to stat file '{}': {}", fname, std::strerror(errno));
+        LOG_WARNING(logRoot, "Unable to stat file '{}': {}", fname, std::strerror(errno));
 
     archive_entry_set_pathname(entry.get(), destName.c_str());
     archive_entry_set_size(entry.get(), st.st_size);

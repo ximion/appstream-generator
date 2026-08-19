@@ -140,7 +140,7 @@ std::string GeneratorResult::hintsToJson() const
     // Create the root document
     auto doc = Yaml::createDocument();
     if (!doc) {
-        logError("Failed to create YAML document for hints");
+        LOG_ERROR(logRoot, "Failed to create YAML document for hints");
         return "";
     }
 

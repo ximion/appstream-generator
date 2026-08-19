@@ -33,7 +33,8 @@ namespace ASGenerator
 {
 
 InjectedModifications::InjectedModifications()
-    : m_hasRemovedCpts(false),
+    : m_log(getLogger("cptmods")),
+      m_hasRemovedCpts(false),
       m_hasInjectedCustom(false)
 {
 }
@@ -59,7 +60,7 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
     if (!fs::exists(fname))
         return;
 
-    logInfo("Using repo-level modifications for {} (via modifications.json)", suite->name);
+    LOG_INFO(m_log, "Using repo-level modifications for {} (via modifications.json)", suite->name);
 
     // Read the JSON file
     std::ifstream file(fname);
@@ -78,7 +79,7 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
     // Process InjectCustom section
     auto injectCustomNode = fy_node_mapping_lookup_by_string(root, "InjectCustom", FY_NT);
     if (injectCustomNode && fy_node_get_type(injectCustomNode) == FYNT_MAPPING) {
-        logDebug("Using injected custom entries from {}", fname.string());
+        LOG_DEBUG(m_log, "Using injected custom entries from {}", fname.string());
 
         fy_node_pair *pair;
         void *iter = nullptr;
@@ -122,7 +123,7 @@ void InjectedModifications::loadForSuite(std::shared_ptr<Suite> suite)
     // Process Remove section
     fy_node *removeNode = fy_node_mapping_lookup_by_string(root, "Remove", FY_NT);
     if (removeNode && fy_node_get_type(removeNode) == FYNT_SEQUENCE) {
-        logDebug("Using package removal info from {}", fname.string());
+        LOG_DEBUG(m_log, "Using package removal info from {}", fname.string());
 
         fy_node *cidNode;
         void *iter = nullptr;

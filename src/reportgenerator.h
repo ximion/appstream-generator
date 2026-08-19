@@ -108,6 +108,7 @@ public:
     void saveStatistics(const std::string &suiteName, const std::string &section, const DataSummary &dsum);
 
 private:
+    quill::Logger *m_log;
     DataStore *m_dstore;
     Config *m_conf;
 

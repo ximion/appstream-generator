@@ -28,6 +28,7 @@
 #include <tbb/task_arena.h>
 
 #include "config.h"
+#include "logging.h"
 #include "datastore.h"
 #include "contentsstore.h"
 #include "backends/interfaces.h"
@@ -112,6 +113,7 @@ public:
 
 private:
     Config *m_conf;
+    quill::Logger *m_log;
     std::unique_ptr<PackageIndex> m_pkgIndex;
     std::shared_ptr<DataStore> m_dstore;
     std::shared_ptr<ContentsStore> m_cstore;

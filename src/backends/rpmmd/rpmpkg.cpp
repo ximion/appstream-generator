@@ -158,7 +158,7 @@ void RPMPackage::finish()
         }
     } catch (const std::exception &e) {
         // we ignore any error
-        logDebug("Unable to remove temporary package: {} ({})", m_localPkgFname.string(), e.what());
+        LOG_DEBUG(logBackend, "Unable to remove temporary package: {} ({})", m_localPkgFname.string(), e.what());
     }
 }
 

@@ -48,18 +48,18 @@ FreeBSDPackage *FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
     }
 
     if (ret->m_pkgFname.empty()) {
-        logError("Working dir '{}' does not contain any packages under pkg/", workDir);
+        LOG_ERROR(logBackend, "Working dir '{}' does not contain any packages under pkg/", workDir);
         return nullptr;
     }
 
     if (count > 1) {
-        logError("Multiple packages found, but subpackages are not supported");
+        LOG_ERROR(logBackend, "Multiple packages found, but subpackages are not supported");
         return nullptr;
     }
 
     ret->m_stageDir = fs::path(workDir) / "stage";
     if (!fs::exists(ret->m_stageDir) || !fs::is_directory(ret->m_stageDir)) {
-        logError("Stage dir '{}' does not exist or is not a directory", ret->m_stageDir.string());
+        LOG_ERROR(logBackend, "Stage dir '{}' does not exist or is not a directory", ret->m_stageDir.string());
         return nullptr;
     }
 
@@ -73,12 +73,13 @@ FreeBSDPackage *FreeBSDPackage::CreateFromWorkdir(const std::string &workDir)
     try {
         dataJson = nlohmann::json::parse(jsonString);
     } catch (const std::exception &e) {
-        logError("Failed to parse JSON from '{}' (+COMPACT_MANIFEST): {}", ret->m_pkgFname.string(), e.what());
+        LOG_ERROR(
+            logBackend, "Failed to parse JSON from '{}' (+COMPACT_MANIFEST): {}", ret->m_pkgFname.string(), e.what());
         return nullptr;
     }
 
     if (!dataJson.is_object()) {
-        logError("JSON from '{}' (+COMPACT_MANIFEST) is not an object.", ret->m_pkgFname.string());
+        LOG_ERROR(logBackend, "JSON from '{}' (+COMPACT_MANIFEST) is not an object.", ret->m_pkgFname.string());
         return nullptr;
     }
 

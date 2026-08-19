@@ -48,7 +48,7 @@ LanguagePackProvider::LanguagePackProvider(const fs::path &globalTmpDir)
     if (localedefExe)
         m_localedefExe = localedefExe;
     if (m_localedefExe.empty())
-        logWarning("localedef executable not found in PATH");
+        LOG_WARNING(logBackend, "localedef executable not found in PATH");
 }
 
 void LanguagePackProvider::addLanguagePacks(const std::vector<std::shared_ptr<UbuntuPackage>> &langpacks)
@@ -76,7 +76,7 @@ void LanguagePackProvider::extractLangpacks()
         if (extracted.contains(pkg->name()))
             continue;
 
-        logDebug("Extracting {}", pkg->name());
+        LOG_DEBUG(logBackend, "Extracting {}", pkg->name());
         pkg->extractPackage(m_langpackDir);
         extracted.insert(pkg->name());
     }
@@ -84,7 +84,7 @@ void LanguagePackProvider::extractLangpacks()
     fs::create_directories(m_localeDir);
 
     if (extracted.empty()) {
-        logWarning("We have extracted no language packs for this repository!");
+        LOG_WARNING(logBackend, "We have extracted no language packs for this repository!");
         m_langpackLocales.clear();
         m_langpacks.clear();
         return;
@@ -93,7 +93,7 @@ void LanguagePackProvider::extractLangpacks()
     // Process supported locales
     const auto supportedDir = m_langpackDir / "var" / "lib" / "locales" / "supported.d";
     if (!fs::exists(supportedDir)) {
-        logWarning("No supported locales directory found in language packs");
+        LOG_WARNING(logBackend, "No supported locales directory found in language packs");
         return;
     }
 
@@ -128,10 +128,11 @@ void LanguagePackProvider::extractLangpacks()
 
                     const auto outdir = fs::path(m_localeDir) / components[0];
                     if (m_localedefExe.empty()) {
-                        logWarning("Not generating locale {}: The localedef binary is missing.", components[0]);
+                        LOG_WARNING(
+                            logBackend, "Not generating locale {}: The localedef binary is missing.", components[0]);
                         continue;
                     }
-                    logDebug("Generating locale in {}", outdir.string());
+                    LOG_DEBUG(logBackend, "Generating locale in {}", outdir.string());
 
                     // Execute localedef to generate locale
                     std::vector<std::string> args = {
@@ -168,10 +169,14 @@ void LanguagePackProvider::extractLangpacks()
 
                     if (!success || exit_status != 0) {
                         if (error)
-                            logDebug(
-                                "Failed to generate locale for {}: {}", components[0], std::string{error->message});
+                            LOG_DEBUG(
+                                logBackend,
+                                "Failed to generate locale for {}: {}",
+                                components[0],
+                                std::string{error->message});
                         else
-                            logDebug(
+                            LOG_DEBUG(
+                                logBackend,
                                 "Failed to generate locale for {} (exit status: {})",
                                 components[0],
                                 static_cast<int>(exit_status));
@@ -302,7 +307,7 @@ std::unordered_map<std::string, std::string> UbuntuPackage::getDesktopFileTransl
     }
 
     langpackDomain = domain;
-    logDebug("{} has langpack domain {}", name(), langpackDomain);
+    LOG_DEBUG(logBackend, "{} has langpack domain {}", name(), langpackDomain);
     return m_langpackProvider->getTranslations(langpackDomain, text);
 }
 

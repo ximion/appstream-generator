@@ -3,6 +3,7 @@
 tests_misc = executable(
     'tests-misc',
     'tests-misc.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -12,6 +13,7 @@ test('Miscellaneous', tests_misc)
 tests_db = executable(
     'tests-db',
     'tests-db.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -21,6 +23,7 @@ test('Databases', tests_db)
 tests_net = executable(
     'tests-net',
     'tests-net.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -30,6 +33,7 @@ test('Network', tests_net, args: ['--allow-running-no-tests'])
 tests_report = executable(
     'tests-report',
     'tests-report.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -39,6 +43,7 @@ test('ReportGenerator', tests_report)
 tests_icons = executable(
     'tests-icons',
     'tests-icons.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -48,6 +53,7 @@ test('IconHandler', tests_icons)
 tests_engine = executable(
     'tests-engine',
     'tests-engine.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -57,6 +63,7 @@ test('Engine', tests_engine)
 tests_backend_debian = executable(
     'tests-backend-debian',
     'tests-backend-debian.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )
@@ -66,6 +73,7 @@ test('Backend - Debian', tests_backend_debian)
 tests_backend_misc = executable(
     'tests-backend-misc',
     'tests-backend-misc.cpp',
+    'test-setup.cpp',
     dependencies: [catch2_dep, asgen_lib_dep],
     include_directories: [src_dir],
 )

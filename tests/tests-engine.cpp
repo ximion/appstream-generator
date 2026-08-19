@@ -4,25 +4,16 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 
 #include <filesystem>
 #include <string>
 
-#include "logging.h"
 #include "utils.h"
 #include "config.h"
 #include "engine.h"
 
 using namespace ASGenerator;
-
-static struct TestSetup {
-    TestSetup()
-    {
-        setVerbose(true);
-    }
-} testSetup;
 
 TEST_CASE("Engine with test data", "[engine][integration]")
 {

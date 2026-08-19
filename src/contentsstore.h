@@ -26,6 +26,8 @@
 #include <mutex>
 #include <lmdb.h>
 
+#include "logging.h"
+
 namespace ASGenerator
 {
 
@@ -79,6 +81,7 @@ public:
     ContentsStore &operator=(const ContentsStore &) = delete;
 
 private:
+    quill::Logger *m_log;
     MDB_env *dbEnv;
     MDB_dbi dbContents{0};
     MDB_dbi dbIcons{0};

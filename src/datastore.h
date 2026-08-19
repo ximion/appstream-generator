@@ -31,6 +31,7 @@
 #include <appstream.h>
 #include <lmdb.h>
 
+#include "logging.h"
 #include "config.h"
 
 namespace ASGenerator
@@ -235,6 +236,7 @@ public:
     std::vector<std::string> getPkidsMatching(const std::string &prefix);
 
 private:
+    quill::Logger *m_log;
     MDB_env *m_dbEnv;
     MDB_dbi m_dbRepoInfo;
     MDB_dbi m_dbPackages;

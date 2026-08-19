@@ -102,6 +102,11 @@ std::string Package::toString() const
     return id();
 }
 
+PackageIndex::PackageIndex(const std::string &name)
+    : m_log(getLogger(name))
+{
+}
+
 std::string PackageIndex::dataPrefix() const
 {
     return "/usr";

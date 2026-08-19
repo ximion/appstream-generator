@@ -25,6 +25,8 @@
 #include <chrono>
 #include <cstdint>
 
+#include "logging.h"
+
 namespace ASGenerator
 {
 
@@ -93,6 +95,7 @@ public:
     std::vector<std::string> downloadTextLines(const std::string &url, std::uint32_t maxTryCount = 4);
 
 private:
+    quill::Logger *m_log;
     const std::string userAgent;
     const std::string caInfo;
 

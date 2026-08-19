@@ -293,7 +293,7 @@ const std::vector<std::string> &DebPackage::contents()
     try {
         md5sumsData = ca.readData("./md5sums");
     } catch (const std::exception &e) {
-        logWarning("Could not read md5sums file for package {}: {}", id(), e.what());
+        LOG_WARNING(logBackend, "Could not read md5sums file for package {}: {}", id(), e.what());
         return m_contentsL;
     }
 
@@ -330,7 +330,7 @@ std::unique_ptr<TagFile> DebPackage::readControlInformation()
     try {
         controlData = ca.readData("./control");
     } catch (const std::exception &e) {
-        logError("Could not read control file for package {}: {}", id(), e.what());
+        LOG_ERROR(logBackend, "Could not read control file for package {}: {}", id(), e.what());
         return nullptr;
     }
 
@@ -363,7 +363,7 @@ void DebPackage::cleanupTemp()
         }
     } catch (const std::exception &e) {
         // we ignore any error
-        logWarning("Unable to remove temporary directory: {} ({})", m_tmpDir.string(), e.what());
+        LOG_WARNING(logBackend, "Unable to remove temporary directory: {} ({})", m_tmpDir.string(), e.what());
     }
 }
 

@@ -24,7 +24,6 @@
 #include <format>
 
 #include "../../utils.h"
-#include "../../logging.h"
 
 namespace fs = std::filesystem;
 

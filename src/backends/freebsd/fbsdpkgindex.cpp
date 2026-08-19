@@ -34,7 +34,8 @@ namespace ASGenerator
 {
 
 FreeBSDPackageIndex::FreeBSDPackageIndex(const std::string &dir)
-    : m_rootDir(dir)
+    : PackageIndex("freebsd"),
+      m_rootDir(dir)
 {
     if (!fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
@@ -65,7 +66,7 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
     std::string dataFname;
 
     if (!fs::exists(metaFname)) {
-        logError("Metadata file '{}' does not exist.", metaFname.string());
+        LOG_ERROR(m_log, "Metadata file '{}' does not exist.", metaFname.string());
         return {};
     }
 
@@ -85,13 +86,13 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
 
     const auto dataTarFname = repoRoot / (dataFname + ".pkg");
     if (!fs::exists(dataTarFname)) {
-        logError("Package lists file '{}' does not exist.", dataTarFname.string());
+        LOG_ERROR(m_log, "Package lists file '{}' does not exist.", dataTarFname.string());
         return {};
     }
 
     ArchiveDecompressor ad;
     ad.open(dataTarFname.string());
-    logDebug("Opened: {}", dataTarFname.string());
+    LOG_DEBUG(m_log, "Opened: {}", dataTarFname.string());
 
     const auto jsonData = ad.readData(dataFname);
     const std::string jsonString(jsonData.begin(), jsonData.end());
@@ -100,12 +101,12 @@ std::vector<std::shared_ptr<Package>> FreeBSDPackageIndex::loadPackages(
     try {
         dataJson = nlohmann::json::parse(jsonString);
     } catch (const std::exception &e) {
-        logError("Failed to parse JSON from '{}': {}", dataTarFname.string(), e.what());
+        LOG_ERROR(m_log, "Failed to parse JSON from '{}': {}", dataTarFname.string(), e.what());
         return {};
     }
 
     if (!dataJson.is_object()) {
-        logError("JSON from '{}' is not an object.", dataTarFname.string());
+        LOG_ERROR(m_log, "JSON from '{}' is not an object.", dataTarFname.string());
         return {};
     }
 
@@ -150,7 +151,7 @@ std::shared_ptr<Package> FreeBSDPackageIndex::packageForFile(
     const std::string &section)
 {
     if (!fs::exists(fname) || !fs::is_directory(fname)) {
-        logError("Path '{}' does not exist or is not a directory", fname);
+        LOG_ERROR(m_log, "Path '{}' does not exist or is not a directory", fname);
         return nullptr;
     }
 

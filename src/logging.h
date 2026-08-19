@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -20,84 +20,50 @@
 #pragma once
 
 #include <string>
-#include <string_view>
-#include <format>
+
+#include <quill/LogMacros.h>
+#include <quill/Logger.h>
 
 namespace ASGenerator
 {
 
-enum class LogSeverity {
-    DEBUG,
-    INFO,
-    WARNING,
-    ERROR
-};
+using QuillLogger = quill::Logger;
 
-void setVerbose(bool verbose) noexcept;
-bool isVerbose() noexcept;
+#define logRoot ::ASGenerator::getDefaultLogger()
 
-constexpr std::string_view logSeverityToString(LogSeverity severity) noexcept;
+quill::Logger *getLogger(const std::string &name);
+quill::Logger *getLogger(const char *name);
 
-// Base logging function that handles the actual output
-void logMessageImpl(LogSeverity severity, const std::string &message);
-
-template<typename... Args>
-void logMessage(LogSeverity severity, std::string_view fmt, Args &&...args)
+/**
+ * Retrieve the default ("root") logger.
+ */
+inline quill::Logger *getDefaultLogger()
 {
-    std::string formatted_msg;
-    if constexpr (sizeof...(Args) > 0)
-        formatted_msg = std::vformat(fmt, std::make_format_args(args...));
-    else
-        formatted_msg = std::string{fmt};
-    logMessageImpl(severity, formatted_msg);
+    static quill::Logger *const rootLogger = getLogger("root");
+    return rootLogger;
 }
 
-template<typename... Args>
-inline void logDebug(std::string_view fmt, Args &&...args)
-{
-    if (isVerbose())
-        logMessage(LogSeverity::DEBUG, fmt, std::forward<Args>(args)...);
-}
+/**
+ * Remove a logger explicitly. Should usually not be needed.
+ */
+void removeLogger(quill::Logger *logger);
 
-template<typename... Args>
-inline void logInfo(std::string_view fmt, Args &&...args)
-{
-    logMessage(LogSeverity::INFO, fmt, std::forward<Args>(args)...);
-}
+/**
+ * Initialize the logging system. Must only ever be called once, at program startup,
+ * before any logger is requested.
+ */
+void initializeLogging(quill::LogLevel consoleLogLevel = quill::LogLevel::Info);
 
-template<typename... Args>
-inline void logWarning(std::string_view fmt, Args &&...args)
-{
-    logMessage(LogSeverity::WARNING, fmt, std::forward<Args>(args)...);
-}
+/**
+ * Shut the logging system down and flush all pending messages.
+ * Must be called last in a program, as logging is not possible afterwards.
+ */
+void shutdownLogging();
 
-template<typename... Args>
-inline void logError(std::string_view fmt, Args &&...args)
-{
-    logMessage(LogSeverity::ERROR, fmt, std::forward<Args>(args)...);
-}
-
-// Convenience overloads for simple string messages (no template arguments)
-inline void logDebug(std::string_view msg)
-{
-    if (isVerbose())
-        logMessageImpl(LogSeverity::DEBUG, std::string{msg});
-}
-
-inline void logInfo(std::string_view msg)
-{
-    logMessageImpl(LogSeverity::INFO, std::string{msg});
-}
-
-inline void logWarning(std::string_view msg)
-{
-    logMessageImpl(LogSeverity::WARNING, std::string{msg});
-}
-
-inline void logError(std::string_view msg)
-{
-    logMessageImpl(LogSeverity::ERROR, std::string{msg});
-}
+/**
+ * Block until all pending log messages have been written out.
+ */
+void flushLogs();
 
 /**
  * Print a header box with the given title to stdout.

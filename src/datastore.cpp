@@ -134,7 +134,8 @@ static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::v
 }
 
 DataStore::DataStore()
-    : m_dbEnv(nullptr),
+    : m_log(getLogger("datastore")),
+      m_dbEnv(nullptr),
       m_dbRepoInfo(0),
       m_dbPackages(0),
       m_dbDataXml(0),
@@ -172,7 +173,7 @@ void DataStore::printVersionDbg()
 {
     int major, minor, patch;
     const char *ver = mdb_version(&major, &minor, &patch);
-    logDebug("Using {} major={} minor={} patch={}", ver, major, minor, patch);
+    LOG_DEBUG(m_log, "Using {} major={} minor={} patch={}", ver, major, minor, patch);
 }
 
 void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
@@ -651,7 +652,7 @@ void DataStore::dropOrphanedData(MDB_dbi dbi, const std::unordered_set<std::stri
             // if we got here, the component is cruft and can be removed
             res = mdb_cursor_del(cur, 0);
             checkError(res, "mdb_del");
-            logInfo("Marked {} as cruft.", gcid);
+            LOG_INFO(m_log, "Marked {} as cruft.", gcid);
         }
 
         mdb_cursor_close(cur);
@@ -681,7 +682,7 @@ void DataStore::cleanupDirs(const std::string &rootPath)
 void DataStore::cleanupCruft()
 {
     if (m_mediaDir.empty()) {
-        logError("Can not clean up cruft: No media directory is set.");
+        LOG_ERROR(m_log, "Can not clean up cruft: No media directory is set.");
         return;
     }
 
@@ -696,7 +697,7 @@ void DataStore::cleanupCruft()
 
     const auto mdirLen = m_mediaDir.string().length();
     if (!fs::exists(m_mediaDir)) {
-        logInfo("Media directory '{}' does not exist.", m_mediaDir.string());
+        LOG_INFO(m_log, "Media directory '{}' does not exist.", m_mediaDir.string());
         return;
     }
 
@@ -720,7 +721,7 @@ void DataStore::cleanupCruft()
             dirsToProcess.push_back(path);
         }
     } catch (const fs::filesystem_error &e) {
-        logWarning("Error while scanning media directory: {}", e.what());
+        LOG_WARNING(m_log, "Error while scanning media directory: {}", e.what());
         return;
     }
 
@@ -756,7 +757,7 @@ void DataStore::cleanupCruft()
             }
         }
 
-        logInfo("Expired media for '{}'", gcid);
+        LOG_INFO(m_log, "Expired media for '{}'", gcid);
     }
 }
 
@@ -803,7 +804,7 @@ void DataStore::removePackages(const std::unordered_set<std::string> &pkidSet)
             if (res != MDB_NOTFOUND)
                 checkError(res, "mdb_del (hints)");
 
-            logInfo("Dropped package {}", pkid);
+            LOG_INFO(m_log, "Dropped package {}", pkid);
         }
 
         commitTransaction(txn);
@@ -879,7 +880,7 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
         stats.reserve(256);
         while (mdb_cursor_get(cur, &dkey, &dval, MDB_NEXT) == 0) {
             if (dkey.mv_size != sizeof(std::int64_t)) {
-                logWarning("Skipping statistics entry with invalid key size: {}", dkey.mv_size);
+                LOG_WARNING(m_log, "Skipping statistics entry with invalid key size: {}", dkey.mv_size);
                 continue;
             }
             std::int64_t keyTimeRaw = 0;
@@ -898,7 +899,7 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
                 auto entry = deserializeStatsEntry(timestamp, binaryData);
                 stats.push_back(std::move(entry));
             } catch (const std::exception &e) {
-                logWarning("Failed to deserialize statistics entry: {}", e.what());
+                LOG_WARNING(m_log, "Failed to deserialize statistics entry: {}", e.what());
                 continue;
             }
         }
@@ -952,7 +953,7 @@ void DataStore::addStatistics(const StatisticsEntry &stats)
         if (res == MDB_KEYEXIST) {
             // this point in time already exists, but we do not allow overriding data - so we lie and shift
             // the timestamp one second forward in time, to get a free slot
-            logWarning("Statistics entry for timestamp {} already exists, skipping a second", stats.time);
+            LOG_WARNING(m_log, "Statistics entry for timestamp {} already exists, skipping a second", stats.time);
 
             quitTransaction(txn);
 
@@ -986,14 +987,14 @@ RepoInfo DataStore::getRepoInfo(const std::string &suite, const std::string &sec
     if (binaryData.empty())
         return RepoInfo{};
     if (static_cast<uint8_t>(binaryData[0]) == 1) {
-        logDebug("Ignoring legacy binary repository info entry for {}", repoid);
+        LOG_DEBUG(m_log, "Ignoring legacy binary repository info entry for {}", repoid);
         return RepoInfo{};
     }
 
     try {
         return RepoInfo::deserialize(binaryData);
     } catch (const std::exception &e) {
-        logWarning("Failed to deserialize repository info for {}: {}", repoid, e.what());
+        LOG_WARNING(m_log, "Failed to deserialize repository info for {}: {}", repoid, e.what());
         return RepoInfo{};
     }
 }

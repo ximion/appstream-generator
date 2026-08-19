@@ -24,6 +24,7 @@
 #include <glib.h>
 
 #include "config.h"
+#include "logging.h"
 #include "datastore.h"
 #include "iconhandler.h"
 #include "result.h"
@@ -62,6 +63,7 @@ public:
 
 private:
     Config *m_conf;
+    quill::Logger *m_log;
     AscCompose *m_compose;
     DataType m_dtype;
     std::shared_ptr<DataStore> m_dstore;

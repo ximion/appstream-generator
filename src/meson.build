@@ -66,6 +66,7 @@ asgen_deps = [
   nljson_dep,
   inja_dep,
   libxml2_dep,
+  quill_dep,
 ]
 
 asgen_args = [

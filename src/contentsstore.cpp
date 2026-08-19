@@ -36,7 +36,8 @@ namespace ASGenerator
 {
 
 ContentsStore::ContentsStore(const std::string &prefixPath)
-    : dbEnv(nullptr),
+    : m_log(getLogger("contentsstore")),
+      dbEnv(nullptr),
       m_opened(false)
 {
     // we always want the default icon locations to be searched
@@ -72,7 +73,7 @@ void ContentsStore::open(const std::string &dir)
     if (m_opened)
         throw std::runtime_error("ContentsStore was already opened.");
 
-    logDebug("Opening contents cache.");
+    LOG_DEBUG(m_log, "Opening contents cache.");
 
     // ensure the cache directory exists
     fs::create_directories(dir);

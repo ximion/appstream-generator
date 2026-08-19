@@ -19,7 +19,6 @@
 
 #include "alpkg.h"
 
-#include "../../logging.h"
 #include "../../zarchive.h"
 
 namespace ASGenerator

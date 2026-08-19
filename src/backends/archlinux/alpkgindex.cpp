@@ -30,7 +30,8 @@ namespace ASGenerator
 {
 
 ArchPackageIndex::ArchPackageIndex(const std::string &dir)
-    : m_rootDir(dir)
+    : PackageIndex("archlinux"),
+      m_rootDir(dir)
 {
     if (!fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
@@ -59,13 +60,13 @@ std::vector<std::shared_ptr<ArchPackage>> ArchPackageIndex::loadPackages(
     const auto listsTarFname = pkgRoot / std::format("{}.files.tar.gz", section);
 
     if (!fs::exists(listsTarFname)) {
-        logWarning("Package lists tarball '{}' does not exist.", listsTarFname.string());
+        LOG_WARNING(m_log, "Package lists tarball '{}' does not exist.", listsTarFname.string());
         return {};
     }
 
     ArchiveDecompressor ad;
     ad.open(listsTarFname.string());
-    logDebug("Opened: {}", listsTarFname.string());
+    LOG_DEBUG(m_log, "Opened: {}", listsTarFname.string());
 
     std::unordered_map<std::string, std::shared_ptr<ArchPackage>> pkgsMap;
 
@@ -120,7 +121,7 @@ std::vector<std::shared_ptr<ArchPackage>> ArchPackageIndex::loadPackages(
     result.reserve(pkgsMap.size());
     for (const auto &[pkgId, pkg] : pkgsMap) {
         if (!pkg->isValid()) {
-            logWarning("Found invalid package ({})! Skipping it.", pkg->toString());
+            LOG_WARNING(m_log, "Found invalid package ({})! Skipping it.", pkg->toString());
             continue;
         }
         result.push_back(pkg);

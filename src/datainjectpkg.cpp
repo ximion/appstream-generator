@@ -151,10 +151,10 @@ const std::vector<std::string> &DataInjectPackage::contents()
                 }
             }
         } catch (const fs::filesystem_error &e) {
-            logError("Error scanning icon directory '{}': {}", iconLocation.string(), e.what());
+            LOG_ERROR(logRoot, "Error scanning icon directory '{}': {}", iconLocation.string(), e.what());
         }
     } else {
-        logInfo("No icons found in '{}' for injected metadata.", iconLocation.string());
+        LOG_INFO(logRoot, "No icons found in '{}' for injected metadata.", iconLocation.string());
     }
 
     // find metainfo files
@@ -165,14 +165,14 @@ const std::vector<std::string> &DataInjectPackage::contents()
                     const auto &miFname = entry.path();
                     if (miFname.extension() == ".xml") {
                         const auto miBasename = miFname.filename().string();
-                        logDebug("Found injected metainfo [{}]: {}", "all", miBasename);
+                        LOG_DEBUG(logRoot, "Found injected metainfo [{}]: {}", "all", miBasename);
                         const auto fakePath = std::format("{}/share/metainfo/{}", m_fakePrefix, miBasename);
                         m_contents[fakePath] = miFname.string();
                     }
                 }
             }
         } catch (const fs::filesystem_error &e) {
-            logError("Error scanning metainfo directory '{}': {}", m_dataLocation, e.what());
+            LOG_ERROR(logRoot, "Error scanning metainfo directory '{}': {}", m_dataLocation, e.what());
         }
     }
 
@@ -189,9 +189,10 @@ const std::vector<std::string> &DataInjectPackage::contents()
                     const auto fakePath = std::format("{}/share/metainfo/{}", m_fakePrefix, miBasename);
 
                     if (m_contents.find(fakePath) != m_contents.end()) {
-                        logDebug("Found injected metainfo [{}]: {} (replacing generic one)", arch(), miBasename);
+                        LOG_DEBUG(
+                            logRoot, "Found injected metainfo [{}]: {} (replacing generic one)", arch(), miBasename);
                     } else {
-                        logDebug("Found injected metainfo [{}]: {}", arch(), miBasename);
+                        LOG_DEBUG(logRoot, "Found injected metainfo [{}]: {}", arch(), miBasename);
                     }
 
                     m_contents[fakePath] = miFname.string();
@@ -199,7 +200,7 @@ const std::vector<std::string> &DataInjectPackage::contents()
             }
         }
     } catch (const fs::filesystem_error &e) {
-        logError("Error scanning arch-specific metainfo directory '{}': {}", m_archDataLocation, e.what());
+        LOG_ERROR(logRoot, "Error scanning arch-specific metainfo directory '{}': {}", m_archDataLocation, e.what());
     }
 
 build_vector:

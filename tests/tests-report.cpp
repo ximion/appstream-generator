@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 
 #include <fstream>
@@ -17,7 +16,6 @@
 #include <memory>
 #include <vector>
 
-#include "logging.h"
 #include "reportgenerator.h"
 #include "datastore.h"
 #include "config.h"
@@ -28,13 +26,6 @@
 #include "zarchive.h"
 
 using namespace ASGenerator;
-
-static struct TestSetup {
-    TestSetup()
-    {
-        setVerbose(true);
-    }
-} testSetup;
 
 // Test fixture for report generator tests
 class ReportGeneratorTestFixture

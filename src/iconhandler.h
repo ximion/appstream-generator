@@ -110,6 +110,7 @@ public:
     IconHandler &operator=(const IconHandler &) = delete;
 
 private:
+    quill::Logger *m_log;
     fs::path m_mediaExportPath;
     std::vector<std::unique_ptr<Theme>> m_themes;
     std::unordered_map<std::string, std::shared_ptr<Package>> m_iconFiles;

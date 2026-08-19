@@ -36,7 +36,8 @@ namespace ASGenerator
 {
 
 AlpinePackageIndex::AlpinePackageIndex(const std::string &dir)
-    : m_rootDir(dir)
+    : PackageIndex("alpine"),
+      m_rootDir(dir)
 {
     if (!Utils::isRemote(dir) && !fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
@@ -177,7 +178,7 @@ std::vector<std::shared_ptr<Package>> AlpinePackageIndex::loadPackages(
 
     for (const auto &[fileName, pkg] : pkgsMap) {
         if (!pkg->isValid()) {
-            logWarning("Found invalid package ({})! Skipping it.", pkg->toString());
+            LOG_WARNING(m_log, "Found invalid package ({})! Skipping it.", pkg->toString());
             continue;
         }
         packages.push_back(std::static_pointer_cast<Package>(pkg));

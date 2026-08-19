@@ -40,7 +40,6 @@
 #include <unicode/unistr.h>
 #include <tbb/parallel_for_each.h>
 
-#include "logging.h"
 #include "downloader.h"
 
 namespace ASGenerator

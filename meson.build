@@ -31,13 +31,14 @@ icu_dep       = dependency('icu-uc')
 libxml2_dep   = dependency('libxml-2.0') # for rpmmd
 catch2_dep    = dependency('catch2-with-main')
 nljson_dep    = dependency('nlohmann_json', version: '>= 3.11.2')
+quill_dep     = dependency('quill', version: '>= 11.1', fallback: ['quill', 'quill_dep']).as_system()
 inja_dep      = dependency('inja', version: '>= 3.5.0',
-                            fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false'])
+                            fallback: ['inja', 'inja_dep'], default_options: ['build_tests=false']).as_system()
 
 backward_deps = []
 backward_dep = dependency('', required: false)
 if get_option('backward')
-    backward_dep  = dependency('backward-cpp', fallback: ['backward-cpp', 'backward_dep'], required: false)
+    backward_dep  = dependency('backward-cpp', fallback: ['backward-cpp', 'backward_dep'], required: false).as_system()
     if backward_dep.found()
         message('Using backward-cpp for stack traces')
         libunwind_dep = dependency('libunwind')
@@ -73,7 +74,6 @@ if get_option('maintainer')
         '-Wformat-security',
         '-Winit-self',
         '-Wnull-dereference',
-        '-Winline',
         '-Wmaybe-uninitialized',
     ]
     maintainer_cpp_args = [
@@ -111,7 +111,7 @@ add_project_arguments(
         '-Werror=return-type',
         '-Werror=misleading-indentation',
         '-Werror=format-security',
-        #'-Werror=suggest-override', -- we can't enable this, Inja is missing overrides
+        '-Werror=suggest-override',
 
         '-Wno-missing-field-initializers',
         '-Wno-error=missing-field-initializers',

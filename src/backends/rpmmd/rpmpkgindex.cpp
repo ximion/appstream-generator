@@ -36,7 +36,8 @@ namespace ASGenerator
 {
 
 RPMPackageIndex::RPMPackageIndex(const std::string &dir)
-    : m_rootDir(dir)
+    : PackageIndex("rpmmd"),
+      m_rootDir(dir)
 {
     if (!Utils::isRemote(dir) && !fs::exists(dir))
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
@@ -95,7 +96,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
 
     std::ifstream repoMdFile(repoMdFname);
     if (!repoMdFile.is_open()) {
-        logError("Could not open repomd.xml file: {}", repoMdFname);
+        LOG_ERROR(m_log, "Could not open repomd.xml file: {}", repoMdFname);
         return {};
     }
 
@@ -104,14 +105,14 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
     // Parse index data
     xmlDocPtr doc = xmlParseMemory(repoMdContent.c_str(), static_cast<int>(repoMdContent.length()));
     if (!doc) {
-        logError("Failed to parse repomd.xml");
+        LOG_ERROR(m_log, "Failed to parse repomd.xml");
         return {};
     }
 
     xmlNodePtr root = xmlDocGetRootElement(doc);
     if (!root) {
         xmlFreeDoc(doc);
-        logError("No root element in repomd.xml");
+        LOG_ERROR(m_log, "No root element in repomd.xml");
         return {};
     }
 
@@ -143,7 +144,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
     xmlFreeDoc(doc);
 
     if (primaryIndexFiles.empty()) {
-        logWarning("No primary metadata found in repomd.xml");
+        LOG_WARNING(m_log, "No primary metadata found in repomd.xml");
         return {};
     }
 
@@ -158,7 +159,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
         if (primaryFile.ends_with(".xml")) {
             std::ifstream primaryStream(metaFname);
             if (!primaryStream.is_open()) {
-                logWarning("Could not open primary metadata file: {}", metaFname);
+                LOG_WARNING(m_log, "Could not open primary metadata file: {}", metaFname);
                 continue;
             }
             data = std::string((std::istreambuf_iterator<char>(primaryStream)), std::istreambuf_iterator<char>());
@@ -169,7 +170,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
 
         xmlDocPtr primaryDoc = xmlParseMemory(data.c_str(), static_cast<int>(data.length()));
         if (!primaryDoc) {
-            logError("Failed to parse primary metadata XML");
+            LOG_ERROR(m_log, "Failed to parse primary metadata XML");
             continue;
         }
 
@@ -234,8 +235,11 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                 }
 
                 if (pkgidCS.empty()) {
-                    logWarning(
-                        "Found package '{}' in '{}' without suitable pkgid. Ignoring it.", pkg->name(), primaryFile);
+                    LOG_WARNING(
+                        m_log,
+                        "Found package '{}' in '{}' without suitable pkgid. Ignoring it.",
+                        pkg->name(),
+                        primaryFile);
                     continue;
                 }
 
@@ -254,7 +258,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
         if (filelistFile.ends_with(".xml")) {
             std::ifstream filelistStream(flistFname);
             if (!filelistStream.is_open()) {
-                logWarning("Could not open filelist metadata file: {}", flistFname);
+                LOG_WARNING(m_log, "Could not open filelist metadata file: {}", flistFname);
                 continue;
             }
             data = std::string((std::istreambuf_iterator<char>(filelistStream)), std::istreambuf_iterator<char>());
@@ -265,7 +269,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
 
         xmlDocPtr flDoc = xmlParseMemory(data.c_str(), static_cast<int>(data.length()));
         if (!flDoc) {
-            logError("Failed to parse filelist metadata XML");
+            LOG_ERROR(m_log, "Failed to parse filelist metadata XML");
             continue;
         }
 
@@ -312,7 +316,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
     for (const auto &[pkgid, pkg] : pkgMap)
         packages.push_back(pkg);
 
-    logDebug("Loaded {} packages from RPM metadata", packages.size());
+    LOG_DEBUG(m_log, "Loaded {} packages from RPM metadata", packages.size());
     return packages;
 }
 

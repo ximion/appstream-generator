@@ -29,7 +29,7 @@
 #include <cstring>
 #include <vector>
 
-#include "../../logging.h"
+#include "../interfaces.h"
 #include "../../downloader.h"
 #include "../../utils.h"
 
@@ -62,7 +62,7 @@ std::string downloadIfNecessary(
                 downloader->downloadFile(fileName, destFileName);
                 return destFileName;
             } catch (const std::exception &e) {
-                logDebug("Unable to download: {}", e.what());
+                LOG_DEBUG(logBackend, "Unable to download: {}", e.what());
             }
         } else {
             if (fs::exists(fileName))

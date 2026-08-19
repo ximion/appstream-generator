@@ -127,7 +127,8 @@ Downloader &Downloader::get()
 }
 
 Downloader::Downloader()
-    : userAgent(std::format("appstream-generator/{}", std::string(ASGEN_VERSION))),
+    : m_log(getLogger("downloader")),
+      userAgent(std::format("appstream-generator/{}", std::string(ASGEN_VERSION))),
       caInfo(Config::get().caInfo)
 {
     // Initialize curl globally (should be done once per process)
@@ -149,7 +150,7 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
     std::optional<std::chrono::system_clock::time_point> lastModified;
 
     /* the curl library is stupid; you can't make an AutoProtocol set timeouts */
-    logDebug("Downloading {}", url);
+    LOG_DEBUG(m_log, "Downloading {}", url);
 
     CURL *curl = curl_easy_init();
     if (!curl) {
@@ -177,7 +178,8 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
 
         if (res != CURLE_OK) {
             if (maxTryCount > 0) {
-                logDebug(
+                LOG_DEBUG(
+                    m_log,
                     "Failed to download {}, will retry {} more {}",
                     url,
                     maxTryCount,
@@ -211,15 +213,19 @@ std::optional<std::chrono::system_clock::time_point> Downloader::downloadInterna
         }
 
         curl_easy_cleanup(curl);
-        logDebug("Downloaded {}", url);
+        LOG_DEBUG(m_log, "Downloaded {}", url);
 
     } catch (const DownloadException &) {
         curl_easy_cleanup(curl);
         throw;
     } catch (const std::exception &e) {
         if (maxTryCount > 0) {
-            logDebug(
-                "Failed to download {}, will retry {} more {}", url, maxTryCount, maxTryCount > 1 ? "times" : "time");
+            LOG_DEBUG(
+                m_log,
+                "Failed to download {}, will retry {} more {}",
+                url,
+                maxTryCount,
+                maxTryCount > 1 ? "times" : "time");
             // Reset file position to beginning before retry to avoid appending to partial data
             dest.seekp(0);
 
@@ -250,7 +256,7 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
     std::vector<std::uint8_t> buffer;
     std::optional<std::chrono::system_clock::time_point> lastModified;
 
-    logDebug("Downloading {}", url);
+    LOG_DEBUG(m_log, "Downloading {}", url);
 
     CURL *curl = curl_easy_init();
     if (!curl)
@@ -278,7 +284,8 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
 
         if (res != CURLE_OK) {
             if (maxTryCount > 0) {
-                logDebug(
+                LOG_DEBUG(
+                    m_log,
                     "Failed to download {}, will retry {} more {}",
                     url,
                     maxTryCount,
@@ -309,15 +316,19 @@ std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint
         }
 
         curl_easy_cleanup(curl);
-        logDebug("Downloaded {}", url);
+        LOG_DEBUG(m_log, "Downloaded {}", url);
 
     } catch (const DownloadException &) {
         curl_easy_cleanup(curl);
         throw;
     } catch (const std::exception &e) {
         if (maxTryCount > 0) {
-            logDebug(
-                "Failed to download {}, will retry {} more {}", url, maxTryCount, maxTryCount > 1 ? "times" : "time");
+            LOG_DEBUG(
+                m_log,
+                "Failed to download {}, will retry {} more {}",
+                url,
+                maxTryCount,
+                maxTryCount > 1 ? "times" : "time");
 
             curl_easy_cleanup(curl);
             return download(url, maxTryCount - 1);
@@ -336,7 +347,7 @@ void Downloader::downloadFile(const std::string &url, const std::string &dest, s
         throw DownloadException("URL is not remote");
 
     if (fs::exists(dest)) {
-        logDebug("File '{}' already exists, re-download of '{}' skipped.", dest, url);
+        LOG_DEBUG(m_log, "File '{}' already exists, re-download of '{}' skipped.", dest, url);
         return;
     }
 

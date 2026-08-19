@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <format>
 
-#include "../../logging.h"
 #include "../../zarchive.h"
 #include "../../utils.h"
 

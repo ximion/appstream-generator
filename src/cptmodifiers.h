@@ -25,6 +25,7 @@
 #include <shared_mutex>
 #include <appstream.h>
 
+#include "logging.h"
 #include "config.h"
 
 namespace ASGenerator
@@ -63,6 +64,7 @@ public:
     InjectedModifications &operator=(const InjectedModifications &) = delete;
 
 private:
+    quill::Logger *m_log;
     std::unordered_map<std::string, AsComponent *> m_removedComponents;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> m_injectedCustomData;
 

@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 
 #include <filesystem>
@@ -12,7 +11,6 @@
 #include <fstream>
 #include <memory>
 
-#include "logging.h"
 #include "utils.h"
 #include "backends/debian/debpkgindex.h"
 #include "backends/debian/debpkg.h"
@@ -20,13 +18,6 @@
 #include "backends/debian/debutils.h"
 
 using namespace ASGenerator;
-
-static struct TestSetup {
-    TestSetup()
-    {
-        setVerbose(true);
-    }
-} testSetup;
 
 // Test-friendly wrapper class that exposes protected methods for testing
 class TestableDebianPackageIndex : public DebianPackageIndex

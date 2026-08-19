@@ -41,14 +41,15 @@ void loadHintsRegistry()
     std::lock_guard<std::mutex> lock(g_hintsRegistryMutex);
     static bool registryLoaded = false;
     if (registryLoaded) {
-        logDebug("Hints registry already loaded, ignoring second load request.");
+        LOG_DEBUG(logRoot, "Hints registry already loaded, ignoring second load request.");
         return;
     }
 
     // find the hint definition file
     auto hintsDefFile = Utils::getDataPath("asgen-hints.json");
     if (!std::filesystem::exists(hintsDefFile)) {
-        logError(
+        LOG_ERROR(
+            logRoot,
             "Hints definition file '{}' was not found! This means we can not determine severity of issue tags and not "
             "render report pages.",
             hintsDefFile.string());
@@ -58,7 +59,7 @@ void loadHintsRegistry()
     // read the hints definition JSON file
     std::ifstream file(hintsDefFile);
     if (!file.is_open()) {
-        logError("Failed to open hints definition file '{}'", hintsDefFile.string());
+        LOG_ERROR(logRoot, "Failed to open hints definition file '{}'", hintsDefFile.string());
         return;
     }
 
@@ -69,7 +70,7 @@ void loadHintsRegistry()
     auto doc = Yaml::parseDocument(jsonData, true);
     auto root = Yaml::documentRoot(doc);
     if (!root || fy_node_get_type(root) != FYNT_MAPPING) {
-        logError("Invalid hints definition file format");
+        LOG_ERROR(logRoot, "Invalid hints definition file format");
         return;
     }
 
@@ -134,14 +135,14 @@ void loadHintsRegistry()
         if (checkAlreadyLoaded) {
             // Check if hints are already loaded by looking for a common tag
             if (!overrideExisting && asc_globals_hint_tag_severity(tag.c_str()) != AS_ISSUE_SEVERITY_UNKNOWN) {
-                logDebug("Global hints registry already loaded.");
+                LOG_DEBUG(logRoot, "Global hints registry already loaded.");
                 return;
             }
             checkAlreadyLoaded = false;
         }
 
         if (!asc_globals_add_hint_tag(tag.c_str(), severity, explanation.c_str(), overrideExisting))
-            logError("Unable to override existing hint tag: {}", tag);
+            LOG_ERROR(logRoot, "Unable to override existing hint tag: {}", tag);
     }
 
     registryLoaded = true;
@@ -192,7 +193,7 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
             file.write(json_output, strlen(json_output));
             file.close();
         } else {
-            logError("Failed to open file '{}' for writing", fname);
+            LOG_ERROR(logRoot, "Failed to open file '{}' for writing", fname);
         }
     } else {
         throw std::runtime_error("Failed to emit hints registry as JSON");

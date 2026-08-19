@@ -62,13 +62,13 @@ static void createXdgRuntimeDir()
         fs::create_directories(xdgRuntimeDir);
         // Set permissions to 700 (owner read/write/execute only)
         if (chmod(xdgRuntimeDir, S_IRWXU) == -1)
-            logDebug("Failed to set permissions on XDG runtime dir: {}", std::strerror(errno));
+            LOG_DEBUG(logRoot, "Failed to set permissions on XDG runtime dir: {}", std::strerror(errno));
     } catch (const std::filesystem::filesystem_error &e) {
-        logWarning("Unable to create XDG runtime dir: {}", e.what());
+        LOG_WARNING(logRoot, "Unable to create XDG runtime dir: {}", e.what());
         return;
     }
 
-    logDebug("Created missing XDG runtime dir: {}", xdgRuntimeDir);
+    LOG_DEBUG(logRoot, "Created missing XDG runtime dir: {}", xdgRuntimeDir);
 }
 
 /**
@@ -76,6 +76,7 @@ static void createXdgRuntimeDir()
  */
 static void printVersion()
 {
+    flushLogs();
     std::cout << "Generator version: " << ASGEN_VERSION << std::endl;
 }
 
@@ -85,10 +86,12 @@ static void printVersion()
 static void ensureSuiteAndOrSectionParameterSet(const std::vector<std::string> &args)
 {
     if (args.size() < 3) {
+        flushLogs();
         std::cerr << "Invalid number of parameters: You need to specify at least a suite name." << std::endl;
         std::exit(1);
     }
     if (args.size() > 4) {
+        flushLogs();
         std::cerr << "Invalid number of parameters: You need to specify a suite name and (optionally) a section name."
                   << std::endl;
         std::exit(1);
@@ -116,6 +119,7 @@ static int executeCommand(const std::string &command, const std::vector<std::str
         }
     } else if (command == "process-file") {
         if (args.size() < 5) {
+            flushLogs();
             std::cerr << "Invalid number of parameters: You need to specify a suite name, a section name and at least "
                          "one file to process."
                       << std::endl;
@@ -133,12 +137,14 @@ static int executeCommand(const std::string &command, const std::vector<std::str
         engine->runCleanup();
     } else if (command == "remove-found") {
         if (args.size() != 3) {
+            flushLogs();
             std::cerr << "Invalid number of parameters: You need to specify a suite name." << std::endl;
             return 1;
         }
         engine->removeHintsComponents(args[2]);
     } else if (command == "forget") {
         if (args.size() != 3) {
+            flushLogs();
             std::cerr << "Invalid number of parameters: You need to specify a package-id (partial IDs are allowed)."
                       << std::endl;
             return 1;
@@ -146,11 +152,13 @@ static int executeCommand(const std::string &command, const std::vector<std::str
         engine->forgetPackage(args[2]);
     } else if (command == "info") {
         if (args.size() != 3) {
+            flushLogs();
             std::cerr << "Invalid number of parameters: You need to specify a package-id." << std::endl;
             return 1;
         }
         engine->printPackageInfo(args[2]);
     } else {
+        flushLogs();
         std::cerr << std::format("The command '{}' is unknown.", command) << std::endl;
         return 1;
     }
@@ -191,11 +199,11 @@ int main(int argc, char **argv)
     g_autofree gchar *configFname = nullptr;
 
     // Initialize locale for proper UTF-8 handling
-    if (!setlocale(LC_ALL, "")) {
+    if (setlocale(LC_ALL, "") != nullptr) {
         // If system locale fails, try to set a UTF-8 locale explicitly
-        logInfo("No locale set, falling back to C.UTF-8.");
+        g_debug("No locale set, falling back to C.UTF-8.");
         if (!setlocale(LC_ALL, "C.UTF-8") && !setlocale(LC_ALL, "en_US.UTF-8"))
-            logWarning("Warning: Could not set UTF-8 locale. UTF-8 text may be corrupted.");
+            std::cerr << "ERROR: Could not set UTF-8 locale. UTF-8 text may be corrupted" << std::endl;
     }
     // Make sure nothing localizes numbers by accident
     std::setlocale(LC_NUMERIC, "C");
@@ -212,7 +220,7 @@ int main(int argc, char **argv)
 #ifdef HAVE_BACKWARD
     backward::SignalHandling sh;
     if (sh.loaded())
-        logDebug("Backward registered for stack-trace printing.");
+        g_debug("Backward registered for stack-trace printing.");
 #endif
 
     GOptionEntry entries[] = {
@@ -251,8 +259,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // initialize logging, verbose if requested
+    initializeLogging(verbose ? quill::LogLevel::Debug : quill::LogLevel::Info);
+
     if (showHelp) {
         g_autofree gchar *helpText = g_option_context_get_help(context, TRUE, nullptr);
+        flushLogs();
         std::cout << helpText << std::endl;
         return 0;
     }
@@ -263,6 +275,7 @@ int main(int argc, char **argv)
     }
 
     if (argc < 2) {
+        flushLogs();
         std::cerr << "No subcommand specified!" << std::endl;
         g_autofree gchar *helpText = g_option_context_get_help(context, TRUE, nullptr);
         std::cerr << helpText << std::endl;
@@ -274,10 +287,6 @@ int main(int argc, char **argv)
     args.reserve(argc);
     for (int i = 0; i < argc; ++i)
         args.emplace_back(argv[i]);
-
-    // globally enable verbose mode, if requested
-    if (verbose)
-        setVerbose(true);
 
     auto &conf = Config::get();
     std::string configFilename;
@@ -301,6 +310,7 @@ int main(int argc, char **argv)
     try {
         conf.loadFromFile(configFilename, workspaceDirStr, exportDirStr);
     } catch (const std::exception &e) {
+        flushLogs();
         std::cerr << std::format("Unable to load configuration: {}", e.what()) << std::endl;
         return 4;
     }
@@ -309,16 +319,18 @@ int main(int argc, char **argv)
     createXdgRuntimeDir();
 
     int result = 0;
-    if (isVerbose()) {
+    if (verbose) {
         result = executeCommand(args[1], args, forceAction);
     } else {
         try {
             result = executeCommand(args[1], args, forceAction);
         } catch (const std::exception &e) {
+            flushLogs();
             std::cerr << std::format("Error executing command: {}", e.what()) << std::endl;
             result = 1;
         }
     }
 
+    shutdownLogging();
     return result;
 }

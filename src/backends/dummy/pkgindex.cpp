@@ -19,8 +19,6 @@
 
 #include "pkgindex.h"
 
-#include "../../logging.h"
-
 namespace ASGenerator
 {
 
