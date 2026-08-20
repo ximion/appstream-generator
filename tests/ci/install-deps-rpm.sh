@@ -28,7 +28,6 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(cairo)' \
     'pkgconfig(freetype2)' \
     'pkgconfig(fontconfig)' \
-    'pkgconfig(gdk-pixbuf-2.0)' \
     'pkgconfig(glib-2.0)' \
     'pkgconfig(gobject-2.0)' \
     'pkgconfig(gio-2.0)' \
@@ -36,9 +35,9 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(libarchive)' \
     'pkgconfig(libblake3)' \
     'pkgconfig(libcurl)' \
-    'pkgconfig(librsvg-2.0)' \
     'pkgconfig(libxml-2.0)' \
     'pkgconfig(libsystemd)' \
+    'pkgconfig(vips)' \
     'pkgconfig(wayland-client)' \
     'pkgconfig(nlohmann_json)' \
     'pkgconfig(xmlb)' \
@@ -48,6 +47,7 @@ dnf --assumeyes --quiet --setopt=install_weak_deps=False install \
     'pkgconfig(tbb)' \
     'pkgconfig(catch2)' \
     sed \
+    vips-jxl \
     xmlto \
     itstool \
     diffutils \

@@ -63,11 +63,10 @@ eatmydata apt-get install -yq inja-dev || true
 
 # compose dependencies
 eatmydata apt-get install -yq --no-install-recommends \
-    libgdk-pixbuf-2.0-dev \
-    librsvg2-dev \
     libcairo2-dev \
     libfontconfig1-dev \
-    libpango1.0-dev
+    libpango1.0-dev \
+    libvips-dev
 eatmydata apt-get install -yq libblake3-dev || true
 
 # Web and CI stuff, misc depends
