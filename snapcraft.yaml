@@ -18,7 +18,7 @@
 # Until that is overcome, this snap should be installed using `--devmode` to
 # effectively disable the confinement.
 #
-# This Snap is autobuilt, you can check its status at https://build.snapcraft.io/user/ximion/appstream-generator
+# This Snap is autobuilt, you can check its status at https://snapcraft.io/appstream-generator/builds
 
 name: appstream-generator
 license: LGPL-3.0
@@ -59,7 +59,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.1.2'
+    source-tag: 'v1.2.0'
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
@@ -72,14 +72,15 @@ parts:
       - -Dcompose=true
       - -Dapidocs=false
       - -Dsystemd=false
+      - -Ddisplay-detection=none
     build-packages:
       - build-essential
-      - docbook-xml
-      - docbook-xsl
+      - docbook-xsl-ns
       - gettext
       - gobject-introspection
       - gperf
       - itstool
+      - libblake3-dev
       - libcurl4-gnutls-dev
       - liblzma-dev
       - libffi-dev
@@ -87,15 +88,18 @@ parts:
       - libgirepository1.0-dev
       - libglib2.0-dev
       - libstemmer-dev
+      - libvips-dev
       - libxml2-dev
       - libxmlb-dev
       - libzstd-dev
       - xsltproc
     stage-packages:
+     - libblake3-0
      - libcurl3t64-gnutls
      - libfyaml0
      - libicu74
      - libstemmer0d
+     - libvips42t64
      - libxml2
      - libzstd1
 
@@ -158,7 +162,6 @@ parts:
       - libfontconfig1-dev
       - libfreetype6-dev
       - libfyaml-dev
-      - libgdk-pixbuf2.0-dev
       - libglib2.0-dev
       - liblmdb-dev
       - libpango1.0-dev
@@ -180,7 +183,6 @@ parts:
       - libfontconfig1
       - libfreetype6
       - libfyaml0
-      - libgdk-pixbuf2.0-0
       - libglib2.0-0t64
       - libglib2.0-bin
       - libglu1-mesa
