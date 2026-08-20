@@ -134,7 +134,7 @@ void loadHintsRegistry()
 
         if (checkAlreadyLoaded) {
             // Check if hints are already loaded by looking for a common tag
-            if (!overrideExisting && asc_globals_hint_tag_severity(tag.c_str()) != AS_ISSUE_SEVERITY_UNKNOWN) {
+            if (!overrideExisting && asc_globals_hint_tag_exists(tag.c_str())) {
                 LOG_DEBUG(logRoot, "Global hints registry already loaded.");
                 return;
             }

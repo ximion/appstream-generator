@@ -417,16 +417,16 @@ std::string IconHandler::getIconNameAndClear(AsComponent *cpt) const
 {
     std::string name;
 
-    // a not-processed icon name is stored as "1x1px" icon, so we can
-    // quickly identify it here.
-    auto icon = Utils::componentGetRawIcon(cpt);
-    if (icon.has_value()) {
-        if (as_icon_get_kind(icon.value()) == AS_ICON_KIND_LOCAL) {
-            const auto filename = as_icon_get_filename(icon.value());
+    // compose leaves the unprocessed icon reference on the component for us, because we
+    // set ASC_COMPOSE_FLAG_IGNORE_ICONS and do our own icon processing
+    auto icon = asc_component_get_source_icon(cpt);
+    if (icon != nullptr) {
+        if (as_icon_get_kind(icon) == AS_ICON_KIND_LOCAL) {
+            const auto filename = as_icon_get_filename(icon);
             if (filename)
                 name = filename;
         } else {
-            const auto iconName = as_icon_get_name(icon.value());
+            const auto iconName = as_icon_get_name(icon);
             if (iconName)
                 name = iconName;
         }
@@ -642,10 +642,16 @@ bool IconHandler::storeIcon(
     };
 
     g_autoptr(GBytes) iconBytes = g_bytes_new(iconData.data(), iconData.size());
+    g_autoptr(AscImageSource) imgSource = asc_image_source_new(iconBytes);
+    if (isVectorIcon) {
+        // render vector graphics straight at the size we want to store them in
+        asc_image_source_set_render_size(imgSource, scaled_width, scaled_height);
+    }
+
     g_autoptr(GPtrArray) imgTargets = g_ptr_array_new_with_free_func((GDestroyNotify)asc_image_target_free);
 
     AscImageTarget *imgTarget = asc_image_target_new(
-        iconName.c_str(), ASC_IMAGE_SCALE_MODE_EXACT, scaled_width, scaled_height);
+        iconName.c_str(), ASC_IMAGE_SCALE_MODE_PAD, scaled_width, scaled_height);
     // icons are always stored losslessly, which even results in smaller files than lossy encoding
     // would, due to their simple shapes and colors and non-photo-like qualities
     asc_image_target_set_save_flags(
@@ -657,20 +663,8 @@ bool IconHandler::storeIcon(
         asc_image_target_set_source_size_range(imgTarget, 48, 48, 0, 0);
     g_ptr_array_add(imgTargets, imgTarget);
 
-    gint srcWidth = 0;
-    gint srcHeight = 0;
     g_autoptr(GError) error = nullptr;
-    if (!asc_media_process_image(
-            media,
-            iconBytes,
-            isVectorIcon ? scaled_width : 0,
-            isVectorIcon ? scaled_height : 0,
-            isVectorIcon ? ASC_IMAGE_LOAD_FLAG_ALWAYS_RESIZE : ASC_IMAGE_LOAD_FLAG_NONE,
-            path.c_str(),
-            imgTargets,
-            &srcWidth,
-            &srcHeight,
-            &error)) {
+    if (!asc_media_process_image(media, imgSource, imgTargets, path.c_str(), nullptr, &error)) {
         // only genuine worker malfunctions get the worker-error hint,
         // anything else is reported as a regular image issue
         gres.addHint(
@@ -684,6 +678,10 @@ bool IconHandler::storeIcon(
         dropEmptyIconDir();
         return false;
     }
+
+    // the source dimensions are only known after the image has been loaded
+    const gint srcWidth = asc_image_source_get_width(imgSource);
+    const gint srcHeight = asc_image_source_get_height(imgSource);
 
     if (asc_image_target_get_skipped(imgTarget)) {
         // the source icon was too small for the size we wanted to render

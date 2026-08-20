@@ -570,7 +570,7 @@ void Config::loadFromFile(
     {
         g_autoptr(AscMedia) media = asc_media_new();
         g_autoptr(GError) error = nullptr;
-        if (asc_media_ensure_worker(media, &error))
+        if (asc_media_ensure_worker(media, nullptr, &error))
             asc_media_stop(media);
         else
             LOG_CRITICAL(

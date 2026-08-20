@@ -228,13 +228,6 @@ std::vector<std::uint8_t> getFileContents(
 fs::path getTestSamplesDir();
 
 /**
- * Return a suitable, "raw" icon name (either a stock icon name or local icon)
- * for this component that can be processed further by the generator.
- * Return null if this component does not have a suitable icon.
- */
-std::optional<AsIcon *> componentGetRawIcon(AsComponent *cpt);
-
-/**
  * Extract filename from URI, removing query parameters and fragments.
  */
 std::string filenameFromURI(const std::string &uri);

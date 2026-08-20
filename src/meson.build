@@ -69,22 +69,16 @@ asgen_deps = [
   quill_dep,
 ]
 
-asgen_args = [
-  '-DI_KNOW_THE_APPSTREAM_COMPOSE_API_IS_SUBJECT_TO_CHANGE'
-]
-
 asgen_lib = static_library(
   'asgenlib',
   [asgencpp_src, asgencpp_hdr, defines_h, backends_src],
   dependencies: asgen_deps,
-  cpp_args: asgen_args,
 )
 
 asgen_lib_dep = declare_dependency(
   link_with: asgen_lib,
   include_directories: [src_dir],
   dependencies: asgen_deps,
-  compile_args: asgen_args,
 )
 
 asgen_exe = executable('appstream-generator',

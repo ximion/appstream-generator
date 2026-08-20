@@ -80,7 +80,7 @@ DataExtractor::DataExtractor(
     }
 
     // Set callback for intermediate metadata checking
-    asc_compose_set_check_metadata_early_func(m_compose, &checkMetadataIntermediate, this);
+    asc_compose_set_check_metadata_early_func(m_compose, &checkMetadataIntermediate, this, nullptr);
 
     AscComposeFlags flags = static_cast<AscComposeFlags>(
         ASC_COMPOSE_FLAG_IGNORE_ICONS |             // we do custom icon processing
@@ -163,7 +163,7 @@ DataExtractor::~DataExtractor()
         g_object_unref(m_l10nUnit);
 }
 
-void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cunit, void *userData)
+void DataExtractor::checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, void *userData)
 {
     auto self = static_cast<DataExtractor *>(userData);
 
@@ -257,7 +257,7 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, const AscUnit *cu
 
 GPtrArray *DataExtractor::translateDesktopTextCallback(GKeyFile *dePtr, const char *text, void *userData)
 {
-    auto pkg = *static_cast<Package **>(userData);
+    const auto &pkg = *static_cast<std::shared_ptr<Package> *>(userData);
     auto res = g_ptr_array_new_with_free_func(g_free);
 
     auto translations = pkg->getDesktopFileTranslations(dePtr, std::string(text));
@@ -274,11 +274,20 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
     // reset compose instance to clear data from any previous invocation
     asc_compose_reset(m_compose);
 
-    // set external desktop-entry translation function, if needed
-    const bool externalL10n = pkg->hasDesktopFileTranslations();
-    Package *pkgPtr = pkg.get();
-    asc_compose_set_desktop_entry_l10n_func(
-        m_compose, externalL10n ? &translateDesktopTextCallback : nullptr, externalL10n ? &pkgPtr : nullptr);
+    // set external desktop-entry translation function, if needed.
+    // AscCompose owns the user data, so we hand it a package reference that is guaranteed to
+    // stay alive for as long as the callback may be invoked.
+    if (pkg->hasDesktopFileTranslations()) {
+        asc_compose_set_desktop_entry_l10n_func(
+            m_compose,
+            &translateDesktopTextCallback,
+            new std::shared_ptr<Package>(pkg),
+            [](gpointer data) {
+                delete static_cast<std::shared_ptr<Package> *>(data);
+            });
+    } else {
+        asc_compose_set_desktop_entry_l10n_func(m_compose, nullptr, nullptr, nullptr);
+    }
 
     // wrap package into unit, so AppStream Compose can work with it
     auto unit = asg_package_unit_new(pkg);

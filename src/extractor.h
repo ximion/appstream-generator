@@ -76,7 +76,7 @@ private:
      * Helper function for early asgen-specific metadata manipulation.
      * This is a C callback function used by AppStream Compose.
      */
-    static void checkMetadataIntermediate(AscResult *cres, const AscUnit *cunit, void *userData);
+    static void checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, void *userData);
 
     /**
      * Helper function for translating desktop file text.

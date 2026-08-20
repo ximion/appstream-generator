@@ -345,27 +345,6 @@ fs::path getTestSamplesDir()
     return path;
 }
 
-std::optional<AsIcon *> componentGetRawIcon(AsComponent *cpt)
-{
-    AsIcon *iconLocal = nullptr;
-    GPtrArray *iconsArr = as_component_get_icons(cpt);
-
-    for (guint i = 0; i < iconsArr->len; i++) {
-        AsIcon *icon = AS_ICON(g_ptr_array_index(iconsArr, i));
-        if (as_icon_get_kind(icon) == AS_ICON_KIND_STOCK)
-            return icon;
-
-        if (as_icon_get_kind(icon) == AS_ICON_KIND_LOCAL)
-            iconLocal = icon;
-    }
-
-    // only return local icon if we had no stock icon
-    if (iconLocal)
-        return iconLocal;
-
-    return std::nullopt;
-}
-
 std::string filenameFromURI(const std::string &uri)
 {
     fs::path path(uri);
