@@ -65,6 +65,7 @@ private:
     Config *m_conf;
     quill::Logger *m_log;
     AscCompose *m_compose;
+    AscMedia *m_media;
     DataType m_dtype;
     std::shared_ptr<DataStore> m_dstore;
     std::shared_ptr<IconHandler> m_iconh;

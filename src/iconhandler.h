@@ -100,8 +100,11 @@ public:
 
     /**
      * Try to find & store icons for a selected component.
+     *
+     * @param media Media processing interface to use. Must not be used by any other thread
+     *              while this function is running.
      */
-    bool process(GeneratorResult &gres, AsComponent *cpt);
+    bool process(GeneratorResult &gres, AsComponent *cpt, AscMedia *media);
 
     static bool iconAllowed(const std::string &iconName);
 
@@ -177,6 +180,7 @@ private:
     bool storeIcon(
         AsComponent *cpt,
         GeneratorResult &gres,
+        AscMedia *media,
         const fs::path &cptExportPath,
         std::shared_ptr<Package> sourcePkg,
         const std::string &iconPath,

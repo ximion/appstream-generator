@@ -48,6 +48,7 @@ DataExtractor::DataExtractor(
     const std::string &prefix)
     : m_log(getLogger("extractor")),
       m_compose(nullptr),
+      m_media(nullptr),
       m_dstore(std::move(db)),
       m_iconh(std::move(iconHandler)),
       m_modInj(std::move(modInjInfo)),
@@ -59,6 +60,15 @@ DataExtractor::DataExtractor(
         m_l10nUnit = g_object_ref(localeUnit);
 
     m_compose = asc_compose_new();
+
+    // media processing is done by a helper process which we want to reuse for as long as possible,
+    // so we own one instance here and hand it to AscCompose as well as to the icon handler.
+    // A DataExtractor is only ever used by one thread at a time, which is exactly what AscMedia requires.
+    m_media = asc_media_new();
+    asc_compose_set_media(m_compose, m_media);
+
+    // TODO: Make the media output format configurable, and default it to JPEG-XL
+    asc_compose_set_image_format(m_compose, ASC_IMAGE_FORMAT_PNG);
 
     asc_compose_set_media_result_dir(m_compose, m_dstore->mediaExportPoolDir().string().c_str());
     asc_compose_set_media_baseurl(m_compose, "");
@@ -79,6 +89,7 @@ DataExtractor::DataExtractor(
     asc_compose_add_flags(m_compose, flags);
 
     // we handle all threading, so the compose process doesn't also have to be threaded
+    // (this is also a prerequisite for sharing our AscMedia instance with it)
     asc_compose_remove_flags(m_compose, ASC_COMPOSE_FLAG_USE_THREADS);
 
     // set CAInfo for any download operations performed by this AscCompose
@@ -147,6 +158,7 @@ DataExtractor::DataExtractor(
 DataExtractor::~DataExtractor()
 {
     g_object_unref(m_compose);
+    g_object_unref(m_media);
     if (m_l10nUnit)
         g_object_unref(m_l10nUnit);
 }
@@ -301,7 +313,7 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
         }
 
         // find & store icons
-        m_iconh->process(gres, cpt);
+        m_iconh->process(gres, cpt, m_media);
         if (gres.isIgnored(cpt))
             continue;
 

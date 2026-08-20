@@ -60,6 +60,14 @@
   "severity": "error"
 },
 
+"media-worker-process-error": {
+  "text": ["The helper process that processes images, fonts and videos failed while handling '{{fname}}'",
+           "(package '{{pkg_fname}}'): {{error}}<br/>",
+           "This can be a problem with the appstream-generator installation or its environment,",
+           "and not with the analyzed package."],
+  "severity": "error"
+},
+
 "metainfo-validation-error": {
   "text": "Validation of the MetaInfo file failed: {{msg}}",
   "severity": "warning"

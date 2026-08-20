@@ -563,18 +563,22 @@ void Config::loadFromFile(
     if (!feature.validate)
         LOG_WARNING(m_log, "MetaInfo validation has been disabled in configuration.");
 
-    // sanity check to warn if our GdkPixbuf does not support the minimum amount
-    // of image formats we need
-    g_autoptr(GHashTable) pbFormatNames = asc_image_supported_format_names();
-    if (!g_hash_table_contains(pbFormatNames, "png") || !g_hash_table_contains(pbFormatNames, "svg")
-        || !g_hash_table_contains(pbFormatNames, "jpeg")) {
-        LOG_ERROR(
-            m_log,
-            "The currently used GdkPixbuf does not seem to support all image formats we require to run normally "
-            "(png/svg/jpeg). This may be a problem with your installation of appstream-generator or gdk-pixbuf.");
+    // sanity check to see whether we can process media at all: all image, font and video
+    // handling is done by a helper process, and if we can not even launch it, no amount of
+    // data processing will yield any usable result.
+    // doing this here means we fail with a clear message instead of drowning in per-package hints.
+    {
+        g_autoptr(AscMedia) media = asc_media_new();
+        g_autoptr(GError) error = nullptr;
+        if (asc_media_ensure_worker(media, &error))
+            asc_media_stop(media);
+        else
+            LOG_CRITICAL(
+                m_log,
+                "The AppStream media worker process could not be started: {} "
+                "Image, font and video processing will not work.",
+                error->message);
     }
-    if (!g_hash_table_contains(pbFormatNames, "jxl"))
-        LOG_WARNING(m_log, "JPEG-XL image support not found!");
 }
 
 bool Config::isValid() const

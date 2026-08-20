@@ -48,7 +48,7 @@ TEST_CASE("IconHandler", "[IconHandler]")
 
         // Check if icon is allowed format
         bool formatAllowed = IconHandler::iconAllowed(fname);
-        if (fname.ends_with(".ico"))
+        if (fname.ends_with(".ico") || fname.ends_with(".xpm"))
             REQUIRE_FALSE(formatAllowed);
         else
             REQUIRE(formatAllowed);

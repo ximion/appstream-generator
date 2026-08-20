@@ -40,12 +40,14 @@ namespace ASGenerator
 {
 
 // all image extensions that we recognize as possible for icons.
+// this list is only used to find icon files, so we can tell the user about an icon in a
+// format we can not use, instead of just claiming that no icon was found at all.
 // the most favorable file extension needs to come first to prefer it
 inline constexpr std::array<std::string_view, 9> PossibleIconExts =
     {".png", ".svgz", ".svg", ".jxl", ".jpg", ".jpeg", ".gif", ".ico", ".xpm"};
 
 // the image extensions that we will actually allow software to have.
-inline constexpr std::array<std::string_view, 5> AllowedIconExts = {".png", ".jxl", ".svgz", ".svg", ".xpm"};
+inline constexpr std::array<std::string_view, 4> AllowedIconExts = {".png", ".jxl", ".svgz", ".svg"};
 
 // Theme implementation
 Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData, const std::string &prefix)
@@ -527,6 +529,7 @@ std::string IconHandler::stripIconExt(const std::string &iconName)
 bool IconHandler::storeIcon(
     AsComponent *cpt,
     GeneratorResult &gres,
+    AscMedia *media,
     const fs::path &cptExportPath,
     std::shared_ptr<Package> sourcePkg,
     const std::string &iconPath,
@@ -552,8 +555,6 @@ bool IconHandler::storeIcon(
     if (iconName.ends_with(".svgz"))
         iconName = iconName.substr(0, iconName.length() - 5) + ".png";
     else if (iconName.ends_with(".svg"))
-        iconName = iconName.substr(0, iconName.length() - 4) + ".png";
-    else if (iconName.ends_with(".xpm"))
         iconName = iconName.substr(0, iconName.length() - 4) + ".png";
 
     auto iconStoreLocation = path / iconName;
@@ -621,113 +622,105 @@ bool IconHandler::storeIcon(
     auto scaled_width = (int)size.width * (int)size.scale;
     auto scaled_height = (int)size.height * (int)size.scale;
 
-    if ((iformat == ASC_IMAGE_FORMAT_SVG) || (iformat == ASC_IMAGE_FORMAT_SVGZ)) {
-        // create target directory
-        fs::create_directories(path);
+    const bool isVectorIcon = (iformat == ASC_IMAGE_FORMAT_SVG) || (iformat == ASC_IMAGE_FORMAT_SVGZ);
 
-        g_autoptr(GError) error = nullptr;
-        g_autoptr(GInputStream) stream = g_memory_input_stream_new_from_data(iconData.data(), iconData.size(), nullptr);
-        gboolean ret = asc_render_svg_to_file(
-            G_INPUT_STREAM(stream),
-            (gint)scaled_width,
-            (gint)scaled_height,
-            ASC_IMAGE_FORMAT_PNG,
-            iconStoreLocation.c_str(),
-            &error);
+    // create target directory, the media worker needs it to exist to write into it.
+    // if we end up not storing an icon after all, we drop the directory again, so we don't
+    // litter the media pool with empty size directories.
+    fs::create_directories(path);
+    const auto dropEmptyIconDir = [&path, &cptExportPath]() {
+        // Remove the directories we just created again, innermost first, so a rejected icon
+        // does not litter the media pool with empty directories. Removing a directory that
+        // still holds other data fails harmlessly, which stops the cleanup at the right level.
+        // We never touch anything above the component's own export directory, as the pool
+        // prefix directories above it are shared with components processed by other threads.
+        std::error_code ec;
+        fs::remove(path, ec);                        // .../<gcid>/icons/<size>
+        fs::remove(path.parent_path(), ec);          // .../<gcid>/icons
+        fs::remove(cptExportPath, ec);               // .../<gcid>
+        fs::remove(cptExportPath.parent_path(), ec); // .../<component-id>
+    };
 
-        if (!ret) {
-            gres.addHint(
-                as_component_get_id(cpt),
-                "image-write-error",
-                {
-                    {"fname",     fs::path(iconPath).filename()                },
-                    {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
-                    {"error",     error->message                               }
-            });
-            return false;
-        }
-    } else {
-        g_autoptr(GError) error = nullptr;
-        g_autoptr(AscImage) img = asc_image_new_from_data(
-            iconData.data(),
-            iconData.size(),
-            -1,
-            -1,
-            ASC_IMAGE_LOAD_FLAG_NONE,
-            iconPath.ends_with(".svgz") ? ASC_IMAGE_FORMAT_SVGZ : ASC_IMAGE_FORMAT_UNKNOWN,
-            &error);
+    g_autoptr(GBytes) iconBytes = g_bytes_new(iconData.data(), iconData.size());
+    g_autoptr(GPtrArray) imgTargets = g_ptr_array_new_with_free_func((GDestroyNotify)asc_image_target_free);
 
-        if (!img) {
-            gres.addHint(
-                as_component_get_id(cpt),
-                "image-write-error",
-                {
-                    {"fname",     fs::path(iconPath).filename()                },
-                    {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
-                    {"error",     error->message                               }
-            });
-            return false;
-        }
+    AscImageTarget *imgTarget = asc_image_target_new(
+        iconName.c_str(), ASC_IMAGE_SCALE_MODE_EXACT, scaled_width, scaled_height);
+    // icons are always stored losslessly, which even results in smaller files than lossy encoding
+    // would, due to their simple shapes and colors and non-photo-like qualities
+    asc_image_target_set_save_flags(
+        imgTarget, static_cast<AscImageSaveFlags>(ASC_IMAGE_SAVE_FLAG_OPTIMIZE | ASC_IMAGE_SAVE_FLAG_LOSSLESS));
 
-        if (iformat == ASC_IMAGE_FORMAT_XPM) {
-            // we use XPM images only if they are large enough
-            if (m_allowIconUpscaling) {
-                // we only try upscaling for the default 64x64px size and only if
-                // the icon is not too small
-                if (size != ImageSize(64))
-                    return false;
+    // ensure that we don't try to make an application visible that has a really tiny icon
+    // by upscaling it to a blurry mess
+    if (!isVectorIcon && size.scale == 1 && size.width == 64)
+        asc_image_target_set_source_size_range(imgTarget, 48, 48, 0, 0);
+    g_ptr_array_add(imgTargets, imgTarget);
 
-                if ((asc_image_get_width(img) < 48) || (asc_image_get_height(img) < 48))
-                    return false;
-            } else {
-                if ((asc_image_get_width(img) < scaled_width) || (asc_image_get_height(img) < scaled_height))
-                    return false;
-            }
-        }
+    gint srcWidth = 0;
+    gint srcHeight = 0;
+    g_autoptr(GError) error = nullptr;
+    if (!asc_media_process_image(
+            media,
+            iconBytes,
+            isVectorIcon ? scaled_width : 0,
+            isVectorIcon ? scaled_height : 0,
+            isVectorIcon ? ASC_IMAGE_LOAD_FLAG_ALWAYS_RESIZE : ASC_IMAGE_LOAD_FLAG_NONE,
+            path.c_str(),
+            imgTargets,
+            &srcWidth,
+            &srcHeight,
+            &error)) {
+        // only genuine worker malfunctions get the worker-error hint,
+        // anything else is reported as a regular image issue
+        gres.addHint(
+            as_component_get_id(cpt),
+            asc_media_error_is_worker_failure(error) ? "media-worker-process-error" : "image-write-error",
+            {
+                {"fname",     fs::path(iconPath).filename()                },
+                {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
+                {"error",     error->message                               }
+        });
+        dropEmptyIconDir();
+        return false;
+    }
 
-        // ensure that we don't try to make an application visible that has a really tiny icon
-        // by upscaling it to a blurry mess
-        if (size.scale == 1 && size.width == 64) {
-            if ((asc_image_get_width(img) < 48) || (asc_image_get_height(img) < 48)) {
-                gres.addHint(
-                    cpt,
-                    "icon-too-small",
-                    {
-                        {"icon_name", iconName},
-                        {"icon_size", std::format("{}x{}", asc_image_get_width(img), asc_image_get_height(img))}
-                });
-                return false;
-            }
-        }
+    if (asc_image_target_get_skipped(imgTarget)) {
+        // the source icon was too small for the size we wanted to render
+        gres.addHint(
+            cpt,
+            "icon-too-small",
+            {
+                {"icon_name", iconName},
+                {"icon_size", std::format("{}x{}", srcWidth, srcHeight)}
+        });
+        dropEmptyIconDir();
+        return false;
+    }
 
-        // warn about icon upscaling, it looks ugly
-        if (scaled_width > asc_image_get_width(img)) {
-            gres.addHint(
-                cpt,
-                "icon-scaled-up",
-                {
-                    {"icon_name", iconName},
-                    {"icon_size", std::format("{}x{}", asc_image_get_width(img), asc_image_get_height(img))},
-                    {"scale_size", size.toString()}
-            });
-        }
+    if (asc_image_target_get_error_message(imgTarget) != nullptr) {
+        gres.addHint(
+            cpt,
+            "image-write-error",
+            {
+                {"fname",     fs::path(iconPath).filename()                },
+                {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
+                {"error",     asc_image_target_get_error_message(imgTarget)}
+        });
+        dropEmptyIconDir();
+        return false;
+    }
 
-        // create target directory
-        fs::create_directories(path);
-
-        asc_image_scale(img, scaled_width, scaled_height);
-        asc_image_save_filename(img, iconStoreLocation.c_str(), 0, 0, ASC_IMAGE_SAVE_FLAG_OPTIMIZE, &error);
-        if (error) {
-            gres.addHint(
-                cpt,
-                "image-write-error",
-                {
-                    {"fname",     fs::path(iconPath).filename()                },
-                    {"pkg_fname", fs::path(sourcePkg->getFilename()).filename()},
-                    {"error",     error->message                               }
-            });
-            return false;
-        }
+    // warn about icon upscaling, it looks ugly
+    if (!isVectorIcon && scaled_width > srcWidth) {
+        gres.addHint(
+            cpt,
+            "icon-scaled-up",
+            {
+                {"icon_name", iconName},
+                {"icon_size", std::format("{}x{}", srcWidth, srcHeight)},
+                {"scale_size", size.toString()}
+        });
     }
 
     if (targetState != ASC_ICON_STATE_REMOTE_ONLY) {
@@ -800,7 +793,7 @@ IconHandler::IconFindResult IconHandler::findIconScalableToSize(
     return info;
 }
 
-bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
+bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt, AscMedia *media)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -838,7 +831,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
         const auto &contents = gres.getPackage()->contents();
         if (std::ranges::find(contents, iconName) != contents.end()) {
             return storeIcon(
-                cpt, gres, cptMediaPath, gres.getPackage(), iconName, m_defaultIconSize, m_defaultIconState);
+                cpt, gres, media, cptMediaPath, gres.getPackage(), iconName, m_defaultIconSize, m_defaultIconState);
         }
 
         // we couldn't find the absolute icon path
@@ -896,7 +889,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
 
                 lastIconName = info.fname;
                 if (iconAllowed(lastIconName)) {
-                    if (storeIcon(cpt, gres, cptMediaPath, info.pkg, lastIconName, size, iconState))
+                    if (storeIcon(cpt, gres, media, cptMediaPath, info.pkg, lastIconName, size, iconState))
                         iconsStored[size] = std::move(info);
                 } else {
                     // the found icon is not suitable, but maybe we can scale a differently sized icon to the right one?
@@ -905,7 +898,7 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
                         continue;
 
                     if (iconAllowed(info.fname)) {
-                        if (storeIcon(cpt, gres, cptMediaPath, info.pkg, lastIconName, size, iconState))
+                        if (storeIcon(cpt, gres, media, cptMediaPath, info.pkg, lastIconName, size, iconState))
                             iconsStored[size] = info;
                         lastIconName = info.fname;
                     }
@@ -943,7 +936,14 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt)
                     const auto &info = it->second;
                     lastIconName = info.fname;
                     if (storeIcon(
-                            cpt, gres, cptMediaPath, info.pkg, lastIconName, m_defaultIconSize, m_defaultIconState)) {
+                            cpt,
+                            gres,
+                            media,
+                            cptMediaPath,
+                            info.pkg,
+                            lastIconName,
+                            m_defaultIconSize,
+                            m_defaultIconState)) {
                         return true;
                     }
                 }
