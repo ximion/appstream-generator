@@ -38,11 +38,18 @@ inja_dep      = dependency('inja', version: '>= 3.5.0',
 backward_deps = []
 backward_dep = dependency('', required: false)
 if get_option('backward')
-    backward_dep  = dependency('backward-cpp', fallback: ['backward-cpp', 'backward_dep'], required: false).as_system()
+    backward_dep = dependency('Backward', method: 'cmake', required: false).as_system()
+    if not backward_dep.found()
+        # Fall back to a bundled copy. We only ever need the headers.
+        backward_dep = dependency(
+            'backward-cpp-interface',
+            fallback: ['backward-cpp', 'backward_interface_dep'],
+            required: false
+        ).as_system()
+    endif
     if backward_dep.found()
         message('Using backward-cpp for stack traces')
-        libunwind_dep = dependency('libunwind')
-        backward_deps = [backward_dep, libunwind_dep]
+        backward_deps = [backward_dep]
     endif
 endif
 

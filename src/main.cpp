@@ -32,7 +32,6 @@
 #include <glib.h>
 
 #ifdef HAVE_BACKWARD
-#define BACKWARD_HAS_UNWIND 1
 #include <backward.hpp>
 #endif
 
@@ -218,9 +217,8 @@ int main(int argc, char **argv)
     }
 
 #ifdef HAVE_BACKWARD
+    // needs to stay alive for the whole runtime of the program
     backward::SignalHandling sh;
-    if (sh.loaded())
-        g_debug("Backward registered for stack-trace printing.");
 #endif
 
     GOptionEntry entries[] = {
@@ -261,6 +259,13 @@ int main(int argc, char **argv)
 
     // initialize logging, verbose if requested
     initializeLogging(verbose ? quill::LogLevel::Debug : quill::LogLevel::Info);
+
+#ifdef HAVE_BACKWARD
+    if (sh.loaded())
+        LOG_DEBUG(logRoot, "Backward registered for stack-trace printing.");
+    else
+        LOG_WARNING(logRoot, "Unable to register Backward for stack-trace printing.");
+#endif
 
     if (showHelp) {
         g_autofree gchar *helpText = g_option_context_get_help(context, TRUE, nullptr);

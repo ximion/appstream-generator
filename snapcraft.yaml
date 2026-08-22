@@ -159,6 +159,7 @@ parts:
       - libbackward-cpp-dev
       - libcairo2-dev
       - libcurl4-gnutls-dev
+      - libdw-dev
       - libfontconfig1-dev
       - libfreetype6-dev
       - libfyaml-dev

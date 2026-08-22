@@ -57,6 +57,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     nlohmann-json3-dev \
     libtbb-dev \
     libbackward-cpp-dev \
+    libdw-dev \
     libunwind-dev \
     $catch2_dep
 eatmydata apt-get install -yq inja-dev || true
