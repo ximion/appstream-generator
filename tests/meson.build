@@ -9,6 +9,16 @@ tests_misc = executable(
 )
 test('Miscellaneous', tests_misc)
 
+# Configuration tests
+tests_config = executable(
+    'tests-config',
+    'tests-config.cpp',
+    'test-setup.cpp',
+    dependencies: [catch2_dep, asgen_lib_dep],
+    include_directories: [src_dir],
+)
+test('Configuration', tests_config)
+
 # Database/Cache tests
 tests_db = executable(
     'tests-db',

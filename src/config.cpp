@@ -44,6 +44,31 @@ namespace ASGenerator
 std::unique_ptr<Config> Config::instance_;
 std::once_flag Config::initialized_;
 
+/**
+ * Read an image format name from the configuration.
+ * Renditions can only ever be written as PNG or JPEG-XL, so any other format name is
+ * rejected and @fallback is used instead.
+ */
+static AscImageFormat parseImageFormat(
+    const std::string &formatStr,
+    AscImageFormat fallback,
+    quill::Logger *log,
+    const std::string &context)
+{
+    const auto format = asc_image_format_from_string(Utils::toLower(formatStr).c_str());
+    if (format != ASC_IMAGE_FORMAT_PNG && format != ASC_IMAGE_FORMAT_JXL) {
+        LOG_ERROR(
+            log,
+            "Invalid value '{}' for the {}: Media can only be generated as 'png' or 'jxl'. Using '{}'.",
+            formatStr,
+            context,
+            asc_image_format_to_string(fallback));
+        return fallback;
+    }
+
+    return format;
+}
+
 Config::Config()
     : backend(Backend::Unknown),
       metadataType(DataType::XML),
@@ -317,7 +342,15 @@ void Config::loadFromFile(
         }
     }
 
+    // set the format that generated media is stored in. Suites may override this individually,
+    // so distributors can e.g. keep serving PNG for older releases while newer ones use JPEG-XL
+    imageFormat = ASC_IMAGE_FORMAT_JXL;
+    auto imageFormatNode = Yaml::nodeByKey(root, "ImageFormat");
+    if (imageFormatNode)
+        imageFormat = parseImageFormat(Yaml::nodeStrValue(imageFormatNode), imageFormat, m_log, "ImageFormat setting");
+
     // suite selections
+    suites.clear();
     bool hasImmutableSuites = false;
     auto suitesNode = Yaml::nodeByKey(root, "Suites");
     if (suitesNode && fy_node_get_type(suitesNode) == FYNT_MAPPING) {
@@ -330,6 +363,7 @@ void Config::loadFromFile(
 
             Suite suite;
             suite.name = suiteName;
+            suite.imageFormat = imageFormat;
 
             // Having a suite named "pool" will result in the media pool being copied on
             // itself if immutableSuites is used. Since 'pool' is a bad suite name anyway,
@@ -358,6 +392,14 @@ void Config::loadFromFile(
             auto architecturesNode = Yaml::nodeByKey(valueNode, "architectures");
             if (architecturesNode)
                 suite.architectures = Yaml::nodeArrayValues(architecturesNode);
+
+            auto suiteImageFormatNode = Yaml::nodeByKey(valueNode, "imageFormat");
+            if (suiteImageFormatNode)
+                suite.imageFormat = parseImageFormat(
+                    Yaml::nodeStrValue(suiteImageFormatNode),
+                    suite.imageFormat,
+                    m_log,
+                    std::format("imageFormat setting of suite '{}'", suiteName));
 
             auto immutableNode = Yaml::nodeByKey(valueNode, "immutable");
             if (immutableNode) {
@@ -464,6 +506,7 @@ void Config::loadFromFile(
     if (maxScrFileSizeNode)
         maxScrFileSize = Yaml::nodeIntValue(maxScrFileSizeNode);
 
+    allowedCustomKeys.clear();
     auto allowedCustomKeysNode = Yaml::nodeByKey(root, "AllowedCustomKeys");
     if (allowedCustomKeysNode) {
         auto keysList = Yaml::nodeArrayValues(allowedCustomKeysNode);

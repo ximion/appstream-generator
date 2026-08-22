@@ -27,6 +27,7 @@
 #include <mutex>
 
 #include <appstream.h>
+#include <appstream-compose.h>
 
 #include "logging.h"
 #include "utils.h"
@@ -58,6 +59,7 @@ struct Suite {
     std::vector<std::string> sections;
     std::vector<std::string> architectures;
     fs::path extraMetainfoDir;
+    AscImageFormat imageFormat = ASC_IMAGE_FORMAT_JXL;
     bool isImmutable = false;
 };
 
@@ -142,6 +144,9 @@ public:
 
     int64_t maxScrFileSize;
     std::string caInfo;
+
+    /// Default output format for generated media, unless a suite overrides it
+    AscImageFormat imageFormat = ASC_IMAGE_FORMAT_JXL;
 
     std::string formatVersionStr() const;
     fs::path databaseDir() const;

@@ -68,6 +68,7 @@ Note that this example assume that your packages are located in directories
 | ExtraMetainfoDir      | Path to a directory where additional injected metainfo files are located. If not set, the `extra-metainfo` directory in the project workspace is used.                                         |
 | WorkspaceDir          | Explicitly set the location of the workspace. Only makes sense if the generator is meant to be used with a lot of configuration files and the configuration is passed to it via the `-c` flag. |
 | Icons                 | Customize the icon policy. See below for more details.                                                                                                                                         |
+| ImageFormat           | The image format that generated icons and screenshots are stored in. Can be one of `jxl` (JPEG-XL) or `png`. Individual suites can override this. *Default: `jxl`*                             |
 | MaxScreenshotFileSize | The maximum size of downloaded screenshot image or video files in MiB. `0` means unlimited. *Default: `14`*                                                                                    |
 
 ### Suite fields
@@ -81,6 +82,7 @@ The `Suites` field contains a dictionary of the suites which should be processed
 | baseSuite     | An optional base suite name which should be used in addition to the child suite to resolve icons (only the `main` section of that suite is considered).                                                                                                                                                                   |
 | dataPriority  | An integer value representing the priority the data generated for this suite should have. Metadata with a higher priority will override existing data (think of an `-updates` suite wanting to override data shipped with the base suite). If this is not set, AppStream client tools will assume the priority being `0`. |
 | useIconTheme  | Set a specific icon theme name with highest priority for this suite. This is useful if you want a different default icon theme providing icons for generic icon names (by default, the default themes of KDE and GNOME are used).                                                                                         |
+| imageFormat   | Override the global `ImageFormat` setting for this suite. This allows older suites to keep serving `png` media while newer ones use `jxl`. See below for details.                                                                                                                                                         |
 | immutable     | If set to `true`, the state of the metadata files and exported data will be frozen, and no more changes to the data for this suite will be allowed. This only works if the `immutableSuites` feature is enabled.                                                                                                          |
 
 ### Enabling and disabling features
@@ -95,7 +97,7 @@ If no explicit value is set for a feature, the generator will pick its default v
 | processDesktop             | Process .desktop files which do not have a metainfo file. If disabled, all data without metainfo file will be ignored. *Default: `ON`*                                                                                                                                                        |
 | noDownloads                | Do not attempt any downloads. This will implicitly disable any handling of screenshots and possibly other features. Using this flag is discouraged. *Default: `OFF`*                                                                                                                          |
 | createScreenshotsStore     | Mirror screenshots and create thumbnails of them in `media/`. This will yield the best experience with software-centers, and also allow full control over which screenshots are displayed. Disabling this will make clients pull screenshots from 3rd-party upstream servers. *Default: `ON`* |
-| optimizePNGSize            | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. *Default: `ON`*                                                                                                                                                                                                |
+| optimizePNGSize            | Use `optipng` to reduce the size of PNG images. Optipng needs to be installed. This has no effect on media generated as JPEG-XL. *Default: `ON`*                                                                                                                                              |
 | metadataTimestamps         | Write timestamps into generated metadata files. *Default: `ON`*                                                                                                                                                                                                                               |
 | immutableSuites            | Allow suites to be marked as immutable. This is useful for distributions with fixed releases, but not for rolling release distributions or continuously updated repositories. *Default: `ON`*                                                                                                 |
 | processFonts               | Include font metadata and render fonts. *Default: `ON`*                                                                                                                                                                                                                                       |
@@ -118,6 +120,18 @@ Cached means an icon tarball is generated for the icon size that can be made ava
 cache of all icons exists. Icon sizes not mentioned, or with both `cached` and `remote` set to `false` will not be extracted.
 The `64x64` icon size must always be present and be cached. If this is not the case, appstream-generator will adjust the configuration internally and emit a warning.
 If no `Icons` field is present, appstream-generator will use a default policy for icons (creating cache tarballs for all sizes, and remote links for sizes >= 129x128px).
+
+### Selecting the media image format
+
+Icons and screenshots are generated as JPEG-XL by default, which yields considerably smaller files than PNG at the same
+visual quality. Clients need a reasonably recent AppStream/GNOME/KDE version to make use of them though, so the format can be changed
+back to PNG with the toplevel `ImageFormat` setting. Suites may override the global setting via their own `imageFormat` key,
+which allows a distributor to keep serving PNG for their older, still supported releases while newer ones use JPEG-XL.
+Only `jxl` and `png` are valid values, any other value is rejected with an error message and the default is used instead.
+
+Please note that changing this setting for an existing suite will only affect media that is rendered from that point onward.
+Media that has already been generated is not converted, so a suite that switched formats will serve a mix of JPEG-XL and PNG
+files until all of its packages have been processed again.
 
 ## Injecting extra metainfo / removing components
 

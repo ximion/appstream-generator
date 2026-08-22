@@ -160,7 +160,8 @@ void Engine::checkLibfyamlVersion()
 void Engine::processPackages(
     const std::vector<std::shared_ptr<Package>> &pkgs,
     std::shared_ptr<IconHandler> iconh,
-    std::shared_ptr<InjectedModifications> injMods)
+    std::shared_ptr<InjectedModifications> injMods,
+    AscImageFormat imageFormat)
 {
     g_autoptr(AsgLocaleUnit) localeUnit = asg_locale_unit_new(m_cstore, pkgs);
 
@@ -190,7 +191,12 @@ void Engine::processPackages(
             tbb::blocked_range<std::size_t>(0, pkgs.size(), chunkSize),
             [&](const tbb::blocked_range<std::size_t> &range) {
                 auto mde = std::make_unique<DataExtractor>(
-                    m_dstore, iconh, localeUnit, injMods, m_backendPrefixNotUsr ? m_backendPathPrefix : "");
+                    m_dstore,
+                    iconh,
+                    localeUnit,
+                    imageFormat,
+                    injMods,
+                    m_backendPrefixNotUsr ? m_backendPathPrefix : "");
 
                 for (std::size_t i = range.begin(); i != range.end(); ++i) {
                     auto pkg = pkgs[i];
@@ -732,7 +738,7 @@ std::shared_ptr<Package> Engine::processExtraMetainfoData(
     m_dstore->removePackage(diPkg->id());
 
     // Analyze our dummy package just like all other packages
-    auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, nullptr, nullptr);
+    auto mde = std::make_unique<DataExtractor>(m_dstore, iconh, nullptr, suite.imageFormat, nullptr);
     auto gres = mde->processPackage(diPkg);
 
     // Add removal requests, as we can remove packages from frozen suites via overlays
@@ -781,8 +787,12 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
         // Process new packages
         auto pkgs = m_pkgIndex->packagesFor(suite.name, section, arch);
         auto iconh = std::make_shared<IconHandler>(
-            *m_cstore, getIconCandidatePackages(suite, section, arch), suite.iconTheme, m_pkgIndex->dataPrefix());
-        processPackages(pkgs, iconh, injMods);
+            *m_cstore,
+            getIconCandidatePackages(suite, section, arch),
+            suite.imageFormat,
+            suite.iconTheme,
+            m_pkgIndex->dataPrefix());
+        processPackages(pkgs, iconh, injMods, suite.imageFormat);
 
         // Read injected data and add it to the database as a fake package
         auto fakePkg = processExtraMetainfoData(suite, std::move(iconh), section, arch, injMods);
@@ -911,8 +921,12 @@ bool Engine::processFile(
 
         // Process new packages
         auto iconh = std::make_shared<IconHandler>(
-            *m_cstore, getIconCandidatePackages(suite, sectionName, arch), suite.iconTheme, m_pkgIndex->dataPrefix());
-        processPackages(pkgs, std::move(iconh), nullptr);
+            *m_cstore,
+            getIconCandidatePackages(suite, sectionName, arch),
+            suite.imageFormat,
+            suite.iconTheme,
+            m_pkgIndex->dataPrefix());
+        processPackages(pkgs, std::move(iconh), nullptr, suite.imageFormat);
     }
 
     return true;

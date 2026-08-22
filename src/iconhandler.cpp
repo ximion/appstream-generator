@@ -49,7 +49,6 @@ inline constexpr std::array<std::string_view, 9> PossibleIconExts =
 // the image extensions that we will actually allow software to have.
 inline constexpr std::array<std::string_view, 4> AllowedIconExts = {".png", ".jxl", ".svgz", ".svg"};
 
-// Theme implementation
 Theme::Theme(const std::string &name, const std::vector<std::uint8_t> &indexData, const std::string &prefix)
     : m_name(name),
       m_prefix(prefix)
@@ -216,14 +215,15 @@ std::generator<std::string> Theme::matchingIconFilenames(
     }
 }
 
-// IconHandler implementation
 IconHandler::IconHandler(
     ContentsStore &ccache,
     const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
+    AscImageFormat imageFormat,
     const std::string &iconTheme,
     const std::string &extraPrefix)
     : m_log(getLogger("iconhandler")),
       m_iconPolicy(nullptr),
+      m_imageFormat(imageFormat),
       m_defaultIconSize(64),
       m_defaultIconState(ASC_ICON_STATE_IGNORED),
       m_allowIconUpscaling(false),
@@ -513,14 +513,10 @@ std::unordered_map<ImageSize, IconHandler::IconFindResult> IconHandler::findIcon
 
 std::string IconHandler::stripIconExt(const std::string &iconName)
 {
-    if (iconName.ends_with(".png"))
-        return iconName.substr(0, iconName.length() - 4);
-    if (iconName.ends_with(".svg"))
-        return iconName.substr(0, iconName.length() - 4);
-    if (iconName.ends_with(".xpm"))
-        return iconName.substr(0, iconName.length() - 4);
-    if (iconName.ends_with(".svgz"))
-        return iconName.substr(0, iconName.length() - 5);
+    for (const auto &ext : PossibleIconExts) {
+        if (iconName.ends_with(ext))
+            return iconName.substr(0, iconName.length() - ext.length());
+    }
     return iconName;
 }
 
@@ -545,15 +541,14 @@ bool IconHandler::storeIcon(
         return false;
     }
 
-    auto path = cptExportPath / "icons" / size.toString();
-    auto iconName = (gres.getPackage()->kind() == PackageKind::Fake)
-                        ? fs::path(iconPath).filename().string()
-                        : std::format("{}_{}", gres.getPackage()->name(), fs::path(iconPath).filename().string());
-
-    if (iconName.ends_with(".svgz"))
-        iconName = iconName.substr(0, iconName.length() - 5) + ".png";
-    else if (iconName.ends_with(".svg"))
-        iconName = iconName.substr(0, iconName.length() - 4) + ".png";
+    // the stored icon is always rendered in our target format, no matter what the source was.
+    // The format is implied by the file extension of the image target we hand to the media worker.
+    const auto path = cptExportPath / "icons" / size.toString();
+    const auto iconBasename = stripIconExt(fs::path(iconPath).filename().string());
+    const auto targetExt = asc_image_format_to_string(m_imageFormat);
+    const auto iconName = (gres.getPackage()->kind() == PackageKind::Fake)
+                              ? std::format("{}.{}", iconBasename, targetExt)
+                              : std::format("{}_{}.{}", gres.getPackage()->name(), iconBasename, targetExt);
 
     auto iconStoreLocation = path / iconName;
     if (fs::exists(iconStoreLocation)) {

@@ -92,6 +92,7 @@ public:
     IconHandler(
         ContentsStore &ccache,
         const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
+        AscImageFormat imageFormat = ASC_IMAGE_FORMAT_JXL,
         const std::string &iconTheme = "",
         const std::string &extraPrefix = "");
 
@@ -122,6 +123,7 @@ private:
     std::string m_extraPrefix;
 
     AscIconPolicy *m_iconPolicy;
+    AscImageFormat m_imageFormat;
     ImageSize m_defaultIconSize;
     AscIconState m_defaultIconState;
     std::vector<ImageSize> m_enabledIconSizes;

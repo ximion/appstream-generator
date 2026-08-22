@@ -144,7 +144,8 @@ private:
     void processPackages(
         const std::vector<std::shared_ptr<Package>> &pkgs,
         std::shared_ptr<IconHandler> iconh,
-        std::shared_ptr<InjectedModifications> injMods);
+        std::shared_ptr<InjectedModifications> injMods,
+        AscImageFormat imageFormat);
 
     /**
      * Populate the contents index with new contents data. While we are at it, we can also mark

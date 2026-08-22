@@ -44,6 +44,7 @@ DataExtractor::DataExtractor(
     std::shared_ptr<DataStore> db,
     std::shared_ptr<IconHandler> iconHandler,
     AsgLocaleUnit *localeUnit,
+    AscImageFormat imageFormat,
     std::shared_ptr<InjectedModifications> modInjInfo,
     const std::string &prefix)
     : m_log(getLogger("extractor")),
@@ -67,8 +68,8 @@ DataExtractor::DataExtractor(
     m_media = asc_media_new();
     asc_compose_set_media(m_compose, m_media);
 
-    // TODO: Make the media output format configurable, and default it to JPEG-XL
-    asc_compose_set_image_format(m_compose, ASC_IMAGE_FORMAT_PNG);
+    // format that any media rendered by the compose process is stored in
+    asc_compose_set_image_format(m_compose, imageFormat);
 
     asc_compose_set_media_baseurl(m_compose, "");
 

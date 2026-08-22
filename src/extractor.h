@@ -45,6 +45,7 @@ public:
         std::shared_ptr<DataStore> db,
         std::shared_ptr<IconHandler> iconHandler,
         AsgLocaleUnit *localeUnit,
+        AscImageFormat imageFormat,
         std::shared_ptr<InjectedModifications> modInjInfo = nullptr,
         const std::string &prefix = {});
     ~DataExtractor();
