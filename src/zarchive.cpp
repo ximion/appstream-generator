@@ -60,6 +60,21 @@ static std::string getArchiveErrorMessage(archive *ar)
     return err ? std::string(err) : std::string();
 }
 
+/**
+ * Sanitize the path of an archive entry for extraction.
+ *
+ * The returned path is always relative and free of any ".." components, so a malformed
+ * or malicious archive can not make us write outside of the destination directory.
+ * An empty path is returned if the entry has no usable name.
+ */
+static fs::path sanitizeEntryPath(const char *pathname)
+{
+    if (pathname == nullptr || *pathname == '\0')
+        return {};
+
+    return (fs::path("/") / pathname).lexically_normal().relative_path();
+}
+
 static std::string readArchiveData(archive *ar, const std::string &name = "")
 {
     archive_entry *ae = nullptr;
@@ -356,30 +371,46 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
     ArchivePtr ar(openArchive(), archive_read_free);
 
     while (archive_read_next_header(ar.get(), &en) == ARCHIVE_OK) {
-        std::string pathname = fs::path(dest) / archive_entry_pathname(en);
+        const char *rawPathname = archive_entry_pathname(en);
+        const auto entryPath = sanitizeEntryPath(rawPathname);
+        if (entryPath.empty()) {
+            // the entry either has no name at all, or refers to the archive root itself
+            // (a "./" entry, which is very common and needs no action)
+            if (rawPathname == nullptr || *rawPathname == '\0')
+                LOG_WARNING(logRoot, "Skipping nameless entry in archive '{}'", m_archiveFname);
+            continue;
+        }
+        const std::string pathname = fs::path(dest) / entryPath;
 
         auto filetype = archive_entry_filetype(en);
         if (filetype == AE_IFDIR) {
-            if (!fs::exists(pathname))
+            // create any parent directory that the archive did not list explicitly as well,
+            // otherwise we would fail on archives which only record leaf directories
+            try {
                 fs::create_directories(pathname);
+            } catch (const fs::filesystem_error &e) {
+                LOG_ERROR(logRoot, "Failed to create directory '{}': {}", pathname, e.what());
+            }
             continue;
         }
 
         // Faithfully extract any hardlinks
         if (const char *hardlinkTarget = archive_entry_hardlink(en)) {
-            fs::path targetPath = fs::path(dest) / hardlinkTarget;
-            fs::path linkPath = fs::path(pathname).lexically_normal();
-
-            fs::create_directories(linkPath.parent_path());
+            const auto targetPath = sanitizeEntryPath(hardlinkTarget);
+            if (targetPath.empty()) {
+                LOG_ERROR(logRoot, "Skipping hardlink '{}' with an invalid target", pathname);
+                continue;
+            }
 
             try {
-                fs::create_hard_link(targetPath, linkPath);
+                fs::create_directories(fs::path(pathname).parent_path());
+                fs::create_hard_link(fs::path(dest) / targetPath, pathname);
             } catch (const fs::filesystem_error &e) {
                 LOG_ERROR(
                     logRoot,
                     "Failed to create hardlink '{}' -> '{}': {}",
-                    linkPath.string(),
-                    targetPath.string(),
+                    pathname,
+                    (fs::path(dest) / targetPath).string(),
                     e.what());
             }
             continue;
@@ -391,11 +422,9 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
             // Handle symbolic links
             const char *linkTarget = archive_entry_symlink(en);
             if (linkTarget) {
-                // Ensure parent directory exists
-                fs::create_directories(fs::path(pathname).parent_path());
-
                 try {
-                    // Create symbolic link
+                    // ensure the parent directory exists, then create the symbolic link
+                    fs::create_directories(fs::path(pathname).parent_path());
                     fs::create_symlink(linkTarget, pathname);
                 } catch (const fs::filesystem_error &e) {
                     LOG_ERROR(logRoot, "Failed to create symlink '{}' -> '{}': {}", pathname, linkTarget, e.what());

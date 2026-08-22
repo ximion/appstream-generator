@@ -11,6 +11,8 @@
 #include <optional>
 #include <thread>
 #include <appstream-compose.h>
+#include <archive.h>
+#include <archive_entry.h>
 
 #include "utils.h"
 #include "zarchive.h"
@@ -87,6 +89,96 @@ TEST_CASE("Extracting a tarball", "[zarchive]")
     if (!hardlink_content.empty() && hardlink_content.back() == '\n')
         hardlink_content.pop_back();
     REQUIRE(test_content == hardlink_content);
+}
+
+/**
+ * Create a tarball with the given entries, so we can test extraction of archives
+ * which no sane archiver would produce.
+ */
+static void createTestTarball(const std::string &fname, const std::vector<std::pair<std::string, bool>> &entries)
+{
+    archive *a = archive_write_new();
+    REQUIRE(a != nullptr);
+    REQUIRE(archive_write_set_format_pax_restricted(a) == ARCHIVE_OK);
+    REQUIRE(archive_write_open_filename(a, fname.c_str()) == ARCHIVE_OK);
+
+    for (const auto &[name, isDir] : entries) {
+        static const std::string content = "hello\n";
+
+        archive_entry *e = archive_entry_new();
+        archive_entry_set_pathname(e, name.c_str());
+        archive_entry_set_filetype(e, isDir ? AE_IFDIR : AE_IFREG);
+        archive_entry_set_perm(e, isDir ? 0755 : 0644);
+        if (!isDir)
+            archive_entry_set_size(e, content.size());
+
+        REQUIRE(archive_write_header(a, e) == ARCHIVE_OK);
+        if (!isDir)
+            REQUIRE(archive_write_data(a, content.data(), content.size()) == (ssize_t)content.size());
+
+        archive_entry_free(e);
+    }
+
+    REQUIRE(archive_write_close(a) == ARCHIVE_OK);
+    archive_write_free(a);
+}
+
+TEST_CASE("Extracting a hostile or unusual tarball", "[zarchive]")
+{
+    std::string tmpdir = fs::temp_directory_path() / fs::path("asgenXXXXXX");
+    std::vector<char> ctmpdir(tmpdir.begin(), tmpdir.end());
+    ctmpdir.push_back('\0');
+    char *mkdtemp_result = mkdtemp(ctmpdir.data());
+    REQUIRE(mkdtemp_result != nullptr);
+    tmpdir = std::string(mkdtemp_result);
+    auto cleanup = [&tmpdir](void *) {
+        fs::remove_all(tmpdir);
+    };
+    std::unique_ptr<void, decltype(cleanup)> guard((void *)1, cleanup);
+
+    const std::string archive = fs::path(tmpdir) / "hostile.tar";
+    createTestTarball(
+        archive,
+        {
+            // a leaf directory whose parents the archive never lists explicitly
+            {"deep/nested/empty/",              true },
+            // entries trying to escape the destination directory
+            {"../escaped-dir/",                 true },
+            {"../escaped-file.txt",             false},
+            {"deep/../../escaped-relative.txt", false},
+            // entries using absolute paths
+            {"/asgen-absolute-dir/",            true },
+            {"/asgen-absolute-file.txt",        false},
+            // a regular, well-behaved file
+            {"data/file.txt",                   false},
+    });
+
+    const fs::path dest = fs::path(tmpdir) / "dest";
+    fs::create_directory(dest);
+
+    ArchiveDecompressor ar;
+    ar.open(archive);
+    REQUIRE_NOTHROW(ar.extractArchive(dest));
+
+    // parent directories of a directory that the archive only listed as a leaf
+    // must have been created, so the empty directory actually exists
+    REQUIRE(fs::is_directory(dest / "deep" / "nested" / "empty"));
+    REQUIRE(fs::is_directory(dest / "data"));
+    REQUIRE(fs::is_regular_file(dest / "data" / "file.txt"));
+
+    // nothing at all may have been written outside of the destination directory
+    REQUIRE(!fs::exists(fs::path(tmpdir) / "escaped-dir"));
+    REQUIRE(!fs::exists(fs::path(tmpdir) / "escaped-file.txt"));
+    REQUIRE(!fs::exists(fs::path(tmpdir) / "escaped-relative.txt"));
+    REQUIRE(!fs::exists("/asgen-absolute-dir"));
+    REQUIRE(!fs::exists("/asgen-absolute-file.txt"));
+
+    // the escaping entries must have been confined to the destination instead
+    REQUIRE(fs::is_directory(dest / "escaped-dir"));
+    REQUIRE(fs::is_regular_file(dest / "escaped-file.txt"));
+    REQUIRE(fs::is_regular_file(dest / "escaped-relative.txt"));
+    REQUIRE(fs::is_directory(dest / "asgen-absolute-dir"));
+    REQUIRE(fs::is_regular_file(dest / "asgen-absolute-file.txt"));
 }
 
 TEST_CASE("Reading data from tarball using readData", "[zarchive]")
