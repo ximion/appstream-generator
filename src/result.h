@@ -23,6 +23,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <optional>
 #include <filesystem>
 #include <appstream.h>
 
@@ -175,5 +176,18 @@ private:
     // directory the media of this result lives in until it is moved into the media pool
     fs::path m_mediaStagingDir;
 };
+
+/**
+ * Add a hint for @cid to the hints document @hintsJson, which must be in the form produced
+ * by GeneratorResult::hintsToJson(). An empty document is created for @pkid if none is given.
+ *
+ * @return The updated document, or nothing if @cid already carries a hint with @tag.
+ */
+[[nodiscard]] std::optional<std::string> hintsJsonAddHint(
+    const std::string &hintsJson,
+    const std::string &pkid,
+    const std::string &cid,
+    const std::string &tag,
+    const std::unordered_map<std::string, std::string> &vars);
 
 } // namespace ASGenerator

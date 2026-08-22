@@ -23,13 +23,43 @@
 #include <algorithm>
 #include <appstream.h>
 #include <appstream-compose.h>
+#include <nlohmann/json.hpp>
 
 #include "hintregistry.h"
 #include "logging.h"
-#include "yaml-utils.h"
 
 namespace ASGenerator
 {
+
+using ordered_json = nlohmann::ordered_json;
+
+/**
+ * Create an empty hints document for @pkid.
+ */
+static ordered_json makeHintsDocument(const std::string &pkid)
+{
+    return ordered_json{
+        {"package", pkid                  },
+        {"hints",   ordered_json::object()}
+    };
+}
+
+/**
+ * Create the JSON object representing a single hint.
+ */
+static ordered_json makeHintNode(const std::string &tag, const std::vector<std::pair<std::string, std::string>> &vars)
+{
+    ordered_json hint{
+        {"tag", tag}
+    };
+    if (!vars.empty()) {
+        auto &varsNode = hint["vars"];
+        for (const auto &[key, value] : vars)
+            varsNode[key] = value;
+    }
+
+    return hint;
+}
 
 GeneratorResult::GeneratorResult(std::shared_ptr<Package> pkg, fs::path mediaStagingDir)
     : m_pkg(std::move(pkg)),
@@ -168,87 +198,52 @@ void GeneratorResult::addComponentWithString(AsComponent *cpt, const std::string
 
 std::string GeneratorResult::hintsToJson() const
 {
-    if (hintsCount() == 0) {
-        return "";
-    }
+    if (hintsCount() == 0)
+        return {};
 
-    // Create the root document
-    auto doc = Yaml::createDocument();
-    if (!doc) {
-        LOG_ERROR(logRoot, "Failed to create YAML document for hints");
-        return "";
-    }
-
-    // Create root mapping
-    fy_node *root = fy_node_create_mapping(doc.get());
-    fy_document_set_root(doc.get(), root);
-
-    // Add package field
-    fy_node *pkgKey = fy_node_create_scalar(doc.get(), "package", FY_NT);
-    fy_node *pkgValue = fy_node_create_scalar_copy(doc.get(), pkid().c_str(), FY_NT);
-    fy_node_mapping_append(root, pkgKey, pkgValue);
-
-    // Create hints mapping
-    fy_node *hintsKey = fy_node_create_scalar(doc.get(), "hints", FY_NT);
-    fy_node *hintsMapping = fy_node_create_mapping(doc.get());
-    fy_node_mapping_append(root, hintsKey, hintsMapping);
-
-    // Get component IDs with hints
-    auto componentIds = getComponentIdsWithHints();
-
-    for (const auto &cid : componentIds) {
-        // Get hints for this component
+    auto doc = makeHintsDocument(pkid());
+    for (const auto &cid : getComponentIdsWithHints()) {
         GPtrArray *cptHints = asc_result_get_hints(m_res, cid.c_str());
         if (!cptHints || cptHints->len == 0)
             continue;
 
-        // Create sequence for this component's hints
-        fy_node *cidKey = fy_node_create_scalar(doc.get(), cid.c_str(), FY_NT);
-        fy_node *hintSequence = fy_node_create_sequence(doc.get());
-        fy_node_mapping_append(hintsMapping, cidKey, hintSequence);
-
+        auto &hintNodes = doc["hints"][cid];
         for (guint i = 0; i < cptHints->len; i++) {
-            auto hint = static_cast<AscHint *>(g_ptr_array_index(cptHints, i));
+            auto *hint = static_cast<AscHint *>(g_ptr_array_index(cptHints, i));
 
-            // Create mapping for this hint
-            fy_node *hintMapping = fy_node_create_mapping(doc.get());
-            fy_node_sequence_append(hintSequence, hintMapping);
-
-            // Add tag
-            const char *tag = asc_hint_get_tag(hint);
-            fy_node *tagKey = fy_node_create_scalar(doc.get(), "tag", FY_NT);
-            fy_node *tagValue = fy_node_create_scalar(doc.get(), tag, FY_NT);
-            fy_node_mapping_append(hintMapping, tagKey, tagValue);
-
-            // Add vars
+            std::vector<std::pair<std::string, std::string>> vars;
             GPtrArray *varsList = asc_hint_get_explanation_vars_list(hint);
-            if (varsList && varsList->len > 0) {
-                fy_node *varsKey = fy_node_create_scalar(doc.get(), "vars", FY_NT);
-                fy_node *varsMapping = fy_node_create_mapping(doc.get());
-                fy_node_mapping_append(hintMapping, varsKey, varsMapping);
-
-                for (guint j = 0; j < varsList->len; j += 2) {
-                    if (j + 1 < varsList->len) {
-                        const char *key = static_cast<const char *>(g_ptr_array_index(varsList, j));
-                        const char *value = static_cast<const char *>(g_ptr_array_index(varsList, j + 1));
-
-                        fy_node *varKey = fy_node_create_scalar(doc.get(), key, FY_NT);
-                        fy_node *varValue = fy_node_create_scalar(doc.get(), value, FY_NT);
-                        fy_node_mapping_append(varsMapping, varKey, varValue);
-                    }
-                }
+            if (varsList) {
+                for (guint j = 0; j + 1 < varsList->len; j += 2)
+                    vars.emplace_back(
+                        static_cast<const char *>(g_ptr_array_index(varsList, j)),
+                        static_cast<const char *>(g_ptr_array_index(varsList, j + 1)));
             }
+
+            hintNodes.push_back(makeHintNode(asc_hint_get_tag(hint), vars));
         }
     }
 
-    // Emit as JSON
-    g_autofree gchar *json_output = fy_emit_document_to_string(doc.get(), FYECF_MODE_JSON);
+    return doc.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+}
 
-    std::string result;
-    if (json_output)
-        result = std::string(json_output);
+std::optional<std::string> hintsJsonAddHint(
+    const std::string &hintsJson,
+    const std::string &pkid,
+    const std::string &cid,
+    const std::string &tag,
+    const std::unordered_map<std::string, std::string> &vars)
+{
+    auto doc = hintsJson.empty() ? makeHintsDocument(pkid) : ordered_json::parse(hintsJson);
 
-    return result;
+    auto &hintNodes = doc["hints"][cid];
+    for (const auto &hint : hintNodes) {
+        if (hint.value("tag", "") == tag)
+            return std::nullopt;
+    }
+
+    hintNodes.push_back(makeHintNode(tag, {vars.begin(), vars.end()}));
+    return doc.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 }
 
 std::uint32_t GeneratorResult::hintsCount() const

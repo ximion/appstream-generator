@@ -523,8 +523,16 @@ void DataStore::acquireMediaStaging(const fs::path &mediaBaseDir)
     static std::atomic<std::uint64_t> storeCounter{0};
     m_mediaStagingRoot = stagingBase / std::format("{}.{}", ::getpid(), storeCounter++);
 
+    // Checked separately: a removal we could not perform leaves the directory in place, and
+    // create_directories() would then report success on the stale contents.
     std::error_code ec;
     fs::remove_all(m_mediaStagingRoot, ec);
+    if (ec) {
+        LOG_WARNING(m_log, "Unable to clear media staging area '{}': {}", m_mediaStagingRoot.string(), ec.message());
+        m_mediaStagingRoot = stagingBase
+                             / std::format("{}.{}.{}", ::getpid(), storeCounter++, g_random_int_range(1000, 9999));
+    }
+
     fs::create_directories(m_mediaStagingRoot, ec);
     if (ec) {
         LOG_WARNING(m_log, "Unable to create media staging area '{}': {}", m_mediaStagingRoot.string(), ec.message());
@@ -909,27 +917,17 @@ void DataStore::takeComponentFrom(
     // Record the reason in the package's hints, exactly like the check in the extractor does
     // for a package that already knew it was going to lose.
     try {
-        const auto hintsStr = getHints(pkid);
-        json doc = hintsStr.empty() ? json{
-                                          {"package", pkid            },
-                                          {"hints",   json::object()}
-        }
-                                    : json::parse(hintsStr);
-        auto &cptHints = doc["hints"][cid];
-        if (!cptHints.is_array())
-            cptHints = json::array();
-
-        for (const auto &hint : cptHints) {
-            if (hint.value("tag", "") == "metainfo-duplicate-id")
-                return; // the package already knows
-        }
-
-        cptHints.push_back(
-            json{
-                {"tag",  "metainfo-duplicate-id"                  },
-                {"vars", {{"cid", cid}, {"pkgname", newOwnerName}}}
+        const auto updated = hintsJsonAddHint(
+            getHints(pkid),
+            pkid,
+            cid,
+            "metainfo-duplicate-id",
+            {
+                {"cid",     cid         },
+                {"pkgname", newOwnerName}
         });
-        setHints(pkid, doc.dump());
+        if (updated)
+            setHints(pkid, *updated);
     } catch (const json::exception &e) {
         LOG_WARNING(m_log, "Unable to add duplicate-ID hint to the stored hints of '{}': {}", pkid, e.what());
     }
