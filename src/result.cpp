@@ -228,7 +228,7 @@ std::uint32_t GeneratorResult::componentsCount() const
 
 std::vector<std::string> GeneratorResult::getComponentIdsWithHints() const
 {
-    g_autofree const gchar **cids = asc_result_get_component_ids_with_hints(m_res);
+    g_autofree const gchar **cids = asc_result_fetch_component_ids_with_hints(m_res);
     std::vector<std::string> result;
 
     if (cids) {
@@ -295,7 +295,7 @@ std::string GeneratorResult::gcidForComponent(AsComponent *cpt) const
 
 std::vector<std::string> GeneratorResult::getComponentGcids() const
 {
-    g_autofree const char **gcids = asc_result_get_component_gcids(m_res);
+    g_autofree const char **gcids = asc_result_fetch_component_gcids(m_res);
     std::vector<std::string> result;
 
     if (gcids) {

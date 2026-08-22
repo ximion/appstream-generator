@@ -160,7 +160,7 @@ void saveHintsRegistryToJsonFile(const std::string &fname)
     fy_node *root = fy_node_create_mapping(doc.get());
     fy_document_set_root(doc.get(), root);
 
-    g_auto(GStrv) hintTags = asc_globals_get_hint_tags();
+    g_auto(GStrv) hintTags = asc_globals_fetch_hint_tags();
     for (guint i = 0; hintTags[i] != nullptr; i++) {
         const gchar *tag = hintTags[i];
         const auto hdef = retrieveHintDef(tag);
