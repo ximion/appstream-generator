@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <clocale>
+#include <locale>
 
 #include <glib.h>
 
@@ -41,6 +42,53 @@
 #include "utils.h"
 
 using namespace ASGenerator;
+
+/**
+ * Set up the locale for this process.
+ *
+ * We run in the user's system locale, but always enforce a UTF-8 codeset,
+ * as we can not process text in any other encoding. Numbers are formatted
+ * in the classic locale unconditionally, so we never emit localized numbers
+ * into generated data by accident.
+ */
+static void setupLocale()
+{
+    std::string localeName;
+    if (const auto *sysLocale = std::setlocale(LC_ALL, ""))
+        localeName = sysLocale;
+
+    const char *charset = nullptr;
+    if (localeName.empty() || !g_get_charset(&charset)) {
+        // the system locale is either unusable or not UTF-8 encoded, so select
+        // a locale explicitly that we know we can safely work with
+        localeName.clear();
+        for (const auto *fallbackLocale : {"C.UTF-8", "en_US.UTF-8"}) {
+            if (const auto *setLocale = std::setlocale(LC_ALL, fallbackLocale)) {
+                localeName = setLocale;
+                break;
+            }
+        }
+        if (localeName.empty())
+            std::cerr << "ERROR: Could not set a UTF-8 locale. UTF-8 text may be corrupted." << std::endl;
+    }
+
+    // Make sure nothing localizes numbers by accident
+    std::setlocale(LC_NUMERIC, "C");
+
+    // Mirror the same setup onto the C++ iostreams. Deriving the locale from the
+    // name we just applied (instead of from the environment again) ensures that a
+    // fallback we had to make above is honored here as well.
+    try {
+        const std::locale sysLocale(localeName.empty() ? "C" : localeName.c_str());
+        const std::locale loc(sysLocale, std::locale::classic(), std::locale::numeric);
+        std::locale::global(loc);
+        std::cout.imbue(loc);
+        std::cerr.imbue(loc);
+    } catch (const std::exception &e) {
+        // Non-fatal; iostreams will just use the classic locale
+        g_debug("Unable to apply the C++ locale: %s", e.what());
+    }
+}
 
 /**
  * Create XDG runtime directory if it doesn't exist.
@@ -197,24 +245,7 @@ int main(int argc, char **argv)
     g_autofree gchar *exportDir = nullptr;
     g_autofree gchar *configFname = nullptr;
 
-    // Initialize locale for proper UTF-8 handling
-    if (setlocale(LC_ALL, "") != nullptr) {
-        // If system locale fails, try to set a UTF-8 locale explicitly
-        g_debug("No locale set, falling back to C.UTF-8.");
-        if (!setlocale(LC_ALL, "C.UTF-8") && !setlocale(LC_ALL, "en_US.UTF-8"))
-            std::cerr << "ERROR: Could not set UTF-8 locale. UTF-8 text may be corrupted" << std::endl;
-    }
-    // Make sure nothing localizes numbers by accident
-    std::setlocale(LC_NUMERIC, "C");
-
-    try {
-        std::locale loc("");
-        std::locale::global(loc);
-        std::cout.imbue(loc);
-        std::cerr.imbue(loc);
-    } catch (...) {
-        // Non-fatal; iostreams will just use the classic locale
-    }
+    setupLocale();
 
 #ifdef HAVE_BACKWARD
     // needs to stay alive for the whole runtime of the program
