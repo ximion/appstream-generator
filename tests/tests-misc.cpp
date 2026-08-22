@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <optional>
 #include <thread>
+#include <functional>
 #include <appstream-compose.h>
 #include <archive.h>
 #include <archive_entry.h>
@@ -92,35 +93,68 @@ TEST_CASE("Extracting a tarball", "[zarchive]")
 }
 
 /**
- * Create a tarball with the given entries, so we can test extraction of archives
+ * A single entry for a tarball constructed by createTestTarball().
+ */
+struct TestArchiveEntry {
+    std::string name;
+    unsigned int filetype;
+    std::string payload; // file contents, or the target for a symlink
+};
+
+/**
+ * Create a tarball with the given entries, so we can test handling of archives
  * which no sane archiver would produce.
  */
-static void createTestTarball(const std::string &fname, const std::vector<std::pair<std::string, bool>> &entries)
+static void createTestTarball(const std::string &fname, const std::vector<TestArchiveEntry> &entries)
 {
     archive *a = archive_write_new();
     REQUIRE(a != nullptr);
     REQUIRE(archive_write_set_format_pax_restricted(a) == ARCHIVE_OK);
     REQUIRE(archive_write_open_filename(a, fname.c_str()) == ARCHIVE_OK);
 
-    for (const auto &[name, isDir] : entries) {
-        static const std::string content = "hello\n";
-
+    for (const auto &entry : entries) {
         archive_entry *e = archive_entry_new();
-        archive_entry_set_pathname(e, name.c_str());
-        archive_entry_set_filetype(e, isDir ? AE_IFDIR : AE_IFREG);
-        archive_entry_set_perm(e, isDir ? 0755 : 0644);
-        if (!isDir)
-            archive_entry_set_size(e, content.size());
+        archive_entry_set_pathname(e, entry.name.c_str());
+        archive_entry_set_filetype(e, entry.filetype);
+        archive_entry_set_perm(e, entry.filetype == AE_IFDIR ? 0755 : 0644);
+
+        if (entry.filetype == AE_IFLNK)
+            archive_entry_set_symlink(e, entry.payload.c_str());
+        else if (entry.filetype == AE_IFREG)
+            archive_entry_set_size(e, entry.payload.size());
 
         REQUIRE(archive_write_header(a, e) == ARCHIVE_OK);
-        if (!isDir)
-            REQUIRE(archive_write_data(a, content.data(), content.size()) == (ssize_t)content.size());
+        if (entry.filetype == AE_IFREG && !entry.payload.empty())
+            REQUIRE(archive_write_data(a, entry.payload.data(), entry.payload.size()) == (ssize_t)entry.payload.size());
 
         archive_entry_free(e);
     }
 
     REQUIRE(archive_write_close(a) == ARCHIVE_OK);
     archive_write_free(a);
+}
+
+/**
+ * Create a temporary directory which is removed again once the guard goes out of scope.
+ */
+static std::string makeTempDir(std::unique_ptr<void, std::function<void(void *)>> &guard)
+{
+    std::string tmpdir = fs::temp_directory_path() / fs::path("asgenXXXXXX");
+    std::vector<char> ctmpdir(tmpdir.begin(), tmpdir.end());
+    ctmpdir.push_back('\0');
+    char *result = mkdtemp(ctmpdir.data());
+    REQUIRE(result != nullptr);
+    tmpdir = std::string(result);
+
+    guard = std::unique_ptr<void, std::function<void(void *)>>((void *)1, [tmpdir](void *) {
+        fs::remove_all(tmpdir);
+    });
+    return tmpdir;
+}
+
+static std::string asString(const std::vector<uint8_t> &data)
+{
+    return std::string(data.begin(), data.end());
 }
 
 TEST_CASE("Extracting a hostile or unusual tarball", "[zarchive]")
@@ -141,16 +175,16 @@ TEST_CASE("Extracting a hostile or unusual tarball", "[zarchive]")
         archive,
         {
             // a leaf directory whose parents the archive never lists explicitly
-            {"deep/nested/empty/",              true },
+            {"deep/nested/empty/",              AE_IFDIR, {}       },
             // entries trying to escape the destination directory
-            {"../escaped-dir/",                 true },
-            {"../escaped-file.txt",             false},
-            {"deep/../../escaped-relative.txt", false},
+            {"../escaped-dir/",                 AE_IFDIR, {}       },
+            {"../escaped-file.txt",             AE_IFREG, "hello\n"},
+            {"deep/../../escaped-relative.txt", AE_IFREG, "hello\n"},
             // entries using absolute paths
-            {"/asgen-absolute-dir/",            true },
-            {"/asgen-absolute-file.txt",        false},
+            {"/asgen-absolute-dir/",            AE_IFDIR, {}       },
+            {"/asgen-absolute-file.txt",        AE_IFREG, "hello\n"},
             // a regular, well-behaved file
-            {"data/file.txt",                   false},
+            {"data/file.txt",                   AE_IFREG, "hello\n"},
     });
 
     const fs::path dest = fs::path(tmpdir) / "dest";
@@ -179,6 +213,103 @@ TEST_CASE("Extracting a hostile or unusual tarball", "[zarchive]")
     REQUIRE(fs::is_regular_file(dest / "escaped-relative.txt"));
     REQUIRE(fs::is_directory(dest / "asgen-absolute-dir"));
     REQUIRE(fs::is_regular_file(dest / "asgen-absolute-file.txt"));
+}
+
+TEST_CASE("Extraction does not write through symlinks", "[zarchive]")
+{
+    std::unique_ptr<void, std::function<void(void *)>> guard;
+    const std::string tmpdir = makeTempDir(guard);
+
+    const fs::path outside = fs::path(tmpdir) / "outside";
+    fs::create_directory(outside);
+
+    const std::string archive = fs::path(tmpdir) / "symlink-attack.tar";
+    createTestTarball(
+        archive,
+        {
+            // a symlink pointing out of the extraction directory, followed by an entry
+            // that would be written through it
+            {"escape",              AE_IFLNK, outside.string()},
+            {"escape/pwned.txt",    AE_IFREG, "pwned\n"       },
+            // the same trick, but with the symlink as an intermediate path component
+            {"deep",                AE_IFLNK, outside.string()},
+            {"deep/sub/pwned2.txt", AE_IFREG, "pwned\n"       },
+            // and a regular file, which must still be extracted
+            {"harmless.txt",        AE_IFREG, "harmless\n"    },
+    });
+
+    const fs::path dest = fs::path(tmpdir) / "dest";
+    fs::create_directory(dest);
+
+    ArchiveDecompressor ar;
+    ar.open(archive);
+    REQUIRE_NOTHROW(ar.extractArchive(dest));
+
+    // nothing may have been written through the symlinks
+    REQUIRE(fs::is_empty(outside));
+    REQUIRE(!fs::exists(outside / "pwned.txt"));
+    REQUIRE(!fs::exists(outside / "sub"));
+
+    // ... while well-behaved entries were extracted as usual
+    REQUIRE(fs::is_regular_file(dest / "harmless.txt"));
+}
+
+TEST_CASE("Symlinks in archives resolve within the archive", "[zarchive]")
+{
+    std::unique_ptr<void, std::function<void(void *)>> guard;
+    const std::string tmpdir = makeTempDir(guard);
+
+    // padding, so that the archive crosses the size threshold above which
+    // ArchiveDecompressor extracts to a temporary directory
+    const std::string padding(25 * 1024 * 1024, 'x');
+
+    std::vector<TestArchiveEntry> entries = {
+        {"etc/",                    AE_IFDIR, {}                           },
+        {"etc/hostname",            AE_IFREG, "in-archive\n"               },
+        {"usr/share/data/",         AE_IFDIR, {}                           },
+        {"usr/share/data/real.txt", AE_IFREG, "real data\n"                },
+        {"usr/bin/",                AE_IFDIR, {}                           },
+        // an absolute symlink must resolve against the archive root, never against
+        // the filesystem of the machine we are running on
+        {"usr/bin/link-absolute",   AE_IFLNK, "/etc/hostname"              },
+        // an ordinary relative symlink
+        {"usr/bin/link-relative",   AE_IFLNK, "../share/data/real.txt"     },
+        // a relative symlink with more ".." than there is depth: it must be clamped
+        // to the archive root instead of escaping it
+        {"usr/bin/link-escaping",   AE_IFLNK, "../../../../../etc/hostname"},
+    };
+
+    // sanity check: the host must have a different /etc/hostname than the archive,
+    // otherwise this test can not tell the two apart
+    REQUIRE(fs::exists("/etc/hostname"));
+
+    auto checkArchive = [&](const std::string &archive, bool optimizeReads) {
+        ArchiveDecompressor ar;
+        ar.setOptimizeRepeatedReads(optimizeReads);
+        ar.open(archive, fs::path(tmpdir) / (optimizeReads ? "extract-opt" : "extract-direct"));
+
+        REQUIRE(asString(ar.readData("/usr/share/data/real.txt")) == "real data\n");
+        REQUIRE(asString(ar.readData("/etc/hostname")) == "in-archive\n");
+        REQUIRE(asString(ar.readData("/usr/bin/link-relative")) == "real data\n");
+        REQUIRE(asString(ar.readData("/usr/bin/link-absolute")) == "in-archive\n");
+        REQUIRE(asString(ar.readData("/usr/bin/link-escaping")) == "in-archive\n");
+    };
+
+    SECTION("Reading directly from the archive")
+    {
+        const std::string archive = fs::path(tmpdir) / "small.tar";
+        createTestTarball(archive, entries);
+        checkArchive(archive, false);
+    }
+
+    SECTION("Reading via the temporary extraction optimization")
+    {
+        const std::string archive = fs::path(tmpdir) / "large.tar";
+        entries.push_back({"padding.bin", AE_IFREG, padding});
+        createTestTarball(archive, entries);
+        REQUIRE(fs::file_size(archive) > 24 * 1024 * 1024);
+        checkArchive(archive, true);
+    }
 }
 
 TEST_CASE("Reading data from tarball using readData", "[zarchive]")

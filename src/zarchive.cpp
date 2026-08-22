@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -33,6 +33,7 @@
 #include <format>
 #include <iostream>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "utils.h"
 #include "logging.h"
@@ -53,6 +54,7 @@ constexpr size_t DEFAULT_BLOCK_SIZE = 65536;
 constexpr size_t FULL_EXTRACTION_SIZE_THRESHOLD = 24 * 1024 * 1024; // 24MB
 
 using ArchivePtr = std::unique_ptr<archive, decltype(&archive_read_free)>;
+using ArchiveWriterPtr = std::unique_ptr<archive, decltype(&archive_write_free)>;
 
 static std::string getArchiveErrorMessage(archive *ar)
 {
@@ -73,6 +75,80 @@ static fs::path sanitizeEntryPath(const char *pathname)
         return {};
 
     return (fs::path("/") / pathname).lexically_normal().relative_path();
+}
+
+/**
+ * Maximum number of symbolic links we follow before giving up, to escape link loops.
+ */
+constexpr int MAX_SYMLINK_DEPTH = 40;
+
+/**
+ * Resolve a path in a directory tree that an archive was extracted to.
+ *
+ * The extraction directory is treated as the root of the archive's own filesystem:
+ * symbolic links are followed within the tree, and an absolute link target is resolved
+ * against the extraction root rather than against the filesystem we are running on.
+ * This mirrors how readData() resolves links when it reads from the archive directly.
+ *
+ * @param root Directory the archive was extracted to.
+ * @param entryPath Path of the wanted entry, relative to the archive root.
+ * @returns The resolved path relative to @p root, or nothing if it does not exist.
+ */
+static std::optional<fs::path> resolveInTree(const fs::path &root, const fs::path &entryPath)
+{
+    std::vector<std::string> pending; // components left to resolve, in reverse order
+    const auto pushPath = [&pending](const fs::path &path) {
+        std::vector<std::string> components;
+        for (const auto &component : path) {
+            const auto c = component.string();
+            if (c.empty() || c == "/" || c == ".")
+                continue;
+            components.push_back(c);
+        }
+        pending.insert(pending.end(), components.rbegin(), components.rend());
+    };
+
+    fs::path resolved; // always relative to root, and always inside of it
+    int linksFollowed = 0;
+
+    pushPath(entryPath);
+    while (!pending.empty()) {
+        const auto component = pending.back();
+        pending.pop_back();
+
+        if (component == "..") {
+            // ".." at the archive root stays at the archive root, just like it would
+            // on a real filesystem
+            resolved = resolved.has_parent_path() ? resolved.parent_path() : fs::path();
+            continue;
+        }
+
+        std::error_code ec;
+        const auto candidate = resolved / component;
+        const auto status = fs::symlink_status(root / candidate, ec);
+        if (ec || !fs::exists(status))
+            return std::nullopt;
+
+        if (!fs::is_symlink(status)) {
+            resolved = candidate;
+            continue;
+        }
+
+        if (++linksFollowed > MAX_SYMLINK_DEPTH)
+            return std::nullopt;
+
+        const auto target = fs::read_symlink(root / candidate, ec);
+        if (ec)
+            return std::nullopt;
+
+        // an absolute target refers to the root of the archive, a relative one to the
+        // directory the link itself is in (which is what `resolved` still points at)
+        if (target.is_absolute())
+            resolved.clear();
+        pushPath(target);
+    }
+
+    return resolved;
 }
 
 static std::string readArchiveData(archive *ar, const std::string &name = "")
@@ -328,11 +404,12 @@ bool ArchiveDecompressor::extractFileTo(const std::string &fname, const std::str
 {
     // Try optimization: if fully extracted, copy from filesystem
     if (tmpExtractIfPossible()) {
-        fs::path extractedPath = m_tmpDir / fs::path(fname).relative_path();
-        try {
-            if (!fs::exists(extractedPath))
-                return false; // File not found in archive
+        const auto resolved = resolveInTree(m_tmpDir, fname);
+        if (!resolved)
+            return false; // file not found in the archive, or a link we can not resolve
 
+        const auto extractedPath = m_tmpDir / *resolved;
+        try {
             // Copy the file from the extracted location to destination
             fs::copy_file(extractedPath, fdest, fs::copy_options::overwrite_existing);
 
@@ -352,6 +429,18 @@ bool ArchiveDecompressor::extractFileTo(const std::string &fname, const std::str
         std::string pathname = archive_entry_pathname(en);
 
         if (pathMatches(fname, pathname)) {
+            // links have no data of their own, so we have to look up what they point at.
+            // readData() resolves them within the archive for us.
+            if (archive_entry_filetype(en) == AE_IFLNK || archive_entry_hardlink(en) != nullptr) {
+                const auto data = readData(fname);
+                std::ofstream f(fdest, std::ios::binary);
+                if (!f)
+                    throw std::runtime_error(std::format("Failed to open file for writing: {}", fdest));
+                f.write(reinterpret_cast<const char *>(data.data()), data.size());
+
+                return true;
+            }
+
             extractEntryTo(ar.get(), fdest);
             return true;
         } else {
@@ -367,8 +456,26 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
     if (!fs::is_directory(dest))
         throw std::runtime_error(std::format("Destination is not a directory: {}", dest));
 
+    // Resolve the destination up front: libarchive refuses to write through a symlinked
+    // path component when ARCHIVE_EXTRACT_SECURE_SYMLINKS is set, and that check also
+    // covers the components of the destination itself (e.g. a /tmp that is a symlink).
+    std::error_code ec;
+    const auto destDir = fs::canonical(dest, ec);
+    if (ec)
+        throw std::runtime_error(std::format("Unable to resolve destination '{}': {}", dest, ec.message()));
+
     archive_entry *en = nullptr;
     ArchivePtr ar(openArchive(), archive_read_free);
+
+    ArchiveWriterPtr disk(archive_write_disk_new(), archive_write_free);
+    if (!disk)
+        throw std::runtime_error("Unable to create writer to extract archive to disk.");
+
+    // ARCHIVE_EXTRACT_SECURE_SYMLINKS makes libarchive refuse entries whose location would
+    // be changed by a symlink placed earlier by the same archive, ARCHIVE_EXTRACT_SECURE_NODOTDOT
+    // rejects any ".." that may have slipped through our own sanitizing of entry names.
+    archive_write_disk_set_options(
+        disk.get(), ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_SECURE_NODOTDOT | ARCHIVE_EXTRACT_PERM);
 
     while (archive_read_next_header(ar.get(), &en) == ARCHIVE_OK) {
         const char *rawPathname = archive_entry_pathname(en);
@@ -380,76 +487,106 @@ void ArchiveDecompressor::extractArchive(const std::string &dest)
                 LOG_WARNING(logRoot, "Skipping nameless entry in archive '{}'", m_archiveFname);
             continue;
         }
-        const std::string pathname = fs::path(dest) / entryPath;
 
-        auto filetype = archive_entry_filetype(en);
-        if (filetype == AE_IFDIR) {
-            // create any parent directory that the archive did not list explicitly as well,
-            // otherwise we would fail on archives which only record leaf directories
-            try {
-                fs::create_directories(pathname);
-            } catch (const fs::filesystem_error &e) {
-                LOG_ERROR(logRoot, "Failed to create directory '{}': {}", pathname, e.what());
-            }
+        const auto filetype = archive_entry_filetype(en);
+        const char *hardlinkTarget = archive_entry_hardlink(en);
+
+        // we never want device nodes, sockets or fifos on disk - reading them can block
+        // indefinitely, and the archive reading code refuses them as well
+        if (hardlinkTarget == nullptr && filetype != AE_IFREG && filetype != AE_IFDIR && filetype != AE_IFLNK) {
+            LOG_DEBUG(logRoot, "Skipping special file '{}' in archive '{}'", entryPath.string(), m_archiveFname);
             continue;
         }
 
-        // Faithfully extract any hardlinks
-        if (const char *hardlinkTarget = archive_entry_hardlink(en)) {
-            const auto targetPath = sanitizeEntryPath(hardlinkTarget);
-            if (targetPath.empty()) {
-                LOG_ERROR(logRoot, "Skipping hardlink '{}' with an invalid target", pathname);
+        // Confine the entry to the destination directory. We do this ourselves rather than
+        // letting libarchive reject the entry, so that an extracted tree contains exactly the
+        // entries that reading the archive directly makes visible.
+        archive_entry_set_pathname(en, (destDir / entryPath).c_str());
+
+        if (hardlinkTarget != nullptr) {
+            const auto linkPath = sanitizeEntryPath(hardlinkTarget);
+            if (linkPath.empty()) {
+                LOG_ERROR(logRoot, "Skipping hardlink '{}' with an invalid target", entryPath.string());
                 continue;
             }
+            archive_entry_set_hardlink(en, (destDir / linkPath).c_str());
+        }
 
-            try {
-                fs::create_directories(fs::path(pathname).parent_path());
-                fs::create_hard_link(fs::path(dest) / targetPath, pathname);
-            } catch (const fs::filesystem_error &e) {
-                LOG_ERROR(
-                    logRoot,
-                    "Failed to create hardlink '{}' -> '{}': {}",
-                    pathname,
-                    (fs::path(dest) / targetPath).string(),
-                    e.what());
-            }
+        // The extracted tree is a scratch copy that we only ever read from, so we do not
+        // restore ownership or the original permissions - the latter could well leave us
+        // with a directory we can not descend into or a file we can not read.
+        archive_entry_set_perm(en, filetype == AE_IFDIR ? 0755 : 0644);
+        archive_entry_set_uid(en, geteuid());
+        archive_entry_set_gid(en, getegid());
+
+        int ret = archive_write_header(disk.get(), en);
+        if (ret < ARCHIVE_OK) {
+            LOG_ERROR(
+                logRoot,
+                "Unable to extract '{}' from '{}': {}",
+                entryPath.string(),
+                m_archiveFname,
+                getArchiveErrorMessage(disk.get()));
             continue;
         }
 
-        if (filetype == AE_IFREG) {
-            extractEntryTo(ar.get(), pathname);
-        } else if (filetype == AE_IFLNK) {
-            // Handle symbolic links
-            const char *linkTarget = archive_entry_symlink(en);
-            if (linkTarget) {
-                try {
-                    // ensure the parent directory exists, then create the symbolic link
-                    fs::create_directories(fs::path(pathname).parent_path());
-                    fs::create_symlink(linkTarget, pathname);
-                } catch (const fs::filesystem_error &e) {
-                    LOG_ERROR(logRoot, "Failed to create symlink '{}' -> '{}': {}", pathname, linkTarget, e.what());
+        if (archive_entry_size(en) > 0) {
+            const void *buff = nullptr;
+            size_t size = 0;
+            int64_t offset = 0;
+
+            while ((ret = archive_read_data_block(ar.get(), &buff, &size, &offset)) == ARCHIVE_OK) {
+                if (archive_write_data_block(disk.get(), buff, size, offset) < ARCHIVE_OK) {
+                    LOG_ERROR(
+                        logRoot,
+                        "Unable to write data of '{}' from '{}': {}",
+                        entryPath.string(),
+                        m_archiveFname,
+                        getArchiveErrorMessage(disk.get()));
+                    break;
                 }
             }
         }
+
+        if (archive_write_finish_entry(disk.get()) < ARCHIVE_OK)
+            LOG_ERROR(
+                logRoot,
+                "Unable to finish extracting '{}' from '{}': {}",
+                entryPath.string(),
+                m_archiveFname,
+                getArchiveErrorMessage(disk.get()));
     }
+
+    if (archive_write_close(disk.get()) < ARCHIVE_OK)
+        throw std::runtime_error(
+            std::format("Unable to extract archive '{}': {}", m_archiveFname, getArchiveErrorMessage(disk.get())));
 }
 
 std::vector<uint8_t> ArchiveDecompressor::readData(const std::string &fname)
 {
     // Try optimization: if fully extracted, read from filesystem
     if (tmpExtractIfPossible()) {
-        fs::path extractedPath = m_tmpDir / fs::path(fname).relative_path();
-        try {
-            std::ifstream file(extractedPath, std::ios::binary);
-            if (!file)
-                throw std::runtime_error(std::format("Failed to open extracted file: {}", extractedPath.string()));
-
-            std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-            return data;
-        } catch (const std::exception &e) {
-            throw std::runtime_error(std::format("File '{}' was not found in the archive: {}", fname, e.what()));
+        const auto resolved = resolveInTree(m_tmpDir, fname);
+        if (!resolved) {
+            // a link we can not resolve is not an error, just like when reading the archive directly
+            std::error_code ec;
+            if (fs::is_symlink(fs::symlink_status(m_tmpDir / fs::path(fname).relative_path(), ec))) {
+                LOG_ERROR(logRoot, "Unable to read destination data of symlink '{}' in archive", fname);
+                return {};
+            }
+            throw std::runtime_error(std::format("File '{}' was not found in the archive.", fname));
         }
+
+        const auto extractedPath = m_tmpDir / *resolved;
+        std::error_code ec;
+        if (fs::is_directory(extractedPath, ec))
+            throw std::runtime_error(std::format("Path '{}' is a directory and can not be extracted.", fname));
+
+        std::ifstream file(extractedPath, std::ios::binary);
+        if (!file)
+            throw std::runtime_error(std::format("Failed to open extracted file: {}", extractedPath.string()));
+
+        return std::vector<uint8_t>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     }
 
     // If we are here, we jump to the right file in the archive directly
