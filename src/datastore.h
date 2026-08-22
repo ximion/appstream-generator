@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #include <cstddef>
 #include <variant>
 #include <appstream.h>
@@ -114,6 +115,59 @@ public:
     std::string getMetadata(DataType dtype, const std::string &gcid);
 
     /**
+     * Get the ID of the package that owns the component data stored for @gcid,
+     * or an empty string if we have no record of it.
+     *
+     * Two packages shipping byte-identical metadata produce the same GCID, so we
+     * have to pick one of them to be associated with the resulting component.
+     * That choice must not depend on the order in which packages happen to be
+     * processed, so we remember who won (see @componentOwnerWins).
+     */
+    std::string getGcidOwner(const std::string &gcid);
+
+    /**
+     * Try to become the package associated with the component data of @gcid.
+     *
+     * The claim is granted if nobody owns the component yet, if we already own it, or if
+     * we beat the current owner according to @componentOwnerWins. The whole check-and-set
+     * happens in one write transaction, so two packages racing for the same component can
+     * not both walk away thinking they won.
+     *
+     * @param previousOwner Set to the package that owned the component before this call,
+     *                      or an empty string if it was unowned.
+     * @param force Take the component over regardless of who owns it. Used for injected
+     *              metadata, which is meant to override whatever the archive contains.
+     * @return true if we own the component now.
+     */
+    bool claimComponentOwnership(
+        const std::string &gcid,
+        const std::string &pkid,
+        std::string &previousOwner,
+        bool force = false);
+
+    /**
+     * Create a new, empty directory for a media renderer of this run to work in.
+     *
+     * Media is never written to the pool directly: it is rendered into a staging directory
+     * and only moved over once we know that the component it belongs to is ours to keep.
+     * The staging area belongs to this generator run and is removed when the store is
+     * closed, so callers only need to clean up between packages.
+     */
+    fs::path createMediaStagingDir();
+
+    /**
+     * Decide which of two packages should be associated with a component that both
+     * of them provide identical metadata for.
+     *
+     * @param contenderPkid The package that wants to take ownership.
+     * @param ownerPkid The package currently owning the data. May be empty or lack a
+     *                  version if it was recorded by an older version of the generator,
+     *                  in which case we compare names only.
+     * @return true if @contenderPkid should take ownership.
+     */
+    static bool componentOwnerWins(const std::string &contenderPkid, const std::string &ownerPkid);
+
+    /**
      * Check if package has hints
      */
     bool hasHints(const std::string &pkid);
@@ -149,7 +203,10 @@ public:
     bool packageExists(const std::string &pkid);
 
     /**
-     * Add generator result to database
+     * Add generator result to database.
+     *
+     * Media of components we get to keep are moved into the pool from the staging area that
+     * @gres owns, and the staging area is dropped afterwards.
      */
     void addGeneratorResult(DataType dtype, GeneratorResult &gres, bool alwaysRegenerate = false);
 
@@ -243,13 +300,32 @@ private:
     MDB_dbi m_dbDataXml;
     MDB_dbi m_dbDataYaml;
     MDB_dbi m_dbHints;
+    MDB_dbi m_dbGcidRegistry;
     MDB_dbi m_dbStats;
 
     bool m_opened;
     AsMetadata *m_mdata;
     fs::path m_mediaDir;
 
+    // media staging area of this generator run, as well as the lock that marks it as
+    // belonging to a live process
+    fs::path m_mediaStagingRoot;
+    int m_stagingLockFd;
+    std::atomic<std::uint64_t> m_stagingDirCounter;
+
     mutable std::mutex m_mutex;
+
+    /**
+     * Create the media staging area of this run and mark it as in use, removing any
+     * staging areas that runs which are no longer alive have left behind.
+     */
+    void acquireMediaStaging(const fs::path &mediaBaseDir);
+
+    /**
+     * Drop the media staging area of this run. The shared staging directory is removed
+     * as well, unless another generator run is still using it.
+     */
+    void releaseMediaStaging();
 
     /**
      * Check LMDB error and throw exception if needed
@@ -295,6 +371,32 @@ private:
      * Get value from database using string key
      */
     std::string getValue(MDB_dbi dbi, const std::string &key);
+
+    /**
+     * Move the media rendered for @gcid from @stagedMediaDir into the media pool, replacing
+     * any data that was there before. @stagedMediaDir holds the media of this one component,
+     * as returned by GeneratorResult::mediaStagingDir().
+     *
+     * The media pool is only ever modified here, while all rendering happens in the staging
+     * areas the results own. Callers must ensure that results are committed one at a time
+     * (Engine holds a mutex for that), otherwise two packages could swap out the same
+     * destination directory simultaneously.
+     */
+    void publishComponentMedia(const std::string &gcid, const fs::path &stagedMediaDir);
+
+    /**
+     * Take the component @gcid away from @pkid, after another package won it.
+     *
+     * Drops the package's reference to the component and, if @cid is set, records why by
+     * adding a duplicate-ID hint naming @newOwnerName. A package that was committed before
+     * the winner can not know that it lost, so this leaves it in the same state it would
+     * have been in had it known all along.
+     */
+    void takeComponentFrom(
+        const std::string &pkid,
+        const std::string &gcid,
+        const std::string &cid,
+        const std::string &newOwnerName);
 
     /**
      * Get active global component IDs

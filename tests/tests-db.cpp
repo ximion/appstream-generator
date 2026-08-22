@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 #include <optional>
 #include <cstdlib>
 #include <format>
@@ -20,6 +21,7 @@
 #include "utils.h"
 #include "backends/dummy/dummypkg.h"
 #include "result.h"
+#include "hintregistry.h"
 
 using namespace ASGenerator;
 
@@ -692,4 +694,217 @@ TEST_CASE("DataStore thread safety", "[datastore][threading]")
     store.close();
     fs::remove_all(tempDir);
     fs::remove_all(mediaDir);
+}
+
+TEST_CASE("DataStore component ownership", "[datastore]")
+{
+    SECTION("Ownership rule")
+    {
+        // the newer version of the same software wins
+        REQUIRE(DataStore::componentOwnerWins("fltk1.3-games/1.3.3/amd64", "fltk1.1-games/1.1.10/amd64"));
+        REQUIRE_FALSE(DataStore::componentOwnerWins("fltk1.1-games/1.1.10/amd64", "fltk1.3-games/1.3.3/amd64"));
+
+        // on equal versions, the less qualified name wins
+        REQUIRE(DataStore::componentOwnerWins("quassel/0.10.0/amd64", "quassel-kde4/0.10.0/amd64"));
+        REQUIRE_FALSE(DataStore::componentOwnerWins("quassel-kde4/0.10.0/amd64", "quassel/0.10.0/amd64"));
+        REQUIRE(DataStore::componentOwnerWins("spacefm/1.0.5/amd64", "spacefm-gtk3/1.0.5/amd64"));
+
+        // names of the same length are compared like versions
+        REQUIRE(DataStore::componentOwnerWins("roxterm-gtk3/3.3.2/amd64", "roxterm-gtk2/3.3.2/amd64"));
+        REQUIRE_FALSE(DataStore::componentOwnerWins("roxterm-gtk2/3.3.2/amd64", "roxterm-gtk3/3.3.2/amd64"));
+
+        // an epoch in the version is handled by the version comparison, not by string sorting
+        REQUIRE(DataStore::componentOwnerWins("quassel/1:0.10.0-2.4/amd64", "quassel/0.12.0/amd64"));
+
+        // nobody owning the component means we take it, and we never take it from ourselves
+        REQUIRE(DataStore::componentOwnerWins("quassel/0.10.0/amd64", ""));
+        REQUIRE_FALSE(DataStore::componentOwnerWins("quassel/0.10.0/amd64", "quassel/0.10.0/amd64"));
+
+        // the rule has to be a total order, or the winner would depend on processing order
+        const std::vector<std::string> pkids = {
+            "quassel/0.10.0/amd64",
+            "quassel-kde4/0.10.0/amd64",
+            "fltk1.1-games/1.1.10/amd64",
+            "fltk1.3-games/1.3.3/amd64",
+            "roxterm-gtk2/3.3.2/amd64",
+            "roxterm-gtk3/3.3.2/amd64"};
+        for (const auto &a : pkids) {
+            for (const auto &b : pkids) {
+                if (a == b)
+                    continue;
+                REQUIRE(DataStore::componentOwnerWins(a, b) != DataStore::componentOwnerWins(b, a));
+            }
+        }
+    }
+
+    SECTION("Ownership of duplicate components")
+    {
+        // losing a component to another package produces a hint, so we need the templates
+        loadHintsRegistry();
+
+        auto tempDir = fs::temp_directory_path() / std::format("asgen-test-{}", Utils::randomString(8));
+        auto mediaDir = fs::temp_directory_path() / std::format("asgen-media-{}", Utils::randomString(8));
+        fs::create_directories(tempDir);
+        fs::create_directories(mediaDir);
+
+        DataStore store;
+        store.open(tempDir.string(), mediaDir.string());
+
+        // two packages shipping the exact same component data produce the same global ID
+        const auto makeComponent = []() {
+            AsComponent *cpt = as_component_new();
+            as_component_set_kind(cpt, AS_COMPONENT_KIND_DESKTOP_APP);
+            as_component_set_id(cpt, "org.quassel_irc.QuasselClient");
+            as_component_set_name(cpt, "Quassel IRC", "C");
+            as_component_set_summary(cpt, "Distributed IRC client", "C");
+            return cpt;
+        };
+
+        // media is rendered into a staging directory and only moved into the pool once the
+        // component is ours, so every result gets one of its own
+        std::uint32_t stagingCounter = 0;
+        const auto addResultFor =
+            [&](const std::string &name, const std::string &ver, PackageKind kind = PackageKind::Physical) {
+                auto pkg = std::make_shared<DummyPackage>(name, ver, "amd64");
+                pkg->setMaintainer("Test Maintainer <test@example.org>");
+                pkg->setKind(kind);
+
+                const auto stagingDir = mediaDir / "_staging" / std::to_string(stagingCounter++);
+                GeneratorResult gres(pkg, stagingDir);
+
+                g_autoptr(AsComponent) cpt = makeComponent();
+                gres.addComponent(cpt);
+
+                const auto gcids = gres.getComponentGcids();
+                REQUIRE(gcids.size() == 1);
+
+                // pretend we rendered an icon for the component
+                const auto stagedIconDir = gres.mediaStagingDir(cpt) / "icons" / "64x64";
+                fs::create_directories(stagedIconDir);
+                std::ofstream(stagedIconDir / std::format("{}_test.png", name)) << "icon";
+
+                store.addGeneratorResult(DataType::XML, gres, kind == PackageKind::Fake);
+
+                // committing the result consumes its staging area
+                REQUIRE_FALSE(fs::exists(stagingDir));
+
+                return gcids[0];
+            };
+
+        const auto poolIcons = [&](const std::string &gcid) {
+            std::vector<std::string> names;
+            const auto dir = mediaDir / "pool" / gcid / "icons" / "64x64";
+            std::error_code ec;
+            for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec))
+                names.push_back(it->path().filename().string());
+            std::ranges::sort(names);
+            return names;
+        };
+
+        // A result owns its staging area, so one that is dropped without ever being
+        // committed takes the media rendered for it along.
+        {
+            const auto orphanedStagingDir = mediaDir / "_staging" / "orphaned";
+            fs::create_directories(orphanedStagingDir / "some" / "media");
+            {
+                auto pkg = std::make_shared<DummyPackage>("dropped", "1.0", "amd64");
+                GeneratorResult gres(pkg, orphanedStagingDir);
+                REQUIRE(fs::exists(orphanedStagingDir));
+            }
+            REQUIRE_FALSE(fs::exists(orphanedStagingDir));
+        }
+
+        // the first package to show up simply gets the component
+        const auto gcid = addResultFor("quassel-kde4", "0.10.0");
+        REQUIRE(store.getGcidOwner(gcid) == "quassel-kde4/0.10.0/amd64");
+        REQUIRE(store.getMetadata(DataType::XML, gcid).find("<pkgname>quassel-kde4</pkgname>") != std::string::npos);
+        REQUIRE(poolIcons(gcid) == std::vector<std::string>{"quassel-kde4_test.png"});
+
+        // ... but a package that wins the ownership rule takes it away again
+        REQUIRE(addResultFor("quassel", "0.10.0") == gcid);
+        REQUIRE(store.getGcidOwner(gcid) == "quassel/0.10.0/amd64");
+        REQUIRE(store.getMetadata(DataType::XML, gcid).find("<pkgname>quassel</pkgname>") != std::string::npos);
+
+        // ... and the media of the package that lost is replaced by ours, rather than both
+        // of them ending up in the same directory
+        REQUIRE(poolIcons(gcid) == std::vector<std::string>{"quassel_test.png"});
+
+        // The package that lost also loses its reference to the component, so the metadata
+        // is exported once rather than once per package providing it. This matters because
+        // the loser may well have been processed first, in which case it committed the
+        // component before it could know that it was going to lose it.
+        REQUIRE(store.getGCIDsForPackage("quassel-kde4/0.10.0/amd64").empty());
+        REQUIRE(store.getPackageValue("quassel-kde4/0.10.0/amd64") == "seen");
+        REQUIRE(store.getGCIDsForPackage("quassel/0.10.0/amd64") == std::vector<std::string>{gcid});
+
+        // It was committed before the winner and could not know that it was going to lose,
+        // so it is told about it here - otherwise the hints would depend on the order in
+        // which the two packages happened to be processed.
+        const auto kde4Hints = store.getHints("quassel-kde4/0.10.0/amd64");
+        REQUIRE(kde4Hints.find("metainfo-duplicate-id") != std::string::npos);
+        REQUIRE(kde4Hints.find("\"pkgname\":\"quassel\"") != std::string::npos);
+
+        // The loser does not get it back, no matter how often we process it. This is also the
+        // case where a package loses only at commit time: the extractor's early check can not
+        // see a winner that was still being processed when it looked, so the package arrives
+        // here with its components intact. It has to end up in exactly the same state as one
+        // that was dropped early - no reference to the component, and a hint saying why.
+        REQUIRE(addResultFor("quassel-kde4", "0.10.0") == gcid);
+        REQUIRE(store.getGcidOwner(gcid) == "quassel/0.10.0/amd64");
+        REQUIRE(store.getMetadata(DataType::XML, gcid).find("<pkgname>quassel</pkgname>") != std::string::npos);
+        REQUIRE(poolIcons(gcid) == std::vector<std::string>{"quassel_test.png"});
+        REQUIRE(store.getGCIDsForPackage("quassel-kde4/0.10.0/amd64").empty());
+        REQUIRE(store.getHints("quassel-kde4/0.10.0/amd64").find("metainfo-duplicate-id") != std::string::npos);
+
+        // The other way of losing: the extractor saw the winner and dropped the component
+        // together with its global ID before any media was rendered. A package arriving here
+        // in that state must end up exactly like one that only lost at commit time, or our
+        // output would depend on which of the two paths a package happened to take.
+        {
+            auto pkg = std::make_shared<DummyPackage>("quassel-qt4", "0.10.0", "amd64");
+            pkg->setMaintainer("Test Maintainer <test@example.org>");
+            GeneratorResult gres(pkg, mediaDir / "_staging" / std::to_string(stagingCounter++));
+
+            g_autoptr(AsComponent) cpt = makeComponent();
+            gres.addComponent(cpt);
+            REQUIRE(gres.getComponentGcids() == std::vector<std::string>{gcid});
+
+            gres.addHint(
+                cpt,
+                "metainfo-duplicate-id",
+                {
+                    {"cid",     as_component_get_id(cpt)},
+                    {"pkgname", "quassel"               }
+            });
+            gres.removeComponent(cpt);
+            REQUIRE(gres.getComponentGcids().empty());
+
+            store.addGeneratorResult(DataType::XML, gres);
+        }
+
+        REQUIRE(store.getGcidOwner(gcid) == "quassel/0.10.0/amd64");
+        REQUIRE(store.getGCIDsForPackage("quassel-qt4/0.10.0/amd64").empty());
+        REQUIRE(store.getPackageValue("quassel-qt4/0.10.0/amd64") == "seen");
+        REQUIRE(store.getHints("quassel-qt4/0.10.0/amd64").find("metainfo-duplicate-id") != std::string::npos);
+        REQUIRE(poolIcons(gcid) == std::vector<std::string>{"quassel_test.png"});
+
+        // a new version of the owner keeps the component, and the registry follows along -
+        // a stale version in there could tip the rule the wrong way for the next contender
+        REQUIRE(addResultFor("quassel", "0.20.0") == gcid);
+        REQUIRE(store.getGcidOwner(gcid) == "quassel/0.20.0/amd64");
+        REQUIRE_FALSE(DataStore::componentOwnerWins("quassel-kde4/0.20.0/amd64", store.getGcidOwner(gcid)));
+
+        // injected metadata overrides whatever the archive provides, even though its fake
+        // package would lose the contest on both version and name
+        REQUIRE(addResultFor(EXTRA_METAINFO_FAKE_PKGNAME, "0~0", PackageKind::Fake) == gcid);
+        REQUIRE(store.getGcidOwner(gcid) == std::format("{}/0~0/amd64", EXTRA_METAINFO_FAKE_PKGNAME));
+
+        // the injected data has no package of its own to install, so the real package has to
+        // keep providing the component
+        REQUIRE(store.getGCIDsForPackage("quassel/0.20.0/amd64") == std::vector<std::string>{gcid});
+
+        store.close();
+        fs::remove_all(tempDir);
+        fs::remove_all(mediaDir);
+    }
 }

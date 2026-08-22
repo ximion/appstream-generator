@@ -31,16 +31,18 @@
 namespace ASGenerator
 {
 
-GeneratorResult::GeneratorResult(std::shared_ptr<Package> pkg)
+GeneratorResult::GeneratorResult(std::shared_ptr<Package> pkg, fs::path mediaStagingDir)
     : m_pkg(std::move(pkg)),
-      m_res(asc_result_new())
+      m_res(asc_result_new()),
+      m_mediaStagingDir(std::move(mediaStagingDir))
 {
     asc_result_set_bundle_kind(m_res, AS_BUNDLE_KIND_PACKAGE);
     asc_result_set_bundle_id(m_res, m_pkg->name().c_str());
 }
 
-GeneratorResult::GeneratorResult(AscResult *result, std::shared_ptr<Package> pkg)
-    : m_pkg(std::move(pkg))
+GeneratorResult::GeneratorResult(AscResult *result, std::shared_ptr<Package> pkg, fs::path mediaStagingDir)
+    : m_pkg(std::move(pkg)),
+      m_mediaStagingDir(std::move(mediaStagingDir))
 {
     m_res = g_object_ref(result);
     asc_result_set_bundle_kind(m_res, AS_BUNDLE_KIND_PACKAGE);
@@ -49,29 +51,62 @@ GeneratorResult::GeneratorResult(AscResult *result, std::shared_ptr<Package> pkg
 
 GeneratorResult::~GeneratorResult()
 {
+    clearMediaStaging();
+
     if (m_res)
         g_object_unref(m_res);
 }
 
 GeneratorResult::GeneratorResult(GeneratorResult &&other) noexcept
     : m_pkg(std::move(other.m_pkg)),
-      m_res(other.m_res)
+      m_res(other.m_res),
+      m_mediaStagingDir(std::move(other.m_mediaStagingDir))
 {
     other.m_res = nullptr;
+    other.m_mediaStagingDir.clear();
 }
 
 GeneratorResult &GeneratorResult::operator=(GeneratorResult &&other) noexcept
 {
     if (this != &other) {
+        clearMediaStaging();
         if (m_res)
             g_object_unref(m_res);
 
         m_pkg = std::move(other.m_pkg);
         m_res = other.m_res;
+        m_mediaStagingDir = std::move(other.m_mediaStagingDir);
 
         other.m_res = nullptr;
+        other.m_mediaStagingDir.clear();
     }
     return *this;
+}
+
+fs::path GeneratorResult::mediaStagingDir(AsComponent *cpt) const
+{
+    if (m_mediaStagingDir.empty())
+        return {};
+
+    const auto gcid = gcidForComponent(cpt);
+    if (gcid.empty())
+        return {};
+
+    return m_mediaStagingDir / gcid;
+}
+
+void GeneratorResult::clearMediaStaging()
+{
+    if (m_mediaStagingDir.empty())
+        return;
+
+    std::error_code ec;
+    fs::remove_all(m_mediaStagingDir, ec);
+    if (ec)
+        LOG_WARNING(
+            logRoot, "Unable to remove media staging directory '{}': {}", m_mediaStagingDir.string(), ec.message());
+
+    m_mediaStagingDir.clear();
 }
 
 std::string GeneratorResult::pkid() const

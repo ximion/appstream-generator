@@ -23,6 +23,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <filesystem>
 #include <appstream.h>
 
 #include "backends/interfaces.h"
@@ -31,6 +32,8 @@ typedef struct _AscResult AscResult;
 
 namespace ASGenerator
 {
+
+namespace fs = std::filesystem;
 
 /**
  * Represents the result of processing a package for AppStream metadata generation.
@@ -41,13 +44,20 @@ class GeneratorResult
 public:
     /**
      * Constructor with package.
+     *
+     * @param mediaStagingDir See the constructor below.
      */
-    explicit GeneratorResult(std::shared_ptr<Package> pkg);
+    explicit GeneratorResult(std::shared_ptr<Package> pkg, fs::path mediaStagingDir = {});
 
     /**
      * Constructor with result and package.
+     *
+     * @param mediaStagingDir Directory the media of this result was rendered into. The
+     *                        result takes ownership of it: the directory is removed once
+     *                        the media has been published into the pool, or when the result
+     *                        is destroyed without ever having been committed.
      */
-    GeneratorResult(AscResult *result, std::shared_ptr<Package> pkg);
+    GeneratorResult(AscResult *result, std::shared_ptr<Package> pkg, fs::path mediaStagingDir = {});
 
     /**
      * Destructor.
@@ -146,9 +156,24 @@ public:
     std::vector<std::string> getComponentGcids() const;
     GPtrArray *fetchComponents() const;
 
+    /**
+     * Get the directory holding the media that was rendered for @cpt, or an empty path if
+     * this result has no media of its own.
+     */
+    fs::path mediaStagingDir(AsComponent *cpt) const;
+
+    /**
+     * Drop the media staging directory of this result, once its contents have either been
+     * published into the media pool or turned out not to be needed.
+     */
+    void clearMediaStaging();
+
 private:
     std::shared_ptr<Package> m_pkg;
     AscResult *m_res;
+
+    // directory the media of this result lives in until it is moved into the media pool
+    fs::path m_mediaStagingDir;
 };
 
 } // namespace ASGenerator

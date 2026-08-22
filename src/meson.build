@@ -37,6 +37,7 @@ asgencpp_hdr = files(
   'logging.h',
   'reportgenerator.h',
   'result.h',
+  'scopeguard.h',
   'utils.h',
   'yaml-utils.h',
   'zarchive.h',

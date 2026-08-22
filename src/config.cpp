@@ -334,8 +334,10 @@ void Config::loadFromFile(
             // Having a suite named "pool" will result in the media pool being copied on
             // itself if immutableSuites is used. Since 'pool' is a bad suite name anyway,
             // we error out early on this.
-            if (suiteName == "pool")
-                throw std::runtime_error("The name 'pool' is forbidden for a suite.");
+            // The same goes for ".staging", which is where media is rendered before it is
+            // moved into the pool.
+            if (suiteName == "pool" || suiteName == ".staging")
+                throw std::runtime_error(std::format("The name '{}' is forbidden for a suite.", suiteName));
 
             auto dataPriorityNode = Yaml::nodeByKey(valueNode, "dataPriority");
             if (dataPriorityNode)

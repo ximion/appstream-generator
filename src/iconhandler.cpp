@@ -219,12 +219,10 @@ std::generator<std::string> Theme::matchingIconFilenames(
 // IconHandler implementation
 IconHandler::IconHandler(
     ContentsStore &ccache,
-    const fs::path &mediaPath,
     const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
     const std::string &iconTheme,
     const std::string &extraPrefix)
     : m_log(getLogger("iconhandler")),
-      m_mediaExportPath(mediaPath),
       m_iconPolicy(nullptr),
       m_defaultIconSize(64),
       m_defaultIconState(ASC_ICON_STATE_IGNORED),
@@ -626,14 +624,13 @@ bool IconHandler::storeIcon(
 
     // create target directory, the media worker needs it to exist to write into it.
     // if we end up not storing an icon after all, we drop the directory again, so we don't
-    // litter the media pool with empty size directories.
+    // end up publishing an empty media directory for the component.
     fs::create_directories(path);
     const auto dropEmptyIconDir = [&path, &cptExportPath]() {
         // Remove the directories we just created again, innermost first, so a rejected icon
-        // does not litter the media pool with empty directories. Removing a directory that
-        // still holds other data fails harmlessly, which stops the cleanup at the right level.
-        // We never touch anything above the component's own export directory, as the pool
-        // prefix directories above it are shared with components processed by other threads.
+        // does not leave anything behind that would later be moved into the media pool.
+        // Removing a directory that still holds other data fails harmlessly, which stops the
+        // cleanup at the right level.
         std::error_code ec;
         fs::remove(path, ec);                        // .../<gcid>/icons/<size>
         fs::remove(path.parent_path(), ec);          // .../<gcid>/icons
@@ -821,7 +818,11 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt, AscMedia *med
         return false;
     }
 
-    auto cptMediaPath = m_mediaExportPath / gcid;
+    auto cptMediaPath = gres.mediaStagingDir(cpt);
+    if (cptMediaPath.empty()) {
+        gres.addHint(cpt, "internal-error", "This result has no media staging directory to store icons in.");
+        return false;
+    }
 
     if (iconName.starts_with("/")) {
         LOG_DEBUG(m_log, "Looking for icon '{}' for '{}::{}' (path)", iconName, gres.pkid(), as_component_get_id(cpt));

@@ -30,9 +30,14 @@
 #include <algorithm>
 #include <nlohmann/json.hpp>
 
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+
 #include "logging.h"
 #include "result.h"
 #include "utils.h"
+#include "scopeguard.h"
 
 namespace ASGenerator
 {
@@ -141,9 +146,12 @@ DataStore::DataStore()
       m_dbDataXml(0),
       m_dbDataYaml(0),
       m_dbHints(0),
+      m_dbGcidRegistry(0),
       m_dbStats(0),
       m_opened(false),
-      m_mdata(nullptr)
+      m_mdata(nullptr),
+      m_stagingLockFd(-1),
+      m_stagingDirCounter(0)
 {
     m_mdata = as_metadata_new();
     as_metadata_set_locale(m_mdata, "ALL");
@@ -195,9 +203,9 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
     if (rc != 0)
         checkError(rc, "mdb_env_create");
 
-    // We are going to use at max 6 sub-databases:
-    // packages, hints, metadata_xml, metadata_yaml, statistics, repository
-    rc = mdb_env_set_maxdbs(m_dbEnv, 6);
+    // We are going to use at max 7 sub-databases:
+    // packages, hints, gcid_registry, metadata_xml, metadata_yaml, statistics, repository
+    rc = mdb_env_set_maxdbs(m_dbEnv, 7);
     if (rc != 0) {
         mdb_env_close(m_dbEnv);
         checkError(rc, "mdb_env_set_maxdbs");
@@ -244,6 +252,9 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
         rc = mdb_dbi_open(txn, "hints", MDB_CREATE, &m_dbHints);
         checkError(rc, "open hints database");
 
+        rc = mdb_dbi_open(txn, "gcid_registry", MDB_CREATE, &m_dbGcidRegistry);
+        checkError(rc, "open global-component-ID registry database");
+
         rc = mdb_dbi_open(txn, "statistics", MDB_CREATE | MDB_INTEGERKEY, &m_dbStats);
         checkError(rc, "open statistics database");
 
@@ -259,6 +270,8 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
     m_opened = true;
     m_mediaDir = mediaBaseDir / "pool";
     fs::create_directories(m_mediaDir);
+
+    acquireMediaStaging(mediaBaseDir);
 }
 
 void DataStore::open(const Config &conf)
@@ -271,6 +284,8 @@ void DataStore::close()
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (m_opened) {
+        releaseMediaStaging();
+
         mdb_env_close(m_dbEnv);
         m_opened = false;
         m_dbEnv = nullptr;
@@ -392,6 +407,239 @@ std::string DataStore::getMetadata(DataType dtype, const std::string &gcid)
         return getValue(m_dbDataYaml, gcid);
 }
 
+std::string DataStore::getGcidOwner(const std::string &gcid)
+{
+    return getValue(m_dbGcidRegistry, gcid);
+}
+
+bool DataStore::claimComponentOwnership(
+    const std::string &gcid,
+    const std::string &pkid,
+    std::string &previousOwner,
+    bool force)
+{
+    MDB_val dbkey = makeDbValue(gcid);
+    previousOwner.clear();
+
+    // A write transaction gives us the whole read-decide-write sequence atomically:
+    // LMDB permits only one writer at a time, so a second package asking about the same
+    // component has to wait for us and will then see our claim.
+    MDB_txn *txn = newTransaction();
+    try {
+        MDB_val dbval;
+        int res = mdb_get(txn, m_dbGcidRegistry, &dbkey, &dbval);
+        if (res == 0) {
+            if (dbval.mv_data != nullptr && dbval.mv_size > 0)
+                previousOwner.assign(static_cast<const char *>(dbval.mv_data), dbval.mv_size - 1);
+        } else if (res != MDB_NOTFOUND) {
+            checkError(res, "mdb_get");
+        }
+
+        // we already are the owner, nothing to write
+        if (previousOwner == pkid) {
+            commitTransaction(txn);
+            return true;
+        }
+
+        if (!force && !componentOwnerWins(pkid, previousOwner)) {
+            quitTransaction(txn);
+            return false;
+        }
+
+        MDB_val dbvalue = makeDbValue(pkid);
+        res = mdb_put(txn, m_dbGcidRegistry, &dbkey, &dbvalue, 0);
+        checkError(res, "mdb_put");
+        commitTransaction(txn);
+        return true;
+    } catch (...) {
+        quitTransaction(txn);
+        throw;
+    }
+}
+
+bool DataStore::componentOwnerWins(const std::string &contenderPkid, const std::string &ownerPkid)
+{
+    // nobody owns this yet
+    if (ownerPkid.empty())
+        return true;
+    if (contenderPkid == ownerPkid)
+        return false;
+
+    const auto [contenderName, contenderVer] = Utils::pkidSplitNameVersion(contenderPkid);
+    const auto [ownerName, ownerVer] = Utils::pkidSplitNameVersion(ownerPkid);
+
+    // the newer version of the same software wins. An owner recorded by an older
+    // generator version has no version attached, in which case we can only go by name.
+    if (!contenderVer.empty() && !ownerVer.empty()) {
+        const auto vercmp = as_vercmp_simple(contenderVer.c_str(), ownerVer.c_str());
+        if (vercmp != 0)
+            return vercmp > 0;
+    }
+
+    // Both packages are of the same version, so they are most likely variants of the same
+    // software (think "spacefm" and "spacefm-gtk3"). The less qualified name is the one we
+    // want, as that is normally the package the distribution considers the default one.
+    if (contenderName.length() != ownerName.length())
+        return contenderName.length() < ownerName.length();
+
+    // Names of the same length usually means the variants only differ in a number, e.g.
+    // "roxterm-gtk2" and "roxterm-gtk3". Compare them like versions, so we end up with the
+    // newer toolkit rather than with whatever sorts first alphabetically.
+    const auto namecmp = as_vercmp_simple(contenderName.c_str(), ownerName.c_str());
+    if (namecmp != 0)
+        return namecmp > 0;
+
+    // fall back to something stable, so the winner never depends on the order in which we
+    // happened to look at these packages
+    return contenderName < ownerName;
+}
+
+/**
+ * Try to take an exclusive lock on a staging directory. The lock is held by an open
+ * file descriptor and released as soon as the process owning it goes away.
+ */
+static int tryLockStagingDir(const fs::path &path)
+{
+    const int fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (fd < 0)
+        return -1;
+
+    if (::flock(fd, LOCK_EX | LOCK_NB) != 0) {
+        ::close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
+void DataStore::acquireMediaStaging(const fs::path &mediaBaseDir)
+{
+    // Staging lives next to the media pool rather than inside it: publishing a component
+    // is a plain rename(), which requires both to be on the same filesystem.
+    const auto stagingBase = mediaBaseDir / ".staging";
+
+    // Our own staging area is tagged with the process ID for the benefit of anyone looking
+    // at the directory, plus a counter for the tests, which open several stores at once.
+    static std::atomic<std::uint64_t> storeCounter{0};
+    m_mediaStagingRoot = stagingBase / std::format("{}.{}", ::getpid(), storeCounter++);
+
+    std::error_code ec;
+    fs::remove_all(m_mediaStagingRoot, ec);
+    fs::create_directories(m_mediaStagingRoot, ec);
+    if (ec) {
+        LOG_WARNING(m_log, "Unable to create media staging area '{}': {}", m_mediaStagingRoot.string(), ec.message());
+        m_mediaStagingRoot.clear();
+        return;
+    }
+
+    m_stagingLockFd = tryLockStagingDir(m_mediaStagingRoot);
+    if (m_stagingLockFd < 0)
+        LOG_WARNING(m_log, "Unable to lock media staging area '{}'.", m_mediaStagingRoot.string());
+
+    // Anything else in here belongs to another generator run - either one that is still
+    // going, in which case we can not take its lock and leave it alone, or one that died
+    // without cleaning up, in which case we get the lock and drop its leftovers.
+    std::vector<fs::path> otherStagingDirs;
+    for (fs::directory_iterator it(stagingBase, ec), end; !ec && it != end; it.increment(ec)) {
+        if (it->path() != m_mediaStagingRoot && it->is_directory(ec))
+            otherStagingDirs.push_back(it->path());
+    }
+
+    for (const auto &path : otherStagingDirs) {
+        const int fd = tryLockStagingDir(path);
+        if (fd < 0)
+            continue;
+
+        LOG_INFO(m_log, "Removing media staging area '{}' of a generator run that is gone.", path.string());
+        std::error_code rmEc;
+        fs::remove_all(path, rmEc);
+        if (rmEc)
+            LOG_WARNING(m_log, "Unable to remove stale media staging area '{}': {}", path.string(), rmEc.message());
+        ::close(fd);
+    }
+}
+
+void DataStore::releaseMediaStaging()
+{
+    if (m_mediaStagingRoot.empty())
+        return;
+
+    std::error_code ec;
+    fs::remove_all(m_mediaStagingRoot, ec);
+    if (ec)
+        LOG_WARNING(m_log, "Unable to remove media staging area '{}': {}", m_mediaStagingRoot.string(), ec.message());
+
+    if (m_stagingLockFd >= 0) {
+        ::close(m_stagingLockFd);
+        m_stagingLockFd = -1;
+    }
+
+    // Drop the shared staging directory as well, but only if it is empty: a non-empty one
+    // means another generator run is still working in it.
+    fs::remove(m_mediaStagingRoot.parent_path(), ec);
+
+    m_mediaStagingRoot.clear();
+}
+
+fs::path DataStore::createMediaStagingDir()
+{
+    if (m_mediaStagingRoot.empty())
+        throw std::runtime_error("Can not create a media staging directory: No staging area is set up.");
+
+    auto path = m_mediaStagingRoot / std::to_string(m_stagingDirCounter++);
+    fs::create_directories(path);
+
+    return path;
+}
+
+void DataStore::publishComponentMedia(const std::string &gcid, const fs::path &stagedMediaDir)
+{
+    if (stagedMediaDir.empty())
+        return;
+
+    std::error_code ec;
+    if (!fs::exists(stagedMediaDir, ec))
+        return; // this component had no media
+
+    // Replace whatever was there before: if we took this component over from another
+    // package, its media has to go, and a previous run of ours may have left an
+    // incomplete result behind.
+    // Results are committed one at a time, so no other thread can be reading or writing
+    // the destination while we swap it out.
+    const auto destination = m_mediaDir / gcid;
+    fs::create_directories(destination.parent_path(), ec);
+    if (ec) {
+        LOG_ERROR(
+            m_log,
+            "Unable to create media directory for component '{}' ({}): {}",
+            gcid,
+            destination.parent_path().string(),
+            ec.message());
+        return;
+    }
+
+    fs::remove_all(destination, ec);
+    if (ec) {
+        LOG_ERROR(
+            m_log,
+            "Unable to replace previous media of component '{}' ({}): {}",
+            gcid,
+            destination.string(),
+            ec.message());
+        return;
+    }
+
+    fs::rename(stagedMediaDir, destination, ec);
+    if (ec)
+        LOG_ERROR(
+            m_log,
+            "Unable to publish media for component '{}' ({} -> {}): {}. The component will have no media.",
+            gcid,
+            stagedMediaDir.string(),
+            destination.string(),
+            ec.message());
+}
+
 bool DataStore::hasHints(const std::string &pkid)
 {
     return !getValue(m_dbHints, pkid).empty();
@@ -430,6 +678,13 @@ bool DataStore::packageExists(const std::string &pkid)
 
 void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool alwaysRegenerate)
 {
+    // whatever we do below, the media of this result has served its purpose by the time we
+    // are done with it: it was either moved into the pool or lost together with the
+    // component it belongs to.
+    const auto stagingGuard = Utils::scopeGuard([&gres]() {
+        gres.clearMediaStaging();
+    });
+
     // if the package has no components or hints,
     // mark it as always-ignore
     if (gres.isUnitIgnored()) {
@@ -437,11 +692,70 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
         return;
     }
 
+    const auto ourPkid = gres.pkid();
+
+    // Injected metadata is exempt from the ownership contest below: it is meant to override
+    // whatever the archive contains, and its fake package would lose on version anyway.
+    const bool forceClaim = gres.getPackage()->kind() == PackageKind::Fake;
+
+    const auto ourName = Utils::pkidSplitNameVersion(ourPkid).first;
+
+    // components another package took from us, which we must not reference any longer
+    std::unordered_set<std::string> lostGcids;
+
     g_autoptr(GPtrArray) cptsArray = gres.fetchComponents();
     for (guint i = 0; i < cptsArray->len; i++) {
         AsComponent *cpt = AS_COMPONENT(cptsArray->pdata[i]);
         const auto gcid = gres.gcidForComponent(cpt);
-        if (metadataExists(dtype, gcid) && !alwaysRegenerate) {
+
+        // Two packages can ship byte-identical metadata and therefore produce the same
+        // component. Claim it for ourselves - if another package provides it as well and
+        // wins, everything we produced for it is simply dropped: the metadata is not
+        // written, and our staged media never leaves the staging area.
+        std::string previousOwner;
+        if (!claimComponentOwnership(gcid, ourPkid, previousOwner, forceClaim)) {
+            LOG_DEBUG(m_log, "Component {} is provided by '{}' as well, which takes it.", gcid, previousOwner);
+
+            // Losing to a different package means we do not get to provide this component.
+            // The extractor normally catches that early and drops the component before any
+            // media is rendered for it, but it can not when the other package was still
+            // being processed at the time, so we have to do it here as well.
+            // Another version of ourselves is not a duplicate: several versions of the same
+            // package can be present in different suites, and all of them provide it.
+            const auto previousOwnerName = Utils::pkidSplitNameVersion(previousOwner).first;
+            if (previousOwnerName != ourName) {
+                if (as_component_get_kind(cpt) != AS_COMPONENT_KIND_WEB_APP)
+                    gres.addHint(
+                        cpt,
+                        "metainfo-duplicate-id",
+                        {
+                            {"cid",     as_component_get_id(cpt)},
+                            {"pkgname", previousOwnerName       }
+                    });
+                lostGcids.insert(gcid);
+            }
+
+            continue;
+        }
+
+        // The package that provided this component before does not get to keep its reference
+        // to it, as the component is only ever exported once, for the package owning it.
+        // A package that was processed before us could not know that it was going to lose,
+        // so we have to clean up after it here. Another version of ourselves is left alone:
+        // several versions of the same package can be present in different suites, and all
+        // of them are supposed to provide the component.
+        // Injected data is an exception as well: it has no package of its own to install,
+        // so the real package needs to keep providing the component.
+        if (!forceClaim && !previousOwner.empty() && Utils::pkidSplitNameVersion(previousOwner).first != ourName) {
+            const auto *cid = as_component_get_kind(cpt) == AS_COMPONENT_KIND_WEB_APP ? nullptr
+                                                                                      : as_component_get_id(cpt);
+            takeComponentFrom(previousOwner, gcid, cid ? cid : "", ourName);
+        }
+
+        // the component is ours, so move the media we rendered for it into the pool
+        publishComponentMedia(gcid, gres.mediaStagingDir(cpt));
+
+        if (metadataExists(dtype, gcid) && previousOwner == ourPkid && !alwaysRegenerate) {
             // we already have seen this exact metadata - only adjust the reference,
             // and don't regenerate it.
             continue;
@@ -489,7 +803,12 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
             setHints(gres.pkid(), hintsJson);
     }
 
-    const auto gcids = gres.getComponentGcids();
+    auto gcids = gres.getComponentGcids();
+    if (!lostGcids.empty())
+        std::erase_if(gcids, [&lostGcids](const std::string &gcid) {
+            return lostGcids.contains(gcid);
+        });
+
     if (gcids.empty()) {
         // no global components, and we're not ignoring this component.
         // this means we likely have hints stored for this one. Mark it
@@ -556,6 +875,63 @@ void DataStore::removePackage(const std::string &pkid)
     } catch (...) {
         quitTransaction(txn);
         throw;
+    }
+}
+
+void DataStore::takeComponentFrom(
+    const std::string &pkid,
+    const std::string &gcid,
+    const std::string &cid,
+    const std::string &newOwnerName)
+{
+    const auto pkval = getPackageValue(pkid);
+    if (pkval.empty() || pkval == "ignore" || pkval == "seen")
+        return;
+
+    auto gcids = Utils::splitString(pkval, '\n');
+    if (std::erase(gcids, gcid) == 0)
+        return;
+
+    std::erase(gcids, std::string());
+    if (gcids.empty()) {
+        // the package has no components of its own left, but it may well have hints that we
+        // want to keep, so we mark it as seen rather than as ignored
+        putKeyValue(m_dbPackages, pkid, "seen");
+    } else {
+        putKeyValue(m_dbPackages, pkid, Utils::joinStrings(gcids, "\n"));
+    }
+
+    LOG_DEBUG(m_log, "Component {} was taken away from '{}'.", gcid, pkid);
+
+    if (cid.empty())
+        return;
+
+    // Record the reason in the package's hints, exactly like the check in the extractor does
+    // for a package that already knew it was going to lose.
+    try {
+        const auto hintsStr = getHints(pkid);
+        json doc = hintsStr.empty() ? json{
+                                          {"package", pkid            },
+                                          {"hints",   json::object()}
+        }
+                                    : json::parse(hintsStr);
+        auto &cptHints = doc["hints"][cid];
+        if (!cptHints.is_array())
+            cptHints = json::array();
+
+        for (const auto &hint : cptHints) {
+            if (hint.value("tag", "") == "metainfo-duplicate-id")
+                return; // the package already knows
+        }
+
+        cptHints.push_back(
+            json{
+                {"tag",  "metainfo-duplicate-id"                  },
+                {"vars", {{"cid", cid}, {"pkgname", newOwnerName}}}
+        });
+        setHints(pkid, doc.dump());
+    } catch (const json::exception &e) {
+        LOG_WARNING(m_log, "Unable to add duplicate-ID hint to the stored hints of '{}': {}", pkid, e.what());
     }
 }
 
@@ -691,6 +1067,7 @@ void DataStore::cleanupCruft()
     // drop orphaned metadata
     dropOrphanedData(m_dbDataXml, activeGCIDs);
     dropOrphanedData(m_dbDataYaml, activeGCIDs);
+    dropOrphanedData(m_dbGcidRegistry, activeGCIDs);
 
     // we need the global Config instance here
     const auto &conf = Config::get();

@@ -20,6 +20,8 @@
 #pragma once
 
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include <optional>
 #include <format>
@@ -284,6 +286,14 @@ std::string filenameFromURI(const std::string &uri);
  * @param delimiter The delimiter character.
  */
 [[nodiscard]] std::vector<std::string> splitString(const std::string &s, char delimiter);
+
+/**
+ * Split a package-ID into the package name and version it is made of.
+ *
+ * A package-ID has the form "name/version/arch" (see Package::id()). Missing parts are
+ * returned as empty strings, so this can safely be used on data read back from the cache.
+ */
+[[nodiscard]] std::pair<std::string, std::string> pkidSplitNameVersion(std::string_view pkid);
 
 /**
  * Check if directory is empty

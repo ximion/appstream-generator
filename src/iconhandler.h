@@ -91,7 +91,6 @@ class IconHandler
 public:
     IconHandler(
         ContentsStore &ccache,
-        const fs::path &mediaPath,
         const std::unordered_map<std::string, std::shared_ptr<Package>> &pkgMap,
         const std::string &iconTheme = "",
         const std::string &extraPrefix = "");
@@ -100,6 +99,9 @@ public:
 
     /**
      * Try to find & store icons for a selected component.
+     *
+     * Icons are written to the media staging area that @gres owns, from where they reach
+     * the media pool once the result is committed.
      *
      * @param media Media processing interface to use. Must not be used by any other thread
      *              while this function is running.
@@ -114,7 +116,6 @@ public:
 
 private:
     quill::Logger *m_log;
-    fs::path m_mediaExportPath;
     std::vector<std::unique_ptr<Theme>> m_themes;
     std::unordered_map<std::string, std::shared_ptr<Package>> m_iconFiles;
     std::vector<std::string> m_themeNames;

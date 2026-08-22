@@ -67,6 +67,11 @@ private:
     AscCompose *m_compose;
     AscMedia *m_media;
     DataType m_dtype;
+
+    // the package we are processing, so the duplicate-component check - which only gets
+    // handed this instance - can weigh us against the package owning a component
+    std::string m_currentPkid;
+
     std::shared_ptr<DataStore> m_dstore;
     std::shared_ptr<IconHandler> m_iconh;
     std::shared_ptr<InjectedModifications> m_modInj;
@@ -75,6 +80,11 @@ private:
     /**
      * Helper function for early asgen-specific metadata manipulation.
      * This is a C callback function used by AppStream Compose.
+     *
+     * It drops components that another package already provides identical data for, so we
+     * do not spend time rendering media that we would throw away when committing the result.
+     * Components we own ourselves are deliberately kept and processed again, so their media
+     * is refreshed rather than reused from an earlier run.
      */
     static void checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, void *userData);
 

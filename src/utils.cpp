@@ -512,6 +512,21 @@ std::vector<std::string> splitString(const std::string &s, char delimiter)
     return result;
 }
 
+std::pair<std::string, std::string> pkidSplitNameVersion(std::string_view pkid)
+{
+    const auto nameEnd = pkid.find('/');
+    if (nameEnd == std::string_view::npos)
+        return {std::string(pkid), std::string()};
+
+    const auto verStart = nameEnd + 1;
+    const auto verEnd = pkid.find('/', verStart);
+
+    return {
+        std::string(pkid.substr(0, nameEnd)),
+        std::string(
+            pkid.substr(verStart, verEnd == std::string_view::npos ? std::string_view::npos : verEnd - verStart))};
+}
+
 bool dirEmpty(const std::string &dir)
 {
     if (!fs::exists(dir))

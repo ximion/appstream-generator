@@ -70,7 +70,6 @@ DataExtractor::DataExtractor(
     // TODO: Make the media output format configurable, and default it to JPEG-XL
     asc_compose_set_image_format(m_compose, ASC_IMAGE_FORMAT_PNG);
 
-    asc_compose_set_media_result_dir(m_compose, m_dstore->mediaExportPoolDir().string().c_str());
     asc_compose_set_media_baseurl(m_compose, "");
 
     // set custom prefix for processing, if one was given
@@ -180,64 +179,44 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, v
             continue;
         }
 
-        // don't run expensive operations later if the metadata already exists
-        auto existingMData = self->m_dstore->getMetadata(self->m_dtype, gcid);
-
-        // skip if no existing metadata is present
-        if (existingMData.empty())
-            continue;
-
         const auto bundleId = asc_result_get_bundle_id(cres);
         if (bundleId && std::string(bundleId) == EXTRA_METAINFO_FAKE_PKGNAME) {
             // the "package" was injected and therefore has likely already been unlinked
             // and we will want to reprocess it unconditionally. Therefore, we just skip
-            // all following checks on same-package and duplicate IDs and just continue
-            // processing the metadata without modifications.
+            // all following checks on duplicate IDs and just continue processing the
+            // metadata without modifications.
             continue;
         }
 
-        // To account for packages which change their package name, we
-        // also need to check if the package this component is associated
-        // with matches ours.
-        // If it doesn't, we can't just link the package to the component.
-        bool samePkg = false;
-        if (self->m_dtype == DataType::YAML) {
-            if (existingMData.find(std::format("Package: {}\n", bundleId)) != std::string::npos)
-                samePkg = true;
-        } else {
-            if (existingMData.find(std::format("<pkgname>{}</pkgname>", bundleId)) != std::string::npos)
-                samePkg = true;
-        }
+        // Find out which package this component belongs to. Nobody having claimed it means
+        // that we are the first to produce it, so there is nothing to weigh ourselves against.
+        const auto ownerPkid = self->m_dstore->getGcidOwner(gcid);
+        if (ownerPkid.empty())
+            continue;
 
-        if ((!samePkg) && (as_component_get_kind(cpt) != AS_COMPONENT_KIND_WEB_APP)) {
+        // We compare package names rather than IDs here, as a package that merely changed
+        // its version is still the same software and keeps its component.
+        // The component is ours, so we process it again: the metadata can not have changed,
+        // but this way its screenshots and icons are refreshed instead of being left at
+        // whatever state an earlier run of ours produced.
+        const auto ownerName = Utils::pkidSplitNameVersion(ownerPkid).first;
+        if (bundleId && ownerName == bundleId)
+            continue;
+
+        // Another package provides the exact same component. Ownership is settled when the
+        // results are committed, but if we would lose that contest there is no point in
+        // rendering icons and screenshots for data we are going to throw away, so we bail
+        // out here already. If we would win, we just keep going and take the component over
+        // once we are done.
+        if (DataStore::componentOwnerWins(self->m_currentPkid, ownerPkid))
+            continue;
+
+        if (as_component_get_kind(cpt) != AS_COMPONENT_KIND_WEB_APP) {
             // The exact same metadata exists in a different package already, we emit an error hint.
             // ATTENTION: This does not cover the case where *different* metadata (as in, different summary etc.)
             // but with the *same ID* exists.
             // We only catch that kind of problem later.
-
-            g_autoptr(AsMetadata) cdata = as_metadata_new();
-            as_metadata_set_format_style(cdata, AS_FORMAT_STYLE_CATALOG);
-            as_metadata_set_format_version(cdata, self->m_conf->formatVersion);
-
-            g_autoptr(GError) error = nullptr;
-            if (self->m_dtype == DataType::YAML)
-                as_metadata_parse_data(cdata, existingMData.c_str(), -1, AS_FORMAT_KIND_YAML, &error);
-            else
-                as_metadata_parse_data(cdata, existingMData.c_str(), -1, AS_FORMAT_KIND_XML, &error);
-
-            if (error)
-                throw std::runtime_error(
-                    std::format("Failed to parse existing metadata for duplicate check: {}", error->message));
-
-            auto ecpt = as_metadata_get_component(cdata);
-            if (!ecpt)
-                continue;
-
-            auto pkgNames = as_component_get_pkgnames(ecpt);
-            std::string pkgName = "(none)";
-            if (pkgNames && pkgNames[0])
-                pkgName = pkgNames[0];
-
+            // We can only get here if another package owns the component, so its name is known.
             asc_result_add_hint(
                 cres,
                 cpt,
@@ -245,13 +224,15 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, v
                 "cid",
                 as_component_get_id(cpt),
                 "pkgname",
-                pkgName.c_str(),
+                ownerName.c_str(),
                 nullptr);
         }
 
-        // drop the component as we already have processed it, but keep its
-        // global ID so we can still register the ID with this package.
-        asc_result_remove_component_full(cres, cpt, FALSE);
+        // Drop the component along with its global ID: it belongs to another package, and a
+        // component is only ever exported for the package owning it. This has to match what
+        // DataStore::addGeneratorResult() does for a package that only loses at commit time,
+        // or our output would depend on the order in which the two were processed.
+        asc_result_remove_component_full(cres, cpt, TRUE);
     }
 }
 
@@ -274,15 +255,21 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
     // reset compose instance to clear data from any previous invocation
     asc_compose_reset(m_compose);
 
+    // Every package renders its media into a staging area of its own, which we hand to the
+    // result we produce below. Until then it is ours to clean up.
+    const auto stagingDir = m_dstore->createMediaStagingDir();
+    asc_compose_set_media_result_dir(m_compose, stagingDir.string().c_str());
+
+    // remember who we are processing, so the duplicate-component check can weigh us
+    // against the package that currently owns a component
+    m_currentPkid = pkg->id();
+
     // set external desktop-entry translation function, if needed.
     // AscCompose owns the user data, so we hand it a package reference that is guaranteed to
     // stay alive for as long as the callback may be invoked.
     if (pkg->hasDesktopFileTranslations()) {
         asc_compose_set_desktop_entry_l10n_func(
-            m_compose,
-            &translateDesktopTextCallback,
-            new std::shared_ptr<Package>(pkg),
-            [](gpointer data) {
+            m_compose, &translateDesktopTextCallback, new std::shared_ptr<Package>(pkg), [](gpointer data) {
                 delete static_cast<std::shared_ptr<Package> *>(data);
             });
     } else {
@@ -306,8 +293,8 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
         throw std::runtime_error(
             std::format("Expected 1 result for data extraction, but retrieved {}.", resultsArray->len));
 
-    // create result wrapper
-    GeneratorResult gres(ASC_RESULT(g_ptr_array_index(resultsArray, 0)), pkg);
+    // create result wrapper, handing the staging area over to it
+    GeneratorResult gres(ASC_RESULT(g_ptr_array_index(resultsArray, 0)), pkg, stagingDir);
 
     // process icons and perform additional refinements
     g_autoptr(GPtrArray) cptsPtrArray = gres.fetchComponents();
@@ -449,6 +436,13 @@ GeneratorResult DataExtractor::processPackage(std::shared_ptr<Package> pkg)
             }
         }
     }
+
+    // Without a component there can be no media, so the staging area we handed to the
+    // result has nothing in it worth keeping around while the result is waiting to be
+    // committed. Note that components may well have been dropped after their media were
+    // created, in which case this discards those.
+    if (gres.componentsCount() == 0)
+        gres.clearMediaStaging();
 
     // clean up and return result
     pkg->finish();
