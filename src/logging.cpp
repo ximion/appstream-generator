@@ -173,8 +173,15 @@ void initializeLogging(quill::LogLevel consoleLogLevel)
     // start Quill's async logging backend
     quill::Backend::start(backendOptn);
 
-    // register our console sink
-    g_consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("asgen-console");
+    // register our console sink. Quill colors info messages green by default, but those are
+    // ordinary progress output and should look like plain terminal text.
+    quill::ConsoleSinkConfig::Colours colours;
+    colours.assign_colour_to_log_level(quill::LogLevel::Info, "");
+
+    quill::ConsoleSinkConfig consoleCfg;
+    consoleCfg.set_colours(colours);
+
+    g_consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("asgen-console", consoleCfg);
 
     // configure defaults *before* any logger is created below: getLogger() stamps each new
     // logger with g_defaultLogLevel at creation time, so this must be set first or early
