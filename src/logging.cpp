@@ -52,7 +52,8 @@ quill::Logger *getLogger(const std::string &name)
     if (logger != nullptr)
         return logger;
 
-    quill::PatternFormatterOptions fmtOpt{"%(time) %(log_level_short_code) %(logger): %(message)", "%H:%M:%S.%Qms"};
+    quill::PatternFormatterOptions fmtOpt{
+        "%(time) %(log_level_short_code) %(logger): %(message)", "%Y-%m-%d %H:%M:%S.%Qms"};
     logger = quill::Frontend::create_or_get_logger(name, g_consoleSink, fmtOpt);
     logger->set_log_level(g_defaultLogLevel);
 
