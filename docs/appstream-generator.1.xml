@@ -1,39 +1,27 @@
-<?xml version='1.0' encoding='ISO-8859-1'?>
-<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
-"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
-
-  <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY date        "<date>18 April,2016</date>">
-  <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
-       allowed: see man(7), man(1). -->
-  <!ENTITY package     "appstream-generator">
-  <!ENTITY gnu         "<acronym>GNU</acronym>">
-  <!ENTITY gpl         "&gnu; <acronym>GPL</acronym>">
-]>
-
-<refentry>
-	<refentryinfo>
-	<title>appstream-generator</title>
+<?xml version='1.0' encoding='utf-8'?>
+<refentry xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" version="5.2">
+	<info>
 	<copyright>
-		<year>2016-2022</year>
+		<year>2016-2026</year>
 		<holder>Matthias Klumpp</holder>
 	</copyright>
 	<productname>AppStream Generator</productname>
-	&date;
-	</refentryinfo>
+	<date>18 April,2016</date>
+	</info>
 
 	<refmeta>
 		<refentrytitle>appstream-generator</refentrytitle>
 		<manvolnum>1</manvolnum>
+		<refmiscinfo class="manual">appstream-generator</refmiscinfo>
 	</refmeta>
 	<refnamediv>
-		<refname>&package;</refname>
+		<refname>appstream-generator</refname>
 		<refpurpose>Generate AppStream metadata from distribution repositories</refpurpose>
 	</refnamediv>
 
        <refsynopsisdiv>
 	       <cmdsynopsis>
-		       <command>&package;</command>
+		       <command>appstream-generator</command>
 		       <group>
 			       <option>COMMAND</option>
 		       </group>
@@ -43,10 +31,10 @@
 	<refsect1>
 		<title>Description</title>
 		<para>
-			This manual page documents briefly the <command>&package;</command> command.
+			This manual page documents briefly the <command>appstream-generator</command> command.
 		</para>
 		<para>
-			<command>&package;</command> generates AppStream metadata from the repositories of a software distribution.
+			<command>appstream-generator</command> generates AppStream metadata from the repositories of a software distribution.
 			It currently supports the following repository formats / distributions: Debian, Ubuntu, Arch Linux, RPM-MD (Fedora,
 			Mageia).
 		</para>
@@ -55,19 +43,19 @@
 			to users, as well as detailed HTML reports about found components and HTML and JSON reports on issues found
 			while compiling the metadata. It reads .desktop files as well as metainfo files, renders fonts, scales images, caches
 			screenshots etc. to produce high-quality metadata for AppStream based software centers and other tools to consume.
-			Usually, <command>&package;</command> is integrated with the existing software build &amp; delivery workflow of
+			Usually, <command>appstream-generator</command> is integrated with the existing software build &amp; delivery workflow of
 			a distribution.
 		</para>
 		<para>
-			The <command>&package;</command> tool is based on the <literal>libappstream</literal> library for metadata conversion and analysis.
+			The <command>appstream-generator</command> tool is based on the <literal>libappstream</literal> library for metadata conversion and analysis.
 			If you just want to embed AppStream metadata processing into another tool, using <literal>libappstream</literal> directly is likely a
 			better choice. The generator tool does some heavy lifting like rendering fonts and scaling images, which might not be necessary
 			for simple cases.
 		</para>
 		<para>
-			To use <command>&package;</command>, a configuration file is required. JSON and YAML are supported
+			To use <command>appstream-generator</command>, a configuration file is required. JSON and YAML are supported
 			(for example <filename>asgen-config.json</filename> or <filename>asgen-config.yaml</filename>).
-      Its format is described in detail in <ulink url="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config documentation</ulink>.
+      Its format is described in detail in <link xlink:href="https://github.com/ximion/appstream-generator/blob/master/docs/asgen-config.md">the asgen-config documentation</link>.
 		</para>
 		<para>
 			The generator supports a wide range of features that can individually configured to fit the needs of different projects and adjust the generated
@@ -75,7 +63,7 @@
 		</para>
 		<para>
 			For more information about the AppStream project and the other components which are part of it, take a look at
-			the AppStream pages at <ulink url="http://www.freedesktop.org/wiki/Distributions/AppStream/">Freedesktop.org</ulink>.
+			the AppStream pages at <link xlink:href="http://www.freedesktop.org/wiki/Distributions/AppStream/">Freedesktop.org</link>.
 		</para>
 	</refsect1>
 
@@ -84,7 +72,7 @@
 		<variablelist>
 
 			<varlistentry>
-				<term><option>run <replaceable>SUITE</replaceable> <replaceable><optional>SECTION</optional></replaceable></option></term>
+				<term><option>run</option> <replaceable>SUITE</replaceable> <optional><replaceable>SECTION</replaceable></optional></term>
 				<listitem>
 					<para>
 						Process new metadata for the given distribution suite and publish it.
@@ -104,7 +92,7 @@
 			</varlistentry>
 
 			<varlistentry>
-				<term><option>publish <replaceable>SUITE</replaceable> <replaceable><optional>SECTION</optional></replaceable></option></term>
+				<term><option>publish</option> <replaceable>SUITE</replaceable> <optional><replaceable>SECTION</replaceable></optional></term>
 				<listitem>
 					<para>
 						Export all metadata and publish reports in the export directories.
@@ -198,7 +186,7 @@
 			<varlistentry>
 				<term><option>--version</option></term>
 				<listitem>
-					<para>Display the version number of &package;.</para>
+					<para>Display the version number of <command>appstream-generator</command>.</para>
 				</listitem>
 			</varlistentry>
 

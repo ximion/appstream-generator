@@ -150,8 +150,7 @@ parts:
       - appstream
     build-packages:
       - curl
-      - docbook-xsl
-      - docbook-xml
+      - docbook-xsl-ns
       - ffmpeg
       - npm
       - catch2
