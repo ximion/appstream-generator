@@ -48,11 +48,10 @@ The following libraries and tools are required to build the generator:
  * libxml2
  * LMDB [4]
  * Curl
- * VIPS [5]
- * Inja [6]
- * oneAPI TBB [7]
- * Quill [8]
- * Catch2 [9]
+ * Inja [5]
+ * oneAPI TBB [6]
+ * Quill [7]
+ * Catch2 [8]
  * NPM (optional)
  * backward-cpp (optional)
 
@@ -60,17 +59,16 @@ The following libraries and tools are required to build the generator:
 [2]: https://github.com/ximion/appstream
 [3]: https://libarchive.org/
 [4]: https://symas.com/lmdb/
-[5]: https://www.libvips.org/
-[6]: https://github.com/pantor/inja
-[7]: https://uxlfoundation.github.io/oneTBB/
-[8]: https://github.com/odygrd/quill
-[9]: https://github.com/catchorg/Catch2
+[5]: https://github.com/pantor/inja
+[6]: https://uxlfoundation.github.io/oneTBB/
+[7]: https://github.com/odygrd/quill
+[8]: https://github.com/catchorg/Catch2
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
 sudo apt install meson g++ \
-    libappstream-dev libappstream-compose-dev  libblake3-dev libarchive-dev libcurl4-gnutls-dev \
-    libvips-dev liblmdb-dev libtbb-dev quill-dev libcatch2-dev libfyaml-dev libxml2-dev \
+    libappstream-dev libappstream-compose-dev libblake3-dev libarchive-dev libcurl4-gnutls-dev \
+    liblmdb-dev libtbb-dev quill-dev libcatch2-dev libfyaml-dev libxml2-dev \
     npm libbackward-cpp-dev
 ```
 
