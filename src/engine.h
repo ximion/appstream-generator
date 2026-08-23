@@ -31,6 +31,7 @@
 #include "logging.h"
 #include "datastore.h"
 #include "contentsstore.h"
+#include "statsstore.h"
 #include "backends/interfaces.h"
 #include "iconhandler.h"
 #include "reportgenerator.h"
@@ -117,6 +118,7 @@ private:
     std::unique_ptr<PackageIndex> m_pkgIndex;
     std::shared_ptr<DataStore> m_dstore;
     std::shared_ptr<ContentsStore> m_cstore;
+    std::shared_ptr<StatsStore> m_sstore;
     std::string m_backendPathPrefix;
     bool m_backendPrefixNotUsr;
     bool m_forced;

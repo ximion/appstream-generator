@@ -115,6 +115,17 @@ Engine::Engine()
     // Open package contents cache
     m_cstore = std::make_shared<ContentsStore>(m_backendPathPrefix);
     m_cstore->open(*m_conf);
+
+    // Open statistics database
+    m_sstore = std::make_shared<StatsStore>();
+    m_sstore->open(*m_conf);
+
+    // move statistics that older versions of the generator kept in the main database over
+    if (const auto legacyStats = m_dstore->takeLegacyStatistics(); !legacyStats.empty()) {
+        LOG_INFO(m_log, "Migrating {} statistics entries to the statistics database.", legacyStats.size());
+        for (const auto &entry : legacyStats)
+            m_sstore->addStatistics(entry);
+    }
 }
 
 bool Engine::forced() const
@@ -761,7 +772,7 @@ bool Engine::processSuiteSection(const Suite &suite, const std::string &section,
 {
     auto reportgen = std::move(rgen);
     if (!reportgen)
-        reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+        reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
 
     // Load repo-level modifications
     auto injMods = std::make_shared<InjectedModifications>();
@@ -945,7 +956,7 @@ void Engine::run()
     checkLibfyamlVersion();
 
     bool dataChanged = false;
-    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
 
     for (const auto &suite : m_conf->suites) {
         if (suite.isImmutable) {
@@ -990,7 +1001,7 @@ void Engine::run(const std::string &suiteName)
     logVersionInfo();
     checkLibfyamlVersion();
 
-    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
 
     bool dataChanged = false;
     for (const auto &section : suite.sections) {
@@ -1030,7 +1041,7 @@ void Engine::run(const std::string &suiteName, const std::string &sectionName)
         return;
     }
 
-    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
     auto dataChanged = processSuiteSection(suite, sectionName, reportgen);
 
     // Render index pages & statistics
@@ -1046,7 +1057,7 @@ void Engine::publishMetadataForSuiteSection(
 {
     auto reportgen = std::move(rgen);
     if (!reportgen)
-        reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+        reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
 
     std::vector<std::shared_ptr<Package>> sectionPkgs;
     for (const auto &arch : suite.architectures) {
@@ -1083,7 +1094,7 @@ void Engine::publish(const std::string &suiteName)
 
     logVersionInfo();
 
-    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
     for (const auto &section : suite.sections)
         publishMetadataForSuiteSection(suite, section, reportgen);
 
@@ -1114,7 +1125,7 @@ void Engine::publish(const std::string &suiteName, const std::string &sectionNam
         return;
     }
 
-    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get());
+    auto reportgen = std::make_shared<ReportGenerator>(m_dstore.get(), m_sstore.get());
     publishMetadataForSuiteSection(suite, sectionName, reportgen);
 
     // Render index pages & statistics
@@ -1124,7 +1135,7 @@ void Engine::publish(const std::string &suiteName, const std::string &sectionNam
 
 void Engine::cleanupStatistics()
 {
-    auto allStats = m_dstore->getStatistics();
+    auto allStats = m_sstore->getStatistics();
     std::sort(allStats.begin(), allStats.end(), [](const auto &a, const auto &b) {
         return a.time < b.time;
     });
@@ -1155,7 +1166,7 @@ void Engine::cleanupStatistics()
 
         if (lastStatData[ssid] == entry.data) {
             LOG_INFO(m_log, "Removing superfluous statistics entry: {}", lastTime[ssid]);
-            m_dstore->removeStatistics(lastTime[ssid]);
+            m_sstore->removeStatistics(lastTime[ssid]);
         }
 
         lastTime[ssid] = entry.time;

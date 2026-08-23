@@ -28,30 +28,17 @@
 #include <mutex>
 #include <atomic>
 #include <cstddef>
-#include <variant>
 #include <appstream.h>
 #include <lmdb.h>
 
 #include "logging.h"
 #include "config.h"
+#include "statsstore.h"
 
 namespace ASGenerator
 {
 
 class GeneratorResult;
-
-/**
- * Type alias for generic metadata values used in DataStore.
- */
-using MetaValue = std::variant<std::int64_t, std::string, double>;
-
-/**
- * Statistics entry
- */
-struct StatisticsEntry {
-    std::time_t time{0};
-    std::unordered_map<std::string, MetaValue> data;
-};
 
 /**
  * Repository info entry
@@ -248,25 +235,11 @@ public:
     void removePackages(const std::unordered_set<std::string> &pkidSet);
 
     /**
-     * Get all statistics entries
+     * Read all statistics entries that older versions of the generator stored in this
+     * database and drop them. Statistics live in their own database now (see StatsStore),
+     * so this is only used to move existing data over once.
      */
-    std::vector<StatisticsEntry> getStatistics();
-
-    /**
-     * Remove statistics entry for given time
-     */
-    void removeStatistics(std::time_t time);
-
-    /**
-     * Add statistics entry
-     */
-    void addStatistics(const StatisticsEntry &stats);
-
-    /**
-     * Add statistics entry from key-value data
-     */
-    void addStatistics(
-        const std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> &statsData);
+    std::vector<StatisticsEntry> takeLegacyStatistics();
 
     /**
      * Get repository info
@@ -301,7 +274,10 @@ private:
     MDB_dbi m_dbDataYaml;
     MDB_dbi m_dbHints;
     MDB_dbi m_dbGcidRegistry;
-    MDB_dbi m_dbStats;
+
+    // handle for the statistics sub-database that older versions of the generator used,
+    // zero if this database never had one. Only exists so we can migrate its data away.
+    MDB_dbi m_dbStatsLegacy;
 
     bool m_opened;
     AsMetadata *m_mdata;

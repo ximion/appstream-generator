@@ -17,6 +17,7 @@
 
 #include "contentsstore.h"
 #include "datastore.h"
+#include "statsstore.h"
 #include "config.h"
 #include "utils.h"
 #include "backends/dummy/dummypkg.h"
@@ -272,6 +273,144 @@ TEST_CASE("ContentsStore thread safety", "[contentsstore][threading]")
     fs::remove_all(tempDir);
 }
 
+TEST_CASE("StatsStore basic operations", "[statsstore]")
+{
+    // Create temporary directory for test database
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-statsstore-test-{}", Utils::randomString(8));
+    fs::create_directories(tempDir);
+
+    SECTION("Constructor and basic lifecycle")
+    {
+        StatsStore store;
+        REQUIRE_NOTHROW(store.open(tempDir.string()));
+        REQUIRE_NOTHROW(store.close());
+    }
+
+    SECTION("Statistics operations")
+    {
+        StatsStore store;
+        store.open(tempDir.string());
+
+        // Create test statistics data to serialize
+        std::unordered_map<std::string, MetaValue> statsData = {
+            {"suite",         std::string("testing")},
+            {"section",       std::string("main")   },
+            {"totalInfos",    123                   },
+            {"totalWarnings", 24                    },
+            {"totalErrors",   8                     },
+            {"totalMetadata", 42                    }
+        };
+
+        // Add statistics
+        REQUIRE_NOTHROW(store.addStatistics(statsData));
+
+        // Retrieve statistics
+        auto allStats = store.getStatistics();
+        REQUIRE_FALSE(allStats.empty());
+        REQUIRE(allStats.size() >= 1);
+
+        // Verify the data in the first entry
+        const auto &firstEntry = allStats[0];
+        REQUIRE(firstEntry.data.contains("suite"));
+        REQUIRE(firstEntry.data.contains("section"));
+        REQUIRE(firstEntry.data.contains("totalInfos"));
+
+        REQUIRE(std::get<std::string>(firstEntry.data.at("suite")) == "testing");
+        REQUIRE(std::get<std::string>(firstEntry.data.at("section")) == "main");
+        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalInfos")) == 123);
+        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalWarnings")) == 24);
+        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalErrors")) == 8);
+        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalMetadata")) == 42);
+
+        // Entries can be dropped again
+        REQUIRE_NOTHROW(store.removeStatistics(firstEntry.time));
+        REQUIRE(store.getStatistics().empty());
+
+        store.close();
+    }
+
+    // Cleanup
+    fs::remove_all(tempDir);
+}
+
+/**
+ * Write a statistics entry into the "statistics" sub-database of the main database at @dbDir,
+ * the way older versions of the generator stored them. The environment is closed again right
+ * away, so DataStore can open the same location afterwards.
+ */
+static void writeLegacyStatsEntry(const fs::path &dbDir, const StatisticsEntry &entry)
+{
+    MDB_env *env = nullptr;
+    REQUIRE(mdb_env_create(&env) == 0);
+    REQUIRE(mdb_env_set_maxdbs(env, 7) == 0);
+    REQUIRE(mdb_env_open(env, dbDir.c_str(), 0, 0755) == 0);
+
+    MDB_txn *txn = nullptr;
+    REQUIRE(mdb_txn_begin(env, nullptr, 0, &txn) == 0);
+
+    MDB_dbi dbi;
+    REQUIRE(mdb_dbi_open(txn, "statistics", MDB_CREATE | MDB_INTEGERKEY, &dbi) == 0);
+
+    std::int64_t keyTime = entry.time;
+    MDB_val dbkey{sizeof(std::int64_t), &keyTime};
+
+    auto data = serializeStatsEntryData(entry);
+    MDB_val dbvalue{data.size(), data.data()};
+
+    REQUIRE(mdb_put(txn, dbi, &dbkey, &dbvalue, 0) == 0);
+    REQUIRE(mdb_txn_commit(txn) == 0);
+    mdb_env_close(env);
+}
+
+TEST_CASE("DataStore legacy statistics migration", "[datastore][statsstore]")
+{
+    auto tempDir = fs::temp_directory_path() / std::format("asgen-statsmigrate-test-{}", Utils::randomString(8));
+    auto mediaDir = fs::temp_directory_path() / std::format("asgen-statsmigrate-media-{}", Utils::randomString(8));
+    fs::create_directories(tempDir);
+    fs::create_directories(mediaDir);
+
+    SECTION("Nothing to migrate")
+    {
+        DataStore store;
+        store.open(tempDir.string(), mediaDir.string());
+
+        REQUIRE(store.takeLegacyStatistics().empty());
+
+        store.close();
+    }
+
+    SECTION("Statistics stored by an older version are handed over and dropped")
+    {
+        StatisticsEntry legacyEntry;
+        legacyEntry.time = 1600000000;
+        legacyEntry.data = {
+            {"suite",         std::string("oldstable")},
+            {"section",       std::string("main")     },
+            {"totalMetadata", std::int64_t(42)        }
+        };
+        writeLegacyStatsEntry(tempDir, legacyEntry);
+
+        DataStore store;
+        store.open(tempDir.string(), mediaDir.string());
+
+        const auto migrated = store.takeLegacyStatistics();
+        REQUIRE(migrated.size() == 1);
+        REQUIRE(migrated[0].time == legacyEntry.time);
+        REQUIRE(std::get<std::string>(migrated[0].data.at("suite")) == "oldstable");
+        REQUIRE(std::get<std::string>(migrated[0].data.at("section")) == "main");
+        REQUIRE(std::get<std::int64_t>(migrated[0].data.at("totalMetadata")) == 42);
+
+        // the entries are gone now, so we do not migrate them twice
+        REQUIRE(store.takeLegacyStatistics().empty());
+
+        store.close();
+    }
+
+    // Cleanup
+    fs::remove_all(tempDir);
+    fs::remove_all(mediaDir);
+}
+
 TEST_CASE("DataStore basic operations", "[datastore]")
 {
     // Create temporary directory for test database
@@ -391,45 +530,6 @@ Name:
         std::string retrievedHints = store.getHints(pkgId);
         REQUIRE_FALSE(retrievedHints.empty());
         REQUIRE(retrievedHints == hintsJson);
-
-        store.close();
-    }
-
-    SECTION("Statistics operations")
-    {
-        DataStore store;
-        store.open(tempDir.string(), mediaDir.string());
-
-        // Create test statistics data to serialize
-        std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> statsData = {
-            {"suite",         std::string("testing")},
-            {"section",       std::string("main")   },
-            {"totalInfos",    123                   },
-            {"totalWarnings", 24                    },
-            {"totalErrors",   8                     },
-            {"totalMetadata", 42                    }
-        };
-
-        // Add statistics
-        REQUIRE_NOTHROW(store.addStatistics(statsData));
-
-        // Retrieve statistics
-        auto allStats = store.getStatistics();
-        REQUIRE_FALSE(allStats.empty());
-        REQUIRE(allStats.size() >= 1);
-
-        // Verify the data in the first entry
-        const auto &firstEntry = allStats[0];
-        REQUIRE(firstEntry.data.contains("suite"));
-        REQUIRE(firstEntry.data.contains("section"));
-        REQUIRE(firstEntry.data.contains("totalInfos"));
-
-        REQUIRE(std::get<std::string>(firstEntry.data.at("suite")) == "testing");
-        REQUIRE(std::get<std::string>(firstEntry.data.at("section")) == "main");
-        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalInfos")) == 123);
-        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalWarnings")) == 24);
-        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalErrors")) == 8);
-        REQUIRE(std::get<std::int64_t>(firstEntry.data.at("totalMetadata")) == 42);
 
         store.close();
     }

@@ -90,54 +90,6 @@ RepoInfo RepoInfo::deserialize(const std::vector<std::byte> &data)
     return info;
 }
 
-static std::vector<std::byte> serializeStatsEntryData(const StatisticsEntry &entry)
-{
-    json statsData = json::object();
-    for (const auto &[key, value] : entry.data) {
-        std::visit(
-            [&statsData, &key](const auto &v) {
-                statsData[key] = v;
-            },
-            value);
-    }
-
-    const auto serialized = statsData.dump();
-    return {
-        reinterpret_cast<const std::byte *>(serialized.data()),
-        reinterpret_cast<const std::byte *>(serialized.data()) + serialized.size()};
-}
-
-static StatisticsEntry deserializeStatsEntry(std::time_t timestamp, const std::vector<std::byte> &data)
-{
-    if (data.empty())
-        throw std::runtime_error("Invalid statistics data: buffer is empty");
-
-    StatisticsEntry entry;
-    entry.time = timestamp;
-
-    const std::string payload(reinterpret_cast<const char *>(data.data()), data.size());
-    const auto j = json::parse(payload);
-    if (!j.is_object())
-        throw std::runtime_error("Invalid statistics data: expected JSON object");
-
-    for (auto it = j.begin(); it != j.end(); ++it) {
-        const auto &value = it.value();
-        if (value.is_string()) {
-            entry.data[it.key()] = value.get<std::string>();
-        } else if (value.is_number_integer()) {
-            entry.data[it.key()] = value.get<std::int64_t>();
-        } else if (value.is_number_float()) {
-            entry.data[it.key()] = value.get<double>();
-        } else {
-            throw std::runtime_error(
-                std::format(
-                    "Invalid statistics value type for '{}': only string/int64/double are supported", it.key()));
-        }
-    }
-
-    return entry;
-}
-
 DataStore::DataStore()
     : m_log(getLogger("datastore")),
       m_dbEnv(nullptr),
@@ -147,7 +99,7 @@ DataStore::DataStore()
       m_dbDataYaml(0),
       m_dbHints(0),
       m_dbGcidRegistry(0),
-      m_dbStats(0),
+      m_dbStatsLegacy(0),
       m_opened(false),
       m_mdata(nullptr),
       m_stagingLockFd(-1),
@@ -204,7 +156,8 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
         checkError(rc, "mdb_env_create");
 
     // We are going to use at max 7 sub-databases:
-    // packages, hints, gcid_registry, metadata_xml, metadata_yaml, statistics, repository
+    // packages, hints, gcid_registry, metadata_xml, metadata_yaml, repository, as well as
+    // the statistics database that older versions of the generator created here.
     rc = mdb_env_set_maxdbs(m_dbEnv, 7);
     if (rc != 0) {
         mdb_env_close(m_dbEnv);
@@ -255,8 +208,14 @@ void DataStore::open(const std::string &dir, const fs::path &mediaBaseDir)
         rc = mdb_dbi_open(txn, "gcid_registry", MDB_CREATE, &m_dbGcidRegistry);
         checkError(rc, "open global-component-ID registry database");
 
-        rc = mdb_dbi_open(txn, "statistics", MDB_CREATE | MDB_INTEGERKEY, &m_dbStats);
-        checkError(rc, "open statistics database");
+        // statistics used to be stored here, but have their own database now. We only open
+        // the sub-database if it already exists, so we can migrate its data away
+        // (see takeLegacyStatistics) without ever creating it again.
+        rc = mdb_dbi_open(txn, "statistics", MDB_INTEGERKEY, &m_dbStatsLegacy);
+        if (rc == MDB_NOTFOUND)
+            m_dbStatsLegacy = 0;
+        else
+            checkError(rc, "open legacy statistics database");
 
         rc = mdb_txn_commit(txn);
         checkError(rc, "mdb_txn_commit");
@@ -1241,18 +1200,20 @@ std::vector<std::byte> DataStore::getBinaryValue(MDB_dbi dbi, const std::string 
     }
 }
 
-std::vector<StatisticsEntry> DataStore::getStatistics()
+std::vector<StatisticsEntry> DataStore::takeLegacyStatistics()
 {
+    if (m_dbStatsLegacy == 0)
+        return {};
+
     MDB_val dkey, dval;
     MDB_cursor *cur = nullptr;
+    std::vector<StatisticsEntry> stats;
 
-    MDB_txn *txn = newTransaction(MDB_RDONLY);
+    MDB_txn *txn = newTransaction();
     try {
-        int res = mdb_cursor_open(txn, m_dbStats, &cur);
-        checkError(res, "mdb_cursor_open (stats)");
+        int res = mdb_cursor_open(txn, m_dbStatsLegacy, &cur);
+        checkError(res, "mdb_cursor_open (legacy stats)");
 
-        std::vector<StatisticsEntry> stats;
-        stats.reserve(256);
         while (mdb_cursor_get(cur, &dkey, &dval, MDB_NEXT) == 0) {
             if (dkey.mv_size != sizeof(std::int64_t)) {
                 LOG_WARNING(m_log, "Skipping statistics entry with invalid key size: {}", dkey.mv_size);
@@ -1260,19 +1221,17 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
             }
             std::int64_t keyTimeRaw = 0;
             std::memcpy(&keyTimeRaw, dkey.mv_data, sizeof(keyTimeRaw));
-            std::time_t timestamp = static_cast<std::time_t>(keyTimeRaw);
 
-            std::vector<std::byte> binaryData(
+            const std::vector<std::byte> binaryData(
                 static_cast<const std::byte *>(dval.mv_data),
                 static_cast<const std::byte *>(dval.mv_data) + dval.mv_size);
             if (!binaryData.empty() && static_cast<uint8_t>(binaryData[0]) == 1) {
-                // previously, data was stored in binary, instead of reading that data, we ignore it now
+                // data used to be stored in binary form, which we do not read anymore
                 continue;
             }
 
             try {
-                auto entry = deserializeStatsEntry(timestamp, binaryData);
-                stats.push_back(std::move(entry));
+                stats.push_back(deserializeStatsEntry(static_cast<std::time_t>(keyTimeRaw), binaryData));
             } catch (const std::exception &e) {
                 LOG_WARNING(m_log, "Failed to deserialize statistics entry: {}", e.what());
                 continue;
@@ -1280,79 +1239,21 @@ std::vector<StatisticsEntry> DataStore::getStatistics()
         }
 
         mdb_cursor_close(cur);
-        quitTransaction(txn);
+        cur = nullptr;
 
-        return stats;
+        // empty the sub-database, its contents now belong to the statistics database
+        res = mdb_drop(txn, m_dbStatsLegacy, 0);
+        checkError(res, "mdb_drop (legacy stats)");
+
+        commitTransaction(txn);
     } catch (...) {
         if (cur)
             mdb_cursor_close(cur);
         quitTransaction(txn);
         throw;
     }
-}
 
-void DataStore::removeStatistics(std::time_t time)
-{
-    std::int64_t keyTime = time;
-    MDB_val dbkey;
-    dbkey.mv_size = sizeof(std::int64_t);
-    dbkey.mv_data = &keyTime;
-
-    MDB_txn *txn = newTransaction();
-    try {
-        int res = mdb_del(txn, m_dbStats, &dbkey, nullptr);
-        if (res != MDB_NOTFOUND)
-            checkError(res, "mdb_del");
-        commitTransaction(txn);
-    } catch (...) {
-        quitTransaction(txn);
-        throw;
-    }
-}
-
-void DataStore::addStatistics(const StatisticsEntry &stats)
-{
-    std::int64_t keyTime = stats.time;
-    MDB_val dbkey;
-    dbkey.mv_size = sizeof(std::int64_t);
-    dbkey.mv_data = &keyTime;
-
-    auto statsDataBytes = serializeStatsEntryData(stats);
-    MDB_val dbvalue;
-    dbvalue.mv_size = statsDataBytes.size();
-    dbvalue.mv_data = statsDataBytes.data();
-
-    MDB_txn *txn = newTransaction();
-    try {
-        int res = mdb_put(txn, m_dbStats, &dbkey, &dbvalue, MDB_APPEND);
-        if (res == MDB_KEYEXIST) {
-            // this point in time already exists, but we do not allow overriding data - so we lie and shift
-            // the timestamp one second forward in time, to get a free slot
-            LOG_WARNING(m_log, "Statistics entry for timestamp {} already exists, skipping a second", stats.time);
-
-            quitTransaction(txn);
-
-            StatisticsEntry newStats;
-            newStats.time = stats.time + 1;
-            newStats.data = stats.data;
-            addStatistics(newStats);
-            return;
-        }
-        checkError(res, "mdb_put (stats)");
-        commitTransaction(txn);
-    } catch (...) {
-        quitTransaction(txn);
-        throw;
-    }
-}
-
-void DataStore::addStatistics(
-    const std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> &statsData)
-{
-    StatisticsEntry entry;
-    entry.time = std::time(nullptr);
-    entry.data = statsData;
-    addStatistics(entry);
+    return stats;
 }
 
 RepoInfo DataStore::getRepoInfo(const std::string &suite, const std::string &section, const std::string &arch)

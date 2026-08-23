@@ -43,9 +43,10 @@ namespace ASGenerator
 
 using json = nlohmann::json;
 
-ReportGenerator::ReportGenerator(DataStore *db)
+ReportGenerator::ReportGenerator(DataStore *db, StatsStore *sdb)
     : m_log(getLogger("report")),
       m_dstore(db),
+      m_sstore(sdb),
       m_conf(&Config::get()),
       m_templateDir(m_conf->templateDir()),
       m_injaEnv(
@@ -594,7 +595,7 @@ void ReportGenerator::saveStatistics(const std::string &suiteName, const std::st
         {"totalMetadata", dsum.totalMetadata}
     };
 
-    m_dstore->addStatistics(statsData);
+    m_sstore->addStatistics(statsData);
 }
 
 void ReportGenerator::exportStatistics()
@@ -602,7 +603,7 @@ void ReportGenerator::exportStatistics()
     LOG_INFO(m_log, "Exporting statistical data.");
 
     // return all statistics we have from the database
-    auto statsCollection = m_dstore->getStatistics();
+    auto statsCollection = m_sstore->getStatistics();
 
     // Sort statsCollection by timestamp in ascending order
     std::sort(statsCollection.begin(), statsCollection.end(), [](const auto &a, const auto &b) -> bool {

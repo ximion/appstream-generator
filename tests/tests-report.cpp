@@ -18,6 +18,7 @@
 
 #include "reportgenerator.h"
 #include "datastore.h"
+#include "statsstore.h"
 #include "config.h"
 #include "backends/interfaces.h"
 #include "backends/dummy/dummypkg.h"
@@ -39,10 +40,12 @@ public:
         fs::create_directories(m_tempDir);
 
         m_dbDir = m_tempDir / "db";
+        m_statsDbDir = m_tempDir / "stats-db";
         m_htmlDir = m_tempDir / "html";
         m_mediaDir = m_tempDir / "media";
 
         fs::create_directories(m_dbDir);
+        fs::create_directories(m_statsDbDir);
         fs::create_directories(m_htmlDir);
         fs::create_directories(m_mediaDir);
 
@@ -57,16 +60,21 @@ public:
         m_dstore = std::make_unique<DataStore>();
         m_dstore->open(m_dbDir.string(), m_mediaDir.string());
 
+        // Initialize statistics database
+        m_sstore = std::make_unique<StatsStore>();
+        m_sstore->open(m_statsDbDir.string());
+
         // Load the hints registry to avoid hint tag errors
         loadHintsRegistry();
 
         // Create report generator
-        m_reportGen = std::make_unique<ReportGenerator>(m_dstore.get());
+        m_reportGen = std::make_unique<ReportGenerator>(m_dstore.get(), m_sstore.get());
     }
 
     ~ReportGeneratorTestFixture()
     {
         m_reportGen.reset();
+        m_sstore.reset();
         m_dstore.reset();
 
         // Clean up temporary directory
@@ -175,11 +183,13 @@ Summary:
 protected:
     fs::path m_tempDir;
     fs::path m_dbDir;
+    fs::path m_statsDbDir;
     fs::path m_htmlDir;
     fs::path m_mediaDir;
     fs::path m_templateDir;
 
     std::unique_ptr<DataStore> m_dstore;
+    std::unique_ptr<StatsStore> m_sstore;
     std::unique_ptr<ReportGenerator> m_reportGen;
 };
 
@@ -287,7 +297,7 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator Statistics")
             {"totalErrors",   std::int64_t(1)         },
             {"totalMetadata", std::int64_t(10)        }
         };
-        m_dstore->addStatistics(statsData);
+        m_sstore->addStatistics(statsData);
 
         REQUIRE_NOTHROW(m_reportGen->exportStatistics());
 

@@ -25,6 +25,18 @@ every once in a while. This will drop all superseded packages and data from the 
 
 If you do not want to `cd` into the workspace directory, you can also use the `--workspace|-w` flag to define a workspace.
 
+### Databases in the workspace
+
+The generator keeps three databases in the `db/` directory of its workspace:
+
+* `db/main` holds the generated metadata, issue hints and package information,
+* `db/contents` caches the file lists of all scanned packages,
+* `db/stats` records the statistics that the trend graphs of the HTML report are drawn from.
+
+The first two are caches: deleting them makes the next run rescan the archive from scratch, which
+takes a while but loses no information. The statistics in `db/stats` are the exception, as they can
+not be recreated by rescanning - if you delete that database, the history in the report is gone.
+
 ### Validating metadata
 You can validate the resulting metadata using the AppStream client tools.
 Use `appstreamcli validate <metadata>.xml.gz` for XML metadata, and `dep11-validate <dep11file>.yml.gz` for YAML. This will check the files for mistakes and compliance with the specification.

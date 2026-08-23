@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "datastore.h"
+#include "statsstore.h"
 #include "backends/interfaces.h"
 
 namespace ASGenerator
@@ -38,7 +39,7 @@ namespace ASGenerator
 class ReportGenerator
 {
 public:
-    explicit ReportGenerator(DataStore *db);
+    ReportGenerator(DataStore *db, StatsStore *sdb);
     ~ReportGenerator() = default;
 
     void processFor(
@@ -110,6 +111,7 @@ public:
 private:
     quill::Logger *m_log;
     DataStore *m_dstore;
+    StatsStore *m_sstore;
     Config *m_conf;
 
     fs::path m_htmlExportDir;
