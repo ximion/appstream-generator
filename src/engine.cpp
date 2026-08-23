@@ -608,44 +608,51 @@ void Engine::exportIconTarballs(
     std::mutex dirMutex;
     std::mutex iconMutex;
 
-    tbb::parallel_for_each(pkgs.begin(), pkgs.end(), [&](std::shared_ptr<Package> pkg) {
-        const auto &pkid = pkg->id();
-        auto gcids = m_dstore->getGCIDsForPackage(pkid);
-        if (gcids.empty())
-            return;
+    tbb::parallel_for_each(
+        pkgs.begin(),
+        pkgs.end(),
+        [this, &mediaExportDir, &iconTarFiles, &processedDirs, &dirMutex, &iconMutex](std::shared_ptr<Package> pkg) {
+            const auto &pkid = pkg->id();
+            auto gcids = m_dstore->getGCIDsForPackage(pkid);
+            if (gcids.empty())
+                return;
 
-        for (const auto &gcid : gcids) {
-            // Compile list of icon-tarball files
-            AscIconPolicyIter ipIter;
-            asc_icon_policy_iter_init(&ipIter, m_conf->iconPolicy());
-            while (asc_icon_policy_iter_next(&ipIter, &iconSizeInt, &iconScale, &iconState)) {
-                if (iconState == ASC_ICON_STATE_IGNORED || iconState == ASC_ICON_STATE_REMOTE_ONLY)
-                    continue; // Only add icon to cache tarball if we want a cache for the particular size
+            for (const auto &gcid : gcids) {
+                // Compile list of icon-tarball files
+                AscIconPolicyIter ipIter;
+                asc_icon_policy_iter_init(&ipIter, m_conf->iconPolicy());
 
-                const ImageSize iconSize(iconSizeInt, iconSizeInt, iconScale);
-                const auto iconDir = mediaExportDir / gcid / "icons" / iconSize.toString();
+                guint taskIconSize;
+                guint taskIconScale;
+                AscIconState taskIconState;
+                while (asc_icon_policy_iter_next(&ipIter, &taskIconSize, &taskIconScale, &taskIconState)) {
+                    if (taskIconState == ASC_ICON_STATE_IGNORED || taskIconState == ASC_ICON_STATE_REMOTE_ONLY)
+                        continue; // Only add icon to cache tarball if we want a cache for the particular size
 
-                // Skip adding icon entries if we've already investigated this directory
-                {
-                    std::lock_guard<std::mutex> lock(dirMutex);
-                    if (processedDirs.contains(iconDir.string()))
+                    const ImageSize iconSize(taskIconSize, taskIconSize, taskIconScale);
+                    const auto iconDir = mediaExportDir / gcid / "icons" / iconSize.toString();
+
+                    // Skip adding icon entries if we've already investigated this directory
+                    {
+                        std::lock_guard<std::mutex> lock(dirMutex);
+                        if (processedDirs.contains(iconDir.string()))
+                            continue;
+                        else
+                            processedDirs.insert(iconDir.string());
+                    }
+
+                    if (!fs::exists(iconDir))
                         continue;
-                    else
-                        processedDirs.insert(iconDir.string());
-                }
 
-                if (!fs::exists(iconDir))
-                    continue;
-
-                for (const auto &entry : fs::directory_iterator(iconDir)) {
-                    if (entry.is_regular_file()) {
-                        std::lock_guard<std::mutex> lock(iconMutex);
-                        iconTarFiles[iconSize.toString()].push_back(entry.path().string());
+                    for (const auto &entry : fs::directory_iterator(iconDir)) {
+                        if (entry.is_regular_file()) {
+                            std::lock_guard<std::mutex> lock(iconMutex);
+                            iconTarFiles[iconSize.toString()].push_back(entry.path().string());
+                        }
                     }
                 }
             }
-        }
-    });
+        });
 
     // Create the icon tarballs
     asc_icon_policy_iter_init(&policyIter, m_conf->iconPolicy());
