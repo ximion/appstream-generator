@@ -42,38 +42,36 @@ This project requires a C++23-capable compiler, GCC >= 14 or Clang >= 18 is reco
 
 The following libraries and tools are required to build the generator:
  * Meson (>= 1.0) [1]
- * AppStream [2]
+ * AppStream Compose (>= 1.2) [2]
  * libarchive (>= 3.2) [3]
- * libfyaml
+ * libfyaml (>= 0.9)
+ * libxml2
  * LMDB [4]
  * Curl
- * Cairo
- * GdkPixbuf 2.0
- * RSvg 2.0
- * FreeType
- * Fontconfig
- * Pango
- * Inja [5]
- * Catch2 [6]
+ * VIPS [5]
+ * Inja [6]
  * oneAPI TBB [7]
- * NPM (optional) [8]
+ * Quill [8]
+ * Catch2 [9]
+ * NPM (optional)
+ * backward-cpp (optional)
 
 [1]: http://mesonbuild.com/
 [2]: https://github.com/ximion/appstream
 [3]: https://libarchive.org/
 [4]: https://symas.com/lmdb/
-[5]: https://github.com/pantor/inja
-[6]: https://github.com/catchorg/Catch2
+[5]: https://www.libvips.org/
+[6]: https://github.com/pantor/inja
 [7]: https://uxlfoundation.github.io/oneTBB/
-[8]: https://github.com/npm/cli
+[8]: https://github.com/odygrd/quill
+[9]: https://github.com/catchorg/Catch2
 
 On Debian and derivatives of it, all build requirements can be installed using the following command:
 ```ShellSession
 sudo apt install meson g++ \
-    libappstream-dev libappstream-compose-dev libsoup2.4-dev libarchive-dev \
-    libgdk-pixbuf2.0-dev librsvg2-dev libcairo2-dev libfreetype-dev libfontconfig1-dev \
-    libpango1.0-dev liblmdb-dev libtbb-dev libcatch2-dev libfyaml-dev \
-    npm
+    libappstream-dev libappstream-compose-dev  libblake3-dev libarchive-dev libcurl4-gnutls-dev \
+    libvips-dev liblmdb-dev libtbb-dev quill-dev libcatch2-dev libfyaml-dev libxml2-dev \
+    npm libbackward-cpp-dev
 ```
 
 ### Build instructions
