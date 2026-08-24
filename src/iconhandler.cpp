@@ -975,6 +975,14 @@ bool IconHandler::process(GeneratorResult &gres, AsComponent *cpt, AscMedia *med
         } else {
             LOG_DEBUG(m_log, "Icon {} - {} not found in required size(s) in XDG dirs", gres.pkid(), iconName);
 
+            // We may have found an icon and rejected the component over it already, in which
+            // case the actual problem has been reported. Anything we could add here rejects
+            // the component as well, so it would only report a second reason for dropping
+            // something that is already gone - and claim that no icon was found at all, even
+            // though we did find one and merely could not use it.
+            if (gres.isIgnored(cpt))
+                return false;
+
             if (!lastIconName.empty() && !iconAllowed(lastIconName)) {
                 gres.addHint(
                     as_component_get_id(cpt),
