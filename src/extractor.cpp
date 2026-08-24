@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -167,7 +167,7 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, v
 {
     auto self = static_cast<DataExtractor *>(userData);
 
-    auto cptsPtrArray = asc_result_fetch_components(cres);
+    g_autoptr(GPtrArray) cptsPtrArray = asc_result_fetch_components(cres);
     for (guint i = 0; i < cptsPtrArray->len; i++) {
         auto cpt = AS_COMPONENT(g_ptr_array_index(cptsPtrArray, i));
         auto gcid = asc_result_gcid_for_component(cres, cpt);
