@@ -298,9 +298,9 @@ void GeneratorResult::addComponent(AsComponent *cpt) const
     asc_result_add_component(m_res, cpt, nullptr, nullptr);
 }
 
-void GeneratorResult::removeComponent(AsComponent *cpt) const
+void GeneratorResult::removeComponent(AsComponent *cpt, bool keepGcid) const
 {
-    asc_result_remove_component(m_res, cpt);
+    asc_result_remove_component_full(m_res, cpt, keepGcid ? FALSE : TRUE);
 }
 
 bool GeneratorResult::isIgnored(AsComponent *cpt) const
@@ -310,7 +310,10 @@ bool GeneratorResult::isIgnored(AsComponent *cpt) const
 
 bool GeneratorResult::isUnitIgnored() const
 {
-    return asc_result_unit_ignored(m_res);
+    // A unit that still references a component is not ignored, even if the component itself
+    // is gone: we drop components that another architecture of this package has produced
+    // already, but we keep providing them.
+    return asc_result_unit_ignored(m_res) && getComponentGcids().empty();
 }
 
 std::string GeneratorResult::gcidForComponent(AsComponent *cpt) const

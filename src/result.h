@@ -150,7 +150,15 @@ public:
     bool hasHint(AsComponent *cpt, const std::string &tag) const;
     void addComponent(AsComponent *cpt) const;
     void addComponentWithString(AsComponent *cpt, const std::string &data);
-    void removeComponent(AsComponent *cpt) const;
+
+    /**
+     * Remove a component from this result.
+     *
+     * @param keepGcid Keep the global ID of the component registered, so this package still
+     *                 references it even though it does not provide its data here.
+     */
+    void removeComponent(AsComponent *cpt, bool keepGcid = false) const;
+
     bool isIgnored(AsComponent *cpt) const;
     bool isUnitIgnored() const;
     std::string gcidForComponent(AsComponent *cpt) const;

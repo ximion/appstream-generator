@@ -84,8 +84,10 @@ private:
      *
      * It drops components that another package already provides identical data for, so we
      * do not spend time rendering media that we would throw away when committing the result.
-     * Components we own ourselves are deliberately kept and processed again, so their media
-     * is refreshed rather than reused from an earlier run.
+     * The same is done for components that another architecture of this very package has
+     * produced already, only that we keep referencing those.
+     * Components of another version of ourselves are deliberately kept and processed again,
+     * so their media is refreshed rather than reused from an earlier run.
      */
     static void checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, void *userData);
 

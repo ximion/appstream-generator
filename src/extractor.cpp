@@ -197,12 +197,26 @@ void DataExtractor::checkMetadataIntermediate(AscResult *cres, AscUnit *cunit, v
 
         // We compare package names rather than IDs here, as a package that merely changed
         // its version is still the same software and keeps its component.
-        // The component is ours, so we process it again: the metadata can not have changed,
-        // but this way its screenshots and icons are refreshed instead of being left at
-        // whatever state an earlier run of ours produced.
-        const auto ownerName = Utils::pkidSplitNameVersion(ownerPkid).first;
-        if (bundleId && ownerName == bundleId)
+        const auto [ownerName, ownerVersion] = Utils::pkidSplitNameVersion(ownerPkid);
+        if (bundleId && ownerName == bundleId) {
+            // The component is ours already. If the owner is this very package built for a
+            // different architecture, it has produced this exact component before - the global
+            // ID is a hash of the metadata, and the media of an architecture variant is the
+            // same as well - so we recycle what is in the pool instead of rendering it again
+            // for every architecture we process.
+            // Any other version of ourselves is processed again: the metadata can not have
+            // changed, but this way its screenshots and icons are refreshed instead of being
+            // left at whatever state an earlier run of ours produced.
+            const auto ourVersion = Utils::pkidSplitNameVersion(self->m_currentPkid).second;
+            if (ownerPkid == self->m_currentPkid || ownerVersion != ourVersion
+                || !self->m_dstore->metadataExists(self->m_dtype, gcid))
+                continue;
+
+            // keep the global ID: we still provide this component, we just do not have to
+            // produce it a second time
+            asc_result_remove_component_full(cres, cpt, FALSE);
             continue;
+        }
 
         // Another package provides the exact same component. Ownership is settled when the
         // results are committed, but if we would lose that contest there is no point in

@@ -652,7 +652,7 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
         gres.clearMediaStaging();
     });
 
-    // if the package has no components or hints,
+    // if the package has no components, hints, or components it references,
     // mark it as always-ignore
     if (gres.isUnitIgnored()) {
         setPackageIgnore(gres.pkid());

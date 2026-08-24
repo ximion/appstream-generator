@@ -994,6 +994,36 @@ TEST_CASE("DataStore component ownership", "[datastore]")
         REQUIRE(store.getGcidOwner(gcid) == "quassel/0.20.0/amd64");
         REQUIRE_FALSE(DataStore::componentOwnerWins("quassel-kde4/0.20.0/amd64", store.getGcidOwner(gcid)));
 
+        // The same package built for another architecture produces the very same component,
+        // so the extractor drops it before any media is rendered, but keeps its global ID.
+        // Such a package has neither components nor hints and must still end up referencing
+        // the component - otherwise its architecture would lose the metadata entirely.
+        {
+            auto pkg = std::make_shared<DummyPackage>("quassel", "0.20.0", "arm64");
+            pkg->setMaintainer("Test Maintainer <test@example.org>");
+            GeneratorResult gres(pkg, mediaDir / "_staging" / std::to_string(stagingCounter++));
+
+            g_autoptr(AsComponent) cpt = makeComponent();
+            gres.addComponent(cpt);
+            REQUIRE(gres.getComponentGcids() == std::vector<std::string>{gcid});
+
+            gres.removeComponent(cpt, true);
+            REQUIRE(gres.componentsCount() == 0);
+            REQUIRE(gres.hintsCount() == 0);
+            REQUIRE(gres.getComponentGcids() == std::vector<std::string>{gcid});
+            REQUIRE_FALSE(gres.isUnitIgnored());
+
+            store.addGeneratorResult(DataType::XML, gres);
+        }
+
+        REQUIRE(store.getGCIDsForPackage("quassel/0.20.0/arm64") == std::vector<std::string>{gcid});
+
+        // ... and it changes nothing about the component itself: the architecture that made
+        // it keeps it, and its media is not touched
+        REQUIRE(store.getGcidOwner(gcid) == "quassel/0.20.0/amd64");
+        REQUIRE(store.getGCIDsForPackage("quassel/0.20.0/amd64") == std::vector<std::string>{gcid});
+        REQUIRE(poolIcons(gcid) == std::vector<std::string>{"quassel_test.png"});
+
         // injected metadata overrides whatever the archive provides, even though its fake
         // package would lose the contest on both version and name
         REQUIRE(addResultFor(EXTRA_METAINFO_FAKE_PKGNAME, "0~0", PackageKind::Fake) == gcid);
