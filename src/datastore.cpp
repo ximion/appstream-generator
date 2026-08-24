@@ -377,8 +377,17 @@ bool DataStore::claimComponentOwnership(
     std::string &previousOwner,
     bool force)
 {
-    MDB_val dbkey = makeDbValue(gcid);
     previousOwner.clear();
+
+    // The empty global ID is not a component identity, it merely means that we failed to
+    // build one. Registering it would make the next component without an ID look like a
+    // duplicate of this one, so we never let it into the registry.
+    if (gcid.empty()) {
+        LOG_ERROR(m_log, "Refusing to register an empty global component ID for '{}'.", pkid);
+        return false;
+    }
+
+    MDB_val dbkey = makeDbValue(gcid);
 
     // A write transaction gives us the whole read-decide-write sequence atomically:
     // LMDB permits only one writer at a time, so a second package asking about the same
@@ -674,6 +683,17 @@ void DataStore::addGeneratorResult(DataType dtype, GeneratorResult &gres, bool a
     for (guint i = 0; i < cptsArray->len; i++) {
         AsComponent *cpt = AS_COMPONENT(cptsArray->pdata[i]);
         const auto gcid = gres.gcidForComponent(cpt);
+
+        // A component without a global ID can not be exported: we have no key to store its
+        // metadata under and no path to publish its media to. It must not enter the ownership
+        // contest below either - the empty ID is not an identity, so every component missing
+        // one would look like a duplicate of the first one that got here.
+        if (gcid.empty()) {
+            const char *cid = as_component_get_id(cpt);
+            LOG_WARNING(
+                m_log, "Component '{}' of '{}' has no global ID and can not be exported.", cid ? cid : "?", ourPkid);
+            continue;
+        }
 
         // Two packages can ship byte-identical metadata and therefore produce the same
         // component. Claim it for ourselves - if another package provides it as well and
