@@ -115,7 +115,7 @@ static GLogWriterOutput glibLogWriter(GLogLevelFlags log_level, const GLogField 
         }
     }
 
-    auto logger = getLogger(domainStr.empty() ? "root" : domainStr);
+    auto logger = getLogger(domainStr.empty() ? "glog" : domainStr);
 
     quill::LogLevel level;
     switch (log_level & G_LOG_LEVEL_MASK) {
