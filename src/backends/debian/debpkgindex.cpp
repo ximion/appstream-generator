@@ -24,6 +24,7 @@
 #include <regex>
 #include <format>
 #include <execution>
+#include <appstream-compose.h>
 
 #include "../../config.h"
 #include "../../logging.h"
@@ -357,31 +358,43 @@ bool DebianPackageIndex::hasChanges(
     if (cacheIt != m_indexChanged.end())
         return cacheIt->second;
 
-    const auto mtime = fs::last_write_time(indexFname);
-    const auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
+    // We compare content checksums rather than modification times here: The mtime of an index
+    // file may change without its contents having changed at all (for example if the archive
+    // was merely republished), which would make us regenerate data for no good reason.
+    const auto indexData = Utils::getFileContents(indexFname);
+    g_autofree gchar *checksumPtr = asc_compute_content_checksum_for_data(
+        reinterpret_cast<const gchar *>(indexData.data()), indexData.size());
+    if (checksumPtr == nullptr)
+        throw std::runtime_error(std::format("Unable to compute a checksum for index file '{}'", indexFname));
+    const std::string checksum(checksumPtr);
 
     auto repoInfo = dstore->getRepoInfo(suite, section, arch);
 
-    // Update mtime in repo info when we exit this function
+    // Update the index checksum in repo info when we exit this function
     auto updateRepoInfo = [&]() {
-        repoInfo.data["mtime"] = static_cast<std::int64_t>(currentTime);
+        // drop the modification time recorded by older asgen versions
+        repoInfo.data.erase("mtime");
+        repoInfo.data["checksum"] = checksum;
         dstore->setRepoInfo(suite, section, arch, repoInfo);
     };
 
-    auto mtimeIt = repoInfo.data.find("mtime");
-    if (mtimeIt == repoInfo.data.end()) {
+    auto checksumIt = repoInfo.data.find("checksum");
+    if (checksumIt == repoInfo.data.end()) {
+        LOG_DEBUG(m_log, "No previous checksum known for index '{}', assuming it has changed.", indexFname);
         m_indexChanged[indexFname] = true;
         updateRepoInfo();
         return true;
     }
 
-    const auto pastTime = std::get<std::int64_t>(mtimeIt->second);
-    if (pastTime != currentTime) {
+    const auto *pastChecksum = std::get_if<std::string>(&checksumIt->second);
+    if (pastChecksum == nullptr || *pastChecksum != checksum) {
+        LOG_DEBUG(m_log, "Index '{}' has changed since the last run.", indexFname);
         m_indexChanged[indexFname] = true;
         updateRepoInfo();
         return true;
     }
 
+    LOG_DEBUG(m_log, "Index '{}' has not changed since the last run.", indexFname);
     m_indexChanged[indexFname] = false;
     updateRepoInfo();
     return false;
