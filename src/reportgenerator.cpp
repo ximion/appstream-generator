@@ -201,7 +201,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
     }
 
     // write metadata info pages
-    for (const auto &[pkgname, pkgMVerEntries] : dsum.mdataEntries) {
+    for (const auto &[pkgname, pkgEntries] : dsum.mdataEntries) {
         auto exportName = std::format("{}/{}/metainfo/{}", suiteName, section, pkgname);
 
         inja::json context;
@@ -210,49 +210,47 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
         context["section"] = section;
 
         inja::json cpts = inja::json::array();
-        for (const auto &[ver, mEntries] : pkgMVerEntries) {
-            for (const auto &[gcid, mentry] : mEntries) {
-                inja::json cpt;
-                cpt["component_id"] = std::format("{} - {}", mentry.identifier, ver);
+        for (const auto &[gcid, mentry] : pkgEntries) {
+            inja::json cpt;
+            cpt["component_id"] = std::format("{} - {}", mentry.identifier, mentry.version);
 
-                inja::json architectures = inja::json::array();
-                for (const auto &arch : mentry.archs) {
-                    architectures.push_back(
-                        inja::json{
-                            {"arch", Utils::escapeXml(arch)}
-                    });
-                }
-                cpt["architectures"] = architectures;
-                cpt["metadata"] = Utils::escapeXml(mentry.data);
-
-                auto cptMediaPath = m_mediaPoolDir / gcid;
-                auto cptMediaUrl = std::format("{}/{}", m_mediaPoolUrl, gcid);
-                std::string iconUrl;
-
-                switch (mentry.kind) {
-                case AS_COMPONENT_KIND_UNKNOWN:
-                    iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "no-image.png");
-                    break;
-                case AS_COMPONENT_KIND_DESKTOP_APP:
-                case AS_COMPONENT_KIND_WEB_APP:
-                case AS_COMPONENT_KIND_FONT:
-                case AS_COMPONENT_KIND_OPERATING_SYSTEM: {
-                    auto iconPath = cptMediaPath / "icons" / "64x64" / mentry.iconName;
-                    if (fs::exists(iconPath)) {
-                        iconUrl = std::format("{}/{}/{}/{}", cptMediaUrl, "icons", "64x64", mentry.iconName);
-                    } else {
-                        iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "no-image.png");
-                    }
-                    break;
-                }
-                default:
-                    iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "cpt-nogui.png");
-                    break;
-                }
-
-                cpt["icon_url"] = iconUrl;
-                cpts.push_back(cpt);
+            inja::json architectures = inja::json::array();
+            for (const auto &arch : mentry.archs) {
+                architectures.push_back(
+                    inja::json{
+                        {"arch", Utils::escapeXml(arch)}
+                });
             }
+            cpt["architectures"] = architectures;
+            cpt["metadata"] = Utils::escapeXml(mentry.data);
+
+            auto cptMediaPath = m_mediaPoolDir / gcid;
+            auto cptMediaUrl = std::format("{}/{}", m_mediaPoolUrl, gcid);
+            std::string iconUrl;
+
+            switch (mentry.kind) {
+            case AS_COMPONENT_KIND_UNKNOWN:
+                iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "no-image.png");
+                break;
+            case AS_COMPONENT_KIND_DESKTOP_APP:
+            case AS_COMPONENT_KIND_WEB_APP:
+            case AS_COMPONENT_KIND_FONT:
+            case AS_COMPONENT_KIND_OPERATING_SYSTEM: {
+                auto iconPath = cptMediaPath / "icons" / "64x64" / mentry.iconName;
+                if (fs::exists(iconPath)) {
+                    iconUrl = std::format("{}/{}/{}/{}", cptMediaUrl, "icons", "64x64", mentry.iconName);
+                } else {
+                    iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "no-image.png");
+                }
+                break;
+            }
+            default:
+                iconUrl = std::format("{}/{}/{}/{}", m_conf->htmlBaseUrl, "static", "img", "cpt-nogui.png");
+                break;
+            }
+
+            cpt["icon_url"] = iconUrl;
+            cpts.push_back(cpt);
         }
         context["cpts"] = cpts;
 
@@ -386,18 +384,15 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
             continue;
 
         PkgSummary pkgsummary;
-        bool newInfo = false;
-
         pkgsummary.pkgname = pkg->name();
 
+        // an existing summary is carried on, as its issue counts are for the whole package,
+        // across all of the architectures and versions it exists in
         auto maintainerIt = dsum.pkgSummaries.find(pkg->maintainer());
         if (maintainerIt != dsum.pkgSummaries.end()) {
             auto pkgIt = maintainerIt->second.find(pkg->name());
-            if (pkgIt != maintainerIt->second.end()) {
+            if (pkgIt != maintainerIt->second.end())
                 pkgsummary = pkgIt->second;
-            } else {
-                newInfo = true;
-            }
         }
 
         // process component metadata for this package if there are any
@@ -409,32 +404,33 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
 
                 auto cid = cidOpt.value();
 
-                // don't add the same entry multiple times for multiple versions
+                // A global component ID is derived from the component data itself, so it names
+                // exactly one component, no matter which package version or architecture we
+                // found it in. Don't do any work for one twice: a package can carry a different
+                // version on every architecture (binNMUs), so keying these entries on the
+                // version as well made us read and parse the metadata of all of its components
+                // again for each version we came across.
                 auto pkgIt = dsum.mdataEntries.find(pkg->name());
                 if (pkgIt != dsum.mdataEntries.end()) {
-                    auto verIt = pkgIt->second.find(pkg->ver());
-                    if (verIt != pkgIt->second.end()) {
-                        auto meIt = verIt->second.find(gcid);
-                        if (meIt == verIt->second.end()) {
-                            // this component is new
-                            dsum.totalMetadata += 1;
-                            newInfo = true;
-                        } else {
-                            // we already have a component with this gcid
-                            auto &archs = meIt->second.archs;
-                            if (std::find(archs.begin(), archs.end(), pkg->arch()) == archs.end()) {
-                                archs.push_back(pkg->arch());
-                            }
-                            continue;
-                        }
+                    auto meIt = pkgIt->second.find(gcid);
+                    if (meIt != pkgIt->second.end()) {
+                        // we already know this component, just note the architecture it is on
+                        auto &archs = meIt->second.archs;
+                        if (std::find(archs.begin(), archs.end(), pkg->arch()) == archs.end())
+                            archs.push_back(pkg->arch());
+                        continue;
                     }
-                } else {
-                    // we will add a new component
-                    dsum.totalMetadata += 1;
                 }
+
+                // this component is new. We keep the set of components we counted separately
+                // from the entries above, as a component is counted once for the entire
+                // section, while the entries are per package and only used to render its pages.
+                if (dsum.countedGcids.insert(gcid).second)
+                    dsum.totalMetadata += 1;
 
                 MetadataEntry me;
                 me.identifier = cid;
+                me.version = pkg->ver();
                 me.data = m_dstore->getMetadata(dtype, gcid);
 
                 as_metadata_clear_components(mdata);
@@ -467,7 +463,7 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                 }
 
                 me.archs.push_back(pkg->arch());
-                dsum.mdataEntries[pkg->name()][pkg->ver()][gcid] = std::move(me);
+                dsum.mdataEntries[pkg->name()][gcid] = std::move(me);
                 pkgsummary.cpts.emplace_back(std::format("{} - {}", cid, pkg->ver()));
             }
         }
@@ -484,25 +480,23 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
 
                 // Iterate through component IDs in hints
                 for (const auto &[cid, jhintsNode] : hintsNode.items()) {
-                    HintEntry he;
-
                     // don't add the same hints multiple times for multiple versions and architectures
                     auto pkgIt = dsum.hintEntries.find(pkg->name());
                     if (pkgIt != dsum.hintEntries.end()) {
                         auto heIt = pkgIt->second.find(cid);
                         if (heIt != pkgIt->second.end()) {
-                            he = heIt->second;
-                            // we already have hints for this component ID
-                            he.archs.push_back(pkg->arch());
+                            // we already have hints for this component ID, so all that is left
+                            // to do is to note the architecture we have found them on as well
+                            auto &archs = heIt->second.archs;
+                            if (std::find(archs.begin(), archs.end(), pkg->arch()) == archs.end())
+                                archs.push_back(pkg->arch());
 
                             // TODO: check if we have the same hints - if not, create a new entry.
                             continue;
                         }
-                        newInfo = true;
-                    } else {
-                        newInfo = true;
                     }
 
+                    HintEntry he;
                     he.identifier = cid;
 
                     if (jhintsNode.is_array()) {
@@ -547,26 +541,31 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                             g_autofree gchar *msg = asc_hint_format_explanation(hint);
                             const auto severity = asc_hint_get_severity(hint);
 
-                            // add the new hint to the right category
+                            // Add the new hint to the right category, and count it right here
+                            // where we found it: the summary of a package accumulates over all
+                            // of its versions and architectures, so adding that summary up per
+                            // package would count the issues of every architecture we looked at
+                            // before all over again.
                             if (severity == AS_ISSUE_SEVERITY_INFO) {
                                 he.infos.emplace_back(tag, msg);
                                 pkgsummary.infoCount++;
+                                dsum.totalInfos += 1;
                             } else if (severity == AS_ISSUE_SEVERITY_WARNING) {
                                 he.warnings.emplace_back(tag, msg);
                                 pkgsummary.warningCount++;
+                                dsum.totalWarnings += 1;
                             } else if (severity == AS_ISSUE_SEVERITY_PEDANTIC) {
                                 // We ignore pedantic issues completely for now
                             } else {
                                 he.errors.emplace_back(tag, msg);
                                 pkgsummary.errorCount++;
+                                dsum.totalErrors += 1;
                             }
                         }
                     }
 
-                    if (newInfo)
-                        he.archs.push_back(pkg->arch());
-
-                    dsum.hintEntries[pkg->name()][he.identifier] = he;
+                    he.archs.push_back(pkg->arch());
+                    dsum.hintEntries[pkg->name()][cid] = std::move(he);
                 }
             } catch (const std::exception &e) {
                 LOG_ERROR(m_log, "Failed to parse hints JSON for package {}: {}", pkid, e.what());
@@ -574,11 +573,6 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
         }
 
         dsum.pkgSummaries[pkg->maintainer()][pkg->name()] = pkgsummary;
-        if (newInfo) {
-            dsum.totalInfos += pkgsummary.infoCount;
-            dsum.totalWarnings += pkgsummary.warningCount;
-            dsum.totalErrors += pkgsummary.errorCount;
-        }
     }
 
     return dsum;

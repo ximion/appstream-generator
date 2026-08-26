@@ -6,6 +6,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <filesystem>
 #include <regex>
@@ -216,6 +217,87 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::preprocessInforma
     }
 }
 
+TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::preprocessInformation - component counting")
+{
+    // The same package can be at a different version on every architecture (think binNMUs),
+    // while providing the very same components. A component is counted once, no matter how
+    // many package versions and architectures we run into it in.
+    const std::vector<std::pair<std::string, std::string>> pkgVariants = {
+        {"2.4.1-1",    "amd64"},
+        {"2.4.1-1+b1", "arm64"},
+        {"2.4.1-1",    "i386" },
+    };
+    const std::vector<std::string> componentIds = {"org.example.one", "org.example.two", "org.example.three"};
+
+    std::vector<std::shared_ptr<Package>> packages;
+    for (const auto &[version, arch] : pkgVariants) {
+        auto pkg = std::make_shared<DummyPackage>("multicpt", version, arch);
+        pkg->setMaintainer("Test Maintainer <test@example.com>");
+
+        GeneratorResult gres(pkg);
+        for (const auto &cid : componentIds) {
+            g_autoptr(AsComponent) cpt = as_component_new();
+            as_component_set_kind(cpt, AS_COMPONENT_KIND_DESKTOP_APP);
+            as_component_set_id(cpt, cid.c_str());
+            as_component_set_name(cpt, cid.c_str(), "C");
+            as_component_set_summary(cpt, "A test application", "C");
+            gres.addComponent(cpt);
+        }
+        m_dstore->addGeneratorResult(DataType::YAML, gres, false);
+        REQUIRE(m_dstore->getGCIDsForPackage(gres.pkid()).size() == componentIds.size());
+
+        packages.push_back(std::move(pkg));
+    }
+
+    // one component gains an issue only on the last architecture we look at, the other two
+    // have the very same issues everywhere
+    for (const auto &[version, arch] : pkgVariants) {
+        std::string hints = R"({"hints": {
+            "org.example.one": [{"tag": "icon-not-found", "vars": {"icon_fname": "one.png"}},
+                                {"tag": "icon-scaled-up", "vars": {"icon_name": "one.png"}}],
+            "org.example.two": [{"tag": "description-from-package"}])";
+        if (arch == "i386")
+            hints += R"(, "org.example.three": [{"tag": "icon-too-small", "vars": {"icon_name": "three.png"}}])";
+        hints += "}}";
+        m_dstore->setHints(std::format("multicpt/{}/{}", version, arch), hints);
+    }
+
+    auto dsum = m_reportGen->preprocessInformation("testsuite", "main", packages);
+
+    REQUIRE(dsum.totalMetadata == static_cast<std::int64_t>(componentIds.size()));
+    REQUIRE(dsum.countedGcids.size() == componentIds.size());
+
+    // 2 errors (icon-not-found, icon-too-small), 1 warning (icon-scaled-up) and
+    // 1 info (description-from-package), each counted exactly once
+    REQUIRE(dsum.totalErrors == 2);
+    REQUIRE(dsum.totalWarnings == 1);
+    REQUIRE(dsum.totalInfos == 1);
+
+    // the section totals are the sum of what the individual package pages show
+    const auto &summary = dsum.pkgSummaries.at("Test Maintainer <test@example.com>").at("multicpt");
+    REQUIRE(summary.errorCount == dsum.totalErrors);
+    REQUIRE(summary.warningCount == dsum.totalWarnings);
+    REQUIRE(summary.infoCount == dsum.totalInfos);
+
+    // hints found on several architectures list all of them, and only once each
+    const auto &hintEntries = dsum.hintEntries.at("multicpt");
+    REQUIRE(hintEntries.size() == componentIds.size());
+    auto sharedArchs = hintEntries.at("org.example.one").archs;
+    std::ranges::sort(sharedArchs);
+    REQUIRE(sharedArchs == std::vector<std::string>{"amd64", "arm64", "i386"});
+    REQUIRE(hintEntries.at("org.example.three").archs == std::vector<std::string>{"i386"});
+
+    // every component is known once, and lists all architectures it was found on
+    const auto &entries = dsum.mdataEntries.at("multicpt");
+    REQUIRE(entries.size() == componentIds.size());
+    for (const auto &[gcid, entry] : entries) {
+        auto archs = entry.archs;
+        std::ranges::sort(archs);
+        REQUIRE(archs == std::vector<std::string>{"amd64", "arm64", "i386"});
+        REQUIRE(entry.version == "2.4.1-1");
+    }
+}
+
 TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::renderPage")
 {
     SECTION("Basic page rendering")
@@ -389,11 +471,12 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator render pages with 
         ReportGenerator::MetadataEntry mentry;
         mentry.kind = AS_COMPONENT_KIND_DESKTOP_APP;
         mentry.identifier = "test.app.1";
+        mentry.version = "1.0.0";
         mentry.archs = {"amd64"};
         mentry.data = "Type: desktop-application\nID: test.app.1\n";
         mentry.iconName = "test-icon.png";
 
-        dsum.mdataEntries["testpkg1"]["1.0.0"]["test.gcid.1"] = std::move(mentry);
+        dsum.mdataEntries["testpkg1"]["test.gcid.1"] = std::move(mentry);
 
         // Create mock package summary with components
         ReportGenerator::PkgSummary summary;

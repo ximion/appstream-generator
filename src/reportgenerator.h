@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <cstdint>
 
@@ -70,6 +71,7 @@ public:
     struct MetadataEntry {
         AsComponentKind kind;
         std::string identifier;
+        std::string version;
         std::vector<std::string> archs;
         std::string data;
         std::string iconName;
@@ -88,9 +90,10 @@ public:
         std::unordered_map<std::string, std::unordered_map<std::string, PkgSummary>> pkgSummaries;
         // package -> component_id -> hint_entry
         std::unordered_map<std::string, std::unordered_map<std::string, HintEntry>> hintEntries;
-        // package -> version -> gcid -> entry
-        std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, MetadataEntry>>>
-            mdataEntries;
+        // package -> gcid -> entry
+        std::unordered_map<std::string, std::unordered_map<std::string, MetadataEntry>> mdataEntries;
+        // every global component ID we have counted towards @totalMetadata already
+        std::unordered_set<std::string> countedGcids;
 
         int64_t totalMetadata = 0;
         int64_t totalInfos = 0;
