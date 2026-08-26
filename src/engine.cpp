@@ -595,6 +595,12 @@ void Engine::exportIconTarballs(
     const auto mediaExportDir = useImmutableSuites ? m_dstore->mediaExportPoolDir().parent_path() / suite.name
                                                    : m_dstore->mediaExportPoolDir();
 
+    // Icons are always rendered in the image format the suite is configured for. If that
+    // setting changed at some point, media directories may still hold files of the format we
+    // used before, which no metadata we generate refers to any longer - so only the files in
+    // the format we actually emit belong in the tarballs.
+    const auto iconFileExt = std::format(".{}", asc_image_format_to_string(suite.imageFormat));
+
     // Prepare icon-tarball array
     std::unordered_map<std::string, std::vector<std::string>> iconTarFiles;
 
@@ -622,7 +628,8 @@ void Engine::exportIconTarballs(
     tbb::parallel_for_each(
         pkgs.begin(),
         pkgs.end(),
-        [this, &mediaExportDir, &iconTarFiles, &processedDirs, &dirMutex, &iconMutex](std::shared_ptr<Package> pkg) {
+        [this, &mediaExportDir, &iconFileExt, &iconTarFiles, &processedDirs, &dirMutex, &iconMutex](
+            std::shared_ptr<Package> pkg) {
             const auto &pkid = pkg->id();
             auto gcids = m_dstore->getGCIDsForPackage(pkid);
             if (gcids.empty())
@@ -656,10 +663,13 @@ void Engine::exportIconTarballs(
                         continue;
 
                     for (const auto &entry : fs::directory_iterator(iconDir)) {
-                        if (entry.is_regular_file()) {
-                            std::lock_guard<std::mutex> lock(iconMutex);
-                            iconTarFiles[iconSize.toString()].push_back(entry.path().string());
-                        }
+                        if (!entry.is_regular_file())
+                            continue;
+                        if (!entry.path().filename().string().ends_with(iconFileExt))
+                            continue;
+
+                        std::lock_guard<std::mutex> lock(iconMutex);
+                        iconTarFiles[iconSize.toString()].push_back(entry.path().string());
                     }
                 }
             }
@@ -675,10 +685,21 @@ void Engine::exportIconTarballs(
         auto iconTar = std::make_unique<ArchiveCompressor>(ArchiveType::GZIP);
         iconTar->open((dataExportDir / std::format("icons-{}.tar.gz", iconSize.toString())).string());
 
+        // An icon tarball is flat, so its entries are addressed by their file name alone. One
+        // package can render the same icon for several of its components, each into its own
+        // media directory, which would put multiple files of that very same name in here - on
+        // extraction they would only overwrite each other, so we just keep the first one.
         auto &iconFiles = iconTarFiles[iconSize.toString()];
-        std::sort(iconFiles.begin(), iconFiles.end());
-
+        std::vector<std::pair<std::string, std::string>> uniqueIcons; // icon name -> file path
+        uniqueIcons.reserve(iconFiles.size());
         for (const auto &fname : iconFiles)
+            uniqueIcons.emplace_back(fs::path(fname).filename().string(), fname);
+
+        std::ranges::sort(uniqueIcons);
+        const auto duplicates = std::ranges::unique(uniqueIcons, {}, &std::pair<std::string, std::string>::first);
+        uniqueIcons.erase(duplicates.begin(), duplicates.end());
+
+        for (const auto &[iconName, fname] : uniqueIcons)
             iconTar->addFile(fname);
 
         iconTar->close();
