@@ -23,7 +23,7 @@ AppStream data hints for {{project_name}}
     <ul class="stat-tiles">
     {% for suite in suites %}
       <li class="stat-tile">
-        <h3 class="stat-tile-label"><a href="{{suite.suite}}/index.html">{{suite.suite}}</a></h3>
+        <h3 class="stat-tile-label"><a href="{{suite.suite}}/">{{suite.suite}}</a></h3>
 
         {% if existsIn(suite, "metainfo_count") %}
           <div class="stat-tile-figure">
@@ -55,7 +55,7 @@ AppStream data hints for {{project_name}}
       <h2>No longer updated</h2>
       <ul class="suite-archived">
       {% for oldsuite in oldsuites %}
-        <li><a href="{{oldsuite.suite}}/index.html">{{oldsuite.suite}}</a></li>
+        <li><a href="{{oldsuite.suite}}/">{{oldsuite.suite}}</a></li>
       {% endfor %}
       </ul>
     {% endif %}

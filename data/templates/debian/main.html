@@ -20,11 +20,11 @@ AppStream data hints for {{project_name}}
 
     <h1>Select a suite</h1>
     {% for suite in suites %}
-      <h3><a href="{{suite.suite}}/index.html">{{suite.suite}}</a></h3>
+      <h3><a href="{{suite.suite}}/">{{suite.suite}}</a></h3>
     {% endfor %}
     <br/>
     {% for oldsuite in oldsuites %}
-      <h3><a href="{{oldsuite.suite}}/index.html">{{oldsuite.suite}}</a></h3>
+      <h3><a href="{{oldsuite.suite}}/">{{oldsuite.suite}}</a></h3>
     {% endfor %}
 
     <br/><hr/>
