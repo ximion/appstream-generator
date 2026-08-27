@@ -12,13 +12,9 @@
 {% endblock %}
 
 {% block content %}
-<h1>Health of suite "{{suite}}"</h1>
+<h1>Select an archive section in "{{suite}}"</h1>
 
-<p class="chart-panel-hint">
-  Every component of a section is counted once below, in the bucket of the worst issue it
-  has. Rejected components are those which had an error and did not make it into the
-  metadata at all.
-</p>
+<br/>
 
 <ul class="stat-tiles">
 {% for section in sections %}
@@ -26,10 +22,12 @@
     <h3 class="stat-tile-label"><a href="{{section.section}}/index.html">{{section.section}}</a></h3>
 
     <div class="stat-tile-figure">
-      <span class="stat-tile-value">{% if existsIn(section, "metainfo_count") %}{{section.metainfo_count}}{% else %}–{% endif %}</span>
+      <p class="stat-tile-count">
+        <span class="stat-tile-value">{% if existsIn(section, "metainfo_count") %}{{section.metainfo_count}}{% else %}–{% endif %}</span>
+        valid components
+      </p>
       {% if existsIn(section, "sparkline") %}{{section.sparkline}}{% endif %}
     </div>
-    <div class="stat-tile-unit">valid components</div>
 
     {% if existsIn(section, "health") and section.health.total > 0 %}
       <div class="healthbar" role="img"

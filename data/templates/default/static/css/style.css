@@ -376,6 +376,9 @@ code {
 .stat-tiles {
     display: flex;
     flex-wrap: wrap;
+    /* tiles are as tall as they need to be - one with nothing to report yet should not be
+       stretched into a big empty box by its neighbours */
+    align-items: flex-start;
     gap: 16px;
     margin: 0 0 1.5em;
     padding: 0;
@@ -393,8 +396,8 @@ code {
 }
 
 .stat-tile-label {
-    font-size: 18px;
-    margin: 0 0 2px;
+    font-size: 22px;
+    margin: 0 0 6px;
 }
 
 .stat-tile-label a {
@@ -427,21 +430,46 @@ code {
     gap: 12px;
 }
 
-.stat-tile-value {
-    font-size: 30px;
-    font-weight: 600;
-    line-height: 1.1;
-    color: var(--text-primary);
+.stat-tile-count {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
 }
 
-.stat-tile-unit {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
+.stat-tile-value {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .stat-tile .healthbar {
     height: 14px;
+}
+
+/* Suites that are not processed any more: still reachable, but not competing for
+   attention with the ones that are. */
+.suite-archived {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin: 0 0 1.5em;
+    padding: 0;
+    list-style: none;
+}
+
+.suite-archived a {
+    display: inline-block;
+    padding: 3px 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.suite-archived a:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
 }
 
 .sparkline {

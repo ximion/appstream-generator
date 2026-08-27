@@ -19,15 +19,48 @@ AppStream data hints for {{project_name}}
     </p>
 
     <h1>Select a suite</h1>
-    {% for suite in suites %}
-      <h3><a href="{{suite.suite}}/index.html">{{suite.suite}}</a></h3>
-    {% endfor %}
-    <br/>
-    {% for oldsuite in oldsuites %}
-      <h3><a href="{{oldsuite.suite}}/index.html">{{oldsuite.suite}}</a></h3>
-    {% endfor %}
 
-    <br/><hr/>
+    <ul class="stat-tiles">
+    {% for suite in suites %}
+      <li class="stat-tile">
+        <h3 class="stat-tile-label"><a href="{{suite.suite}}/index.html">{{suite.suite}}</a></h3>
+
+        {% if existsIn(suite, "metainfo_count") %}
+          <div class="stat-tile-figure">
+            <p class="stat-tile-count">
+              <span class="stat-tile-value">{{suite.metainfo_count}}</span>
+              components in {{suite.section_count}} section{% if suite.section_count != 1 %}s{% endif %}
+            </p>
+          </div>
+
+          {% if suite.health.total > 0 %}
+            <div class="healthbar" role="img"
+                 aria-label="{% for seg in suite.health.segments %}{{seg.count}} {{seg.label}}{% if not loop.is_last %}, {% endif %}{% endfor %}">
+              {% for seg in suite.health.segments %}
+                <div class="healthbar-segment healthbar-segment-{{seg.key}}" style="width: {{round(seg.percentage, 1)}}%"></div>
+              {% endfor %}
+            </div>
+            <ul class="healthbar-legend">
+              {% for seg in suite.health.segments %}
+                <li><span class="swatch healthbar-segment-{{seg.key}}"></span>{{seg.label}} <span class="count">{{seg.count}}</span></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+
+    {% if length(oldsuites) > 0 %}
+      <h2>No longer updated</h2>
+      <ul class="suite-archived">
+      {% for oldsuite in oldsuites %}
+        <li><a href="{{oldsuite.suite}}/index.html">{{oldsuite.suite}}</a></li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+
+    <hr/>
     <img src="{{root_url}}/static/img/asgen.png" alt="AppStream Generator Logo" style="margin: 4px; float: right;" />
     <h1>What is AppStream?</h1>
     <p>

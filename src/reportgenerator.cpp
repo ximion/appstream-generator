@@ -893,22 +893,24 @@ void ReportGenerator::updateIndexPages(const StatsHistory &history)
     // render main overview
     inja::json context;
 
-    // Get sorted suites
-    auto suites = m_conf->suites;
-    std::sort(suites.begin(), suites.end(), [](const Suite &a, const Suite &b) {
-        return a.name > b.name;
-    });
+    // Suites are listed in the order the configuration lists them: that order is the
+    // maintainer's, and for a distribution that writes the newest suite first it is more
+    // useful than anything we could sort them into.
+    const auto &suites = m_conf->suites;
 
     // the overview pages summarize what we last recorded for every section, we need the statistics for that
     inja::json suitesArray = inja::json::array();
     for (const auto &suite : suites) {
-        suitesArray.push_back(
-            inja::json{
-                {"suite", suite.name}
-        });
-
         inja::json secCtx;
         secCtx["suite"] = suite.name;
+
+        // the start page shows each suite as a whole - which is just the sum of what we are
+        // reading for its sections anyway, so it costs nothing to carry along
+        bool suiteHasStats = false;
+        int64_t suiteMetadata = 0;
+        int64_t suiteClean = 0;
+        int64_t suiteWarning = 0;
+        int64_t suiteRejected = 0;
 
         const auto suiteHistIt = history.find(suite.name);
 
@@ -937,6 +939,12 @@ void ReportGenerator::updateIndexPages(const StatsHistory &history)
             sectionCtx["health"] = buildHealthContext(
                 latest.cptsClean.value_or(0), latest.cptsWarning.value_or(0), latest.cptsRejected.value_or(0));
 
+            suiteHasStats = true;
+            suiteMetadata += latest.metadata.value_or(0);
+            suiteClean += latest.cptsClean.value_or(0);
+            suiteWarning += latest.cptsWarning.value_or(0);
+            suiteRejected += latest.cptsRejected.value_or(0);
+
             std::vector<int64_t> trend;
             const auto trendStart = points.size() > 12 ? points.size() - 12 : 0;
             for (auto i = trendStart; i < points.size(); ++i)
@@ -948,12 +956,22 @@ void ReportGenerator::updateIndexPages(const StatsHistory &history)
         secCtx["sections"] = sectionsArray;
 
         renderPage("sections_index", std::format("{}/index", suite.name), secCtx);
+
+        // a suite we have never recorded anything for is just a link, with nothing to say
+        // about it yet
+        inja::json suiteCtx;
+        suiteCtx["suite"] = suite.name;
+        if (suiteHasStats) {
+            suiteCtx["section_count"] = static_cast<int64_t>(suite.sections.size());
+            suiteCtx["metainfo_count"] = suiteMetadata;
+            suiteCtx["health"] = buildHealthContext(suiteClean, suiteWarning, suiteRejected);
+        }
+        suitesArray.push_back(std::move(suiteCtx));
     }
     context["suites"] = suitesArray;
 
-    // Get sorted old suites
-    auto oldsuites = m_conf->oldsuites;
-    std::sort(oldsuites.begin(), oldsuites.end());
+    // ... and the same goes for the suites we no longer update
+    const auto &oldsuites = m_conf->oldsuites;
 
     inja::json oldsuitesArray = inja::json::array();
     for (const auto &suite : oldsuites) {
