@@ -810,6 +810,26 @@ static std::vector<ReportGenerator::StatsPoint> downsampleStats(const std::vecto
     return result;
 }
 
+/**
+ * Check whether a file of the template's static data is of any use to a browser.
+ *
+ * The JavaScript libraries we bundle ship their readable sources and a note on their
+ * origin next to the minified builds our pages actually load. Publishing those only
+ * bloats the export, so we leave them behind - unlike the licenses, which we have to
+ * distribute alongside the code they cover.
+ */
+static bool staticFileNeeded(const fs::path &path)
+{
+    if (path.filename() == "README.source.md" || path.filename() == ".gitignore")
+        return false;
+
+    // drop a readable source if we also ship a minified build of the very same file
+    if (path.extension() == ".js" && fs::exists(fs::path(path).replace_extension(".min.js")))
+        return false;
+
+    return true;
+}
+
 void ReportGenerator::exportStatistics(const StatsHistory &history)
 {
     LOG_INFO(m_log, "Exporting statistical data.");
@@ -990,7 +1010,20 @@ void ReportGenerator::updateIndexPages(const StatsHistory &history)
         if (fs::exists(staticDestDir))
             fs::remove_all(staticDestDir);
 
-        Utils::copyDir(staticSrcDir, staticDestDir);
+        for (const auto &entry : fs::recursive_directory_iterator(staticSrcDir)) {
+            if (!entry.is_regular_file())
+                continue;
+
+            const auto relPath = fs::relative(entry.path(), staticSrcDir);
+            if (!staticFileNeeded(entry.path())) {
+                LOG_DEBUG(m_log, "Not publishing static file: {}", relPath.string());
+                continue;
+            }
+
+            const auto destPath = staticDestDir / relPath;
+            fs::create_directories(destPath.parent_path());
+            Utils::copyFile(entry.path(), destPath);
+        }
     }
 }
 
