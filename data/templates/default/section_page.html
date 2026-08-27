@@ -3,30 +3,12 @@
 {% block title %}Data for {{suite}}/{{section}}{% endblock %}
 
 {% block head_extra %}
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/jquery/jquery.min.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.time.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.resize.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.fillbetween.js"></script>
-
-<style>
-.graph-container {
-    position: relative;
-    height: 280px;
-    width: 80%;
-}
-
-.graph-placeholder {
-    width: 100%;
-    height: 100%;
-    font-size: 14px;
-    line-height: 1.2em;
-}
-</style>
+<link rel="stylesheet" href="{{root_url}}/static/js/uplot/uPlot.css">
+<script src="{{root_url}}/static/js/uplot/uPlot.iife.min.js"></script>
 {% endblock %}
 
 {% block header_content %}
-<span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
+<a class="backlink" href="../">⇦ |</a>
 <span>AppStream data for {{project_name}}/{{suite}}/{{section}}</span>
 {% endblock %}
 
@@ -43,34 +25,25 @@
 
 <h3><a href="metainfo/index.html">Metainfo</a> - Per-package view of the generated data</h3>
 
-
 <h2>Health</h2>
+
 <div class="wrapper">
-
-  <h3>Issue overview</h3>
-  <div style="width: 80%;">
-
-    <div class="progress" style="margin-left: 20px;">
-      <div style="width: {{valid_percentage}}%" class="progress-bar progress-bar-green">
-        <span class="sr-only">{{valid_percentage}}% Valid</span>
-      </div>
-      <div style="width: {{info_percentage}}%" class="progress-bar progress-bar-blue">
-        <span class="sr-only">{{info_percentage}}% Infos</span>
-      </div>
-      <div style="width: {{warning_percentage}}%" class="progress-bar progress-bar-yellow">
-        <span class="sr-only">{{warning_percentage}}% Warnings</span>
-      </div>
-      <div style="width: {{error_percentage}}%" class="progress-bar progress-bar-red">
-        <span class="sr-only">{{error_percentage}}% Errors</span>
-      </div>
+  {% if existsIn(health, "total") and health.total > 0 %}
+    <div class="healthbar" role="img"
+         aria-label="{% for seg in health.segments %}{{seg.count}} {{seg.label}}{% if not loop.is_last %}, {% endif %}{% endfor %}">
+      {% for seg in health.segments %}
+        <div class="healthbar-segment healthbar-segment-{{seg.key}}" style="width: {{round(seg.percentage, 1)}}%"></div>
+      {% endfor %}
     </div>
-
-    <div class="graph-container" style="width: 100%;">
-      <div id="placeholder" class="graph-placeholder" style="float:left; width:90%;"></div>
-      <div id="choices" style="float:right;"></div>
-    </div>
-
-  </div>
+    <ul class="healthbar-legend">
+      {% for seg in health.segments %}
+        <li><span class="swatch healthbar-segment-{{seg.key}}"></span>{{seg.label}} <span class="count">{{seg.count}}</span></li>
+      {% endfor %}
+    </ul>
+    <p class="chart-panel-hint">
+      Each of the {{health.total}} components we tried to generate is counted once here.
+    </p>
+  {% endif %}
 
   <ul>
     <li>{{metainfo_count}} valid components</li>
@@ -78,134 +51,189 @@
     <li>{{warning_count}} warnings</li>
     <li>{{info_count}} infos/hints</li>
   </ul>
-
 </div>
 
-<div id="placeholder" style="width:600px;height:300px;"></div>
-<div id="tooltip" style="position:absolute;display:none;background:#fff;padding:6px;border:1px solid #ccc;color:#000;font-size:12px;border-radius:4px;"></div>
+<h2>History</h2>
 
-<script type="text/javascript">
-  function dataUseJSTime(data) {
-      return data.map(function(v) {
-          return [v[0] * 1000, v[1]];
-      });
-  }
+<div class="chart-panel">
+  <h3>Components</h3>
+  <p class="chart-panel-hint">How many components we generated, and how many of them came out without a single warning.</p>
+  <div id="chart-components"></div>
+</div>
 
-  async function loadStatisticsCompressed() {
-    const response = await fetch("{{root_url}}/statistics.json.gz");
+<div class="chart-panel">
+  <h3>Issues</h3>
+  <p class="chart-panel-hint">
+    How often each kind of issue occurred. A component can raise several issues, so these do
+    not add up to a number of components.
+  </p>
+  <div id="chart-issues"></div>
+</div>
 
-    if (!response.ok)
-      throw new Error("Failed to fetch statistics: " + response.status + " " + response.statusText);
-    if (!window.DecompressionStream)
-      throw new Error("This browser does not support DecompressionStream (gzip)");
+<div id="chart-status" class="chart-fallback" hidden></div>
 
-    const ds = new DecompressionStream("gzip");
-    const decompressedStream = response.body.pipeThrough(ds);
-    const decompressedResponse = new Response(decompressedStream);
-    const jsonText = await decompressedResponse.text();
+<script>
+const statusBox = document.getElementById("chart-status");
 
-    return JSON.parse(jsonText);
-  }
+function fail(message) {
+    statusBox.textContent = message;
+    statusBox.hidden = false;
+}
 
-  loadStatisticsCompressed().then(function(allData) {
-    data = allData["{{suite}}"]["{{section}}"];
-
-    var datasets = {
-        "errors": {
-            color: "#c05020",
-            data: dataUseJSTime(data["errors"]),
-            label: "Errors",
-            id: "errors"
-        },
-        "warnings": {
-            color: "#ffcc66",
-            data: dataUseJSTime(data["warnings"]),
-            label: "Warnings"
-        },
-        "infos": {
-            color: "#6060c0",
-            data: dataUseJSTime(data["infos"]),
-            label: "Infos"
-        },
-        "valid": {
-            color: "#30a420",
-            data: dataUseJSTime(data["metadata"]),
-            label: "Valid data"
-        }
+/* The colors live in the stylesheet so that the charts, the health bars and the labels
+   cannot drift apart, and so the dark variant is defined in exactly one place. */
+function themeColors() {
+    const style = getComputedStyle(document.documentElement);
+    const read = (name, fallback) => (style.getPropertyValue(name).trim() || fallback);
+    return {
+        clean: read("--sev-clean", "#0a7a0a"),
+        total: read("--chart-total", "#7c3aed"),
+        info: read("--sev-info", "#2a78d6"),
+        warning: read("--sev-warning", "#c98500"),
+        error: read("--sev-error", "#d03b3b"),
+        muted: read("--text-muted", "#898781"),
+        grid: read("--gridline", "#e1e0d9"),
+        surface: read("--surface", "#ffffff"),
     };
+}
 
-    // insert checkboxes
-    var choiceContainer = $("#choices");
-    $.each(datasets, function(key, val) {
-        choiceContainer.append("<br/><input type='checkbox' name='" + key +
-            "' checked='checked' id='id" + key + "'></input>" +
-            "<label for='id" + key + "'>" + val.label + "</label>");
-    });
+/* An area wash under the line, rather than a saturated block, so overlapping series
+   stay readable. */
+function wash(hex) {
+    const value = hex.replace("#", "");
+    const full = value.length === 3 ? value.split("").map(c => c + c).join("") : value;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.1)`;
+}
 
-    choiceContainer.find("input").click(plotAccordingToChoices);
+async function loadStatistics() {
+    const response = await fetch("statistics.json.gz");
+    if (!response.ok)
+        throw new Error(`Failed to fetch statistics: ${response.status} ${response.statusText}`);
 
-    function plotAccordingToChoices() {
-        var data = [];
-
-        choiceContainer.find("input:checked").each(function () {
-            var key = $(this).attr("name");
-            if (key && datasets[key]) {
-                data.push(datasets[key]);
-            }
-        });
-
-        if (data.length > 0) {
-            $.plot("#placeholder", data, {
-                series: {
-                    lines: {
-                        show: true,
-                        fill: 0.1
-                    },
-                    fillBetween: "errors"
-                },
-
-                yaxis: {
-                    min: 0
-                },
-
-                xaxis: {
-                    mode: "time",
-                    timeformat: "%y/%m/%d"
-                },
-
-                grid: {
-                    hoverable: true,
-                    clickable: true
-                },
-
-                legend: {
-                    position: 'nw'
-                }
-            });
-
-        };
-
-        $("#placeholder").bind("plothover", function (event, pos, item) {
-            if (item) {
-                const x = item.datapoint[0];
-                const y = item.datapoint[1];
-                const seriesLabel = item.series.label;
-                const date = new Date(x);
-                const dateStr = date.toLocaleDateString();
-
-                $("#tooltip")
-                    .html(`${seriesLabel}: ${y} on ${dateStr}`)
-                    .css({ top: item.pageY + 5, left: item.pageX + 5 })
-                    .fadeIn(200);
-            } else {
-                $("#tooltip").hide();
-            }
-        });
+    /* The file is stored gzipped, and is usually served without a Content-Encoding header,
+       in which case we have to unpack it ourselves. If the server does decompress it for
+       us, parsing the body directly works and we never get here. */
+    let text = await response.clone().text();
+    if (!text.startsWith("{")) {
+        if (!window.DecompressionStream)
+            throw new Error("This browser does not support DecompressionStream (gzip)");
+        const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+        text = await new Response(stream).text();
     }
 
-    plotAccordingToChoices();
-  }).catch(function(err) {
+    return JSON.parse(text);
+}
+
+function makeChart(container, data, seriesDefs, colors) {
+    const values = seriesDefs.map(def => data[def.key]).filter(Boolean);
+    if (values.length === 0)
+        return null;
+
+    const present = seriesDefs.filter(def => data[def.key]);
+    const axis = {
+        stroke: colors.muted,
+        grid: { stroke: colors.grid, width: 1 },
+        ticks: { stroke: colors.grid, width: 1 },
+    };
+
+    const opts = {
+        width: container.clientWidth || 800,
+        height: 240,
+        cursor: {
+            /* both charts cover the same period, so hovering one should mark the other */
+            sync: { key: "asgen-stats" },
+        },
+        legend: { live: true },
+        scales: {
+            /* Always start at zero - these are counts, and a cropped baseline would make
+               small movements look dramatic. The headroom keeps the topmost series from
+               being drawn onto the frame of the chart. */
+            y: { range: (self, min, max) => [0, max * 1.08] },
+        },
+        axes: [axis, axis],
+        series: [
+            { label: "Date" },
+            ...present.map(def => ({
+                label: def.label,
+                stroke: colors[def.color],
+                fill: wash(colors[def.color]),
+                width: 2,
+                points: {
+                    /* uPlot hides the markers on any series with closely spaced readings,
+                       which is right for a full history but leaves a counter we only
+                       started recording recently drawing nothing at all: a line needs two
+                       points, and a lone value would have had its marker hidden too. So
+                       decide per series, on how many readings it actually has in view, and
+                       let the markers disappear by themselves once it has filled in. */
+                    show: (u, seriesIdx) => {
+                        const values = u.data[seriesIdx];
+                        const [first, last] = u.series[seriesIdx].idxs ?? u.series[0].idxs;
+                        let seen = 0;
+                        for (let i = first; i <= last; i++) {
+                            if (values[i] != null && ++seen > 40)
+                                return false;
+                        }
+                        return seen > 0;
+                    },
+                    size: 8,
+                    stroke: colors.surface,
+                    fill: colors[def.color],
+                    width: 2,
+                },
+            })),
+        ],
+    };
+
+    const chart = new uPlot(opts, [data.time, ...present.map(def => data[def.key])], container);
+
+    const observer = new ResizeObserver(entries => {
+        for (const entry of entries)
+            chart.setSize({ width: Math.round(entry.contentRect.width), height: 240 });
+    });
+    observer.observe(container);
+
+    return chart;
+}
+
+loadStatistics().then(data => {
+    if (!Array.isArray(data.time) || data.time.length === 0) {
+        fail("No statistics have been recorded for this section yet.");
+        return;
+    }
+
+    const componentSeries = [
+        { key: "metadata", label: "Components", color: "total" },
+        { key: "cpts_clean", label: "Clean", color: "clean" },
+    ];
+    const issueSeries = [
+        { key: "infos", label: "Infos", color: "info" },
+        { key: "warnings", label: "Warnings", color: "warning" },
+        { key: "errors", label: "Errors", color: "error" },
+    ];
+
+    let charts = [];
+    const draw = () => {
+        for (const chart of charts)
+            chart.destroy();
+
+        const colors = themeColors();
+        charts = [
+            makeChart(document.getElementById("chart-components"), data, componentSeries, colors),
+            makeChart(document.getElementById("chart-issues"), data, issueSeries, colors),
+        ].filter(Boolean);
+    };
+
+    draw();
+
+    /* uPlot paints onto a canvas, so unlike the rest of the page it cannot follow the CSS
+       variables on its own - it has to be redrawn when the color scheme changes. */
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+}).catch(err => {
     console.error(err);
-  });
+    fail(`The history charts could not be loaded: ${err.message}`);
+});
 </script>
 {% endblock %}

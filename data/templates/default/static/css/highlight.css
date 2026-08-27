@@ -34,6 +34,7 @@ github.com style (c) Vasily Polovnyov <vast@whiteants.net>
 }
 
 .hljs-string,
+.hljs-char,
 .hljs-doctag {
   color: #d14;
 }
@@ -96,4 +97,44 @@ github.com style (c) Vasily Polovnyov <vast@whiteants.net>
 
 .hljs-strong {
   font-weight: bold;
+}
+
+/*
+ * The theme above is written for a light page. Rather than carrying a second full theme,
+ * we only re-point the surface and the few tones that would otherwise be unreadable on a
+ * dark one; the syntax hues themselves stay as they are.
+ */
+@media (prefers-color-scheme: dark) {
+  .hljs {
+    color: #d6d5cd;
+    background: var(--surface-sunken);
+  }
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #8b8b80;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-subst {
+    color: #d6d5cd;
+  }
+
+  .hljs-title,
+  .hljs-section,
+  .hljs-selector-id {
+    color: #e0a3a1;
+  }
+
+  .hljs-string,
+  .hljs-char,
+  .hljs-doctag {
+    color: #e88f8d;
+  }
+
+  .hljs-type,
+  .hljs-class .hljs-title {
+    color: #86b6ef;
+  }
 }

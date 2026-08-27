@@ -4,11 +4,10 @@
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{root_url}}/static/css/highlight.css">
-<script src="{{root_url}}/static/js/highlight/highlight.pack.js"></script>
 {% endblock %}
 
 {% block header_content %}
-<span style="font-size:18px;"><a href="index.html" style="color: #000000;">⇦ |</a></span>
+<a class="backlink" href="index.html">⇦ |</a>
 <span>{{package_name}}</span> <span style="font-size:16px;">[{{section}}]</span>
 {% endblock %}
 
@@ -33,10 +32,18 @@
   </div>
 
   <div class="well">
-    <pre><code>{{cpt.metadata}}</code></pre>
+    <pre><code class="language-{{metadata_language}}">{{cpt.metadata}}</code></pre>
   </div>
   {% endfor %}
 
 </div>
-<script>hljs.initHighlightingOnLoad();</script>
+<script type="module">
+import hljs from "{{root_url}}/static/js/highlight/core.min.js";
+import xml from "{{root_url}}/static/js/highlight/xml.js";
+import yaml from "{{root_url}}/static/js/highlight/yaml.js";
+
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("yaml", yaml);
+hljs.highlightAll();
+</script>
 {% endblock %}

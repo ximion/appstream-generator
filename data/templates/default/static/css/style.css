@@ -1,3 +1,56 @@
+:root {
+    color-scheme: light;
+
+    --surface: #ffffff;
+    --surface-sunken: #f5f5f5;
+    --surface-raised: #f8f8f8;
+    --text-primary: #333333;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --link: #337ab7;
+    --hairline: #e3e3e3;
+    --gridline: #e1e0d9;
+    --accent: #0a630d;
+
+    /* Darkened from the usual status green so that it stays apart from the warning amber
+       it sits next to in the health bar - the two are the classic red-green confusion pair
+       and were indistinguishable for protanopia at the lighter step. */
+    --sev-clean: #0a7a0a;
+    --sev-info: #2a78d6;
+    --sev-warning: #c98500;
+    --sev-error: #d03b3b;
+    /* The component totals - in the chart and on the sparkline. A count of everything we
+       have is not a severity, so it is painted outside the severity colours and cannot be
+       taken for one of them; green stays reserved for "clean" on both the bar and the chart. */
+    --chart-total: #7c3aed;
+
+    --code-bg: #f9f2f4;
+    --code-fg: #c7254e;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+
+        --surface: #1a1a19;
+        --surface-sunken: #232322;
+        --surface-raised: #232322;
+        --text-primary: #e6e5df;
+        --text-secondary: #c3c2b7;
+        --text-muted: #898781;
+        --link: #6da7ec;
+        --hairline: #383835;
+        --gridline: #2c2c2a;
+
+        --sev-info: #3987e5;
+        --sev-error: #e34948;
+        --chart-total: #9d5ce8;
+
+        --code-bg: #2c2226;
+        --code-fg: #e87ba4;
+    }
+}
+
 html {
     font-size: 100%;
     -webkit-text-size-adjust: 100%;
@@ -10,13 +63,14 @@ body {
     font-family: Cantarell,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-size: 14px;
     line-height: 20px;
-    color: #333333;
+    color: var(--text-primary);
+    background-color: var(--surface);
     margin: 0;
     height: 93%;
 }
 
 a {
-    color: #337ab7;
+    color: var(--link);
     text-decoration: none;
     background-color: transparent;
 }
@@ -29,8 +83,8 @@ a {
     min-height: 50px;
     position: relative;
 
-    background-color: #f8f8f8;
-    border-color: #e7e7e7;
+    background-color: var(--surface-raised);
+    border-color: var(--hairline);
     border-width: 0 0 1px;
     z-index: 1000;
     border-radius: 0;
@@ -57,11 +111,12 @@ a {
 
 .wrapper {
     width: 60%;
+    max-width: 1100px;
 }
 
 .wrapper hr {
     border-top: none;
-    border-bottom: 1px solid #819eb7;
+    border-bottom: 1px solid var(--hairline);
     margin-bottom: 1em;
 }
 
@@ -72,7 +127,7 @@ img.fit {
 
 hr {
     border-top: none;
-    border-bottom: 1px solid #0a630d;
+    border-bottom: 1px solid var(--accent);
     margin-bottom: 1em;
 }
 
@@ -83,8 +138,14 @@ footer {
 
 span.avoidwrap { display: inline-block; }
 
+.backlink {
+    font-size: 18px;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
 .infobox {
-    border-color: #eee;
+    border-color: var(--hairline);
     border-image: none;
     border-radius: 3px;
     border-style: solid;
@@ -103,27 +164,27 @@ span.avoidwrap { display: inline-block; }
 }
 
 .infobox-hint {
-    border-left-color: #1b809e;
+    border-left-color: var(--sev-info);
 }
 
 .infobox-hint h2 {
-    color: #1b809e;
+    color: var(--sev-info);
 }
 
 .infobox-error {
-    border-left-color: #ce4844;
+    border-left-color: var(--sev-error);
 }
 
 .infobox-error h2 {
-    color: #ce4844;
+    color: var(--sev-error);
 }
 
 .infobox-warning {
-    border-left-color: #aa6708;
+    border-left-color: var(--sev-warning);
 }
 
 .infobox-warning h2 {
-    color: #aa6708;
+    color: var(--sev-warning);
 }
 
 /* label styles copied from Bootstrap */
@@ -141,15 +202,15 @@ span.avoidwrap { display: inline-block; }
 }
 
 .label-info {
-    background-color: #5bc0de;
+    background-color: var(--sev-info);
 }
 
 .label-warning {
-    background-color: #f0ad4e;
+    background-color: var(--sev-warning);
 }
 
 .label-error {
-    background-color: #d9534f;
+    background-color: var(--sev-error);
 }
 
 .label-neutral {
@@ -157,7 +218,7 @@ span.avoidwrap { display: inline-block; }
 }
 
 .overviewlisting a {
-    color: #000000;
+    color: var(--text-primary);
     text-decoration: none;
 }
 
@@ -166,9 +227,9 @@ span.avoidwrap { display: inline-block; }
 }
 
 code {
-    background-color: #f9f2f4;
+    background-color: var(--code-bg);
     border-radius: 4px;
-    color: #c7254e;
+    color: var(--code-fg);
     font-size: 90%;
     padding: 2px 4px;
 }
@@ -177,8 +238,8 @@ code {
     min-height:20px;
     padding:19px;
     margin-bottom:20px;
-    background-color:#f5f5f5;
-    border:1px solid #e3e3e3;
+    background-color:var(--surface-sunken);
+    border:1px solid var(--hairline);
     border-radius:4px;
     -webkit-box-shadow:
     inset 0 1px 1px rgba(0,0,0,.05);
@@ -186,7 +247,7 @@ code {
 }
 
 .progress {
-    background-color: #f5f5f5;
+    background-color: var(--surface-sunken);
     border-radius: 4px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset;
     height: 20px;
@@ -208,19 +269,19 @@ code {
 }
 
 .progress-bar-blue {
-    background-color: #5bc0de;
+    background-color: var(--sev-info);
 }
 
 .progress-bar-green {
-    background-color: #5cb85c;
+    background-color: var(--sev-clean);
 }
 
 .progress-bar-yellow {
-    background-color: #f0ad4e;
+    background-color: var(--sev-warning);
 }
 
 .progress-bar-red {
-    background-color: #d9534f;
+    background-color: var(--sev-error);
 }
 
 .sr-only {
@@ -236,8 +297,216 @@ code {
 
 .permalink {
     font-size: 75%;
-    color: #999;
+    color: var(--text-muted);
     line-height: 100%;
     font-weight: normal;
     text-decoration: none;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Section health & trend display
+ * ------------------------------------------------------------------------ */
+
+.healthbar {
+    display: flex;
+    width: 100%;
+    height: 30px;
+    gap: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--surface-sunken);
+}
+
+.healthbar-segment {
+    height: 100%;
+    min-width: 2px;
+    font-size: 11px;
+    line-height: 30px;
+    text-align: center;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.healthbar-segment-clean {
+    background-color: var(--sev-clean);
+}
+
+.healthbar-segment-warning {
+    background-color: var(--sev-warning);
+}
+
+/* Rejected is the only red in the bar, so it needs nothing to set it apart. */
+.healthbar-segment-rejected {
+    background-color: var(--sev-error);
+}
+
+
+.healthbar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.healthbar-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.healthbar-legend .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex: none;
+}
+
+.healthbar-legend .count {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* One section at a glance: the number, where it is going, and its health. */
+.stat-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 0 0 1.5em;
+    padding: 0;
+    list-style: none;
+}
+
+.stat-tile {
+    flex: 0 1 420px;
+    min-width: 260px;
+    position: relative;
+    padding: 16px 18px;
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    background-color: var(--surface);
+}
+
+.stat-tile-label {
+    font-size: 18px;
+    margin: 0 0 2px;
+}
+
+.stat-tile-label a {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.stat-tile-label a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+}
+
+.stat-tile:hover {
+    border-color: var(--text-muted);
+    background-color: var(--surface-sunken);
+}
+
+.stat-tile:focus-within {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+}
+
+.stat-tile-figure {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.stat-tile-value {
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.stat-tile-unit {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.stat-tile .healthbar {
+    height: 14px;
+}
+
+.sparkline {
+    display: block;
+    margin-left: auto;
+    overflow: visible;
+}
+
+.sparkline polyline {
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sparkline circle {
+    fill: var(--chart-total);
+    stroke: var(--surface);
+    stroke-width: 2;
+}
+
+/* ---------------------------------------------------------------------------
+ * Trend charts
+ * ------------------------------------------------------------------------ */
+
+.chart-panel {
+    margin: 0 0 1.5em;
+    max-width: 1100px;
+}
+
+.chart-panel h3 {
+    margin: 0 0 2px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.chart-panel-hint {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.chart-fallback {
+    padding: 12px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.u-legend {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.u-legend .u-marker {
+    border-radius: 2px;
+}
+
+.u-legend .u-value {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.u-select {
+    background: rgba(51, 122, 183, 0.14);
 }

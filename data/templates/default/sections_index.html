@@ -3,28 +3,8 @@
 {% block title %}Data for the {{suite}} suite{% endblock %}
 
 {% block header_content %}
-<span style="font-size:18px;"><a href="../" style="color: #000000;">⇦ |</a></span>
+<a class="backlink" href="../">⇦ |</a>
 <span>AppStream data for {{project_name}}/{{suite}}</span>
-{% endblock %}
-
-{% block head_extra %}
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/jquery/jquery.min.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.pie.js"></script>
-<script language="javascript" type="text/javascript" src="{{root_url}}/static/js/flot/jquery.flot.resize.js"></script>
-
-<style>
-.graph-container {
-    position: relative;
-    height: 380px;
-}
-
-.graph-placeholder {
-    height: 90%;
-    font-size: 14px;
-    margin-top: -20px;
-}
-</style>
 {% endblock %}
 
 {% block float_right %}
@@ -32,116 +12,39 @@
 {% endblock %}
 
 {% block content %}
-<h1>Select an archive section</h1>
+<h1>Health of suite "{{suite}}"</h1>
 
-<h2>Sections</h2>
+<p class="chart-panel-hint">
+  Every component of a section is counted once below, in the bucket of the worst issue it
+  has. Rejected components are those which had an error and did not make it into the
+  metadata at all.
+</p>
+
+<ul class="stat-tiles">
 {% for section in sections %}
-  <h3><a href="{{section.section}}/index.html">{{section.section}}</a></h3>
-{% endfor %}
+  <li class="stat-tile">
+    <h3 class="stat-tile-label"><a href="{{section.section}}/index.html">{{section.section}}</a></h3>
 
-<h2>Health of suite "{{suite}}"</h2>
+    <div class="stat-tile-figure">
+      <span class="stat-tile-value">{% if existsIn(section, "metainfo_count") %}{{section.metainfo_count}}{% else %}–{% endif %}</span>
+      {% if existsIn(section, "sparkline") %}{{section.sparkline}}{% endif %}
+    </div>
+    <div class="stat-tile-unit">valid components</div>
 
-<div class="wrapper">
-  <div class="graph-container">
-      {% for section in sections %}
-      <div align="center" class="float-left" style="height: 100%; float: left; width: 25%;">
-        <center><strong>{{section.section}}</strong></center>
-        <div id="placeholder_{{section.section}}" class="graph-placeholder" style="float:left; width:100%;"></div>
+    {% if existsIn(section, "health") and section.health.total > 0 %}
+      <div class="healthbar" role="img"
+           aria-label="{% for seg in section.health.segments %}{{seg.count}} {{seg.label}}{% if not loop.is_last %}, {% endif %}{% endfor %}">
+        {% for seg in section.health.segments %}
+          <div class="healthbar-segment healthbar-segment-{{seg.key}}" style="width: {{round(seg.percentage, 1)}}%"></div>
+        {% endfor %}
       </div>
-      {% endfor %}
-  </div>
-</div>
-
-<script>
-  async function loadStatisticsCompressed() {
-    const response = await fetch("{{root_url}}/statistics.json.gz");
-
-    if (!response.ok)
-      throw new Error("Failed to fetch statistics: " + response.status + " " + response.statusText);
-    if (!window.DecompressionStream)
-      throw new Error("This browser does not support DecompressionStream (gzip)");
-
-    const ds = new DecompressionStream("gzip");
-    const decompressedStream = response.body.pipeThrough(ds);
-    const decompressedResponse = new Response(decompressedStream);
-    const jsonText = await decompressedResponse.text();
-
-    return JSON.parse(jsonText);
-  }
-
-  loadStatisticsCompressed().then(function(data) {
-    var sections = [];
-    {% for section in sections %}
-      sections.push("{{section.section}}");
-    {% endfor %}
-
-    for (var i = 0; i < sections.length; i++) {
-      var sdata = data["{{suite}}"];
-      var sectionName = sections[i];
-      var secData = sdata[sectionName];
-
-      var resData = [
-          {
-            label: "Errors",
-            data: [ 1, secData["errors"][secData["errors"].length-1][1] ],
-            color: "#c05020"
-          },
-          {
-            label: "Warnings",
-            data: [ 1, secData["warnings"][secData["warnings"].length-1][1] ],
-            color: "#ffcc66"
-          },
-          {
-            label: "Infos",
-            data: [ 1, secData["infos"][secData["infos"].length-1][1] ],
-            color: "#6060c0"
-          },
-          {
-            label: "Valid Data",
-            data: [ 1, secData["metadata"][secData["metadata"].length-1][1] ],
-            color: "#30a420"
-          }
-      ];
-
-      drawSummaryChart(resData, sectionName);
-    }
-  }).catch(function(err) {
-    console.error(err);
-  });
-</script>
-<script>
-  function labelFormatter(label, series) {
-      return "<div style='font-size:8pt; text-align:center; padding:2px; color:white;'>" + Math.round(series.percent) + "%</div>";
-  }
-
-  function drawSummaryChart(data, section) {
-    $.plot('#placeholder_' + section, data, {
-        series: {
-            pie: {
-                innerRadius: 0.34,
-                show: true,
-
-                label: {
-                    show: true,
-                    radius: 3/5,
-                    formatter: labelFormatter,
-                    background: {
-                        opacity: 0.6,
-                        color: '#000'
-                    }
-                }
-            }
-        },
-
-        grid: {
-            hoverable: true,
-            clickable: true,
-            margin: 0,
-            borderWidth: 0
-        },
-
-        legend: { show: false }
-    });
-  }
-</script>
+      <ul class="healthbar-legend">
+        {% for seg in section.health.segments %}
+          <li><span class="swatch healthbar-segment-{{seg.key}}"></span>{{seg.label}} <span class="count">{{seg.count}}</span></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
 {% endblock %}

@@ -1,0 +1,4 @@
+/* Debian's own accent, everything else is inherited from the shared stylesheet. */
+:root {
+    --accent: #d70a53;
+}
