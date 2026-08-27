@@ -23,7 +23,9 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <map>
 #include <memory>
+#include <optional>
 #include <cstdint>
 
 #include <appstream.h>
@@ -47,8 +49,6 @@ public:
         const std::string &suiteName,
         const std::string &section,
         const std::vector<std::shared_ptr<Package>> &pkgs);
-    void updateIndexPages();
-    void exportStatistics();
 
     // Delete copy constructor and assignment operator
     ReportGenerator(const ReportGenerator &) = delete;
@@ -66,6 +66,9 @@ public:
         std::vector<HintTag> errors;
         std::vector<HintTag> warnings;
         std::vector<HintTag> infos;
+
+        // the most severe issue we found for this entry
+        AsIssueSeverity worstSeverity = AS_ISSUE_SEVERITY_UNKNOWN;
     };
 
     struct MetadataEntry {
@@ -99,7 +102,38 @@ public:
         int64_t totalInfos = 0;
         int64_t totalWarnings = 0;
         int64_t totalErrors = 0;
+
+        // What became of the components of this section. Unlike the totals above - which
+        // count how often an issue occurred - every component is counted exactly once here,
+        // so these can be compared to each other. An error drops the component, so
+        // @cptsClean + @cptsWarning is @totalMetadata, and adding @cptsRejected gives every
+        // component we tried to generate. An info does not make a component any less usable,
+        // so one that only has those counts as clean.
+        int64_t cptsClean = 0;
+        int64_t cptsWarning = 0;
+        int64_t cptsRejected = 0;
     };
+
+    /**
+     * One recorded set of counters for a suite/section, at the time we recorded it.
+     */
+    struct StatsPoint {
+        int64_t time = 0;
+
+        // how often an issue of each kind occurred
+        std::optional<int64_t> metadata;
+        std::optional<int64_t> errors;
+        std::optional<int64_t> warnings;
+        std::optional<int64_t> infos;
+
+        // how the components themselves ended up, each counted once
+        std::optional<int64_t> cptsClean;
+        std::optional<int64_t> cptsWarning;
+        std::optional<int64_t> cptsRejected;
+    };
+
+    // suite -> section -> timeline, oldest entry first
+    using StatsHistory = std::map<std::string, std::map<std::string, std::vector<StatsPoint>>>;
 
     // Public methods for testing access
     void setupInjaContext(inja::json &context);
@@ -110,6 +144,15 @@ public:
         const std::string &section,
         const std::vector<std::shared_ptr<Package>> &pkgs);
     void saveStatistics(const std::string &suiteName, const std::string &section, const DataSummary &dsum);
+    static void classifyComponents(DataSummary &dsum);
+
+    /**
+     * Read the recorded statistics, grouped by suite and section.
+     */
+    StatsHistory collectStatistics();
+
+    void updateIndexPages(const StatsHistory &history);
+    void exportStatistics(const StatsHistory &history);
 
 private:
     quill::Logger *m_log;

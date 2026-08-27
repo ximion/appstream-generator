@@ -211,7 +211,7 @@ void StatsStore::quitTransaction(MDB_txn *txn)
     mdb_txn_abort(txn);
 }
 
-std::vector<StatisticsEntry> StatsStore::getStatistics()
+std::vector<StatisticsEntry> StatsStore::getStatistics(std::time_t since)
 {
     MDB_val dkey, dval;
     MDB_cursor *cur = nullptr;
@@ -223,7 +223,18 @@ std::vector<StatisticsEntry> StatsStore::getStatistics()
 
         std::vector<StatisticsEntry> stats;
         stats.reserve(256);
-        while (mdb_cursor_get(cur, &dkey, &dval, MDB_NEXT) == 0) {
+
+        // the keys are timestamps, so we can jump straight to the first entry we want
+        auto cursorOp = MDB_FIRST;
+        std::int64_t sinceKey = static_cast<std::int64_t>(since);
+        if (since > 0) {
+            dkey.mv_size = sizeof(sinceKey);
+            dkey.mv_data = &sinceKey;
+            cursorOp = MDB_SET_RANGE;
+        }
+
+        while (mdb_cursor_get(cur, &dkey, &dval, cursorOp) == 0) {
+            cursorOp = MDB_NEXT;
             if (dkey.mv_size != sizeof(std::int64_t)) {
                 LOG_WARNING(m_log, "Skipping statistics entry with invalid key size: {}", dkey.mv_size);
                 continue;

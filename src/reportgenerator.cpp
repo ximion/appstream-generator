@@ -26,6 +26,7 @@
 #include <format>
 #include <chrono>
 #include <ranges>
+#include <array>
 #include <optional>
 
 #include <glib.h>
@@ -118,6 +119,81 @@ void ReportGenerator::renderPage(const std::string &pageID, const std::string &e
     }
 }
 
+/**
+ * Build the description of a health bar: one segment per component state, with the share of
+ * the whole each one takes up.
+ */
+static inja::json buildHealthContext(int64_t clean, int64_t warning, int64_t rejected)
+{
+    const std::array<std::tuple<const char *, const char *, int64_t>, 3> segmentDefs = {
+        {{"clean", "Clean", clean}, {"warning", "Warnings", warning}, {"rejected", "Rejected", rejected}}
+    };
+
+    const int64_t total = clean + warning + rejected;
+
+    auto segments = inja::json::array();
+    for (const auto &[key, label, count] : segmentDefs) {
+        if (count <= 0)
+            continue;
+        segments.push_back(
+            inja::json{
+                {"key",        key                                                                                },
+                {"label",      label                                                                              },
+                {"count",      count                                                                              },
+                {"percentage", total > 0 ? (static_cast<double>(count) * 100.0 / static_cast<double>(total)) : 0.0}
+        });
+    }
+
+    return inja::json{
+        {"total",    total   },
+        {"segments", segments}
+    };
+}
+
+/**
+ * Draw a small trend line for a handful of values. This is decoration next to a number that
+ * already says what the current state is, so it carries no axes and no labels - it only has
+ * to show which way things have been moving.
+ */
+static std::string renderSparkline(const std::vector<int64_t> &values)
+{
+    constexpr double width = 104.0;
+    constexpr double height = 26.0;
+    constexpr double padding = 3.0;
+
+    if (values.size() < 2)
+        return {};
+
+    const auto [minIt, maxIt] = std::ranges::minmax_element(values);
+    const auto minValue = static_cast<double>(*minIt);
+    const auto span = static_cast<double>(*maxIt) - minValue;
+    const double usableHeight = height - (2 * padding);
+
+    std::string points;
+    double lastX = 0.0;
+    double lastY = 0.0;
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        lastX = (static_cast<double>(i) / static_cast<double>(values.size() - 1)) * width;
+        // a series that never changed sits in the middle, rather than at the very top
+        const double normalized = span > 0.0 ? (static_cast<double>(values[i]) - minValue) / span : 0.5;
+        lastY = padding + ((1.0 - normalized) * usableHeight);
+
+        if (!points.empty())
+            points += ' ';
+        points += std::format("{:.1f},{:.1f}", lastX, lastY);
+    }
+
+    return std::format(
+        R"(<svg class="sparkline" viewBox="0 0 {0:.0f} {1:.0f}" width="{0:.0f}" height="{1:.0f}" )"
+        R"(role="presentation" aria-hidden="true" focusable="false">)"
+        R"(<polyline points="{2}"/><circle cx="{3:.1f}" cy="{4:.1f}" r="2.5"/></svg>)",
+        width,
+        height,
+        points,
+        lastX,
+        lastY);
+}
+
 void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::string &section, const DataSummary &dsum)
 {
     if (m_templateDir.empty()) {
@@ -208,6 +284,8 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
         context["suite"] = suiteName;
         context["package_name"] = pkgname;
         context["section"] = section;
+        // we know what we put on the page, so the syntax highlighting does not have to guess
+        context["metadata_language"] = m_conf->metadataType == DataType::XML ? "xml" : "yaml";
 
         inja::json cpts = inja::json::array();
         for (const auto &[gcid, mentry] : pkgEntries) {
@@ -346,12 +424,7 @@ void ReportGenerator::renderPagesFor(const std::string &suiteName, const std::st
     secIndexCtx["suite"] = suiteName;
     secIndexCtx["section"] = section;
 
-    float percOne = 100.0f
-                    / static_cast<float>(dsum.totalMetadata + dsum.totalInfos + dsum.totalWarnings + dsum.totalErrors);
-    secIndexCtx["valid_percentage"] = dsum.totalMetadata * percOne;
-    secIndexCtx["info_percentage"] = dsum.totalInfos * percOne;
-    secIndexCtx["warning_percentage"] = dsum.totalWarnings * percOne;
-    secIndexCtx["error_percentage"] = dsum.totalErrors * percOne;
+    secIndexCtx["health"] = buildHealthContext(dsum.cptsClean, dsum.cptsWarning, dsum.cptsRejected);
 
     secIndexCtx["metainfo_count"] = dsum.totalMetadata;
     secIndexCtx["error_count"] = dsum.totalErrors;
@@ -556,11 +629,15 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
                                 dsum.totalWarnings += 1;
                             } else if (severity == AS_ISSUE_SEVERITY_PEDANTIC) {
                                 // We ignore pedantic issues completely for now
+                                continue;
                             } else {
                                 he.errors.emplace_back(tag, msg);
                                 pkgsummary.errorCount++;
                                 dsum.totalErrors += 1;
                             }
+
+                            if (severity > he.worstSeverity)
+                                he.worstSeverity = severity;
                         }
                     }
 
@@ -575,7 +652,67 @@ ReportGenerator::DataSummary ReportGenerator::preprocessInformation(
         dsum.pkgSummaries[pkg->maintainer()][pkg->name()] = pkgsummary;
     }
 
+    classifyComponents(dsum);
+
     return dsum;
+}
+
+void ReportGenerator::classifyComponents(DataSummary &dsum)
+{
+    // Sort every component into exactly one bucket, based on the worst issue it has.
+    // The hints we collected are keyed by plain component ID, while the metadata is keyed
+    // by global component ID - so we match them up via the plain ID we kept on every
+    // metadata entry. Matching them is what keeps a component that errored out and produced
+    // nothing from being counted twice, should it ever have metadata anyway.
+    std::unordered_set<std::string> classifiedGcids;
+
+    for (const auto &[pkgname, pkgEntries] : dsum.mdataEntries) {
+        std::unordered_set<std::string> exportedCids;
+
+        const auto pkgHintsIt = dsum.hintEntries.find(pkgname);
+        const auto *pkgHints = pkgHintsIt == dsum.hintEntries.end() ? nullptr : &pkgHintsIt->second;
+
+        for (const auto &[gcid, mentry] : pkgEntries) {
+            exportedCids.insert(mentry.identifier);
+
+            // a component is counted once for the whole section, just like totalMetadata is
+            if (!classifiedGcids.insert(gcid).second)
+                continue;
+
+            AsIssueSeverity worst = AS_ISSUE_SEVERITY_UNKNOWN;
+            if (pkgHints) {
+                const auto heIt = pkgHints->find(mentry.identifier);
+                if (heIt != pkgHints->end())
+                    worst = heIt->second.worstSeverity;
+            }
+
+            // Anything below a warning leaves the component perfectly usable.
+            // An error should have dropped it before it got here
+            if (worst >= AS_ISSUE_SEVERITY_WARNING)
+                dsum.cptsWarning += 1;
+            else
+                dsum.cptsClean += 1;
+        }
+
+        if (!pkgHints)
+            continue;
+
+        for (const auto &[cid, hentry] : *pkgHints) {
+            if (hentry.worstSeverity == AS_ISSUE_SEVERITY_ERROR && !exportedCids.contains(cid))
+                dsum.cptsRejected += 1;
+        }
+    }
+
+    // an error means the component is dropped, so a package where everything failed has no
+    // entry in @mdataEntries at all - its components still need to be counted
+    for (const auto &[pkgname, pkgHints] : dsum.hintEntries) {
+        if (dsum.mdataEntries.contains(pkgname))
+            continue;
+        for (const auto &[cid, hentry] : pkgHints) {
+            if (hentry.worstSeverity == AS_ISSUE_SEVERITY_ERROR)
+                dsum.cptsRejected += 1;
+        }
+    }
 }
 
 void ReportGenerator::saveStatistics(const std::string &suiteName, const std::string &section, const DataSummary &dsum)
@@ -586,113 +723,148 @@ void ReportGenerator::saveStatistics(const std::string &suiteName, const std::st
         {"totalInfos",    dsum.totalInfos   },
         {"totalWarnings", dsum.totalWarnings},
         {"totalErrors",   dsum.totalErrors  },
-        {"totalMetadata", dsum.totalMetadata}
+        {"totalMetadata", dsum.totalMetadata},
+        {"cptsClean",     dsum.cptsClean    },
+        {"cptsWarning",   dsum.cptsWarning  },
+        {"cptsRejected",  dsum.cptsRejected }
     };
 
     m_sstore->addStatistics(statsData);
 }
 
-void ReportGenerator::exportStatistics()
+ReportGenerator::StatsHistory ReportGenerator::collectStatistics()
 {
-    LOG_INFO(m_log, "Exporting statistical data.");
+    // A decade of history is already more than anyone reads off these charts, and the
+    // entries stay in the database either way (so we have them if we ever need them)
+    const auto cutoff = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() - std::chrono::years{10});
 
-    // return all statistics we have from the database
-    auto statsCollection = m_sstore->getStatistics();
+    // The statistics database stores one entry per suite/section and run, holding a flat
+    // set of counters. Regroup all of them into a per-suite, per-section timeline, so both
+    // the exported data files and the rendered overview pages can work off the same thing.
+    StatsHistory history;
 
-    // Sort statsCollection by timestamp in ascending order
+    auto statsCollection = m_sstore->getStatistics(cutoff);
     std::sort(statsCollection.begin(), statsCollection.end(), [](const auto &a, const auto &b) -> bool {
         return a.time < b.time;
     });
 
-    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::array<int64_t, 2>>>> suiteData;
-
-    // Group data by suite and section
     for (const auto &entry : statsCollection) {
         const auto &js = entry.data;
-        const auto timestamp = static_cast<int64_t>(entry.time);
 
-        // Extract suite and section from the data
-        std::string suite, section;
-        int64_t totalErrors = 0, totalWarnings = 0, totalInfos = 0, totalMetadata = 0;
+        const auto suiteIt = js.find("suite");
+        const auto sectionIt = js.find("section");
+        if (suiteIt == js.end() || sectionIt == js.end())
+            continue;
+        if (!std::holds_alternative<std::string>(suiteIt->second)
+            || !std::holds_alternative<std::string>(sectionIt->second))
+            continue;
 
-        auto suiteIt = js.find("suite");
-        if (suiteIt != js.end() && std::holds_alternative<std::string>(suiteIt->second))
-            suite = std::get<std::string>(suiteIt->second);
-
-        auto sectionIt = js.find("section");
-        if (sectionIt != js.end() && std::holds_alternative<std::string>(sectionIt->second))
-            section = std::get<std::string>(sectionIt->second);
-
-        auto errorsIt = js.find("totalErrors");
-        if (errorsIt != js.end() && std::holds_alternative<std::int64_t>(errorsIt->second))
-            totalErrors = std::get<std::int64_t>(errorsIt->second);
-
-        auto warningsIt = js.find("totalWarnings");
-        if (warningsIt != js.end() && std::holds_alternative<std::int64_t>(warningsIt->second))
-            totalWarnings = std::get<std::int64_t>(warningsIt->second);
-
-        auto infosIt = js.find("totalInfos");
-        if (infosIt != js.end() && std::holds_alternative<std::int64_t>(infosIt->second))
-            totalInfos = std::get<std::int64_t>(infosIt->second);
-
-        auto metadataIt = js.find("totalMetadata");
-        if (metadataIt != js.end() && std::holds_alternative<std::int64_t>(metadataIt->second))
-            totalMetadata = std::get<std::int64_t>(metadataIt->second);
-
+        const auto &suite = std::get<std::string>(suiteIt->second);
+        const auto &section = std::get<std::string>(sectionIt->second);
         if (suite.empty() || section.empty())
             continue;
 
-        // Store data points
-        suiteData[suite][section + "_errors"].push_back({timestamp, totalErrors});
-        suiteData[suite][section + "_warnings"].push_back({timestamp, totalWarnings});
-        suiteData[suite][section + "_infos"].push_back({timestamp, totalInfos});
-        suiteData[suite][section + "_metadata"].push_back({timestamp, totalMetadata});
+        // older entries simply do not have the newer counters, which is fine: the series
+        // they belong to just starts later
+        const auto counter = [&js](const char *key) -> std::optional<int64_t> {
+            const auto it = js.find(key);
+            if (it == js.end() || !std::holds_alternative<std::int64_t>(it->second))
+                return std::nullopt;
+            return std::get<std::int64_t>(it->second);
+        };
+
+        StatsPoint point;
+        point.time = static_cast<int64_t>(entry.time);
+        point.metadata = counter("totalMetadata");
+        point.errors = counter("totalErrors");
+        point.warnings = counter("totalWarnings");
+        point.infos = counter("totalInfos");
+        point.cptsClean = counter("cptsClean");
+        point.cptsWarning = counter("cptsWarning");
+        point.cptsRejected = counter("cptsRejected");
+
+        history[suite][section].push_back(std::move(point));
     }
 
-    auto jsonOutput = json::object();
-    for (const auto &[suiteName, sections] : suiteData) {
-        // Group by section
-        std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::array<int64_t, 2>>>>
-            sectionGroups;
-        for (const auto &[key, data] : sections) {
-            auto underscorePos = key.rfind('_');
-            if (underscorePos != std::string::npos) {
-                std::string sectionName = key.substr(0, underscorePos);
-                std::string dataType = key.substr(underscorePos + 1);
-                sectionGroups[sectionName][dataType] = data;
-            }
-        }
+    return history;
+}
 
-        auto suiteJson = json::object();
-        for (const auto &[sectionName, dataTypes] : sectionGroups) {
+/**
+ * Reduce a timeline to at most two points per day, keeping the newest state we recorded for
+ * each day. We may run many times a day, and a decade of that is a lot of data to send to a
+ * browser just to draw a line a few hundred pixels wide.
+ */
+static std::vector<ReportGenerator::StatsPoint> downsampleStats(const std::vector<ReportGenerator::StatsPoint> &points)
+{
+    constexpr int64_t secondsPer12h = 12 * 60 * 60;
+    std::vector<ReportGenerator::StatsPoint> result;
+    result.reserve(points.size());
+
+    for (const auto &point : points) {
+        if (!result.empty() && (result.back().time / secondsPer12h) == (point.time / secondsPer12h))
+            result.back() = point;
+        else
+            result.push_back(point);
+    }
+
+    return result;
+}
+
+void ReportGenerator::exportStatistics(const StatsHistory &history)
+{
+    LOG_INFO(m_log, "Exporting statistical data.");
+
+    // the series we publish, in the order the charts expect them "errors"/"warnings"/"infos"
+    // count how often an issue occurred, the "cpts_" ones count component states
+    static const std::array<std::pair<const char *, std::optional<int64_t> StatsPoint::*>, 7> seriesMap = {
+        {{"metadata", &StatsPoint::metadata},
+         {"errors", &StatsPoint::errors},
+         {"warnings", &StatsPoint::warnings},
+         {"infos", &StatsPoint::infos},
+         {"cpts_clean", &StatsPoint::cptsClean},
+         {"cpts_warning", &StatsPoint::cptsWarning},
+         {"cpts_rejected", &StatsPoint::cptsRejected}}
+    };
+
+    for (const auto &[suiteName, sections] : history) {
+        for (const auto &[sectionName, points] : sections) {
+            const auto sampled = downsampleStats(points);
+
+            // Columnar layout: the timestamps are shared by every series, so we only send
+            // them once, and the result can be handed to the charting code as-is.
             auto sectionJson = json::object();
-            for (const auto &[dataType, dataPoints] : dataTypes) {
-                auto dataArray = json::array();
-                for (const auto &point : dataPoints) {
-                    dataArray.push_back(json::array({point[0], point[1]}));
+            auto timeArray = json::array();
+            for (const auto &point : sampled)
+                timeArray.push_back(point.time);
+            sectionJson["time"] = std::move(timeArray);
+
+            for (const auto &[name, member] : seriesMap) {
+                auto valueArray = json::array();
+                bool haveAny = false;
+                for (const auto &point : sampled) {
+                    const auto &value = point.*member;
+                    if (value) {
+                        valueArray.push_back(*value);
+                        haveAny = true;
+                    } else {
+                        // a counter we only started recording later on: leave a gap
+                        valueArray.push_back(nullptr);
+                    }
                 }
-                sectionJson[dataType] = dataArray;
+                if (haveAny)
+                    sectionJson[name] = std::move(valueArray);
             }
-            suiteJson[sectionName] = sectionJson;
+
+            const auto statsFname = fs::path(m_htmlExportDir) / suiteName / sectionName / "statistics.json.gz";
+            try {
+                fs::create_directories(statsFname.parent_path());
+                const auto data = sectionJson.dump();
+                std::vector<uint8_t> bytes(data.begin(), data.end());
+                compressAndSave(bytes, statsFname.string(), ArchiveType::GZIP);
+            } catch (const std::exception &e) {
+                LOG_WARNING(m_log, "Failed to write statistics data for {}/{}: {}", suiteName, sectionName, e.what());
+            }
         }
-        jsonOutput[suiteName] = suiteJson;
-    }
-
-    auto jsonFname = fs::path(m_htmlExportDir) / "statistics.json";
-    auto jsonGzFname = fs::path(m_htmlExportDir) / "statistics.json.gz";
-    fs::create_directories(jsonGzFname.parent_path());
-
-    const auto jsonData = jsonOutput.dump();
-
-    try {
-        std::vector<uint8_t> jsonBytes(jsonData.begin(), jsonData.end());
-        compressAndSave(jsonBytes, jsonGzFname.string(), ArchiveType::GZIP);
-
-        // drop older, uncompressed statistics file
-        if (fs::exists(jsonFname))
-            fs::remove(jsonFname);
-    } catch (const std::exception &e) {
-        LOG_WARNING(m_log, "Failed to write gzip-compressed statistics data: {}", e.what());
     }
 }
 
@@ -714,7 +886,7 @@ void ReportGenerator::processFor(
     renderPagesFor(suiteName, section, dsum);
 }
 
-void ReportGenerator::updateIndexPages()
+void ReportGenerator::updateIndexPages(const StatsHistory &history)
 {
     LOG_INFO(m_log, "Updating HTML index pages and static data.");
 
@@ -727,6 +899,7 @@ void ReportGenerator::updateIndexPages()
         return a.name > b.name;
     });
 
+    // the overview pages summarize what we last recorded for every section, we need the statistics for that
     inja::json suitesArray = inja::json::array();
     for (const auto &suite : suites) {
         suitesArray.push_back(
@@ -737,12 +910,40 @@ void ReportGenerator::updateIndexPages()
         inja::json secCtx;
         secCtx["suite"] = suite.name;
 
+        const auto suiteHistIt = history.find(suite.name);
+
         inja::json sectionsArray = inja::json::array();
         for (const auto &section : suite.sections) {
-            sectionsArray.push_back(
-                inja::json{
-                    {"section", section}
-            });
+            inja::json sectionCtx;
+            sectionCtx["section"] = section;
+
+            // a section we have never recorded anything for still needs its link on the page
+            if (suiteHistIt == history.end()) {
+                sectionsArray.push_back(sectionCtx);
+                continue;
+            }
+            const auto sectionHistIt = suiteHistIt->second.find(section);
+            if (sectionHistIt == suiteHistIt->second.end() || sectionHistIt->second.empty()) {
+                sectionsArray.push_back(sectionCtx);
+                continue;
+            }
+
+            const auto &points = sectionHistIt->second;
+            const auto &latest = points.back();
+            sectionCtx["metainfo_count"] = latest.metadata.value_or(0);
+            sectionCtx["error_count"] = latest.errors.value_or(0);
+            sectionCtx["warning_count"] = latest.warnings.value_or(0);
+            sectionCtx["info_count"] = latest.infos.value_or(0);
+            sectionCtx["health"] = buildHealthContext(
+                latest.cptsClean.value_or(0), latest.cptsWarning.value_or(0), latest.cptsRejected.value_or(0));
+
+            std::vector<int64_t> trend;
+            const auto trendStart = points.size() > 12 ? points.size() - 12 : 0;
+            for (auto i = trendStart; i < points.size(); ++i)
+                trend.push_back(points[i].metadata.value_or(0));
+            sectionCtx["sparkline"] = renderSparkline(trend);
+
+            sectionsArray.push_back(sectionCtx);
         }
         secCtx["sections"] = sectionsArray;
 

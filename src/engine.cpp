@@ -1004,9 +1004,10 @@ void Engine::run()
 
     // Render index pages & statistics
     printHeaderBox("Updating Global Data");
-    reportgen->updateIndexPages();
+    const auto statsHistory = reportgen->collectStatistics();
+    reportgen->updateIndexPages(statsHistory);
     if (dataChanged)
-        reportgen->exportStatistics();
+        reportgen->exportStatistics(statsHistory);
 }
 
 void Engine::run(const std::string &suiteName)
@@ -1032,9 +1033,10 @@ void Engine::run(const std::string &suiteName)
     }
 
     // Render index pages & statistics
-    reportgen->updateIndexPages();
+    const auto statsHistory = reportgen->collectStatistics();
+    reportgen->updateIndexPages(statsHistory);
     if (dataChanged)
-        reportgen->exportStatistics();
+        reportgen->exportStatistics(statsHistory);
 }
 
 void Engine::run(const std::string &suiteName, const std::string &sectionName)
@@ -1066,9 +1068,10 @@ void Engine::run(const std::string &suiteName, const std::string &sectionName)
     auto dataChanged = processSuiteSection(suite, sectionName, reportgen);
 
     // Render index pages & statistics
-    reportgen->updateIndexPages();
+    const auto statsHistory = reportgen->collectStatistics();
+    reportgen->updateIndexPages(statsHistory);
     if (dataChanged)
-        reportgen->exportStatistics();
+        reportgen->exportStatistics(statsHistory);
 }
 
 void Engine::publishMetadataForSuiteSection(
@@ -1120,8 +1123,9 @@ void Engine::publish(const std::string &suiteName)
         publishMetadataForSuiteSection(suite, section, reportgen);
 
     // Render index pages & statistics
-    reportgen->updateIndexPages();
-    reportgen->exportStatistics();
+    const auto statsHistory = reportgen->collectStatistics();
+    reportgen->updateIndexPages(statsHistory);
+    reportgen->exportStatistics(statsHistory);
 }
 
 void Engine::publish(const std::string &suiteName, const std::string &sectionName)
@@ -1150,8 +1154,9 @@ void Engine::publish(const std::string &suiteName, const std::string &sectionNam
     publishMetadataForSuiteSection(suite, sectionName, reportgen);
 
     // Render index pages & statistics
-    reportgen->updateIndexPages();
-    reportgen->exportStatistics();
+    const auto statsHistory = reportgen->collectStatistics();
+    reportgen->updateIndexPages(statsHistory);
+    reportgen->exportStatistics(statsHistory);
 }
 
 void Engine::cleanupStatistics()

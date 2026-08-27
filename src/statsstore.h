@@ -93,9 +93,9 @@ public:
     void close();
 
     /**
-     * Get all statistics entries
+     * Get the statistics entries recorded at or after @since.
      */
-    std::vector<StatisticsEntry> getStatistics();
+    std::vector<StatisticsEntry> getStatistics(std::time_t since = 0);
 
     /**
      * Add statistics entry

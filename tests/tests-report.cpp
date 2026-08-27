@@ -27,6 +27,8 @@
 #include "hintregistry.h"
 #include "zarchive.h"
 
+#include <nlohmann/json.hpp>
+
 using namespace ASGenerator;
 
 // Test fixture for report generator tests
@@ -296,6 +298,81 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::preprocessInforma
         REQUIRE(archs == std::vector<std::string>{"amd64", "arm64", "i386"});
         REQUIRE(entry.version == "2.4.1-1");
     }
+
+    // Every component ends up in exactly one bucket. All three made it into the metadata
+    // here, so nothing is rejected: "two" only has an info, which leaves it perfectly
+    // usable and therefore clean, while "one" and "three" are counted with the warnings.
+    REQUIRE(dsum.cptsClean == 1);
+    REQUIRE(dsum.cptsWarning == 2);
+    REQUIRE(dsum.cptsRejected == 0);
+    REQUIRE(dsum.cptsClean + dsum.cptsWarning == dsum.totalMetadata);
+}
+
+TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::preprocessInformation - component classification")
+{
+    std::vector<std::shared_ptr<Package>> packages;
+
+    // a package whose component came out without any issue at all
+    {
+        auto pkg = std::make_shared<DummyPackage>("cleanpkg", "1.0", "amd64");
+        pkg->setMaintainer("Test Maintainer <test@example.com>");
+
+        GeneratorResult gres(pkg);
+        g_autoptr(AsComponent) cpt = as_component_new();
+        as_component_set_kind(cpt, AS_COMPONENT_KIND_DESKTOP_APP);
+        as_component_set_id(cpt, "org.example.clean");
+        as_component_set_name(cpt, "Clean", "C");
+        as_component_set_summary(cpt, "A test application", "C");
+        gres.addComponent(cpt);
+        m_dstore->addGeneratorResult(DataType::YAML, gres, false);
+
+        packages.push_back(std::move(pkg));
+    }
+
+    // a package whose component only has a warning, but was still exported
+    {
+        auto pkg = std::make_shared<DummyPackage>("warnpkg", "1.0", "amd64");
+        pkg->setMaintainer("Test Maintainer <test@example.com>");
+
+        GeneratorResult gres(pkg);
+        g_autoptr(AsComponent) cpt = as_component_new();
+        as_component_set_kind(cpt, AS_COMPONENT_KIND_DESKTOP_APP);
+        as_component_set_id(cpt, "org.example.warn");
+        as_component_set_name(cpt, "Warn", "C");
+        as_component_set_summary(cpt, "A test application", "C");
+        gres.addComponent(cpt);
+        m_dstore->addGeneratorResult(DataType::YAML, gres, false);
+        m_dstore->setHints(
+            gres.pkid(),
+            R"({"hints": {"org.example.warn": [{"tag": "icon-scaled-up", "vars": {"icon_name": "w.png"}}]}})");
+
+        packages.push_back(std::move(pkg));
+    }
+
+    // a package which produced no metadata at all: its component hit an error and was
+    // dropped, so it is counted as an error even though it has no metadata entry
+    {
+        auto pkg = std::make_shared<DummyPackage>("brokenpkg", "1.0", "amd64");
+        pkg->setMaintainer("Test Maintainer <test@example.com>");
+
+        m_dstore->setHints(
+            pkg->id(),
+            R"({"hints": {"org.example.broken": [{"tag": "icon-not-found", "vars": {"icon_fname": "b.png"}}]}})");
+
+        packages.push_back(std::move(pkg));
+    }
+
+    auto dsum = m_reportGen->preprocessInformation("testsuite", "main", packages);
+
+    REQUIRE(dsum.totalMetadata == 2);
+    REQUIRE(dsum.cptsClean == 1);
+    REQUIRE(dsum.cptsWarning == 1);
+    REQUIRE(dsum.cptsRejected == 1);
+
+    // an error means we got no component, so the rejected one is not part of the metadata
+    // count - together they are everything we attempted
+    REQUIRE(dsum.cptsClean + dsum.cptsWarning == dsum.totalMetadata);
+    REQUIRE(dsum.cptsClean + dsum.cptsWarning + dsum.cptsRejected == 3);
 }
 
 TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator::renderPage")
@@ -381,24 +458,58 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator Statistics")
         };
         m_sstore->addStatistics(statsData);
 
-        REQUIRE_NOTHROW(m_reportGen->exportStatistics());
+        REQUIRE_NOTHROW(m_reportGen->exportStatistics(m_reportGen->collectStatistics()));
 
-        auto statsFile = m_htmlDir / "statistics.json.gz";
+        auto statsFile = m_htmlDir / "testsuite" / "main" / "statistics.json.gz";
         REQUIRE(fs::exists(statsFile));
         const auto content = decompressFile(statsFile.string());
 
-        REQUIRE(content.find("testsuite") != std::string::npos);
-        REQUIRE(content.find("main") != std::string::npos);
         REQUIRE(content.find("errors") != std::string::npos);
         REQUIRE(content.find("warnings") != std::string::npos);
         REQUIRE(content.find("infos") != std::string::npos);
         REQUIRE(content.find("metadata") != std::string::npos);
+    }
 
-        // Verify the actual numeric values are present
-        REQUIRE(content.find(",1]") != std::string::npos);  // totalErrors: 1
-        REQUIRE(content.find(",3]") != std::string::npos);  // totalWarnings: 3
-        REQUIRE(content.find(",5]") != std::string::npos);  // totalInfos: 5
-        REQUIRE(content.find(",10]") != std::string::npos); // totalMetadata: 10
+    SECTION("Export per-section statistics")
+    {
+        // The section pages only ever draw their own data, so each of them gets its own
+        // file instead of everyone downloading the history of the whole archive.
+        std::unordered_map<std::string, std::variant<std::int64_t, std::string, double>> statsData = {
+            {"suite",         std::string("testsuite")},
+            {"section",       std::string("main")     },
+            {"totalInfos",    std::int64_t(5)         },
+            {"totalWarnings", std::int64_t(3)         },
+            {"totalErrors",   std::int64_t(1)         },
+            {"totalMetadata", std::int64_t(10)        },
+            {"cptsClean",     std::int64_t(8)         },
+            {"cptsWarning",   std::int64_t(2)         },
+            {"cptsRejected",  std::int64_t(2)         }
+        };
+        m_sstore->addStatistics(statsData);
+
+        REQUIRE_NOTHROW(m_reportGen->exportStatistics(m_reportGen->collectStatistics()));
+
+        auto sectionStatsFile = m_htmlDir / "testsuite" / "main" / "statistics.json.gz";
+        REQUIRE(fs::exists(sectionStatsFile));
+
+        const auto data = nlohmann::json::parse(decompressFile(sectionStatsFile.string()));
+
+        // the timestamps are shared by all series and only stored once
+        REQUIRE(data.contains("time"));
+        REQUIRE(data["time"].is_array());
+        REQUIRE(data["time"].size() >= 1);
+
+        for (const auto &key : {"metadata", "errors", "warnings", "infos", "cpts_rejected"}) {
+            REQUIRE(data.contains(key));
+            REQUIRE(data[key].size() == data["time"].size());
+        }
+
+        REQUIRE(data["metadata"].back() == 10);
+        REQUIRE(data["errors"].back() == 1);
+        REQUIRE(data["warnings"].back() == 3);
+        REQUIRE(data["infos"].back() == 5);
+        REQUIRE(data["cpts_clean"].back() == 8);
+        REQUIRE(data["cpts_rejected"].back() == 2);
     }
 }
 
@@ -529,7 +640,7 @@ TEST_CASE_METHOD(ReportGeneratorTestFixture, "ReportGenerator render pages with 
 
     SECTION("Update index pages")
     {
-        REQUIRE_NOTHROW(m_reportGen->updateIndexPages());
+        REQUIRE_NOTHROW(m_reportGen->updateIndexPages(m_reportGen->collectStatistics()));
 
         // Check that main index was created
         auto mainIndex = m_htmlDir / "index.html";
