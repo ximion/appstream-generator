@@ -74,5 +74,4 @@ eatmydata apt-get install -yq libblake3-dev || true
 eatmydata apt-get install -yq --no-install-recommends \
     curl \
     gnupg \
-    ffmpeg \
-    npm
+    ffmpeg

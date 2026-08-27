@@ -52,7 +52,6 @@ The following libraries and tools are required to build the generator:
  * oneAPI TBB [6]
  * Quill [7]
  * Catch2 [8]
- * NPM (optional)
  * backward-cpp (optional)
 
 [1]: http://mesonbuild.com/
@@ -69,7 +68,7 @@ On Debian and derivatives of it, all build requirements can be installed using t
 sudo apt install meson g++ \
     libappstream-dev libappstream-compose-dev libblake3-dev libarchive-dev libcurl4-gnutls-dev \
     liblmdb-dev libtbb-dev quill-dev libcatch2-dev libfyaml-dev libxml2-dev \
-    npm libbackward-cpp-dev
+    libbackward-cpp-dev
 ```
 
 ### Build instructions
@@ -79,7 +78,7 @@ In summary:
 
 ```ShellSession
 $ mkdir build && cd build
-$ meson -Ddownload-js=true ..
+$ meson ..
 $ ninja
 $ sudo ninja install
 ```

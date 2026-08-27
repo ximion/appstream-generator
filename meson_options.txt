@@ -2,12 +2,6 @@
 # Options for AppStream Generator
 #
 
-option('download-js',
-       type: 'boolean',
-       value: true,
-       description: 'Download JavaScript with NPM automatically.'
-)
-
 option('backward',
        type : 'boolean',
        value : true,

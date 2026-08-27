@@ -126,7 +126,6 @@ parts:
     meson-parameters:
       - --prefix=/usr
       - --buildtype=debugoptimized
-      - -Ddownload-js=true
     override-build: |
       set -eux
       craftctl default
@@ -152,7 +151,6 @@ parts:
       - curl
       - docbook-xsl-ns
       - ffmpeg
-      - npm
       - catch2
       - libarchive-dev
       - libbackward-cpp-dev

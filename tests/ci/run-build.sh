@@ -26,7 +26,6 @@ fi;
 #
 mkdir -p build && cd build
 meson setup --buildtype=$build_type \
-    -Ddownload-js=true \
     -Dbackward=$with_backward \
     ..
 ninja
