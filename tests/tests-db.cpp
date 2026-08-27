@@ -329,6 +329,59 @@ TEST_CASE("StatsStore basic operations", "[statsstore]")
         store.close();
     }
 
+    SECTION("Entries may arrive out of order")
+    {
+        // Migrating statistics from an older database inserts entries that are far older
+        // than whatever the store already holds, so an entry that predates the newest one
+        // has to be accepted as readily as one that follows it.
+        StatsStore store;
+        store.open(tempDir.string());
+
+        StatisticsEntry newer;
+        newer.time = 1756000000;
+        newer.data = {
+            {"suite",         std::string("testing")},
+            {"section",       std::string("main")   },
+            {"totalMetadata", std::int64_t(1)       }
+        };
+        REQUIRE_NOTHROW(store.addStatistics(newer));
+
+        StatisticsEntry older;
+        older.time = 1630000000; // roughly four years earlier
+        older.data = {
+            {"suite",         std::string("testing")},
+            {"section",       std::string("main")   },
+            {"totalMetadata", std::int64_t(2)       }
+        };
+        REQUIRE_NOTHROW(store.addStatistics(older));
+
+        // both are kept, and neither had its timestamp moved
+        auto allStats = store.getStatistics();
+        REQUIRE(allStats.size() == 2);
+        REQUIRE(allStats[0].time == older.time);
+        REQUIRE(allStats[1].time == newer.time);
+
+        // an entry landing in a second that is already taken is shifted, not dropped
+        StatisticsEntry sameSecond;
+        sameSecond.time = older.time;
+        sameSecond.data = {
+            {"suite",         std::string("testing")},
+            {"section",       std::string("contrib")},
+            {"totalMetadata", std::int64_t(3)       }
+        };
+        REQUIRE_NOTHROW(store.addStatistics(sameSecond));
+
+        allStats = store.getStatistics();
+        REQUIRE(allStats.size() == 3);
+        REQUIRE(allStats[1].time == older.time + 1);
+
+        // reading from a point in time skips everything before it
+        REQUIRE(store.getStatistics(newer.time).size() == 1);
+        REQUIRE(store.getStatistics(older.time + 1).size() == 2);
+
+        store.close();
+    }
+
     // Cleanup
     fs::remove_all(tempDir);
 }

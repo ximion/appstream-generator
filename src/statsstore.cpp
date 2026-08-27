@@ -274,34 +274,57 @@ std::vector<StatisticsEntry> StatsStore::getStatistics(std::time_t since)
 
 void StatsStore::addStatistics(const StatisticsEntry &stats)
 {
-    std::int64_t keyTime = stats.time;
-    MDB_val dbkey;
-    dbkey.mv_size = sizeof(std::int64_t);
-    dbkey.mv_data = &keyTime;
-
     auto statsDataBytes = serializeStatsEntryData(stats);
-    MDB_val dbvalue;
-    dbvalue.mv_size = statsDataBytes.size();
-    dbvalue.mv_data = statsDataBytes.data();
+
+    /* An entry is keyed by the second it was recorded in, and a run records one for every
+     * suite and section it touched - so several of them landing in the same second is the
+     * normal case, not an error. We do not overwrite what is already there; we shift the
+     * timestamp forward until a slot is free, which is a lie of at most a few seconds and
+     * keeps every entry.
+     *
+     * Note that MDB_APPEND is deliberately not used: it reports MDB_KEYEXIST for any key
+     * that is not greater than the largest one in the database, not just for one that is
+     * actually taken. Entries do not always arrive in order - migrating an older database
+     * inserts years-old ones into a store that already holds current data - and treating
+     * that as a taken slot would walk the timestamp forward one second at a time across
+     * the whole gap.
+     */
+    constexpr std::int64_t maxSlotSearch = 3600;
 
     MDB_txn *txn = newTransaction();
     try {
-        int res = mdb_put(txn, m_dbStats, &dbkey, &dbvalue, MDB_APPEND);
-        if (res == MDB_KEYEXIST) {
-            // this point in time already exists, but we do not allow overriding data - so we lie and shift
-            // the timestamp one second forward in time, to get a free slot
-            LOG_WARNING(m_log, "Statistics entry for timestamp {} already exists, skipping a second", stats.time);
+        for (std::int64_t offset = 0; offset < maxSlotSearch; ++offset) {
+            std::int64_t keyTime = static_cast<std::int64_t>(stats.time) + offset;
+            MDB_val dbkey;
+            dbkey.mv_size = sizeof(keyTime);
+            dbkey.mv_data = &keyTime;
 
-            quitTransaction(txn);
+            MDB_val dbvalue;
+            dbvalue.mv_size = statsDataBytes.size();
+            dbvalue.mv_data = statsDataBytes.data();
 
-            StatisticsEntry newStats;
-            newStats.time = stats.time + 1;
-            newStats.data = stats.data;
-            addStatistics(newStats);
+            int res = mdb_put(txn, m_dbStats, &dbkey, &dbvalue, MDB_NOOVERWRITE);
+            if (res == MDB_KEYEXIST)
+                continue;
+
+            checkError(res, "mdb_put (stats)");
+            commitTransaction(txn);
+
+            if (offset > 0)
+                LOG_DEBUG(
+                    m_log,
+                    "Statistics entry for timestamp {} was recorded {}s later, its own slot was taken.",
+                    stats.time,
+                    offset);
             return;
         }
-        checkError(res, "mdb_put (stats)");
-        commitTransaction(txn);
+
+        quitTransaction(txn);
+        LOG_ERROR(
+            m_log,
+            "Unable to record a statistics entry for timestamp {}: no free slot within {}s.",
+            stats.time,
+            maxSlotSearch);
     } catch (...) {
         quitTransaction(txn);
         throw;
