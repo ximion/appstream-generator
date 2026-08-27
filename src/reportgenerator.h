@@ -155,6 +155,8 @@ public:
     void exportStatistics(const StatsHistory &history);
 
 private:
+    void copyStaticData(const fs::path &templateDir, const fs::path &staticDestDir);
+
     quill::Logger *m_log;
     DataStore *m_dstore;
     StatsStore *m_sstore;

@@ -830,6 +830,34 @@ static bool staticFileNeeded(const fs::path &path)
     return true;
 }
 
+/**
+ * Copy the static data of one template directory into the export location.
+ *
+ * Existing files are overwritten, so callers can lay a vendor template's static data
+ * over the default one and have the vendor's version of a file win.
+ */
+void ReportGenerator::copyStaticData(const fs::path &templateDir, const fs::path &staticDestDir)
+{
+    const auto staticSrcDir = templateDir / "static";
+    if (!fs::exists(staticSrcDir))
+        return;
+
+    for (const auto &entry : fs::recursive_directory_iterator(staticSrcDir)) {
+        if (!entry.is_regular_file())
+            continue;
+
+        const auto relPath = fs::relative(entry.path(), staticSrcDir);
+        if (!staticFileNeeded(entry.path())) {
+            LOG_DEBUG(m_log, "Not publishing static file: {}", relPath.string());
+            continue;
+        }
+
+        const auto destPath = staticDestDir / relPath;
+        fs::create_directories(destPath.parent_path());
+        Utils::copyFile(entry.path(), destPath);
+    }
+}
+
 void ReportGenerator::exportStatistics(const StatsHistory &history)
 {
     LOG_INFO(m_log, "Exporting statistical data.");
@@ -1004,27 +1032,13 @@ void ReportGenerator::updateIndexPages(const StatsHistory &history)
     renderPage("main", "index", context);
 
     // copy static data, if present
-    auto staticSrcDir = fs::path(m_templateDir) / "static";
-    if (fs::exists(staticSrcDir)) {
-        auto staticDestDir = fs::path(m_htmlExportDir) / "static";
-        if (fs::exists(staticDestDir))
-            fs::remove_all(staticDestDir);
+    const auto staticDestDir = fs::path(m_htmlExportDir) / "static";
+    if (fs::exists(staticDestDir))
+        fs::remove_all(staticDestDir);
 
-        for (const auto &entry : fs::recursive_directory_iterator(staticSrcDir)) {
-            if (!entry.is_regular_file())
-                continue;
-
-            const auto relPath = fs::relative(entry.path(), staticSrcDir);
-            if (!staticFileNeeded(entry.path())) {
-                LOG_DEBUG(m_log, "Not publishing static file: {}", relPath.string());
-                continue;
-            }
-
-            const auto destPath = staticDestDir / relPath;
-            fs::create_directories(destPath.parent_path());
-            Utils::copyFile(entry.path(), destPath);
-        }
-    }
+    copyStaticData(m_defaultTemplateDir, staticDestDir);
+    if (!m_templateDir.empty() && fs::weakly_canonical(m_templateDir) != fs::weakly_canonical(m_defaultTemplateDir))
+        copyStaticData(m_templateDir, staticDestDir);
 }
 
 } // namespace ASGenerator
