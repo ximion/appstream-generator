@@ -61,7 +61,9 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    source-tag: 'v1.2.0'
+    # asgen master needs the unreleased AppStream 1.2 API, so track the
+    # development branch until v1.2.0 is tagged, then pin the tag again.
+    source-branch: main
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
@@ -91,6 +93,8 @@ parts:
       - libxml2-dev
       - libxmlb-dev
       - libzstd-dev
+      - meson
+      - ninja-build
       - libcairo2-dev
       - libfontconfig1-dev
       - libfreetype-dev
@@ -145,6 +149,8 @@ parts:
       - liblmdb-dev
       - libtbb-dev
       - libxml2-dev
+      - meson
+      - ninja-build
       - nlohmann-json3-dev
       - pkgconf
       - shared-mime-info
