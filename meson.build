@@ -1,5 +1,5 @@
 project('AppStream Generator', 'cpp',
-    meson_version : '>=1.0',
+    meson_version : '>=1.6',
     default_options : ['c_std=c23', 'cpp_std=c++23'],
     subproject_dir : 'contrib/subprojects',
     license : 'LGPL-3.0+',

@@ -25,5 +25,10 @@ if ascli_exe.found()
 endif
 
 # templates
-#install_subdir('data/templates/', install_dir: 'share/appstream') # FIXME: Doesn't handle dir symlinks correctly
-meson.add_install_script(source_root + '/contrib/setup/meson-install-templates.sh')
+install_subdir('templates',
+    install_dir: 'share/appstream',
+    exclude_files: ['.gitignore',
+                    'default/static/js/highlight/core.js',
+                    'default/static/js/uplot/uPlot.iife.js'],
+    follow_symlinks: false
+)
