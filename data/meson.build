@@ -29,6 +29,8 @@ install_subdir('templates',
     install_dir: 'share/appstream',
     exclude_files: ['.gitignore',
                     'default/static/js/highlight/core.js',
-                    'default/static/js/uplot/uPlot.iife.js'],
+                    'default/static/js/highlight/README.source.md',
+                    'default/static/js/uplot/uPlot.iife.js',
+                    'default/static/js/uplot/README.source.md'],
     follow_symlinks: false
 )
