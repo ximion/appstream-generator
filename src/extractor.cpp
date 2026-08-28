@@ -133,9 +133,9 @@ DataExtractor::DataExtractor(
         asc_compose_remove_flags(m_compose, ASC_COMPOSE_FLAG_STORE_SCREENSHOTS);
 
     if (m_conf->feature.screenshotVideos)
-        asc_compose_add_flags(m_compose, ASC_COMPOSE_FLAG_ALLOW_SCREENCASTS);
+        asc_compose_add_flags(m_compose, ASC_COMPOSE_FLAG_ALLOW_VIDEOS);
     else
-        asc_compose_remove_flags(m_compose, ASC_COMPOSE_FLAG_ALLOW_SCREENCASTS);
+        asc_compose_remove_flags(m_compose, ASC_COMPOSE_FLAG_ALLOW_VIDEOS);
 
     if (m_conf->feature.propagateMetaInfoArtifacts)
         asc_compose_add_flags(m_compose, ASC_COMPOSE_FLAG_PROPAGATE_ARTIFACTS);
