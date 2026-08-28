@@ -181,6 +181,7 @@ private:
     AscIconPolicy *m_iconPolicy;
 
     fs::path getVendorTemplateDir(const std::string &dir, bool allowRoot = false) const;
+    void ensureTmpDir() const;
 };
 
 } // namespace ASGenerator

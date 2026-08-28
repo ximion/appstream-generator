@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <filesystem>
+#include <mutex>
+#include <system_error>
 
 #include <appstream-compose.h>
 #include <glib.h>
@@ -608,6 +610,11 @@ void Config::loadFromFile(
     if (!feature.validate)
         LOG_WARNING(m_log, "MetaInfo validation has been disabled in configuration.");
 
+    // hand our temporary directory to appstream-compose. this has to happen before the
+    // media worker check below, which seals the global compose settings - every setter
+    // called after that point is refused with a warning.
+    ensureTmpDir();
+
     // sanity check to see whether we can process media at all: all image, font and video
     // handling is done by a helper process, and if we can not even launch it, no amount of
     // data processing will yield any usable result.
@@ -632,26 +639,50 @@ bool Config::isValid() const
 }
 
 /**
- * Get unique temporary directory to use during one generator run.
+ * Settle the unique temporary directory to use during one generator run and make
+ * appstream-compose use it as well.
+ *
+ * This has to happen before anything seals the global compose settings: once compose
+ * work has begun, `asc_globals_set_tmp_dir()` is refused with a warning and compose
+ * silently keeps using a directory of its own below /tmp.
+ *
+ * We create the directory right away on purpose. `asc_compose_run()` claims ownership
+ * of the temporary directory if it does not exist yet, and deletes it recursively once
+ * it is done - and we run one compose per package on several threads, all of them
+ * sharing this directory. Letting compose own it would have the first run to finish
+ * delete the scratch data of every other one still working.
  */
-fs::path Config::getTmpDir() const
+void Config::ensureTmpDir() const
 {
     static std::mutex tmpDirMutex;
     std::lock_guard<std::mutex> lock(tmpDirMutex);
 
-    if (m_tmpDir.empty()) {
-        std::string root;
-        if (cacheRootDir().empty())
-            root = "/tmp/";
-        else
-            root = cacheRootDir();
+    if (!m_tmpDir.empty())
+        return;
 
-        m_tmpDir = fs::path(root) / "tmp" / std::format("asgen-{}", Utils::randomString(8));
+    std::string root;
+    if (cacheRootDir().empty())
+        root = "/tmp/";
+    else
+        root = cacheRootDir();
 
-        // make appstream-compose internal functions aware of the new temp dir
-        asc_globals_set_tmp_dir(m_tmpDir.c_str());
-    }
+    m_tmpDir = fs::path(root) / "tmp" / std::format("asgen-{}", Utils::randomString(8));
 
+    std::error_code ec;
+    fs::create_directories(m_tmpDir, ec);
+    if (ec)
+        LOG_WARNING(m_log, "Unable to create temporary directory `{}`: {}", m_tmpDir.string(), ec.message());
+
+    // make appstream-compose internal functions aware of the new temp dir
+    asc_globals_set_tmp_dir(m_tmpDir.c_str());
+}
+
+/**
+ * Get unique temporary directory to use during one generator run.
+ */
+fs::path Config::getTmpDir() const
+{
+    ensureTmpDir();
     return m_tmpDir;
 }
 
