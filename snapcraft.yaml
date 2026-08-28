@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2020-2026 Matthias Klumpp <matthias@tenstral.net>
 # Copyright (C) 2020 Canonical Ltd
 #   Author: Iain Lane <iain@orangesquash.org.uk>
 #
@@ -34,25 +34,27 @@ platforms:
 
 apps:
   appstream-generator:
-    command: usr/bin/appstream-generator.wrapper
-    extensions: [gnome]
+    command: usr/bin/appstream-generator
     common-id: org.freedesktop.appstream.generator
     plugs:
       - network
       - home
-    environment:
-      GSETTINGS_SCHEMA_DIR: "$SNAP/usr/share/glib-2.0/schemas"
-      GIO_EXTRA_MODULES: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gio/modules"
+      - removable-media
 
 layout:
   /usr/share/appstream:
     bind: $SNAP/usr/share/appstream
-  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0:
-    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0
-  /usr/share/i18n:
-    bind: $SNAP/usr/share/i18n
+  # libappstream-compose spawns this helper for all image, font and video processing
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ascompose:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ascompose
   /usr/share/mime:
     bind: $SNAP/usr/share/mime
+  # the Ubuntu/Debian backends switch locales to read translated package
+  # descriptions, so glibc needs to find the locale data that we ship
+  /usr/share/i18n:
+    bind: $SNAP/usr/share/i18n
+  /usr/lib/locale:
+    bind: $SNAP/usr/lib/locale
 
 parts:
 
@@ -71,37 +73,29 @@ parts:
       - --buildtype=debugoptimized
       - -Dcompose=true
       - -Dapidocs=false
+      - -Dgir=false
+      - -Dman=false
+      - -Dbash-completion=false
       - -Dsystemd=false
       - -Ddisplay-detection=none
     build-packages:
       - build-essential
-      - docbook-xsl-ns
       - gettext
-      - gobject-introspection
       - gperf
       - itstool
       - libblake3-dev
       - libcurl4-gnutls-dev
-      - liblzma-dev
-      - libffi-dev
       - libfyaml-dev
-      - libgirepository1.0-dev
       - libglib2.0-dev
       - libstemmer-dev
-      - libvips-dev
       - libxml2-dev
       - libxmlb-dev
       - libzstd-dev
-      - xsltproc
-    stage-packages:
-     - libblake3-0
-     - libcurl3t64-gnutls
-     - libfyaml0
-     - libicu74
-     - libstemmer0d
-     - libvips42t64
-     - libxml2
-     - libzstd1
+      - libcairo2-dev
+      - libfontconfig1-dev
+      - libfreetype-dev
+      - libpango1.0-dev
+      - libvips-dev
 
   appstream-generator:
     source: .
@@ -133,130 +127,53 @@ parts:
     override-prime: |
       set -eux
       craftctl default
-      for dir in usr/lib/*/gdk-pixbuf-2.0; do
-        if [ -d "${dir}" ]; then
-          for subdir in "${dir}"/*; do
-            if [ -d "${subdir}" ] && [ -d "${subdir}/loaders" ]; then
-              GDK_PIXBUF_MODULEDIR="$(pwd)/${subdir}/loaders" "${dir}/gdk-pixbuf-query-loaders" > "${subdir}/loaders.cache"
-              sed -i "s,$(pwd),," "${subdir}/loaders.cache"
-            fi
-          done
-        fi
-      done
       update-mime-database -V usr/share/mime/
-      usr/lib/${CRAFT_ARCH_TRIPLET}/glib-2.0/glib-compile-schemas usr/share/glib-2.0/schemas
     after:
       - appstream
     build-packages:
-      - curl
-      - docbook-xsl-ns
-      - ffmpeg
+      - build-essential
       - catch2
+      - cmake
+      - docbook-xsl-ns
       - libarchive-dev
       - libbackward-cpp-dev
-      - libcairo2-dev
       - libcurl4-gnutls-dev
       - libdw-dev
-      - libfontconfig1-dev
-      - libfreetype6-dev
       - libfyaml-dev
       - libglib2.0-dev
+      - libicu-dev
       - liblmdb-dev
-      - libpango1.0-dev
-      - librsvg2-dev
       - libtbb-dev
-      - libunwind-dev
       - libxml2-dev
+      - nlohmann-json3-dev
       - pkgconf
+      - shared-mime-info
       - xsltproc
+    # Runtime libraries for everything in this snap, including the AppStream parts
     stage-packages:
-      - ffmpeg
-      - gdb
-      - glib-networking
+      - ffmpeg  # only needed for ffprobe, to inspect screenshot videos
       - libarchive13t64
-      - libc-bin
-      - libcairo2
+      - libblake3-0
       - libcurl3t64-gnutls
-      - libdatrie1
-      - libfontconfig1
-      - libfreetype6
+      - libdw1t64  # for backward-cpp stack traces
       - libfyaml0
       - libglib2.0-0t64
-      - libglib2.0-bin
-      - libglu1-mesa
-      - libglut3.12
-      - libgraphite2-3
-      - libharfbuzz0b
-      #- libjxl-gdk-pixbuf
+      - libicu78
       - liblmdb0
-      - libpango-1.0-0
-      - libpangocairo-1.0-0
-      - libpangoft2-1.0-0
-      - libpixman-1-0
-      - libpng16-16t64
-      - librsvg2-2
-      - librsvg2-common
-      - libslang2
-      - libthai0
-      - libx11-6
-      - libxau6
-      - libxcb-render0
-      - libxcb-shm0
-      - libxcb1
-      - libxdmcp6
-      - libxext6
-      - libxrender1
+      - libstemmer0d
+      - libtbb12
+      - libxml2-16
+      - libxmlb2
+      - libzstd1
       - locales
       - locales-all
       - optipng
       - shared-mime-info
-    prime:
-      - -usr/lib/*/libglib-*
-      - -usr/lib/*/libgio*
-      - -usr/lib/*/libgmodule*
-      - -usr/lib/*/libgobject*
-      - -usr/lib/*/libgthread*
-      - -usr/lib/*/pkgconfig/gio*
-      - -usr/lib/*/pkgconfig/glib-2.0.pc
-      - -usr/lib/*/pkgconfig/gmodule*
-      - -usr/lib/*/pkgconfig/gobject-2.0.pc
-      - -usr/lib/*/pkgconfig/gthread-2.0.pc
-
-  # This is a work-around for the broken Gdk Pixbuf in the Gnome SDK
-  #
-  #   https://github.com/ubuntu/gnome-sdk/issues/357
-  #
-  # that would manifest in appstream-generator's failure to generate
-  # screenshots with
-  #
-  #   ERROR: The currently used GdkPixbuf does not seem to support all image
-  #   formats we require to run normally (png/svg/jpeg). This may be a problem
-  #   with your installation of appstream-generator or gdk-pixbuf.
-  #
-  # This part merely ensures appstream-generator is run with
-  # GDK_PIXBUF_MODULE{DIR,_FILE} pointing to the libraries staged in this snap.
-  #
-  # If
-  #
-  #   https://github.com/canonical/snapcraft-desktop-integration/pull/41
-  #
-  # goes in, this part can be deleted and replaced by
-  #
-  #   - GDK_PIXBUF_MODULEDIR: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders"
-  #   - GDK_PIXBUF_MODULE_FILE: "$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-  #
-  # in apps.*.environment for the sake of elegance and clarity.
-  launcher:
-    plugin: nil
-    override-prime: |
-      mkdir -p $CRAFT_PRIME
-      launcher=$CRAFT_PRIME/usr/bin/appstream-generator.wrapper
-
-      cat > "$launcher" <<EOF
-      #!/bin/sh
-      export GDK_PIXBUF_MODULEDIR=\$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders
-      export GDK_PIXBUF_MODULE_FILE=\$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gdk-pixbuf-2.0/2.10.0/loaders.cache
-      \$SNAP/usr/bin/appstream-generator "\$@"
-      EOF
-
-      chmod +x "$launcher"
+      # image, font and video handling in the AppStream media worker.
+      # libvips needs to have PNG, JPEG-XL and (via librsvg) SVG support.
+      - libcairo2
+      - libfontconfig1
+      - libfreetype6
+      - libpango-1.0-0
+      - librsvg2-2
+      - libvips42t64
