@@ -43,8 +43,9 @@ RPMPackageIndex::RPMPackageIndex(const std::string &dir)
         throw std::runtime_error(std::format("Directory '{}' does not exist.", dir));
 
     const auto &conf = Config::get();
-    m_tmpRootDir = conf.getTmpDir() / fs::path(dir).filename();
-    ;
+    // NOTE: A trailing directory separator would make `filename()` return an empty
+    // path, so we normalize the archive root first.
+    m_tmpRootDir = conf.getTmpDir() / fs::path(dir).lexically_normal().filename();
 }
 
 RPMPackageIndex::~RPMPackageIndex() = default;
@@ -73,11 +74,67 @@ static std::string getXmlElemText(xmlNodePtr elem)
     if (!elem)
         return {};
 
-    for (xmlNodePtr child = elem->children; child; child = child->next) {
-        if (child->type == XML_TEXT_NODE && child->content)
-            return reinterpret_cast<const char *>(child->content);
+    // NOTE: We can not just look at the first text node here, as libxml2 may split
+    // the content of an element over multiple text/CDATA nodes.
+    xmlChar *content = xmlNodeGetContent(elem);
+    if (!content)
+        return {};
+
+    std::string result(reinterpret_cast<const char *>(content));
+    xmlFree(content);
+    return result;
+}
+
+/**
+ * Convert a plain-text RPM package description into AppStream description markup.
+ * Blank lines separate paragraphs, lines within a paragraph are hard-wrapped.
+ */
+static std::string packageDescToAppStreamDesc(const std::string &pkgDesc)
+{
+    std::string description;
+    bool paragraphOpen = false;
+    bool firstLine = true;
+
+    for (const auto &line : Utils::splitString(pkgDesc, '\n')) {
+        const auto trimmedLine = Utils::trimString(line);
+        if (trimmedLine.empty()) {
+            // an empty line starts a new paragraph
+            if (paragraphOpen) {
+                description += "</p>";
+                paragraphOpen = false;
+            }
+            continue;
+        }
+
+        if (!paragraphOpen) {
+            if (!description.empty())
+                description += "\n";
+            description += "<p>";
+            paragraphOpen = true;
+            firstLine = true;
+        }
+
+        if (firstLine)
+            firstLine = false;
+        else
+            description += " ";
+        description += Utils::escapeXml(Utils::sanitizeUtf8(trimmedLine));
     }
-    return {};
+
+    if (paragraphOpen)
+        description += "</p>";
+
+    return description;
+}
+
+void RPMPackageIndex::setPkgDescription(std::shared_ptr<RPMPackage> pkg, const std::string &pkgDesc)
+{
+    if (pkgDesc.empty())
+        return;
+
+    const auto desc = packageDescToAppStreamDesc(pkgDesc);
+    if (!desc.empty())
+        pkg->setDescription(desc, "C");
 }
 
 std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
@@ -209,7 +266,7 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                     } else if (std::strcmp(childName, "summary") == 0) {
                         pkg->setSummary(getXmlElemText(child), "C");
                     } else if (std::strcmp(childName, "description") == 0) {
-                        pkg->setDescription(getXmlElemText(child), "C");
+                        setPkgDescription(pkg, getXmlElemText(child));
                     } else if (std::strcmp(childName, "packager") == 0) {
                         pkg->setMaintainer(getXmlElemText(child));
                     } else if (std::strcmp(childName, "version") == 0) {
@@ -297,6 +354,10 @@ std::vector<std::shared_ptr<RPMPackage>> RPMPackageIndex::loadPackages(
                 for (xmlNodePtr fileElem = pkgElem->children; fileElem; fileElem = fileElem->next) {
                     if (fileElem->type == XML_ELEMENT_NODE
                         && std::strcmp(reinterpret_cast<const char *>(fileElem->name), "file") == 0) {
+                        // we are only interested in actual files, not in directories
+                        if (getXmlStrAttr(fileElem, "type") == "dir")
+                            continue;
+
                         std::string filePath = getXmlElemText(fileElem);
                         if (!filePath.empty())
                             contents.push_back(std::move(filePath));
