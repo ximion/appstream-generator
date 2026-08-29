@@ -484,55 +484,93 @@ void Engine::exportMetadata(
     else
         mediaExportDir = m_dstore->mediaExportPoolDir();
 
-    // Collect metadata, icons and hints for the given packages
-    std::unordered_map<std::string, std::string> cidGcidMap;
-    bool firstHintEntry = true;
-    std::mutex exportMutex;
+    // Collect metadata, icons and hints for the given packages.
+    // Every package writes into its own slot instead of appending to the output directly.
+    struct ComponentChunk {
+        std::string cid;  // component-ID, empty if the GCID was malformed
+        std::string gcid; // global component-ID
+        std::string data; // the serialized metadata document, empty if we have none
+    };
+
+    std::vector<std::vector<ComponentChunk>> pkgComponents(pkgs.size());
+    std::vector<std::string> pkgHints(pkgs.size());
 
     LOG_DEBUG(m_log, "Building final metadata and hints files.");
 
-    tbb::parallel_for_each(pkgs.begin(), pkgs.end(), [&](std::shared_ptr<Package> pkg) {
-        const auto &pkid = pkg->id();
-        auto gcids = m_dstore->getGCIDsForPackage(pkid);
-        if (!gcids.empty()) {
-            auto mres = m_dstore->getMetadataForPackage(m_conf->metadataType, pkid);
-            if (!mres.empty()) {
-                std::lock_guard<std::mutex> lock(exportMutex);
-                for (const auto &md : mres)
-                    mdataFile << md << "\n";
-            }
+    tbb::parallel_for(static_cast<std::size_t>(0), pkgs.size(), [&](std::size_t i) {
+        const auto &pkid = pkgs[i]->id();
 
-            for (const auto &gcid : gcids) {
-                {
-                    std::lock_guard<std::mutex> lock(exportMutex);
-                    const auto cid = Utils::getCidFromGlobalID(gcid);
-                    if (cid.has_value())
-                        cidGcidMap[cid.value()] = gcid;
-                    else
-                        LOG_ERROR(m_log, "Could not extract component-ID from GCID: {}", gcid);
-                }
+        const auto gcids = m_dstore->getGCIDsForPackage(pkid);
+        auto &components = pkgComponents[i];
+        components.reserve(gcids.size());
 
-                // Hardlink data from the pool to the suite-specific directories
-                if (useImmutableSuites) {
-                    const auto gcidMediaPoolPath = m_dstore->mediaExportPoolDir() / gcid;
-                    const auto gcidMediaSuitePath = mediaExportDir / gcid;
-                    if (!fs::exists(gcidMediaSuitePath) && fs::exists(gcidMediaPoolPath))
-                        Utils::copyDir(gcidMediaPoolPath.string(), gcidMediaSuitePath.string(), true);
-                }
+        for (const auto &gcid : gcids) {
+            const auto cid = Utils::getCidFromGlobalID(gcid);
+            if (!cid.has_value())
+                LOG_ERROR(m_log, "Could not extract component-ID from GCID: {}", gcid);
+
+            components.emplace_back(
+                cid.value_or(std::string{}), gcid, m_dstore->getMetadata(m_conf->metadataType, gcid));
+
+            // Hardlink data from the pool to the suite-specific directories
+            if (useImmutableSuites) {
+                const auto gcidMediaPoolPath = m_dstore->mediaExportPoolDir() / gcid;
+                const auto gcidMediaSuitePath = mediaExportDir / gcid;
+                if (!fs::exists(gcidMediaSuitePath) && fs::exists(gcidMediaPoolPath))
+                    Utils::copyDir(gcidMediaPoolPath.string(), gcidMediaSuitePath.string(), true);
             }
         }
 
-        const auto hres = m_dstore->getHints(pkid);
-        if (!hres.empty()) {
-            std::lock_guard<std::mutex> lock(exportMutex);
-            if (firstHintEntry) {
-                firstHintEntry = false;
-                hintsFile << Utils::rtrimString(hres);
-            } else {
-                hintsFile << ",\n" << Utils::rtrimString(hres);
-            }
-        }
+        pkgHints[i] = m_dstore->getHints(pkid);
     });
+
+    // merge the per-package results in a stable order: components by their component-ID, hints by package-ID
+    std::unordered_map<std::string, std::string> cidGcidMap;
+
+    std::vector<const ComponentChunk *> components;
+    components.reserve(pkgs.size());
+    for (const auto &chunks : pkgComponents) {
+        for (const auto &chunk : chunks)
+            components.push_back(&chunk);
+    }
+
+    // a malformed GCID has no component-ID to sort by, so fall back to the GCID itself
+    const auto sortKey = [](const ComponentChunk *chunk) -> const std::string & {
+        return chunk->cid.empty() ? chunk->gcid : chunk->cid;
+    };
+    std::ranges::stable_sort(components, [&](const auto *a, const auto *b) {
+        const auto &keyA = sortKey(a);
+        const auto &keyB = sortKey(b);
+        if (keyA != keyB)
+            return keyA < keyB;
+        return a->gcid < b->gcid;
+    });
+
+    for (const auto chunk : components) {
+        if (!chunk->data.empty())
+            mdataFile << chunk->data << "\n";
+        if (!chunk->cid.empty())
+            cidGcidMap[chunk->cid] = chunk->gcid;
+    }
+
+    std::vector<std::size_t> hintOrder;
+    hintOrder.reserve(pkgs.size());
+    for (std::size_t i = 0; i < pkgs.size(); ++i) {
+        if (!pkgHints[i].empty())
+            hintOrder.push_back(i);
+    }
+    std::sort(hintOrder.begin(), hintOrder.end(), [&](std::size_t a, std::size_t b) {
+        return pkgs[a]->id() < pkgs[b]->id();
+    });
+
+    bool firstHintEntry = true;
+    for (const auto i : hintOrder) {
+        if (firstHintEntry)
+            firstHintEntry = false;
+        else
+            hintsFile << ",\n";
+        hintsFile << Utils::rtrimString(pkgHints[i]);
+    }
 
     fs::path dataBaseFname;
     if (m_conf->metadataType == DataType::XML)
