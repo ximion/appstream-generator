@@ -26,7 +26,8 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
-#include <sstream>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_set>
 
@@ -454,20 +455,22 @@ void Engine::exportMetadata(
     const std::string &arch,
     const std::vector<std::shared_ptr<Package>> &pkgs)
 {
-    std::ostringstream mdataFile;
-    std::ostringstream hintsFile;
+    // the closing tag of an XML metadata document
+    static constexpr std::string_view XmlDocumentEnd = "</components>\n";
 
-    // Reserve some space for our data
-    mdataFile.str().reserve(pkgs.size() / 2);
-    hintsFile.str().reserve(512);
+    // we accumulate into plain strings rather than string streams: everything we append is
+    // already a string, and this lets us reserve the final size once we know it
+    std::string mdataFile;
+    std::string hintsFile;
 
-    // Prepare hints file
-    hintsFile << "[\n";
+    // prepare hints file
+    hintsFile += "[\n";
 
     LOG_INFO(m_log, "Exporting data for {} ({}/{})", suite.name, section, arch);
 
     // Add metadata document header
-    mdataFile << getMetadataHead(suite, section) << "\n";
+    mdataFile += getMetadataHead(suite, section);
+    mdataFile += '\n';
 
     // Prepare destination
     const auto dataExportDir = m_conf->dataExportDir / suite.name / section;
@@ -529,10 +532,17 @@ void Engine::exportMetadata(
 
     std::vector<const ComponentChunk *> components;
     components.reserve(pkgs.size());
+    std::size_t mdataSize = mdataFile.size();
     for (const auto &chunks : pkgComponents) {
-        for (const auto &chunk : chunks)
+        for (const auto &chunk : chunks) {
             components.push_back(&chunk);
+            if (!chunk.data.empty())
+                mdataSize += chunk.data.size() + 1; // the document plus its trailing newline
+        }
     }
+    if (m_conf->metadataType == DataType::XML)
+        mdataSize += XmlDocumentEnd.size();
+    mdataFile.reserve(mdataSize);
 
     // a malformed GCID has no component-ID to sort by, so fall back to the GCID itself
     const auto sortKey = [](const ComponentChunk *chunk) -> const std::string & {
@@ -547,8 +557,10 @@ void Engine::exportMetadata(
     });
 
     for (const auto chunk : components) {
-        if (!chunk->data.empty())
-            mdataFile << chunk->data << "\n";
+        if (!chunk->data.empty()) {
+            mdataFile += chunk->data;
+            mdataFile += '\n';
+        }
         if (!chunk->cid.empty())
             cidGcidMap[chunk->cid] = chunk->gcid;
     }
@@ -563,13 +575,19 @@ void Engine::exportMetadata(
         return pkgs[a]->id() < pkgs[b]->id();
     });
 
+    // an upper bound, as rtrimString() only ever shrinks its input
+    std::size_t hintsSize = hintsFile.size() + sizeof("\n]\n");
+    for (const auto i : hintOrder)
+        hintsSize += pkgHints[i].size() + 2; // the entry plus its ",\n" separator
+    hintsFile.reserve(hintsSize);
+
     bool firstHintEntry = true;
     for (const auto i : hintOrder) {
         if (firstHintEntry)
             firstHintEntry = false;
         else
-            hintsFile << ",\n";
-        hintsFile << Utils::rtrimString(pkgHints[i]);
+            hintsFile += ",\n";
+        hintsFile += Utils::rtrimString(pkgHints[i]);
     }
 
     fs::path dataBaseFname;
@@ -586,11 +604,10 @@ void Engine::exportMetadata(
 
     // Add the closing XML tag for XML metadata
     if (m_conf->metadataType == DataType::XML)
-        mdataFile << "</components>\n";
+        mdataFile += XmlDocumentEnd;
 
     // Compress metadata and save it to disk
-    auto mdataFileStr = mdataFile.str();
-    std::vector<std::uint8_t> mdataFileBytes(mdataFileStr.begin(), mdataFileStr.end());
+    std::vector<std::uint8_t> mdataFileBytes(mdataFile.begin(), mdataFile.end());
     compressAndSave(mdataFileBytes, dataBaseFname.string() + ".gz", ArchiveType::GZIP);
     compressAndSave(mdataFileBytes, dataBaseFname.string() + ".xz", ArchiveType::XZ);
 
@@ -607,11 +624,10 @@ void Engine::exportMetadata(
     LOG_INFO(m_log, "Writing hints for {}/{} [{}]", suite.name, section, arch);
 
     // Finalize the JSON hints document
-    hintsFile << "\n]\n";
+    hintsFile += "\n]\n";
 
     // Compress hints
-    auto hintsFileStr = hintsFile.str();
-    std::vector<std::uint8_t> hintsFileBytes(hintsFileStr.begin(), hintsFileStr.end());
+    std::vector<std::uint8_t> hintsFileBytes(hintsFile.begin(), hintsFile.end());
     compressAndSave(hintsFileBytes, hintsBaseFname.string() + ".gz", ArchiveType::GZIP);
     compressAndSave(hintsFileBytes, hintsBaseFname.string() + ".xz", ArchiveType::XZ);
 
