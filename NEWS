@@ -1,3 +1,74 @@
+Version 1.0.0
+~~~~~~~~~~~~~
+Released: 2026-08-28
+
+Notes:
+ * This release allows writing your configuration in YAML, switches the default icon format
+   to JPEG-XL (with an option to set it to PNG, globally or per-suite) and stops processing
+   TIFF/BMP/XPM images.
+
+ * Please note that media processing is now lightly sandboxed on Linux on machines that
+   have the Landlock LSM available. Setting the `ASC_NO_SANDBOX=1` environment variable
+   will disable the sandbox.
+
+Features:
+ * Store statistics data in the original JSON format again
+ * Serve statistics file in compressed form only
+ * Officially support YAML as configuration file format
+ * Port logging to Quill
+ * Port to the libappstream-compose 1.2
+ * Switch media image default to JPEG-XL
+ * Move statistics data into a separate database
+ * engine: Make produced icon tarballs deterministic and only contain one format
+ * Generate more detailed, fine-grained statistics for better overview pages
+ * Drop flot & jquery, vendor uplot & highlight.js, drop NPM
+ * Rebuild the HTML report pages on uPlot and the new statistics
+ * reports: html: Create nicer frontpage as well, using tiles for the suites
+ * reports: Don't reference index.html explicitly anymore in HTML reports
+ * reports: Make HTML pages a single-column layout and center it
+ * Ensure components and hints result files are always deterministic
+
+Bugfixes:
+ * freebsd: little fixes for the packageForFile() code path
+ * debian: Prevent deadlock when getFileData() triggers a package download
+ * debian: Use a checksum instead of mtime to detect index changes
+ * rpmmd: Fix package descriptions being dropped from generated metadata
+ * IconHandler: set the extra prefix when creating a builtin hicolor theme
+ * zarchive: Ensure parent directories are created for empty directories
+ * Don't append section to origin if it's empty
+ * Fix nondeterministic output when two packages claim the same metadata
+ * Streamline hint JSON creation to not duplicate the schema in two places
+ * Properly use a system copy of backward-cpp
+ * Ensure a UTF-8 locale is enforced properly on startup
+ * zarchive: Confine archive extraction to the destination directory
+ * zarchive: Make temporary extraction behave like reading the archive directly
+ * Fix icons randomly missing from the generated icon tarballs
+ * Mention the source icon name when an icon is rejected (instead of the target name)
+ * Fix memory leak in intermediate metadata validation
+ * Refuse to register empty GCIDs in the ownership registry
+ * Don't pile on error hints if a component was already rejected for icon issues
+ * report: Fix hint accounting and global component statistics
+ * Fix potential crash when statistics arrive out of order
+ * Copy base static data when publishing a HTML report for a different template
+ * Ensure the temp dir is safely created and shared with compose
+
+Miscellaneous:
+ * Double-quote strings in YAML header
+ * ci: Build on Debain & its derivatives using debspawn
+ * ci: Bump Ubuntu version, update dependencies
+ * docs: Port manpage to DocBook 5
+ * Add small helper webserver to test HTML output locally easier
+ * snap: Update to new core snap
+ * snap: Simplify packaging and make it build on core26
+ * snap: Amend libfyaml's install prefix
+ * snap: Fix missing screenshots due to GdkPixbuf error
+ * meson: Simplify template installation
+ * Add security policy
+ * Add fd.o code of conduct
+
+Contributors:
+ Gleb Popov, Joey Riches, Matthias Klumpp, Nathan Pratta Teodosio
+
 Version 0.10.2
 ~~~~~~~~~~~~~~
 Released: 2026-02-10
