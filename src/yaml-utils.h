@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2018-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -22,6 +22,21 @@
 #include <string>
 #include <vector>
 #include <memory>
+
+/* Workaround for libfyaml 0.9.6: When libfyaml.h is included from C++,
+ * libfyaml does not detect <stdatomic.h> (it only checks __STDC_VERSION__)
+ * and falls back to hand-written atomic macros which fail to compile.
+ * Both GCC and Clang ship a C++-usable <stdatomic.h>, so we pull it in here
+ * and point libfyaml at its standard code path instead. This is a no-op with
+ * libfyaml versions that get the detection right by themselves. */
+#include <stdatomic.h>
+#ifndef FY_HAVE_STDATOMIC_H
+#define FY_HAVE_STDATOMIC_H
+#endif
+#ifndef FY_HAVE_C11_ATOMICS
+#define FY_HAVE_C11_ATOMICS
+#endif
+
 #include <libfyaml.h>
 
 namespace ASGenerator
