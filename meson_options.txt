@@ -7,7 +7,15 @@ option('backward',
        value : true,
        description : 'Use stack trace pretty-printing using backward-cpp.'
 )
+option('man',
+       type : 'boolean',
+       value : true,
+       description : 'Build manual pages and install them'
+)
 
+#
+# For development
+#
 option('maintainer',
        type : 'boolean',
        value : false,
