@@ -61,9 +61,7 @@ parts:
   appstream:
     source: https://github.com/ximion/appstream.git
     source-type: git
-    # asgen master needs the unreleased AppStream 1.2 API, so track the
-    # development branch until v1.2.0 is tagged, then pin the tag again.
-    source-branch: main
+    source-tag: 'v1.2.0'
     plugin: meson
     build-environment:
       - DESTDIR: $CRAFT_PART_INSTALL
