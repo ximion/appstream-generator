@@ -27,6 +27,7 @@
 #include <appstream-compose.h>
 #include <glib.h>
 
+#include "defines.h"
 #include "config.h"
 #include "logging.h"
 #include "hintregistry.h"
@@ -95,6 +96,11 @@ DataExtractor::DataExtractor(
     // set CAInfo for any download operations performed by this AscCompose
     if (!m_conf->caInfo.empty())
         asc_compose_set_cainfo(m_compose, m_conf->caInfo.c_str());
+
+    // identify ourselves when downloading screenshots and other remote data
+#if AS_CHECK_VERSION(1, 2, 1)
+    asc_compose_set_user_agent(m_compose, ASGEN_USER_AGENT);
+#endif
 
     // set dummy locale unit for advanced locale processing
     if (m_l10nUnit)

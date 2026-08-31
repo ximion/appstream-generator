@@ -128,7 +128,7 @@ Downloader &Downloader::get()
 
 Downloader::Downloader()
     : m_log(getLogger("downloader")),
-      userAgent(std::format("appstream-generator/{}", std::string(ASGEN_VERSION))),
+      userAgent(ASGEN_USER_AGENT),
       caInfo(Config::get().caInfo)
 {
     // Initialize curl globally (should be done once per process)
