@@ -28,6 +28,7 @@
 #include <curl/curl.h>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -105,10 +106,12 @@ static size_t headerCallback(char *buffer, size_t size, size_t nitems, void *use
             dateStr.erase(0, dateStr.find_first_not_of(" \t"));
             dateStr.erase(dateStr.find_last_not_of(" \t\r\n") + 1);
 
-            // Parse RFC822 date format using strptime
+            // Parse RFC822 date format using strptime. HTTP dates are always GMT
+            // (RFC 9110 §5.6.7) and strptime does not apply the parsed zone, so this
+            // has to be converted with timegm().
             std::tm tm = {};
             if (strptime(dateStr.c_str(), "%a, %d %b %Y %H:%M:%S %Z", &tm)) {
-                auto timeT = std::mktime(&tm);
+                auto timeT = timegm(&tm);
                 if (timeT != -1) {
                     *(data->lastModified) = std::chrono::system_clock::from_time_t(timeT);
                 }

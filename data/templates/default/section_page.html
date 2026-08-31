@@ -142,6 +142,7 @@ function makeChart(container, data, seriesDefs, colors) {
     const opts = {
         width: container.clientWidth || 800,
         height: 240,
+        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), "Etc/UTC"),
         cursor: {
             /* both charts cover the same period, so hovering one should mark the other */
             sync: { key: "asgen-stats" },
@@ -155,7 +156,7 @@ function makeChart(container, data, seriesDefs, colors) {
         },
         axes: [axis, axis],
         series: [
-            { label: "Date" },
+            { label: "Date (UTC)" },
             ...present.map(def => ({
                 label: def.label,
                 stroke: colors[def.color],

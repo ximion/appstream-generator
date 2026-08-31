@@ -67,20 +67,11 @@ ReportGenerator::ReportGenerator(DataStore *db, StatsStore *sdb)
 
 void ReportGenerator::setupInjaContext(inja::json &context)
 {
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto *tm = std::localtime(&time_t);
+    // Reports are read from all over the world, and the machine that generated them
+    // may sit in any timezone at all, so every time we display is in UTC.
+    const auto now = std::chrono::floor<std::chrono::minutes>(std::chrono::system_clock::now());
 
-    auto timeStr = std::format(
-        "{:04d}-{:02d}-{:02d} {:02d}:{:02d} [{}]",
-        tm->tm_year + 1900,
-        tm->tm_mon + 1,
-        tm->tm_mday,
-        tm->tm_hour,
-        tm->tm_min,
-        tm->tm_zone ? tm->tm_zone : "UTC");
-
-    context["time"] = timeStr;
+    context["time"] = std::format("{:%Y-%m-%d %H:%M} [UTC]", now);
     context["generator_version"] = m_versionInfo;
     context["project_name"] = m_conf->projectName;
     context["root_url"] = m_conf->htmlBaseUrl;
