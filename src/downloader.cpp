@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2019-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <thread>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -43,8 +44,9 @@ namespace ASGenerator
 // Thread-local instance
 thread_local std::unique_ptr<Downloader> Downloader::instance_;
 
-DownloadException::DownloadException(const std::string &message)
-    : m_message(message)
+DownloadException::DownloadException(const std::string &message, bool permanent)
+    : m_message(message),
+      m_permanent(permanent)
 {
 }
 
@@ -53,10 +55,50 @@ const char *DownloadException::what() const noexcept
     return m_message.c_str();
 }
 
+bool DownloadException::isPermanent() const noexcept
+{
+    return m_permanent;
+}
+
 struct WriteCallbackData {
     std::ofstream *file;
     std::vector<std::uint8_t> *buffer;
 };
+
+struct CurlDeleter {
+    void operator()(CURL *handle) const noexcept
+    {
+        curl_easy_cleanup(handle);
+    }
+};
+using CurlHandle = std::unique_ptr<CURL, CurlDeleter>;
+
+/* We deliberately do not set CURLOPT_TIMEOUT: it limits the total duration of a transfer,
+ * so a package fetched while many other downloads share the same link may get aborted even
+ * though the connection is perfectly healthy. Detect transfers that have actually stalled
+ * instead, and let slow ones run to completion. */
+constexpr long CurlConnectTimeoutSec = 30;    // seconds spent waiting for the connection
+constexpr long CurlLowSpeedLimitBytesS = 100; // bytes/s below which a transfer counts as stalled
+constexpr long CurlLowSpeedTimeSec = 120;     // seconds it may stay below that before we give up
+
+// How long to wait before retrying a failed download. Doubles with every attempt, so that a
+// remote end which is briefly overloaded is not immediately hit with the next request.
+constexpr auto RetryBackoffBase = std::chrono::seconds(1);
+constexpr auto RetryBackoffMax = std::chrono::seconds(30);
+
+/**
+ * Discard whatever a failed attempt has already written, so a retry starts from a clean sink.
+ */
+static void resetWriteSink(WriteCallbackData &writeData)
+{
+    if (writeData.file) {
+        // a failed write leaves the stream in an error state, in which seeking is ignored
+        writeData.file->clear();
+        writeData.file->seekp(0);
+    }
+    if (writeData.buffer)
+        writeData.buffer->clear();
+}
 
 // Callback function for writing data to file or buffer
 static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userData)
@@ -80,6 +122,10 @@ static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *use
 struct HeaderCallbackData {
     bool httpsUrl;
     std::optional<std::chrono::system_clock::time_point> *lastModified;
+
+    /* Set when a header makes us abort the transfer (Exceptions must not propagate through
+     * curl's C frames, so the callback records the problem here) */
+    std::optional<std::string> error;
 };
 
 static size_t headerCallback(char *buffer, size_t size, size_t nitems, void *userData)
@@ -93,8 +139,10 @@ static size_t headerCallback(char *buffer, size_t size, size_t nitems, void *use
     // Check for HTTPS -> HTTP downgrade
     if (data->httpsUrl && header.starts_with("location:")) {
         auto pos = header.find("http:");
-        if (pos != std::string::npos)
-            throw DownloadException("HTTPS URL tried to redirect to a less secure HTTP URL.");
+        if (pos != std::string::npos) {
+            data->error = "HTTPS URL tried to redirect to a less secure HTTP URL.";
+            return 0; // makes curl abort the transfer
+        }
     }
 
     // Parse Last-Modified header
@@ -142,105 +190,105 @@ Downloader::Downloader()
     }
 }
 
-std::optional<std::chrono::system_clock::time_point> Downloader::downloadInternal(
+std::optional<std::chrono::system_clock::time_point> Downloader::performDownload(
     const std::string &url,
-    std::ofstream &dest,
+    WriteCallbackData &writeData)
+{
+    std::optional<std::chrono::system_clock::time_point> lastModified;
+
+    CurlHandle curl{curl_easy_init()};
+    if (!curl)
+        throw DownloadException("Failed to initialize curl");
+
+    HeaderCallbackData headerData{url.starts_with("https"), &lastModified};
+
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &writeData);
+    curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, headerCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &headerData);
+    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, userAgent.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT, CurlConnectTimeoutSec);
+    curl_easy_setopt(curl.get(), CURLOPT_LOW_SPEED_LIMIT, CurlLowSpeedLimitBytesS);
+    curl_easy_setopt(curl.get(), CURLOPT_LOW_SPEED_TIME, CurlLowSpeedTimeSec);
+
+    if (!caInfo.empty())
+        curl_easy_setopt(curl.get(), CURLOPT_CAINFO, caInfo.c_str());
+
+    const CURLcode res = curl_easy_perform(curl.get());
+    if (headerData.error)
+        throw DownloadException(*headerData.error, /* permanent */ true);
+    if (res != CURLE_OK)
+        throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
+
+    long responseCode;
+    curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &responseCode);
+
+    if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
+        if (responseCode == 0) {
+            // just to be safe, check whether we received data before assuming everything went fine
+            const bool gotData = writeData.file ? writeData.file->tellp() > 0
+                                                : (writeData.buffer && !writeData.buffer->empty());
+            if (!gotData)
+                throw DownloadException(
+                    std::format("No data was received from the remote end (Code: {}).", responseCode));
+        } else {
+            // A server error or an explicit request to slow down may well clear up by the next
+            // attempt. Any other status (most importantly 404) is the remote end's final word,
+            // and repeating the request would only delay callers that probe for optional files.
+            const bool transient = responseCode == 429 || responseCode >= 500;
+            throw DownloadException(std::format("HTTP request returned status code {}", responseCode), !transient);
+        }
+    }
+
+    return lastModified;
+}
+
+std::optional<std::chrono::system_clock::time_point> Downloader::downloadWithRetry(
+    const std::string &url,
+    WriteCallbackData &writeData,
     std::uint32_t maxTryCount)
 {
     if (!Utils::isRemote(url))
         throw DownloadException("URL is not remote");
 
-    std::optional<std::chrono::system_clock::time_point> lastModified;
-
-    /* the curl library is stupid; you can't make an AutoProtocol set timeouts */
     LOG_DEBUG(m_log, "Downloading {}", url);
 
-    CURL *curl = curl_easy_init();
-    if (!curl) {
-        throw DownloadException("Failed to initialize curl");
+    const std::uint32_t attempts = std::max<std::uint32_t>(maxTryCount, 1);
+    auto backoff = RetryBackoffBase;
+
+    for (std::uint32_t attempt = 1;; ++attempt) {
+        std::string error;
+        try {
+            auto lastModified = performDownload(url, writeData);
+            LOG_DEBUG(m_log, "Downloaded {}", url);
+            return lastModified;
+        } catch (const DownloadException &e) {
+            // the remote end gave a definitive answer, asking again will not change it
+            if (e.isPermanent())
+                throw;
+            error = e.what();
+        } catch (const std::exception &e) {
+            error = e.what();
+        }
+
+        if (attempt >= attempts)
+            throw DownloadException(attempts > 1 ? std::format("{} (after {} attempts)", error, attempts) : error);
+
+        LOG_DEBUG(
+            m_log,
+            "Failed to download {}: {} - retrying in {}s ({} {} left)",
+            url,
+            error,
+            backoff.count(),
+            attempts - attempt,
+            attempts - attempt > 1 ? "attempts" : "attempt");
+
+        resetWriteSink(writeData);
+        std::this_thread::sleep_for(backoff);
+        backoff = std::min(backoff * 2, RetryBackoffMax);
     }
-
-    try {
-        WriteCallbackData writeData{&dest, nullptr};
-        HeaderCallbackData headerData{url.starts_with("https"), &lastModified};
-
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCallback);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headerData);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
-
-        if (!caInfo.empty())
-            curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
-
-        CURLcode res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            if (maxTryCount > 0) {
-                LOG_DEBUG(
-                    m_log,
-                    "Failed to download {}, will retry {} more {}",
-                    url,
-                    maxTryCount,
-                    maxTryCount > 1 ? "times" : "time");
-                // Reset file position to beginning before retry to avoid appending to partial data
-                dest.seekp(0);
-
-                curl_easy_cleanup(curl);
-                return downloadInternal(url, dest, maxTryCount - 1);
-            } else {
-                curl_easy_cleanup(curl);
-                throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
-            }
-        }
-
-        long responseCode;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-
-        if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
-            if (responseCode == 0) {
-                // just to be safe, check whether we received data before assuming everything went fine
-                if (dest.tellp() == 0) {
-                    curl_easy_cleanup(curl);
-                    throw DownloadException(
-                        std::format("No data was received from the remote end (Code: {}).", responseCode));
-                }
-            } else {
-                curl_easy_cleanup(curl);
-                throw DownloadException(std::format("HTTP request returned status code {}", responseCode));
-            }
-        }
-
-        curl_easy_cleanup(curl);
-        LOG_DEBUG(m_log, "Downloaded {}", url);
-
-    } catch (const DownloadException &) {
-        curl_easy_cleanup(curl);
-        throw;
-    } catch (const std::exception &e) {
-        if (maxTryCount > 0) {
-            LOG_DEBUG(
-                m_log,
-                "Failed to download {}, will retry {} more {}",
-                url,
-                maxTryCount,
-                maxTryCount > 1 ? "times" : "time");
-            // Reset file position to beginning before retry to avoid appending to partial data
-            dest.seekp(0);
-
-            curl_easy_cleanup(curl);
-            return downloadInternal(url, dest, maxTryCount - 1);
-        } else {
-            curl_easy_cleanup(curl);
-            throw DownloadException(e.what());
-        }
-    }
-
-    return lastModified;
 }
 
 std::optional<std::chrono::system_clock::time_point> Downloader::download(
@@ -248,98 +296,15 @@ std::optional<std::chrono::system_clock::time_point> Downloader::download(
     std::ofstream &dFile,
     std::uint32_t maxTryCount)
 {
-    return downloadInternal(url, dFile, maxTryCount);
+    WriteCallbackData writeData{&dFile, nullptr};
+    return downloadWithRetry(url, writeData, maxTryCount);
 }
 
 std::vector<std::uint8_t> Downloader::download(const std::string &url, std::uint32_t maxTryCount)
 {
-    if (!Utils::isRemote(url))
-        throw DownloadException("URL is not remote");
-
     std::vector<std::uint8_t> buffer;
-    std::optional<std::chrono::system_clock::time_point> lastModified;
-
-    LOG_DEBUG(m_log, "Downloading {}", url);
-
-    CURL *curl = curl_easy_init();
-    if (!curl)
-        throw DownloadException("Failed to initialize curl");
-
-    try {
-        WriteCallbackData writeData{nullptr, &buffer};
-        HeaderCallbackData headerData{url.starts_with("https"), &lastModified};
-
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCallback);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headerData);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
-
-        if (!caInfo.empty()) {
-            curl_easy_setopt(curl, CURLOPT_CAINFO, caInfo.c_str());
-        }
-
-        CURLcode res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            if (maxTryCount > 0) {
-                LOG_DEBUG(
-                    m_log,
-                    "Failed to download {}, will retry {} more {}",
-                    url,
-                    maxTryCount,
-                    maxTryCount > 1 ? "times" : "time");
-
-                curl_easy_cleanup(curl);
-                return download(url, maxTryCount - 1);
-            } else {
-                curl_easy_cleanup(curl);
-                throw DownloadException(std::format("curl_easy_perform() failed: {}", curl_easy_strerror(res)));
-            }
-        }
-
-        long responseCode;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-
-        if (responseCode != 200 && responseCode != 301 && responseCode != 302) {
-            if (responseCode == 0) {
-                if (buffer.empty()) {
-                    curl_easy_cleanup(curl);
-                    throw DownloadException(
-                        std::format("No data was received from the remote end (Code: {}).", responseCode));
-                }
-            } else {
-                curl_easy_cleanup(curl);
-                throw DownloadException(std::format("HTTP request returned status code {}", responseCode));
-            }
-        }
-
-        curl_easy_cleanup(curl);
-        LOG_DEBUG(m_log, "Downloaded {}", url);
-
-    } catch (const DownloadException &) {
-        curl_easy_cleanup(curl);
-        throw;
-    } catch (const std::exception &e) {
-        if (maxTryCount > 0) {
-            LOG_DEBUG(
-                m_log,
-                "Failed to download {}, will retry {} more {}",
-                url,
-                maxTryCount,
-                maxTryCount > 1 ? "times" : "time");
-
-            curl_easy_cleanup(curl);
-            return download(url, maxTryCount - 1);
-        } else {
-            curl_easy_cleanup(curl);
-            throw DownloadException(e.what());
-        }
-    }
+    WriteCallbackData writeData{nullptr, &buffer};
+    downloadWithRetry(url, writeData, maxTryCount);
 
     return buffer;
 }
@@ -361,8 +326,14 @@ void Downloader::downloadFile(const std::string &url, const std::string &dest, s
         throw DownloadException(std::format("Failed to open destination file: {}", dest));
 
     try {
-        auto lastModified = downloadInternal(url, file, maxTryCount);
+        auto lastModified = download(url, file, maxTryCount);
+
+        // A retried download restarts at offset zero, but a shorter response would leave the
+        // tail of the previous attempt behind it, so cut the file down to what we just wrote.
+        const auto written = file.tellp();
         file.close();
+        if (written >= 0)
+            fs::resize_file(dest, static_cast<std::uintmax_t>(written));
 
         if (lastModified) {
             // Set file times if we have last-modified information

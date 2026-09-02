@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2025 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2019-2026 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -30,14 +30,30 @@
 namespace ASGenerator
 {
 
+/**
+ * Where a download puts the bytes it receives. Defined in the implementation.
+ */
+struct WriteCallbackData;
+
 class DownloadException : public std::exception
 {
 public:
-    explicit DownloadException(const std::string &message);
+    /**
+     * @param message   Description of the failure.
+     * @param permanent Whether the failure is a definitive answer from the remote end (such as
+     *                  an HTTP 404) that will not change if the download is attempted again.
+     */
+    explicit DownloadException(const std::string &message, bool permanent = false);
     const char *what() const noexcept override;
+
+    /**
+     * True if retrying this download can not succeed, so no further attempts should be made.
+     */
+    [[nodiscard]] bool isPermanent() const noexcept;
 
 private:
     std::string m_message;
+    bool m_permanent;
 };
 
 /**
@@ -54,7 +70,8 @@ public:
     Downloader();
 
     /**
-     * Download to file stream and return last-modified time if available
+     * Download to file stream and return last-modified time if available.
+     * `maxTryCount` is the number of times the download is attempted.
      */
     std::optional<std::chrono::system_clock::time_point> download(
         const std::string &url,
@@ -62,7 +79,8 @@ public:
         std::uint32_t maxTryCount = 4);
 
     /**
-     * Download to memory and return data as byte vector
+     * Download to memory and return data as byte vector.
+     * `maxTryCount` is the number of times the download is attempted.
      */
     std::vector<std::uint8_t> download(const std::string &url, std::uint32_t maxTryCount = 4);
 
@@ -81,7 +99,7 @@ public:
      *
      * Params:
      *      url = The URL to download.
-     *      maxTryCount = Number of times to retry on timeout.
+     *      maxTryCount = Number of times to attempt the download.
      */
     std::string downloadText(const std::string &url, std::uint32_t maxTryCount = 4);
 
@@ -90,7 +108,7 @@ public:
      *
      * Params:
      *      url = The URL to download.
-     *      maxTryCount = Number of times to retry on timeout.
+     *      maxTryCount = Number of times to attempt the download.
      */
     std::vector<std::string> downloadTextLines(const std::string &url, std::uint32_t maxTryCount = 4);
 
@@ -102,10 +120,22 @@ private:
     // thread local instance
     static thread_local std::unique_ptr<Downloader> instance_;
 
-    std::optional<std::chrono::system_clock::time_point> downloadInternal(
+    /**
+     * Run a single download attempt, throwing DownloadException if it did not succeed.
+     */
+    std::optional<std::chrono::system_clock::time_point> performDownload(
         const std::string &url,
-        std::ofstream &dest,
-        std::uint32_t maxTryCount = 5);
+        WriteCallbackData &writeData);
+
+    /**
+     * Download `url` into the sink described by `writeData`, retrying with an increasing
+     * delay between attempts. `maxTryCount` is the total number of attempts made.
+     * Failures which are permanent (see DownloadException::isPermanent) are not retried.
+     */
+    std::optional<std::chrono::system_clock::time_point> downloadWithRetry(
+        const std::string &url,
+        WriteCallbackData &writeData,
+        std::uint32_t maxTryCount);
 };
 
 } // namespace ASGenerator

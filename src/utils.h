@@ -202,7 +202,7 @@ bool isRemote(const std::string &uri);
  * Download or open `path` and return it as a string array.
  *
  * @param path The path to access.
- * @param maxTryCount Maximum number of retry attempts.
+ * @param maxTryCount Number of times a remote download is attempted.
  * @param downloader Downloader instance (can be null).
  * @return The data if successful.
  */
@@ -215,7 +215,7 @@ std::vector<std::string> getTextFileContents(
  * Download or open `path` and return it as a byte array.
  *
  * @param path The path to access.
- * @param maxTryCount Maximum number of retry attempts.
+ * @param maxTryCount Number of times a remote download is attempted.
  * @param downloader Downloader instance (can be null).
  * @return The data if successful.
  */
