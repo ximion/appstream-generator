@@ -82,7 +82,8 @@ enum class Backend {
     Archlinux,
     RpmMd,
     Alpinelinux,
-    FreeBSD
+    FreeBSD,
+    Nix
 };
 
 /**
