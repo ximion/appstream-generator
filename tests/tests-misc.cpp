@@ -264,24 +264,24 @@ TEST_CASE("Symlinks in archives resolve within the archive", "[zarchive]")
     const std::string padding(25 * 1024 * 1024, 'x');
 
     std::vector<TestArchiveEntry> entries = {
-        {"etc/",                    AE_IFDIR, {}                                  },
-        {"etc/machine-id",          AE_IFREG, "8f1_inArchive_1d370d045bbbe093e4\n"},
-        {"usr/share/data/",         AE_IFDIR, {}                                  },
-        {"usr/share/data/real.txt", AE_IFREG, "real data\n"                       },
-        {"usr/bin/",                AE_IFDIR, {}                                  },
+        {"etc/",                    AE_IFDIR, {}                        },
+        {"etc/hosts",               AE_IFREG, "in-archive\n"            },
+        {"usr/share/data/",         AE_IFDIR, {}                        },
+        {"usr/share/data/real.txt", AE_IFREG, "real data\n"             },
+        {"usr/bin/",                AE_IFDIR, {}                        },
         // an absolute symlink must resolve against the archive root, never against
         // the filesystem of the machine we are running on
-        {"usr/bin/link-absolute",   AE_IFLNK, "/etc/machine-id"              },
+        {"usr/bin/link-absolute",   AE_IFLNK, "/etc/hosts"              },
         // an ordinary relative symlink
-        {"usr/bin/link-relative",   AE_IFLNK, "../share/data/real.txt"     },
+        {"usr/bin/link-relative",   AE_IFLNK, "../share/data/real.txt"  },
         // a relative symlink with more ".." than there is depth: it must be clamped
         // to the archive root instead of escaping it
-        {"usr/bin/link-escaping",   AE_IFLNK, "../../../../../etc/machine-id"},
+        {"usr/bin/link-escaping",   AE_IFLNK, "../../../../../etc/hosts"},
     };
 
-    // sanity check: the host must have a different /etc/machine-id than the archive,
+    // sanity check: the host must have a different /etc/hosts than the archive,
     // otherwise this test can not tell the two apart
-    REQUIRE(fs::exists("/etc/machine-id"));
+    REQUIRE(fs::exists("/etc/hosts"));
 
     auto checkArchive = [&](const std::string &archive, bool optimizeReads) {
         ArchiveDecompressor ar;
@@ -289,10 +289,10 @@ TEST_CASE("Symlinks in archives resolve within the archive", "[zarchive]")
         ar.open(archive, fs::path(tmpdir) / (optimizeReads ? "extract-opt" : "extract-direct"));
 
         REQUIRE(asString(ar.readData("/usr/share/data/real.txt")) == "real data\n");
-        REQUIRE(asString(ar.readData("/etc/machine-id")) == "8f1_inArchive_1d370d045bbbe093e4\n");
+        REQUIRE(asString(ar.readData("/etc/hosts")) == "in-archive\n");
         REQUIRE(asString(ar.readData("/usr/bin/link-relative")) == "real data\n");
-        REQUIRE(asString(ar.readData("/usr/bin/link-absolute")) == "8f1_inArchive_1d370d045bbbe093e4\n");
-        REQUIRE(asString(ar.readData("/usr/bin/link-escaping")) == "8f1_inArchive_1d370d045bbbe093e4\n");
+        REQUIRE(asString(ar.readData("/usr/bin/link-absolute")) == "in-archive\n");
+        REQUIRE(asString(ar.readData("/usr/bin/link-escaping")) == "in-archive\n");
     };
 
     SECTION("Reading directly from the archive")
